@@ -33,6 +33,11 @@ void Npc::GoTo::save(Serialize& fout) const {
 
 void Npc::GoTo::load(Serialize& fin) {
   fin.read(npc, reinterpret_cast<uint8_t&>(flag), wp, pos);
+  //NOTE: no real need to version check
+  //if(fin.version()<53) {
+    if(flag==GoToHint::GT_EnemyG || flag==GoToHint::GT_EnemyA)
+      clear(); // not persistent flags, and should be cleared by FAI
+  //  }
   }
 
 Vec3 Npc::GoTo::target() const {
@@ -1382,9 +1387,8 @@ bool Npc::implWhirlTo(const Npc &oth, uint64_t dt) {
 bool Npc::implGoTo(uint64_t dt) {
   float dist = 0;
   if(go2.npc) {
-    if(go2.flag==GT_EnemyG)
-      dist = fghAlgo.prefferedAttackDistance(*this,*go2.npc,owner.script()); else
-      dist = fghAlgo.baseDistance(*this,*go2.npc,owner.script());
+    // dist = fghAlgo.prefferedAttackDistance(*this,*go2.npc,owner.script());
+    dist = fghAlgo.baseDistance(*this,*go2.npc,owner.script());
     } else {
     // use smaller threshold, to avoid edge-looping in script
     dist = MoveAlgo::closeToPointThreshold*0.5f;
@@ -1455,13 +1459,12 @@ bool Npc::implAttack(uint64_t dt) {
   if(currentTarget->isDown()){
     // NOTE: don't clear internal target, to make scripts happy
     // currentTarget=nullptr;
-    if(go2.flag==GT_EnemyA || go2.flag==GT_EnemyG) {
-      stopWalking();
-      go2.clear();
-      }
     fghAlgo.onClearTarget();
     return false;
     }
+
+  if(!fghAlgo.hasInstructions())
+    return false;
 
   const auto bs = bodyStateMasked();
   if(bs==BS_LIE) {
@@ -1479,9 +1482,6 @@ bool Npc::implAttack(uint64_t dt) {
     mvAlgo.tick(dt,MoveAlgo::FaiMove);
     return true;
     }
-
-  if(!fghAlgo.hasInstructions())
-    return false;
 
   const auto ws  = weaponState();
   const auto act = fghAlgo.nextFromQueue(*this,*currentTarget,owner.script());
@@ -1562,6 +1562,10 @@ bool Npc::implAttack(uint64_t dt) {
       }
 
     if(ws==WeaponState::Mage) {
+      if(bs==BS_RUN) {
+        setAnim(Npc::Anim::Idle);
+        return false;
+        }
       setAnimRotate(0);
       if(!beginCastSpell())
         return false;
@@ -1647,32 +1651,28 @@ bool Npc::implAttack(uint64_t dt) {
 
   if(act==FightAlgo::MV_MOVEA || act==FightAlgo::MV_MOVEG ||
      act==FightAlgo::MV_TURNA || act==FightAlgo::MV_TURNG) {
-    go2.set(currentTarget,(act==FightAlgo::MV_MOVEG || act==FightAlgo::MV_TURNG) ?
-                             GoToHint::GT_EnemyG : GoToHint::GT_EnemyA);
-
-    float dist = 0;
-    if(act==FightAlgo::MV_MOVEG || act==FightAlgo::MV_TURNG)
-      dist = fghAlgo.prefferedGDistance(*this,*go2.npc,owner.script()); else
-      dist = fghAlgo.prefferedAttackDistance(*this,*go2.npc,owner.script());
-
-    static float padding = 0;
-    dist = std::max(dist-padding,0.f);
-
-    if(!(mvAlgo.checkLastBounce() && implTurnTo(*currentTarget,dt)) && !implGoTo(dt)) {
-      if(act!=FightAlgo::MV_TURNA && act!=FightAlgo::MV_TURNG) {
-        stopWalkAnimation();
-        }
+    if(!(mvAlgo.checkLastBounce() && implTurnTo(*currentTarget,dt))) {
+      go2.set(currentTarget,(act==FightAlgo::MV_MOVEG || act==FightAlgo::MV_TURNG) ?
+                               GoToHint::GT_EnemyG : GoToHint::GT_EnemyA);
+      implGoTo(dt);
       go2.clear();
-      visual.setAnimRotate(*this, 0);
+      }
+
+    const bool isGRange = fghAlgo.isInGRange(*this, *currentTarget, owner.script());
+    const bool isWRange = fghAlgo.isInWRange(*this, *currentTarget, owner.script());
+    const bool isFocus  = fghAlgo.isInFocusAngle(*this, *currentTarget);
+
+    if(isWRange && isFocus) {
+      if(act==FightAlgo::MV_TURNA || act==FightAlgo::MV_TURNG)
+        stopWalkAnimation();
       fghAlgo.consumeAction();
       aiState.loopNextTime = owner.tickCount(); // force ZS_MM_Attack_Loop call
       implAiTick(dt);
       return true;
       }
 
-    const bool isClose = mvAlgo.isClose(currentTarget->centerPosition(), dist);
-    const bool canHit  = fghAlgo.isInFocusAngle(*this, *currentTarget);
-    if(isClose && canHit) {
+    if(isGRange && isFocus) {
+      visual.setAnimRotate(*this, 0);
       fghAlgo.consumeAction();
       aiState.loopNextTime = owner.tickCount(); // force ZS_MM_Attack_Loop call
       implAiTick(dt);
@@ -2172,6 +2172,8 @@ void Npc::tick(uint64_t dt) {
   static int  kId = -1;
   if(dbg && !isPlayer() && hnpc->id!=kId)
     return;
+
+  assert(go2.flag!=GoToHint::GT_EnemyG && go2.flag!=GoToHint::GT_EnemyA);
 
   tickAnimationTags();
 

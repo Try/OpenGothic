@@ -33,10 +33,10 @@ class SaveGameHeader;
 class Serialize {
   public:
     enum Version : uint16_t {
-      Current    = 52,
+      Current    = 53,
       MinVersion = 36,
 
-      Last_2025  = 52,
+      Last_2025  = 53,
       Last_2024  = 49,
       Last_2023  = 46,
       Last_2022  = 41,

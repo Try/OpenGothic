@@ -52,11 +52,11 @@ void FightAlgo::fillQueue(Npc &npc, Npc &tg, GameScript& owner) {
 
   if(ws==WeaponState::Fist || ws==WeaponState::W1H || ws==WeaponState::W2H) {
     if(isInWRange(npc,tg,owner)) {
-      if(focus)
-        if(fillQueue(owner,ai.my_w_focus))
-          return;
       if(focus && npc.bodyStateMasked()==BS_RUN)
         if(fillQueue(owner,ai.my_w_runto))
+          return;
+      if(focus && npc.bodyStateMasked()!=BS_RUN)
+        if(fillQueue(owner,ai.my_w_focus))
           return;
       if(fillQueue(owner,ai.my_w_nofocus))
         return;
@@ -66,7 +66,7 @@ void FightAlgo::fillQueue(Npc &npc, Npc &tg, GameScript& owner) {
       if(focus && npc.bodyStateMasked()==BS_RUN)
         if(fillQueue(owner,ai.my_g_runto))
           return;
-      if(focus)
+      if(focus && npc.bodyStateMasked()!=BS_RUN)
         if(fillQueue(owner,ai.my_g_focus))
           return;
       }
