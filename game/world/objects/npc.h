@@ -72,6 +72,13 @@ class Npc final {
       CS_Emit_Last   = 63,
       };
 
+    enum BeginCastResult : uint8_t {
+      BC_No,
+      BC_NoMana,
+      BC_Cast,
+      BC_Invest,
+      };
+
     using Anim = AnimationSolver::Anim;
 
     Npc(World &owner, size_t instance, std::string_view waypoint, ProcessPolicy aiPolicy = AiNormal);
@@ -262,7 +269,7 @@ class Npc final {
     bool      swingSwordL();
     bool      swingSwordR();
     bool      blockSword();
-    bool      beginCastSpell();
+    auto      beginCastSpell() -> BeginCastResult;
     void      endCastSpell(bool playerCtrl = false);
     void      setActiveSpellInfo(int32_t info);
     int32_t   activeSpellLevel() const;

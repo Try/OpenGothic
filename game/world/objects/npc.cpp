@@ -1567,7 +1567,8 @@ bool Npc::implAttack(uint64_t dt) {
         return false;
         }
       setAnimRotate(0);
-      if(!beginCastSpell())
+      const auto cast = beginCastSpell();
+      if(cast==BeginCastResult::BC_No)
         return false;
       fghAlgo.consumeAction();
       }
@@ -3677,20 +3678,20 @@ bool Npc::blockSword() {
   // return setAnimAngGet(Anim::AttackBlock,calcAniComb())!=nullptr;
   }
 
-bool Npc::beginCastSpell() {
+Npc::BeginCastResult Npc::beginCastSpell() {
   if(castLevel!=CS_NoCast)
-    return false;
+    return BeginCastResult::BC_No;
 
   if(!isStanding())
-    return false;
+    return BeginCastResult::BC_No;
 
   auto active=invent.activeWeapon();
   if(active==nullptr)
-    return false;
+    return BeginCastResult::BC_No;
 
   if(attribute(ATR_MANA)<=0) {
     setAnim(Anim::MagNoMana);
-    return false;
+    return BeginCastResult::BC_NoMana;
     }
 
   // castLevel        = CS_Invest_0;
@@ -3701,34 +3702,34 @@ bool Npc::beginCastSpell() {
 
   const SpellCode code = SpellCode(owner.script().invokeMana(*this,currentTarget,manaInvested));
   switch(code) {
-    case SpellCode::SPL_SENDSTOP:
-    case SpellCode::SPL_DONTINVEST:
+    case SPL_SENDSTOP:
+    case SPL_DONTINVEST:
       setAnim(Anim::MagNoMana);
       castLevel        = CS_NoCast;
       currentSpellCast = size_t(-1);
       castNextTime     = 0;
-      return false;
-    case SpellCode::SPL_STATUS_CANINVEST_NO_MANADEC:
-    case SpellCode::SPL_RECEIVEINVEST:
-    case SpellCode::SPL_NEXTLEVEL: {
+      return BeginCastResult::BC_NoMana;
+    case SPL_STATUS_CANINVEST_NO_MANADEC:
+    case SPL_RECEIVEINVEST:
+    case SPL_NEXTLEVEL: {
       ++manaInvested;
       auto ani = owner.script().spellCastAnim(*this,*active);
       if(!visual.startAnimSpell(*this,ani,true))
         Log::d("Couldn't start animation for spell '",currentSpellCast,"'");
       castLevel = CS_Invest_0;
-      return true;
+      return BeginCastResult::BC_Invest;
       }
-    case SpellCode::SPL_SENDCAST: {
+    case SPL_SENDCAST: {
       castLevel = CS_Cast_0;
-      return false;
+      return BeginCastResult::BC_Cast;
       }
     default:
       Log::d("unexpected Spell_ProcessMana result: '",int(code),"' for spell '",currentSpellCast,"'");
       endCastSpell();
-      return false;
+      return BeginCastResult::BC_No;
     }
 
-  return true;
+  return BeginCastResult::BC_No;
   }
 
 bool Npc::tickCast(uint64_t dt) {

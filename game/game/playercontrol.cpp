@@ -782,7 +782,7 @@ void PlayerControl::implMove(uint64_t dt) {
         return;
         }
       case WeaponState::Mage: {
-        casting = pl.beginCastSpell();
+        casting = (pl.beginCastSpell()==Npc::BC_Invest);
         if(!casting)
           actrl[ActForward] = false;
         return;
