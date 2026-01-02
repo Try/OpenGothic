@@ -23,7 +23,6 @@ class ProtoMesh;
 class Skeleton;
 class Animation;
 class AttachBinder;
-class PhysicMeshShape;
 class PfxEmitterMesh;
 class GthFont;
 

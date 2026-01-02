@@ -593,6 +593,7 @@ void PlayerControl::implMove(uint64_t dt) {
   Npc&  pl        = *w->player();
   float rot       = pl.rotation();
   float rotY      = pl.rotationY();
+  // 100 / 200 according to some sources, yet my mesures are 90/180
   float rspeed    = (pl.weaponState()==WeaponState::NoWeapon ? 90.f : 180.f)*(float(dt)/1000.f);
   auto  ws        = pl.weaponState();
   auto  bs        = pl.bodyStateMasked();

@@ -16,6 +16,7 @@
 #include "resources.h"
 
 class PackedMesh;
+class PhysicMeshShape;
 
 class ProtoMesh {
   public:
