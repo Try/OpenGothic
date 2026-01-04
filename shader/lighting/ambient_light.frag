@@ -79,7 +79,7 @@ void main() {
   // return;
 
   // night shift
-  color += purkinjeShift(color); //TODO: use it globally at tonemapping
+  // color += purkinjeShift(color, 2.5); //TODO: use it globally at tonemapping
   color *= scene.exposure;
 
   outColor = vec4(color, 1);

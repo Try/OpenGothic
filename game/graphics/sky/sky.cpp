@@ -56,7 +56,7 @@ Sky::Sky(const SceneGlobals& scene, const World& world)
     }
 
   GSunIntensity  = DirectSunLux;
-  GMoonIntensity = DirectMoonLux*4;
+  GMoonIntensity = DirectMoonLux;
 
   /*
     zSunName=unsun5.tga

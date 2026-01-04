@@ -818,7 +818,7 @@ void Renderer::drawSunMoon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const 
   float w  = 0;
   m.project(dx.x, dx.y, dx.z, w);
 
-  if(dx.z<0)
+  if(dx.z<=0)
     return;
 
   struct Push {
@@ -833,13 +833,13 @@ void Renderer::drawSunMoon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const 
   push.size.x  = 2.f/float(zbuffer.w());
   push.size.y  = 2.f/float(zbuffer.h());
 
-  const float intencity      = 0.07f;
   const float GSunIntensity  = wview.sky().sunIntensity();
   const float GMoonIntensity = wview.sky().moonIntensity();
 
   const float scale          = internalResolutionScale();
   const float sunSize        = settings.sunSize  * scale;
   const float moonSize       = settings.moonSize * scale;
+  const float intencity      = isSun ? 0.07f : 0.4f;
 
   push.size          *= isSun ? sunSize : (moonSize*0.25f);
   push.GSunIntensity  = isSun ? (GSunIntensity*intencity) : (GMoonIntensity*intencity);

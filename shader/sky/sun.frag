@@ -5,6 +5,7 @@
 
 #include "scene.glsl"
 #include "common.glsl"
+#include "lighting/tonemapping.glsl"
 
 layout(binding = 0, std140) uniform UboScene {
   SceneDesc scene;
@@ -50,9 +51,14 @@ void main() {
   const vec3 view = normalize(pos1);
 
   const vec4 clr = texture(sunSprite, uv);
-  vec3 lum = clr.rgb;
+  vec3 lum;
   if(push.isSun!=0) {
+    //lum = srgbDecode(clr.rgb);
+    lum = clr.rgb;
+    //lum = textureEmmisive(clr.rgb)*1.1;
     lum *= textureLUT(tLUT, pos, push.sunDir).rgb;
+    } else {
+    lum = textureEmmisive(clr.rgb);
     }
 
   lum *= push.GSunIntensity;

@@ -7,6 +7,7 @@
 #include "scene.glsl"
 #include "common.glsl"
 #include "lighting/tonemapping.glsl"
+#include "lighting/purkinje_shift.glsl"
 
 #include "upscale/lanczos.glsl"
 
@@ -68,44 +69,9 @@ vec3 _purkinjeShift(vec3 c) {
   return rgb_gain;
   }
 
-// https://advances.realtimerendering.com/s2021/jpatry_advances2021/index.html#/167/0/1
-vec3 purkinjeShift(vec3 rgbLightHdr) {
-  const mat4x3 matLmsrFromRgb = mat4x3(
-        0.31670331, 0.70299344, 0.08120592,
-        0.10129085, 0.72118661, 0.12041039,
-        0.01451538, 0.05643031, 0.53416779,
-        0.01724063, 0.60147464, 0.40056206);
-
-  const mat3 matRgbFromLmsGain = mat3(
-        4.57829597, -4.48749114,  0.31554848,
-        -0.63342362,  2.03236026, -0.36183302,
-        -0.05749394, -0.09275939,  1.90172089);
-
-  vec4 lmsr    = rgbLightHdr * matLmsrFromRgb;
-  vec3 lmsGain = 1.0/sqrt(1.0 + lmsr.xyz);
-  return (lmsGain * matRgbFromLmsGain) * lmsr.w;
-  }
-
 float luminance(vec3 rgb) {
   const vec3 W = vec3(0.2125, 0.7154, 0.0721);
   return dot(rgb, W);
-  }
-
-// Valid from 1000 to 40000 K (and additionally 0 for pure full white)
-vec3 colorTemperatureToRGB(const in float temperature){
-  // return vec3(clamp(temperature/64000, 0,1));
-  // Values from: http://blenderartists.org/forum/showthread.php?270332-OSL-Goodness&p=2268693&viewfull=1#post2268693
-  mat3 m;
-  if(temperature <= 6500.0) {
-    m = mat3(vec3(0.0, -2902.1955373783176,   -8257.7997278925690),
-             vec3(0.0,  1669.5803561666639,    2575.2827530017594),
-             vec3(1.0,     1.3302673723350029,    1.8993753891711275));
-    } else {
-    m = mat3(vec3( 1745.0425298314172,      1216.6168361476490,     -8257.7997278925690),
-             vec3(-2666.3474220535695,     -2173.1012343082230,      2575.2827530017594),
-             vec3(    0.55995389139931482,     0.70381203140554553,     1.8993753891711275));
-    }
-  return mix(clamp(vec3(m[0] / (vec3(clamp(temperature, 1000.0, 40000.0)) + m[1]) + m[2]), vec3(0.0), vec3(1.0)), vec3(1.0), smoothstep(1000.0, 0.0, temperature));
   }
 
 void main() {
@@ -129,15 +95,12 @@ void main() {
   }
 
   {
-    // outColor = vec4(colorTemperatureToRGB(luminance(color) / push.exposure), 1);
-    // return;
-  }
-
-  {
     // night shift
     // const vec3 shift = purkinjeShift(color/exposure)*exposure;
-    // color += shift;
-    // color += vec3(0,0, shift.b);
+    const vec3 shift = purkinjeShift(color/exposure, 1.5)*exposure;
+    color += shift;
+    // in vanilla game night time attenuated as rgb{134 104 125}
+    // color += vec3(shift.r, 0, shift.b);
   }
 
   color    = gameTonemap(color, push.settings);

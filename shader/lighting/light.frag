@@ -121,8 +121,7 @@ void main() {
   const vec3 d      = texelFetch(gbufDiffuse, ivec2(gl_FragCoord.xy), 0).xyz;
   const vec3 linear = textureAlbedo(d.rgb);
 
-  vec3 color = linear*color*light*Fd_Lambert*0.1;
-  //color *= scene.exposure;
+  vec3 ret = linear * (color * light) * max(2.0, scene.exposure) * Fd_Lambert * 0.1;
 
-  outColor = vec4(color,0.0);
+  outColor = vec4(ret, 0.0);
   }

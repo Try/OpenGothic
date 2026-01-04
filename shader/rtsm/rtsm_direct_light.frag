@@ -29,7 +29,7 @@ void main() {
   const ivec2 fragCoord = ivec2(gl_FragCoord.xy);
 
   const vec4  diff        = texelFetch(gbufDiffuse, fragCoord, 0);
-  const float shadow      = texelFetch(shadowmask, fragCoord, 0).r;
+  const float shadow      = texelFetch(shadowmask,  fragCoord, 0).r;
   const vec3  localLights = texelFetch(directLight, fragCoord, 0).rgb;
   const float light       = 1;
 
@@ -39,5 +39,5 @@ void main() {
 
   const vec3  local       = linear * localLights;
 
-  outColor = vec4(luminance * scene.exposure + local, 1);
+  outColor = vec4(luminance * scene.exposure + local * max(2.0, scene.exposure), 1);
   }
