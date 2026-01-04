@@ -967,7 +967,7 @@ void MdlVisual::stopDlgAnim(Npc& npc) {
     skInst->stopAnim(buf);
     }
 
-  if(npc.processPolicy()<=Npc::AiNormal) {
+  if(npc.processPolicy()<=NpcProcessPolicy::AiNormal) {
     // avoid PCI traffic on distant npc's
     startFaceAnim(npc,"VISEME",1,0);
     }

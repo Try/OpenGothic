@@ -126,7 +126,7 @@ enum Guild: uint32_t {
   };
 
 enum {
-  MAX_AI_USE_DISTANCE=150
+  MAX_AI_USE_DISTANCE = 150
   };
 
 enum {
@@ -501,6 +501,13 @@ inline const char* MaterialGroupNames[] = {
   "EARTH",
   "WATER",
   "SNOW",
+  };
+
+enum class NpcProcessPolicy : uint8_t {
+  Player,
+  AiNormal,
+  AiFar,
+  AiFar2
   };
 
 enum AiStateCode : int32_t {

@@ -457,6 +457,7 @@ class GameScript final {
     zenkit::DaedalusVm                                          vm;
     int32_t                                                     vmLang = -1;
     std::mt19937                                                randGen;
+    NpcProcessPolicy                                            aiProcessPolicy = NpcProcessPolicy::AiNormal;
 
     std::unique_ptr<DirectMemory>                               dma;
 
@@ -496,4 +497,6 @@ class GameScript final {
 
     zenkit::IFocus                                              cFocusNorm,cFocusMelee,cFocusRange,cFocusMage;
     std::shared_ptr<zenkit::IGuildValues>                       cGuildVal;
+
+  friend struct ScopeCtx;
   };

@@ -166,7 +166,7 @@ struct Npc::TransformBack {
   };
 
 
-Npc::Npc(World &owner, size_t instance, std::string_view waypoint, ProcessPolicy aiPolicy)
+Npc::Npc(World &owner, size_t instance, std::string_view waypoint, NpcProcessPolicy aiPolicy)
   :owner(owner),aiPolicy(aiPolicy),mvAlgo(*this) {
   outputPipe     = owner.script().openAiOuput();
 
@@ -411,7 +411,7 @@ bool Npc::performOutput(const AiQueue::AiAction &act) {
     return false;
   if(aiOutputBarrier>owner.tickCount() && act.target==this && !isPlayer())
     return false;
-  if(aiPolicy>=AiFar)
+  if(aiPolicy>=NpcProcessPolicy::AiFar)
     return true; // don't waste CPU on far-away svm-talks
   //if(act.act!=AI_OutputSvmOverlay && bodyStateMasked()!=BS_STAND)
   //  return false;
@@ -515,10 +515,10 @@ void Npc::clearSpeed() {
   mvAlgo.clearSpeed();
   }
 
-void Npc::setProcessPolicy(ProcessPolicy t) {
+void Npc::setProcessPolicy(NpcProcessPolicy t) {
   if(aiPolicy==t)
     return;
-  if(aiPolicy==ProcessPolicy::Player)
+  if(aiPolicy==NpcProcessPolicy::Player)
     runAng = 0;
   aiPolicy=t;
   }
@@ -528,7 +528,7 @@ void Npc::setWalkMode(WalkBit m) {
   }
 
 bool Npc::isPlayer() const {
-  return aiPolicy==Npc::ProcessPolicy::Player;
+  return aiPolicy==NpcProcessPolicy::Player;
   }
 
 bool Npc::startClimb(JumpStatus jump) {
@@ -1192,7 +1192,7 @@ void Npc::changeAttribute(Attribute a, int32_t val, bool allowUnconscious) {
 
   if(a==ATR_HITPOINTS) {
     checkHealth(true,allowUnconscious);
-    if(aiPolicy==AiFar || aiPolicy==AiFar2)
+    if(aiPolicy==NpcProcessPolicy::AiFar || aiPolicy==NpcProcessPolicy::AiFar2)
       aiState.started = true;
     }
   }
@@ -1996,7 +1996,7 @@ void Npc::takeDrownDamage() {
   }
 
 Npc *Npc::updateNearestEnemy() {
-  if(aiPolicy!=ProcessPolicy::AiNormal)
+  if(aiPolicy!=NpcProcessPolicy::AiNormal)
     return nullptr;
 
   Npc*  ret  = nullptr;
@@ -2022,7 +2022,7 @@ Npc *Npc::updateNearestEnemy() {
   }
 
 Npc* Npc::updateNearestBody() {
-  if(aiPolicy!=ProcessPolicy::AiNormal)
+  if(aiPolicy!=NpcProcessPolicy::AiNormal)
     return nullptr;
 
   Npc*  ret  = nullptr;
@@ -2575,7 +2575,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
     case AI_OutputSvm:
     case AI_OutputSvmOverlay:{
       if(performOutput(act)) {
-        if(aiPolicy!=ProcessPolicy::AiFar2) {
+        if(aiPolicy!=NpcProcessPolicy::AiFar2) {
           uint64_t msgTime = 0;
           if(act.act==AI_Output) {
             msgTime = owner.script().messageTime(act.s0);
@@ -2745,7 +2745,8 @@ bool Npc::startState(ScriptFn id, std::string_view wp, gtime endTime, bool noFin
       // NOTE: B_AssessQuietSound can cause soft-lock on npc without this
       aiState.started = false;
       }
-    hnpc->wp = wp;
+    if(!wp.empty())
+      hnpc->wp = wp;
     return true;
     }
 
@@ -2760,7 +2761,7 @@ bool Npc::startState(ScriptFn id, std::string_view wp, gtime endTime, bool noFin
       setPerceptionDisable(PercType(i));
   }
 
-  if(wp=="TOT" && aiPolicy!=Player && aiPolicy!=AiNormal) {
+  if(wp=="TOT" && aiPolicy!=NpcProcessPolicy::Player && aiPolicy!=NpcProcessPolicy::AiNormal) {
     // workaround for Pedro removal script
     auto& point = owner.deadPoint();
     attachToPoint(nullptr);
@@ -2831,7 +2832,7 @@ void Npc::tickRoutine() {
       }
     else if(hnpc->start_aistate!=0) {
       auto endTime = owner.time();
-      endTime.addMilis(uint64_t(gtime(1, 0).toInt()));
+      endTime.addMilis(uint64_t(gtime(4, 0).toInt()));
       startState(uint32_t(hnpc->start_aistate), "", endTime, false);
       }
     }
@@ -2839,19 +2840,30 @@ void Npc::tickRoutine() {
   if(!aiState.funcIni.isValid())
     return;
 
+  auto& sc = owner.script();
   if(!aiState.started) {
     aiState.started      = true;
     aiState.loopNextTime = owner.tickCount();
-    owner.script().invokeState(this,currentOther,currentVictim,aiState.funcIni);
+    sc.invokeState(this,currentOther,currentVictim,aiState.funcIni);
     return;
     }
 
-  const bool fastPath = (aiPolicy==Npc::ProcessPolicy::AiFar2); //HACK: don't process far away Npc
+  const bool fastPath = (aiPolicy==NpcProcessPolicy::AiFar2 && routines.empty()); //HACK: don't process far away Npc
   if(aiState.loopNextTime<=owner.tickCount()) {
     aiState.loopNextTime = owner.tickCount() + 1000; // one tick per second?
     int loop = LOOP_CONTINUE;
     if(aiState.funcLoop.isValid()) {
-      loop = fastPath ? LOOP_CONTINUE : owner.script().invokeState(this,currentOther,currentVictim,aiState.funcLoop);
+      static const float MAX_DIST = 300;
+      if(fastPath && currentFp!=nullptr && qDistTo(currentFp) < MAX_DIST*MAX_DIST) {
+        loop = LOOP_CONTINUE;
+        }
+      else if(fastPath && currentFp!=nullptr) {
+        // for debugging
+        loop = sc.invokeState(this,currentOther,currentVictim,aiState.funcLoop);
+        }
+      else {
+        loop = sc.invokeState(this,currentOther,currentVictim,aiState.funcLoop);
+        }
       } else {
       // ZS_DEATH   have no loop-function, in G1, G2-classic
       // ZS_GETMEAT have no loop-function, in G2-notr
@@ -3194,9 +3206,10 @@ void Npc::aiPush(AiQueue::AiAction&& a) {
 void Npc::resumeAiRoutine() {
   clearState(false);
   auto& r = currentRoutine();
-  auto  t = endTime(r);
-  if(r.callback.isValid())
+  if(r.callback.isValid()) {
+    auto t = endTime(r);
     startState(r.callback,r.wayPointName(),t,false);
+    }
   }
 
 Item* Npc::addItem(const size_t item, size_t count) {
@@ -3994,7 +4007,7 @@ bool Npc::perceptionProcess(Npc &pl) {
     return true;
 
   bool ret=false;
-  if(processPolicy()!=Npc::AiNormal) {
+  if(processPolicy()!=NpcProcessPolicy::AiNormal) {
     perceptionNextTime = owner.tickCount()+perceptionTimeClampt();
     return ret;
     }

@@ -913,7 +913,7 @@ void MoveAlgo::onMoveFailed(const Tempest::Vec3& dp, const DynamicWorld::Collisi
   if(forward && !info.preFall && npc.currentTarget==info.npc && npc.bodyStateMasked()==BS_HIT)
     return;
 
-  if(npc.processPolicy()!=Npc::Player)
+  if(npc.processPolicy()!=NpcProcessPolicy::Player)
     lastBounce = npc.world().tickCount();
 
   if(std::abs(val)>=threshold && !info.preFall) {

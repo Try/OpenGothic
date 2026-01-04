@@ -35,6 +35,20 @@ struct ScopeVar final {
   zenkit::DaedalusSymbol&                   sym;
   };
 
+struct ScopeCtx final {
+  ScopeCtx(GameScript& script, NpcProcessPolicy pp) : script(script) {
+    prev = script.aiProcessPolicy;
+    script.aiProcessPolicy = pp;
+    }
+
+  ~ScopeCtx() {
+    script.aiProcessPolicy = prev;
+    }
+
+  GameScript&      script;
+  NpcProcessPolicy prev = NpcProcessPolicy::AiNormal;
+  };
+
 
 bool GameScript::GlobalOutput::output(Npc& npc, std::string_view text) {
   return owner.aiOutput(npc,text,false);
@@ -1065,6 +1079,7 @@ int GameScript::invokeState(Npc* npc, Npc* oth, Npc* vic, ScriptFn fn) {
       }
     }
 
+  ScopeCtx ctx   (*this, npc!=nullptr ? npc->processPolicy() : NpcProcessPolicy::AiNormal);
   ScopeVar self  (*vm.global_self(),   npc != nullptr ? npc->handlePtr() : nullptr);
   ScopeVar other (*vm.global_other(),  oth != nullptr ? oth->handlePtr() : nullptr);
   ScopeVar victim(*vm.global_victim(), vic != nullptr ? vic->handlePtr() : nullptr);
@@ -1605,7 +1620,11 @@ int GameScript::wld_getday() {
   return int(owner.time().day());
   }
 
-void GameScript::wld_playeffect(std::string_view visual, std::shared_ptr<zenkit::DaedalusInstance> sourceId, std::shared_ptr<zenkit::DaedalusInstance> targetId, int effectLevel, int damage, int damageType, int isProjectile) {
+void GameScript::wld_playeffect(std::string_view visual, std::shared_ptr<zenkit::DaedalusInstance> sourceId, std::shared_ptr<zenkit::DaedalusInstance> targetId,
+                                int effectLevel, int damage, int damageType, int isProjectile) {
+  if(aiProcessPolicy>=NpcProcessPolicy::AiFar2)
+    return;
+
   if(isProjectile!=0 || damageType!=0 || damage!=0 || effectLevel!=0) {
     // TODO
     Log::i("effect not implemented [",visual.data(),"]");
@@ -3346,6 +3365,9 @@ bool GameScript::infomanager_hasfinished() {
   }
 
 void GameScript::snd_play(std::string_view fileS) {
+  if(aiProcessPolicy>=NpcProcessPolicy::AiFar2)
+    return;
+
   std::string file {fileS};
   for(auto& c:file)
     c = char(std::toupper(c));
@@ -3353,6 +3375,9 @@ void GameScript::snd_play(std::string_view fileS) {
   }
 
 void GameScript::snd_play3d(std::shared_ptr<zenkit::INpc> npcRef, std::string_view fileS) {
+  if(aiProcessPolicy>=NpcProcessPolicy::AiFar2)
+    return;
+
   std::string file {fileS};
   Npc*        npc  = findNpc(npcRef);
   if(npc==nullptr)

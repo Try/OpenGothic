@@ -226,13 +226,16 @@ void WorldObjects::tick(uint64_t dt, uint64_t dtPlayer) {
     if(dist<nearDist){
       npcNear.push_back(i.get());
       if(i.get()!=pl)
-        i->setProcessPolicy(Npc::ProcessPolicy::AiNormal);
+        i->setProcessPolicy(NpcProcessPolicy::AiNormal);
       } else
     if(dist<farDist) {
-      i->setProcessPolicy(Npc::ProcessPolicy::AiFar);
+      i->setProcessPolicy(NpcProcessPolicy::AiFar);
       } else {
-      i->setProcessPolicy(Npc::ProcessPolicy::AiFar2);
+      i->setProcessPolicy(NpcProcessPolicy::AiFar2);
       }
+    // debug
+    // if(i.get()!=pl)
+    //   i->setProcessPolicy(NpcProcessPolicy::AiFar2);
     }
   tickNear(dt);
 
@@ -249,7 +252,7 @@ void WorldObjects::tick(uint64_t dt, uint64_t dtPlayer) {
       i.perceptionProcess(*pl);
       }
 
-    if(i.processPolicy()==Npc::AiNormal) {
+    if(i.processPolicy()==NpcProcessPolicy::AiNormal) {
       for(auto& r:passive)
         passivePerceptionProcess(r, *ptr, *pl);
       }
@@ -441,7 +444,7 @@ bool WorldObjects::isTargeted(Npc& dst) {
 bool WorldObjects::isTargetedBy(Npc& npc, Npc& dst) {
   if(npc.target()!=&dst)
     return false;
-  if(npc.processPolicy()!=Npc::AiNormal || npc.weaponState()==WeaponState::NoWeapon)
+  if(npc.processPolicy()!=NpcProcessPolicy::AiNormal || npc.weaponState()==WeaponState::NoWeapon)
     return false;
   if(!npc.isAttack())
     return false;
@@ -450,7 +453,7 @@ bool WorldObjects::isTargetedBy(Npc& npc, Npc& dst) {
 
 Npc *WorldObjects::findHero() {
   for(auto& i:npcArr){
-    if(i->processPolicy()==Npc::ProcessPolicy::Player)
+    if(i->processPolicy()==NpcProcessPolicy::Player)
       return i.get();
     }
   return nullptr;
@@ -905,7 +908,7 @@ void WorldObjects::passivePerceptionProcess(PerceptionMsg& msg, Npc& npc, Npc& p
   if(npc.isPlayer() || npc.isDead())
     return;
 
-  if(npc.processPolicy()!=Npc::AiNormal)
+  if(npc.processPolicy()!=NpcProcessPolicy::AiNormal)
     return;
 
   if(msg.self==&npc)

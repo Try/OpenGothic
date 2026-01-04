@@ -130,7 +130,7 @@ void World::createPlayer(std::string_view cls) {
   if(id==size_t(-1))
     return;
   std::string_view waypoint = wmatrix->startPoint().name;
-  auto             npc      = std::make_unique<Npc>(*this, id, waypoint, Npc::ProcessPolicy::Player);
+  auto             npc      = std::make_unique<Npc>(*this, id, waypoint, NpcProcessPolicy::Player);
   npcPlayer = wobj.insertPlayer(std::move(npc), waypoint);
   game.script()->setInstanceNPC("HERO",*npcPlayer);
   }
@@ -145,12 +145,12 @@ void World::insertPlayer(std::unique_ptr<Npc> &&npc, std::string_view waypoint) 
 void World::setPlayer(Npc* npc) {
   if(npc==nullptr)
     return;
-  npcPlayer->setProcessPolicy(Npc::ProcessPolicy::AiNormal);
+  npcPlayer->setProcessPolicy(NpcProcessPolicy::AiNormal);
   if(!npcPlayer->isDead()) {
     npcPlayer->resumeAiRoutine();
     }
   
-  npc->setProcessPolicy(Npc::ProcessPolicy::Player);
+  npc->setProcessPolicy(NpcProcessPolicy::Player);
   npc->clearState(true);
   npc->clearAiQueue();
 

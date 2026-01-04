@@ -24,13 +24,6 @@ class WayPoint;
 
 class Npc final {
   public:
-    enum ProcessPolicy : uint8_t {
-      Player,
-      AiNormal,
-      AiFar,
-      AiFar2
-      };
-
     using JumpStatus = MoveAlgo::JumpStatus;
 
     enum GoToHint : uint8_t {
@@ -81,7 +74,7 @@ class Npc final {
 
     using Anim = AnimationSolver::Anim;
 
-    Npc(World &owner, size_t instance, std::string_view waypoint, ProcessPolicy aiPolicy = AiNormal);
+    Npc(World &owner, size_t instance, std::string_view waypoint, NpcProcessPolicy aiPolicy = NpcProcessPolicy::AiNormal);
     Npc(const Npc&)=delete;
     ~Npc();
 
@@ -112,8 +105,8 @@ class Npc final {
     void       clearSpeed();
     bool       resetPositionToTA();
 
-    void       setProcessPolicy(ProcessPolicy t);
-    auto       processPolicy() const -> ProcessPolicy { return aiPolicy; }
+    void       setProcessPolicy(NpcProcessPolicy t);
+    auto       processPolicy() const -> NpcProcessPolicy { return aiPolicy; }
 
     bool       isPlayer() const;
     void       setWalkMode(WalkBit m);
@@ -598,7 +591,7 @@ class Npc final {
     uint64_t                       outWaitTime=0;
 
     uint64_t                       aiOutputBarrier=0;
-    ProcessPolicy                  aiPolicy=ProcessPolicy::AiNormal;
+    NpcProcessPolicy               aiPolicy=NpcProcessPolicy::AiNormal;
     AiState                        aiState;
     ScriptFn                       aiPrevState;
     AiQueue                        aiQueue;
