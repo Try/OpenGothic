@@ -236,7 +236,7 @@ class GameScript final {
     bool hlp_isitem          (std::shared_ptr<zenkit::IItem> itemRef, int instanceSymbol);
     bool hlp_isvaliditem     (std::shared_ptr<zenkit::IItem> itemRef);
     int  hlp_getinstanceid   (std::shared_ptr<zenkit::DaedalusInstance> instance);
-    std::shared_ptr<zenkit::INpc> hlp_getnpc          (int instanceSymbol);
+    auto hlp_getnpc          (int instanceSymbol) -> std::shared_ptr<zenkit::INpc>;
 
     void wld_insertitem      (int itemInstance, std::string_view spawnpoint);
     void wld_insertnpc       (int npcInstance, std::string_view spawnpoint);
