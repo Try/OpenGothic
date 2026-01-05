@@ -1080,7 +1080,7 @@ void PlayerControl::setAnimRotate(Npc& pl, float rotation, int anim, bool force,
 
 void PlayerControl::processAutoRotate(Npc& pl, float& rot, uint64_t dt) {
   if(auto other = pl.target()) {
-    if(pl.weaponState()==WeaponState::NoWeapon || other->isDown() || pl.isFinishingMove()){
+    if(pl.weaponState()==WeaponState::NoWeapon || pl.isFinishingMove()){
       pl.setTarget(nullptr);
       }
     else if(!pl.isAttack()) {

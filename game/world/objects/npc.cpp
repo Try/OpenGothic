@@ -1922,7 +1922,6 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
     owner.addWeaponHitEffect(other,b,*this).play();
 
   if(isDown()) {
-    // check again after PERC_ASSESSDAMAGE script
     onNoHealth(dontKill,HS_NoSound);
     return;
     }
@@ -2888,7 +2887,7 @@ void Npc::setTarget(Npc *t) {
   if(currentTarget==t)
     return;
 
-  currentTarget=t;
+  currentTarget = t;
   if(!go2.empty() && !isPlayer()) {
     stopWalking();
     go2.clear();
@@ -3608,7 +3607,18 @@ bool Npc::canFinish(Npc& oth) {
   auto ws = weaponState();
   if(ws!=WeaponState::W1H && ws!=WeaponState::W2H)
     return false;
-  if(!oth.isUnconscious() || !fghAlgo.isInAttackRange(*this,oth,owner.script()))
+
+  if(!oth.isUnconscious())
+    return false;
+
+  float NPC_ATTACK_FINISH_DISTANCE = 180;
+  if(auto var = owner.script().findSymbol("NPC_ATTACK_FINISH_DISTANCE")) {
+    if(var->type()==zenkit::DaedalusDataType::INT)
+      NPC_ATTACK_FINISH_DISTANCE = float(var->get_int());
+    else if(var->type()==zenkit::DaedalusDataType::FLOAT)
+      NPC_ATTACK_FINISH_DISTANCE = var->get_float();
+    }
+  if(qDistTo(oth) > NPC_ATTACK_FINISH_DISTANCE*NPC_ATTACK_FINISH_DISTANCE)
     return false;
   return true;
   }
