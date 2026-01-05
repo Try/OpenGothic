@@ -3978,7 +3978,7 @@ void Npc::setPerceptionTime(uint64_t time) {
   }
 
 uint64_t Npc::perceptionTimeClampt() const {
-  return std::max<uint64_t>(perceptionTime, 1000);
+  return std::max<uint64_t>(perceptionTime, 1);
   }
 
 void Npc::setPerceptionEnable(PercType t, size_t fn) {
@@ -3999,8 +3999,9 @@ void Npc::startDialog(Npc& pl) {
   }
 
 bool Npc::perceptionProcess(Npc &pl) {
-  static bool disable=false;
-  if(disable)
+  static bool dbg = false;
+  static int  kId = -1;
+  if(dbg && hnpc->id!=kId)
     return false;
 
   if(isPlayer())
