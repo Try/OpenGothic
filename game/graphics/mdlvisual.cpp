@@ -566,6 +566,7 @@ void MdlVisual::stopAnim(Npc& npc, std::string_view anim) {
   skInst->stopAnim(anim);
   // Avoid issues with pfx on/off events within looped animations. Such as for Rupert and Bulko.
   if(anim.empty())
+    effects.clear();
   if(!skInst->hasAnim())
     startAnimAndGet(npc,AnimationSolver::Idle,0,fgtMode,npc.walkMode());
   }
