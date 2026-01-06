@@ -36,10 +36,23 @@ Animation::Animation(zenkit::ModelScript& p, std::string_view name, const bool i
     auto& data = loadMAN(ani, std::string(name) + '-' + ani.name + ".MAN");
     data.data->sfx = std::move(ani.sfx);
     data.data->gfx = std::move(ani.sfx_ground);
-    data.data->pfx = std::move(ani.pfx);
-    data.data->pfxStop = std::move(ani.pfx_stop);
     data.data->events = std::move(ani.events);
     data.data->mmStartAni = std::move(ani.morph);
+
+    data.data->pfx.resize(ani.pfx.size() + ani.pfx_stop.size());
+    for(size_t i=0; i<ani.pfx.size(); ++i) {
+      static_cast<zenkit::MdsParticleEffect&>(data.data->pfx[i]) = std::move(ani.pfx[i]);
+      }
+    for(size_t i=0; i<ani.pfx_stop.size(); ++i) {
+      auto& p = data.data->pfx[i + ani.pfx.size()];
+      p.index = ani.pfx_stop[i].index;
+      p.frame = ani.pfx_stop[i].frame;
+      p.pfxStop = true;
+      }
+
+    std::stable_sort(data.data->pfx.begin(), data.data->pfx.end(), [](const MdsParticleEffect& l, const MdsParticleEffect& r) {
+      return l.frame < r.frame;
+      });
     }
 
   for(auto& co : p.combinations) {
@@ -359,29 +372,45 @@ void Animation::Sequence::processSfx(uint64_t barrier, uint64_t sTime, uint64_t 
   }
 
 void Animation::Sequence::processPfx(uint64_t barrier, uint64_t sTime, uint64_t now, MdlVisual& visual, World& world) const {
+  if(data->pfx.empty())
+    return;
+
   uint64_t frameA=0,frameB=0;
   bool     invert=false;
   if(!extractFrames(frameA,frameB,invert,barrier,sTime,now))
     return;
 
   auto& d = *data;
-  for(auto& i:d.pfx){
-    uint64_t fr = frameClamp(i.frame,d.firstFrame,d.numFrames,d.lastFrame);
-    if(((frameA<=fr && fr<frameB) ^ invert) ||
-       i.frame==int32_t(d.lastFrame)) {
-      if(i.name.empty())
-        continue;
-      Effect e(PfxEmitter(world,i.name),i.position);
-      e.setActive(true);
-      visual.startEffect(world,std::move(e),i.index,false);
+  if(invert) {
+    //NOTE: carefull with ordering, in new loop:
+    //  first finish event of current frame, then start events of the next one
+    for(auto& i:d.pfx) {
+      uint64_t fr = frameClamp(i.frame,d.firstFrame,d.numFrames,d.lastFrame);
+      if(!(fr<frameB))
+        processPfx(i, visual, world);
+      }
+    for(auto& i:d.pfx) {
+      uint64_t fr = frameClamp(i.frame,d.firstFrame,d.numFrames,d.lastFrame);
+      if(!(frameA<=fr))
+        processPfx(i, visual, world);
+      }
+    } else {
+    for(auto& i:d.pfx) {
+      uint64_t fr = frameClamp(i.frame,d.firstFrame,d.numFrames,d.lastFrame);
+      if(frameA<=fr && fr<frameB)
+        processPfx(i, visual, world);
       }
     }
-  for(auto& i:d.pfxStop){
-    uint64_t fr = frameClamp(i.frame,d.firstFrame,d.numFrames,d.lastFrame);
-    if(((frameA<=fr && fr<frameB) ^ invert) ||
-       i.frame==int32_t(d.lastFrame)) {
-      visual.stopEffect(i.index);
-      }
+  }
+
+void Animation::Sequence::processPfx(const MdsParticleEffect& p, MdlVisual& visual, World& world) const {
+  if(p.pfxStop) {
+    visual.stopEffect(p.index);
+    }
+  else if(!p.name.empty()) {
+    Effect e(PfxEmitter(world,p.name),p.position);
+    e.setActive(true);
+    visual.startEffect(world,std::move(e),p.index,false);
     }
   }
 

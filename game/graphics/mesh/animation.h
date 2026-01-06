@@ -39,6 +39,10 @@ class Animation final {
       std::vector<EvMorph> morph;
       };
 
+    struct MdsParticleEffect : zenkit::MdsParticleEffect {
+      bool pfxStop = false;
+      };
+
     struct AnimData final {
       Tempest::Vec3                               translate={};
       Tempest::Vec3                               moveTr={};
@@ -55,8 +59,7 @@ class Animation final {
 
       std::vector<zenkit::MdsSoundEffectGround>   gfx;
       std::vector<zenkit::MdsSoundEffect>         sfx;
-      std::vector<zenkit::MdsParticleEffect>      pfx;
-      std::vector<zenkit::MdsParticleEffectStop>  pfxStop;
+      std::vector<MdsParticleEffect>              pfx;
       std::vector<zenkit::MdsModelTag>            tag;
       std::vector<zenkit::MdsEventTag>            events;
 
@@ -91,6 +94,7 @@ class Animation final {
       void                                   processEvents(uint64_t barrier, uint64_t sTime, uint64_t now, EvCount& ev) const;
       void                                   processSfx   (uint64_t barrier, uint64_t sTime, uint64_t now, Npc* npc, Interactive* mob) const;
       void                                   processPfx   (uint64_t barrier, uint64_t sTime, uint64_t now, MdlVisual& visual, World& world) const;
+      void                                   processPfx   (const MdsParticleEffect& p, MdlVisual& visual, World& world) const;
 
       Tempest::Vec3                          speed(uint64_t at, uint64_t dt) const;
       Tempest::Vec3                          translateXZ(uint64_t at) const;
