@@ -2793,8 +2793,6 @@ bool Npc::startState(ScriptFn id, std::string_view wp, gtime endTime, bool noFin
   aiState.eTime        = endTime;
   aiState.loopNextTime = owner.tickCount();
   aiState.hint         = st.name();
-  // WA: for gothic1 dialogs
-  perceptionNextTime   = owner.tickCount();
   return true;
   }
 
@@ -2855,6 +2853,8 @@ void Npc::tickRoutine() {
   if(!aiState.started) {
     aiState.started      = true;
     aiState.loopNextTime = owner.tickCount();
+    // WA: for gothic1 dialogs
+    perceptionNextTime   = owner.tickCount();
     sc.invokeState(this,currentOther,currentVictim,aiState.funcIni);
     return;
     }
