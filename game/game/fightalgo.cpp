@@ -256,7 +256,18 @@ float FightAlgo::prefferedGDistance(const Npc& npc, const Npc& tg, GameScript &o
   return float(baseTg + baseNpc + float(gv.fight_range_g[gl])) + weaponRange(owner,npc);
   }
 
-bool FightAlgo::isInAttackRange(const Npc &npc,const Npc &tg, GameScript &owner) const {
+float FightAlgo::attackFinishDistance(GameScript &owner) const {
+  float NPC_ATTACK_FINISH_DISTANCE = 180;
+  if(auto var = owner.findSymbol("NPC_ATTACK_FINISH_DISTANCE")) {
+    if(var->type()==zenkit::DaedalusDataType::INT)
+      NPC_ATTACK_FINISH_DISTANCE = float(var->get_int());
+    else if(var->type()==zenkit::DaedalusDataType::FLOAT)
+      NPC_ATTACK_FINISH_DISTANCE = var->get_float();
+    }
+  return NPC_ATTACK_FINISH_DISTANCE;
+  }
+
+bool FightAlgo::isInAttackRange(const Npc &npc, const Npc &tg, GameScript &owner) const {
   // tested in vanilla on Bloofly's:
   //  60 weapon range (Spiked club) is not enough to hit
   //  70 weapon range (Rusty Sword) is good to hit
@@ -265,6 +276,12 @@ bool FightAlgo::isInAttackRange(const Npc &npc,const Npc &tg, GameScript &owner)
   static float padding = 0;
   if(npc.hasState(BS_RUN))
     pd += padding; // padding, for wolf
+  return (dist<=pd*pd);
+  }
+
+bool FightAlgo::isInFinishRange(const Npc& npc, const Npc& tg, GameScript& owner) const {
+  auto  dist = npc.qDistTo(tg);
+  auto  pd   = attackFinishDistance(owner);
   return (dist<=pd*pd);
   }
 

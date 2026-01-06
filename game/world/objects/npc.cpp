@@ -2673,9 +2673,19 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       if(act.target==nullptr || !act.target->isUnconscious())
         break;
 
-      if(!fghAlgo.isInAttackRange(*this,*act.target,owner.script())){
+      if(!fghAlgo.isInFinishRange(*this,*act.target,owner.script())){
         queue.pushFront(std::move(act));
-        implGoTo(dt,fghAlgo.prefferedAttackDistance(*this,*act.target,owner.script()));
+        go2.set(act.target);
+        setAnim(Npc::Anim::Move);
+        implGoTo(dt,fghAlgo.attackFinishDistance(owner.script()));
+        }
+      else if(!isStanding()) {
+        go2.clear();
+        setAnim(Npc::Anim::Idle);
+        queue.pushFront(std::move(act));
+        }
+      else if(!implTurnTo(*act.target,dt)) {
+        queue.pushFront(std::move(act));
         }
       else if(canFinish(*act.target)){
         setTarget(act.target);
@@ -3613,14 +3623,7 @@ bool Npc::canFinish(Npc& oth) {
   if(!oth.isUnconscious())
     return false;
 
-  float NPC_ATTACK_FINISH_DISTANCE = 180;
-  if(auto var = owner.script().findSymbol("NPC_ATTACK_FINISH_DISTANCE")) {
-    if(var->type()==zenkit::DaedalusDataType::INT)
-      NPC_ATTACK_FINISH_DISTANCE = float(var->get_int());
-    else if(var->type()==zenkit::DaedalusDataType::FLOAT)
-      NPC_ATTACK_FINISH_DISTANCE = var->get_float();
-    }
-  if(qDistTo(oth) > NPC_ATTACK_FINISH_DISTANCE*NPC_ATTACK_FINISH_DISTANCE)
+  if(!fghAlgo.isInFinishRange(*this,oth,owner.script()))
     return false;
   return true;
   }
