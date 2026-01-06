@@ -111,7 +111,7 @@ DamageCalculator::Val DamageCalculator::rangeDamage(Npc&, Npc& nother, Damage dm
       continue;
     int vd = std::max(dmg[size_t(i)] - other.protection[i],0);
     if(other.protection[i]>=0) { // Filter immune
-      value  += vd;
+      value     += vd;
       invincible = false;
       }
     }

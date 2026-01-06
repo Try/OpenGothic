@@ -641,7 +641,7 @@ Bullet& World::shootSpell(const Item &itm, const Npc &npc, const Npc *target) {
   float           tgRange = vfx==nullptr ? 0 : vfx->emTrjTargetRange;
 
   if(target!=nullptr) {
-    auto  tgPos = target->position();
+    auto tgPos = target->centerPosition();
     if(vfx!=nullptr) {
       pos   = npc.mapBone(vfx->emTrjOriginNode);
       tgPos = target->mapBone(vfx->emTrjTargetNode);
