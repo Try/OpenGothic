@@ -124,6 +124,10 @@ Gothic::Gothic() {
   defaults->set("GAME", "highlightMeleeFocus", 0);
   defaults->set("GAME", "useQuickSaveKeys",    1);
 
+  defaults->set("GAME", "animatedWindows",     1);
+  defaults->set("GAME", "subTitles",           1);
+  defaults->set("GAME", "subTitlesPlayer",     1);
+
   // switch related language options
   defaults->set("GAME", "language", -1);
   defaults->set("GAME", "voice",    -1);
