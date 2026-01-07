@@ -609,7 +609,6 @@ bool Npc::hasAutoroll() const {
 void Npc::stopWalkAnimation() {
   if(interactive()==nullptr)
     visual.stopWalkAnim(*this);
-  // go2.clear();
   setAnimRotate(0);
   }
 
@@ -1466,6 +1465,11 @@ bool Npc::implAttack(uint64_t dt) {
   if(!fghAlgo.hasInstructions())
     return false;
 
+  if(aiQueue.size()>0) {
+    // do not messup weapon change animations by MOVE intruction
+    return false;
+    }
+
   const auto bs = bodyStateMasked();
   if(bs==BS_LIE) {
     setAnim(Npc::Anim::Idle);
@@ -1488,8 +1492,8 @@ bool Npc::implAttack(uint64_t dt) {
 
   // vanilla behavior, required for orcs in G1 orcgraveyard
   if(ws==WeaponState::NoWeapon && isAiQueueEmpty()) {
-    if(drawWeaponMelee())
-      return true;
+    drawWeaponMelee();
+    return true;
     }
 
   if(act==FightAlgo::MV_BLOCK) {
@@ -1539,7 +1543,7 @@ bool Npc::implAttack(uint64_t dt) {
     if(ws==WeaponState::Bow || ws==WeaponState::CBow || ws==WeaponState::Mage) {
       bool obsticle = false;
       if(currentTarget!=nullptr) {
-        auto hit = owner.physic()->rayNpc(this->mapWeaponBone(),currentTarget->centerPosition());
+        auto hit = owner.physic()->rayNpc(this->mapWeaponBone(),currentTarget->centerPosition(),this);
         if(hit.hasCol && hit.npcHit!=currentTarget) {
           obsticle = true;
           // if(hit.npcHit!=nullptr && owner.script().personAttitude(*this,*hit.npcHit)==ATT_HOSTILE)
@@ -1805,8 +1809,7 @@ bool Npc::implAiFlee(uint64_t dt) {
     });
 
   if(go2.flag!=GT_Flee && go2.flag!=GT_No) {
-    go2.clear();
-    setAnim(Anim::Idle);
+    clearGoTo();
     }
 
   auto anim = (go2.flag!=GT_No)?AnimationSolver::TurnType::None:AnimationSolver::TurnType::Std;
@@ -2484,7 +2487,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
         return;
         }
 
-      go2.clear();
+      clearGoTo();
       break;
       }
     case AI_UseItem: {
@@ -2518,7 +2521,6 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       break;
     case AI_DrawWeapon:
       if(!isDead()) {
-        fghAlgo.onClearTarget();
         if(!drawWeaponMelee() &&
            !drawWeaponBow())
           queue.pushFront(std::move(act));
@@ -2526,14 +2528,12 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       break;
     case AI_DrawWeaponMelee:
       if(!isDead()) {
-        fghAlgo.onClearTarget();
         if(!drawWeaponMelee())
           queue.pushFront(std::move(act));
         }
       break;
     case AI_DrawWeaponRange:
       if(!isDead()) {
-        fghAlgo.onClearTarget();
         if(!drawWeaponBow())
           queue.pushFront(std::move(act));
         }
@@ -2541,7 +2541,6 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
     case AI_DrawSpell: {
       if(!isDead()) {
         const int32_t spell = act.i0;
-        fghAlgo.onClearTarget();
         if(drawSpell(spell))
           aiExpectedInvest = act.i1; else
           queue.pushFront(std::move(act));
@@ -2680,8 +2679,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
         implGoTo(dt,fghAlgo.attackFinishDistance(owner.script()));
         }
       else if(!isStanding()) {
-        go2.clear();
-        setAnim(Npc::Anim::Idle);
+        clearGoTo();
         queue.pushFront(std::move(act));
         }
       else if(!implTurnTo(*act.target,dt)) {
@@ -2900,10 +2898,8 @@ void Npc::setTarget(Npc *t) {
     return;
 
   currentTarget = t;
-  if(!go2.empty() && !isPlayer()) {
-    stopWalking();
-    go2.clear();
-    }
+  if(!go2.empty() && !isPlayer())
+    clearGoTo();
   }
 
 Npc *Npc::target() const {
@@ -4059,6 +4055,11 @@ bool Npc::perceptionProcess(Npc &pl) {
   }
 
 bool Npc::perceptionProcess(Npc &pl, Npc* victim, float quadDist, PercType perc) {
+  if(!aiState.started) {
+    // avoid ugly soft-lock (ZS_MM_Attack <-> B_MM_AssessWarn) for the orks near ramp
+    return false;
+    }
+
   float r = float(world().script().percRanges().at(perc, hnpc->senses_range));
   r = r*r;
 
@@ -4365,6 +4366,7 @@ void Npc::clearAiQueue() {
   waitTime    = 0;
   faiWaitTime = 0;
   fghAlgo.onClearTarget();
+  wayPath.clear();
   clearGoTo();
   }
 
@@ -4374,7 +4376,6 @@ void Npc::attachToPoint(const WayPoint *p) {
   }
 
 void Npc::clearGoTo() {
-  wayPath.clear();
   if(!go2.empty()) {
     stopWalking();
     go2.clear();

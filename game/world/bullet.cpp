@@ -131,9 +131,9 @@ void Bullet::onCollide(zenkit::MaterialGroup matId) {
   wrld->runEffect(std::move(vfx));
   }
 
-void Bullet::onCollide(Npc& npc) {
+bool Bullet::onCollide(Npc& npc) {
   if(&npc==origin() || isFinished())
-    return;
+    return false;
 
   if(ow!=nullptr) {
     // no damage between ally npc's, only emit pfx effect
@@ -148,6 +148,8 @@ void Bullet::onCollide(Npc& npc) {
   vfx.setLooped(false);
   vfx.setPhysicsDisable();
   wrld->runEffect(std::move(vfx));
+
+  return true;
   }
 
 void Bullet::updateMatrix() {

@@ -191,13 +191,13 @@ struct DynamicWorld::NpcBodyList final {
     return true;
     }
 
-  NpcBody* rayTest(const Tempest::Vec3& s, const Tempest::Vec3& e, float extR) {
+  NpcBody* rayTest(const Tempest::Vec3& s, const Tempest::Vec3& e, float extR, const Npc* except) {
     NpcBody* ret     = nullptr;
     float    minProj = 2;
 
     for(auto i:body) {
       float proj = 0;
-      if(rayTest(*i.body, s, e, extR, proj)) {
+      if(i.body->toNpc()!=except && rayTest(*i.body, s, e, extR, proj)) {
         if(proj<minProj) {
           ret     = i.body;
           minProj = proj;
@@ -206,7 +206,7 @@ struct DynamicWorld::NpcBodyList final {
       }
     for(auto i:frozen) {
       float proj = 0;
-      if(i.body!=nullptr && rayTest(*i.body, s, e, extR, proj)) {
+      if(i.body!=nullptr && i.body->toNpc()!=except && rayTest(*i.body, s, e, extR, proj)) {
         if(proj<minProj) {
           ret     = i.body;
           minProj = proj;
@@ -641,10 +641,10 @@ DynamicWorld::RayLandResult DynamicWorld::ray(const Tempest::Vec3& from, const T
   return ret;
   }
 
-DynamicWorld::RayQueryResult DynamicWorld::rayNpc(const Tempest::Vec3& from, const Tempest::Vec3& to) const {
+DynamicWorld::RayQueryResult DynamicWorld::rayNpc(const Tempest::Vec3& from, const Tempest::Vec3& to, const Npc* except) const {
   RayQueryResult r;
   static_cast<RayLandResult&>(r) = ray(from,to);
-  if(auto ptr = npcList->rayTest(from,(r.hasCol ? r.v : to),1)) {
+  if(auto ptr = npcList->rayTest(from, (r.hasCol ? r.v : to), 1, except)) {
     r.npcHit = ptr->toNpc();
     r.hasCol = true;
     }
@@ -845,10 +845,10 @@ void DynamicWorld::moveBullet(BulletBody &b, const Tempest::Vec3& dir, uint64_t 
         }
       }
     } else {
-    if(auto ptr = npcList->rayTest(pos,to,b.targetRange())) {
+    if(auto ptr = npcList->rayTest(pos,to,b.targetRange(),nullptr)) {
       if(b.cb!=nullptr)
-        b.cb->onCollide(*ptr->toNpc());
-      stopBullet = true;
+        stopBullet |= b.cb->onCollide(*ptr->toNpc()); else
+        stopBullet  = true;
       }
     const float l = b.speed();
     auto        d = b.direction();

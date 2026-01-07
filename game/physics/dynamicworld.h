@@ -159,12 +159,12 @@ class DynamicWorld final {
       virtual void onStop(){}
       virtual void onMove(){}
       virtual void onCollide(zenkit::MaterialGroup matId){(void)matId;}
-      virtual void onCollide(Npc& other){(void)other;}
+      virtual bool onCollide(Npc& other){(void)other; return true; }
       };
 
     struct BulletBody final {
       public:
-        BulletBody(DynamicWorld* wrld,BulletCallback* cb);
+        BulletBody(DynamicWorld* wrld, BulletCallback* cb);
         BulletBody(BulletBody&&);
 
         void  setSpellId(int spl);
@@ -236,7 +236,7 @@ class DynamicWorld final {
     RayCamResult   cameraRay    (const Tempest::Vec3& from, const Tempest::Vec3& to) const;
 
     RayLandResult  ray          (const Tempest::Vec3& from, const Tempest::Vec3& to) const;
-    RayQueryResult rayNpc       (const Tempest::Vec3& from, const Tempest::Vec3& to) const;
+    RayQueryResult rayNpc       (const Tempest::Vec3& from, const Tempest::Vec3& to, const Npc* except) const;
     float          soundOclusion(const Tempest::Vec3& from, const Tempest::Vec3& to) const;
 
     NpcItem        ghostObj  (std::string_view visual);
