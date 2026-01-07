@@ -1520,7 +1520,7 @@ bool Npc::implAttack(uint64_t dt) {
   if(act==FightAlgo::MV_ATTACK || act==FightAlgo::MV_ATTACKL || act==FightAlgo::MV_ATTACKR) {
     //NOTE: FIGHT_DIST_CANCEL in scipts is often longer, than senses_range of npc
     const auto tgPos = currentTarget->centerPosition();
-    const auto sense = canRayHitPoint(tgPos,false,MaxFightRange);
+    const auto sense = canRayHitPoint(tgPos,true,MaxFightRange);
     if(!sense) {
       if(bs==BS_RUN)
         setAnim(Npc::Anim::Idle); else
