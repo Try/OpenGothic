@@ -432,7 +432,7 @@ void MoveAlgo::tick(uint64_t dt, MvFlags moveFlg) {
   if(cache.sector!=nullptr && portal!=cache.sector) {
     formerPortal = portal;
     portal       = cache.sector;
-    if(npc.isPlayer()) {
+    if(npc.isPlayer() && npc.bodyStateMasked()!=BS_SNEAK) {
       auto& w = npc.world();
       w.sendImmediatePerc(npc,npc,npc,PERC_ASSESSENTERROOM);
       }

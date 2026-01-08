@@ -887,7 +887,7 @@ void WorldObjects::sendPassivePerc(Npc &self, Npc &other, Npc* victim, Item* itm
 
 void WorldObjects::sendImmediatePerc(Npc& self, Npc& other, Npc& victim, Item* itm, int32_t perc) {
   const auto pl = owner.player();
-  if(pl==nullptr || pl->bodyStateMasked()==BS_SNEAK)
+  if(pl==nullptr)
     return;
 
   PerceptionMsg r;
@@ -938,6 +938,11 @@ void WorldObjects::passivePerceptionProcess(PerceptionMsg& msg, Npc& npc, Npc& p
     return;
     }
   */
+
+  if((msg.what==PERC_ASSESSENTERROOM || msg.what==PERC_ASSESSQUIETSOUND) &&
+     ((SensesBit(npc.handle().senses) & SensesBit::SENSE_HEAR)==SensesBit::SENSE_NONE)) {
+    return;
+    }
 
   if(msg.item!=size_t(-1) && msg.other!=nullptr)
     owner.script().setInstanceItem(*msg.other,msg.item);

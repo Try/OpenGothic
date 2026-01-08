@@ -2164,7 +2164,7 @@ void Npc::tickAnimationTags() {
 
   for(auto& i:ev.morph)
     visual.startMMAnim(*this,i.anim,i.node);
-  if(ev.groundSounds>0 && isPlayer() && (bodyStateMasked()!=BodyState::BS_SNEAK))
+  if(ev.groundSounds>0 && isPlayer() && bodyStateMasked()!=BodyState::BS_SNEAK)
     world().sendImmediatePerc(*this,*this,*this,PERC_ASSESSQUIETSOUND);
   if(ev.def_opt_frame>0)
     commitDamage();
@@ -4446,11 +4446,11 @@ bool Npc::canRayHitPoint(const Tempest::Vec3 pos, bool freeLos, float extRange) 
   }
 
 SensesBit Npc::canSenseNpc(const Npc &oth, bool freeLos, float extRange) const {
-  const auto mid     = oth.bounds().midTr;
-  const auto st      = oth.bodyStateMasked();
   // NOTE1: https://github.com/Try/OpenGothic/pull/589#issuecomment-2045897394
   // NOTE2: interacting with chest(lockpicking) or some MOBSI should not produce 'noise'
-  const bool isNoisy = (st!=BodyState::BS_SNEAK && st!=BS_MOBINTERACT && oth.isPlayer());
+  // NOTE3: seem npc can't hear player in general case, and hearing relevant only for sendImmediatePerc cases
+  const bool isNoisy = false;
+  const auto mid     = oth.bounds().midTr;
   return canSenseNpc(mid,freeLos,isNoisy,extRange);
   }
 
