@@ -688,25 +688,41 @@ int32_t MoveAlgo::diveTime() const {
   return int32_t(npc.world().tickCount() - diveStart);
   }
 
-bool MoveAlgo::isClose(const Tempest::Vec3& w, const WayPoint &p) {
-  float dist = closeToPointThreshold;
-  if(p.useCounter()>1)
-    dist += 100; // needed for some peasants on Onars farm
-  return isClose(w,p,dist);
-  }
-
-bool MoveAlgo::isClose(const Tempest::Vec3& w, const WayPoint& p, float dist) {
-  float len = p.qDistTo(w.x,p.pos.y,w.z);
+bool MoveAlgo::isClose(const Npc& npc, const Npc& p, float dist) {
+  float len = npc.qDistTo(p);
   return (len<dist*dist);
-  }
-
-bool MoveAlgo::isClose(const Tempest::Vec3& p, float dist) {
+  /*
   auto  dp  = npc.position()-p;
   dp.y = 0;
   float len = dp.quadLength();
   if(len<dist*dist)
     return true;
   return false;
+  */
+  }
+
+bool MoveAlgo::isClose(const Npc& npc, const WayPoint& p) {
+  float dist = closeToPointThreshold;
+  if(p.useCounter()>1)
+    dist += 100; // needed for some peasants on Onars farm
+  return isClose(npc,p,dist);
+  }
+
+bool MoveAlgo::isClose(const Npc& npc, const WayPoint& p, float dist) {
+  auto px = p.position();
+  px.y += npc.translateY();
+
+  float len = npc.qDistTo(px);
+  return (len<dist*dist);
+  }
+
+bool MoveAlgo::isClose(const Npc& npc, const Tempest::Vec3& p, float dist) {
+  // NOTE: this need to be consistent with current go2 point implementation
+  auto  dp  = (p - npc.position());
+  if(std::abs(dp.y)<150)
+    dp.y = 0;
+  float len = dp.quadLength();
+  return (len<dist*dist);
   }
 
 bool MoveAlgo::startClimb(JumpStatus jump) {

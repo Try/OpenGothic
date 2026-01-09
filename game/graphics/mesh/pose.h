@@ -59,7 +59,7 @@ class Pose final {
     bool               isDefParWindow(uint64_t tickCount) const;
     bool               isDefWindow(uint64_t tickCount) const;
     bool               isDefence(uint64_t tickCount) const;
-    bool               isJumpBack() const;
+    bool               isJumpBack(uint64_t tickCount) const;
     bool               isJumpAnim() const;
     bool               isFlyAnim() const;
     bool               isStanding() const;

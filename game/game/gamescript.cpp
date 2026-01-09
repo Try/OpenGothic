@@ -2292,7 +2292,7 @@ bool GameScript::npc_isonfp(std::shared_ptr<zenkit::INpc> npcRef, std::string_vi
     return false;
 
   auto w = npc->currentWayPoint();
-  if(w==nullptr || !MoveAlgo::isClose(npc->position(),*w,MAX_AI_USE_DISTANCE) || !w->checkName(val))
+  if(w==nullptr || !MoveAlgo::isClose(*npc,*w,MAX_AI_USE_DISTANCE) || !w->checkName(val))
     return false;
   return w->isFreePoint();
   }

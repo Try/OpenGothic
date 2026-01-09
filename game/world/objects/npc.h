@@ -450,6 +450,7 @@ class Npc final {
       void             save(Serialize& fout) const;
       void             load(Serialize&  fin);
       Tempest::Vec3    target() const;
+      bool             isClose(const Npc& self, float dist) const;
 
       bool             empty() const;
       void             clear();

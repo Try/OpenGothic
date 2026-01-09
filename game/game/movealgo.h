@@ -34,8 +34,10 @@ class MoveAlgo final {
       WaitMove = 1<<1,
       };
 
-    static bool isClose(const Tempest::Vec3& w, const WayPoint& p);
-    static bool isClose(const Tempest::Vec3& w, const WayPoint& p,float dist);
+    static bool isClose(const Npc& npc, const Npc& p, float dist);
+    static bool isClose(const Npc& npc, const WayPoint& p);
+    static bool isClose(const Npc& npc, const WayPoint& p, float dist);
+    static bool isClose(const Npc& npc, const Tempest::Vec3& p, float dist);
 
     void    load(Serialize& fin);
     void    save(Serialize& fout) const;
@@ -46,7 +48,6 @@ class MoveAlgo final {
     void    clearSpeed();
     void    accessDamFly(float dx,float dz);
 
-    bool    isClose(const Tempest::Vec3& p, float dist);
     bool    testSlide(const Tempest::Vec3& p, DynamicWorld::CollisionTest& out) const;
 
     bool    startClimb(JumpStatus ani);

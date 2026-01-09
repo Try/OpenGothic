@@ -31,6 +31,7 @@ class FightAlgo final {
       MV_TURN2HIT = 12,
       MV_TURNA    = 13,
       MV_TURNG    = 14,
+      MV_STRAFE_E = 15,
 
       MV_MAX      = 6
       };

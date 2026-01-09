@@ -128,6 +128,7 @@ FightAlgo::Action FightAlgo::nextFromQueue(Npc& npc, Npc& tg, GameScript& owner)
         }
       case FightAiMove::STRAFE:{
         tr[0] = owner.rand(2) ? MV_STRAFEL : MV_STRAFER;
+        tr[1] = FightAlgo::MV_STRAFE_E;
         break;
         }
       case FightAiMove::ATTACK:{

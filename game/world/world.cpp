@@ -979,10 +979,11 @@ void World::detectItem(const Tempest::Vec3& p, const float r, const std::functio
   }
 
 WayPath World::wayTo(const Npc &npc, const WayPoint &end) const {
-  auto p     = npc.position();
+  auto npcPos = npc.position();
+  npcPos.y += npc.translateY();
 
   auto begin = npc.currentWayPoint();
-  if(begin==&end && MoveAlgo::isClose(npc.position(),end)) {
+  if(begin==&end && MoveAlgo::isClose(npc,end)) {
     return WayPath();
     }
   if(begin==&end && !end.isConnected() && npc.canRayHitPoint(end.position()+Tempest::Vec3(0,10,0))) {
@@ -990,10 +991,10 @@ WayPath World::wayTo(const Npc &npc, const WayPoint &end) const {
     ret.add(end);
     return ret;
     }
-  if(begin && begin->isConnected() && MoveAlgo::isClose(npc.position(),*begin)) {
-    return wmatrix->wayTo(&begin,1,p,end);
+  if(begin && begin->isConnected() && MoveAlgo::isClose(npc,*begin)) {
+    return wmatrix->wayTo(&begin,1,npcPos,end);
     }
-  auto near = wmatrix->findWayPoint(p, [&npc](const WayPoint &wp) {
+  auto near = wmatrix->findWayPoint(npcPos, [&npc](const WayPoint &wp) {
     if(!npc.canRayHitPoint(Tempest::Vec3(wp.pos.x,wp.pos.y+10,wp.pos.z),true))
       return false;
     return true;
@@ -1001,7 +1002,7 @@ WayPath World::wayTo(const Npc &npc, const WayPoint &end) const {
   if(near==nullptr)
     return WayPath();
 
-  if(MoveAlgo::isClose(p,*near) && near==&end)
+  if(MoveAlgo::isClose(npc,*near) && near==&end)
     return WayPath();
 
   std::vector<const WayPoint*> wpoint;
@@ -1012,7 +1013,7 @@ WayPath World::wayTo(const Npc &npc, const WayPoint &end) const {
       wpoint.push_back(i.point);
     }
 
-  return wmatrix->wayTo(wpoint.data(),wpoint.size(),p,end);
+  return wmatrix->wayTo(wpoint.data(),wpoint.size(),npcPos,end);
   }
 
 GameScript& World::script() const {

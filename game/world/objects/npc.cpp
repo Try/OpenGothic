@@ -42,10 +42,18 @@ void Npc::GoTo::load(Serialize& fin) {
 
 Vec3 Npc::GoTo::target() const {
   if(npc!=nullptr)
-    return npc->position();
+    return npc->position() + Vec3(0, npc->translateY(), 0);
   if(wp!=nullptr)
     return wp->position();
   return pos;
+  }
+
+bool Npc::GoTo::isClose(const Npc& self, float dist) const {
+  if(npc!=nullptr)
+    return MoveAlgo::isClose(self, *npc, dist);
+  if(wp!=nullptr)
+    return MoveAlgo::isClose(self, *wp, dist);
+  return MoveAlgo::isClose(self, pos, dist);
   }
 
 bool Npc::GoTo::empty() const {
@@ -1386,8 +1394,8 @@ bool Npc::implWhirlTo(const Npc &oth, uint64_t dt) {
 bool Npc::implGoTo(uint64_t dt) {
   float dist = 0;
   if(go2.npc) {
-    // dist = fghAlgo.prefferedAttackDistance(*this,*go2.npc,owner.script());
-    dist = fghAlgo.baseDistance(*this,*go2.npc,owner.script());
+    dist = fghAlgo.prefferedAttackDistance(*this,*go2.npc,owner.script());
+    // dist = fghAlgo.baseDistance(*this,*go2.npc,owner.script());
     } else {
     // use smaller threshold, to avoid edge-looping in script
     dist = MoveAlgo::closeToPointThreshold*0.5f;
@@ -1408,12 +1416,13 @@ bool Npc::implGoTo(uint64_t dt, float destDist) {
     return true;
     }
 
-  auto dpos = go2.target()-position();
+  auto target = go2.target();
+  auto dpos   = target - position();
 
   if(go2.flag==GT_Flee) {
     // nop
     }
-  else if(mvAlgo.isClose(go2.target(),destDist)) {
+  else if(go2.isClose(*this, destDist)) {
     bool finished = true;
     if(go2.flag==GT_Way) {
       go2.wp = go2.wp->hasLadderConn(wayPath.first()) ? wayPath.first() : wayPath.pop();
@@ -1462,13 +1471,13 @@ bool Npc::implAttack(uint64_t dt) {
     return false;
     }
 
-  if(!fghAlgo.hasInstructions())
-    return false;
-
   if(aiQueue.size()>0) {
     // do not messup weapon change animations by MOVE intruction
     return false;
     }
+
+  if(!fghAlgo.hasInstructions())
+    return false;
 
   const auto bs = bodyStateMasked();
   if(bs==BS_LIE) {
@@ -1600,7 +1609,6 @@ bool Npc::implAttack(uint64_t dt) {
         fghAlgo.consumeAction();
         } else {
         adjustAttackRotation(dt);
-        //mvAlgo.tick(dt,MoveAlgo::FaiMove);
         }
       }
     else {
@@ -1631,6 +1639,14 @@ bool Npc::implAttack(uint64_t dt) {
       implFaiWait(visual.pose().animationTotalTime());
       fghAlgo.consumeAction();
       }
+    return true;
+    }
+
+  if(act==FightAlgo::MV_STRAFE_E) {
+    // finalize strafe
+    if(!setAnim(Npc::Anim::Idle))
+      return false;
+    fghAlgo.consumeAction();
     return true;
     }
 
@@ -1669,16 +1685,7 @@ bool Npc::implAttack(uint64_t dt) {
     const bool isWRange = fghAlgo.isInWRange(*this, *currentTarget, owner.script());
     const bool isFocus  = fghAlgo.isInFocusAngle(*this, *currentTarget);
 
-    if(isWRange && isFocus) {
-      if(act==FightAlgo::MV_TURNA || act==FightAlgo::MV_TURNG)
-        stopWalkAnimation();
-      fghAlgo.consumeAction();
-      aiState.loopNextTime = owner.tickCount(); // force ZS_MM_Attack_Loop call
-      implAiTick(dt);
-      return true;
-      }
-
-    if(isGRange && isFocus) {
+    if((isWRange || isGRange) && isFocus) {
       visual.setAnimRotate(*this, 0);
       fghAlgo.consumeAction();
       aiState.loopNextTime = owner.tickCount(); // force ZS_MM_Attack_Loop call
@@ -1835,7 +1842,7 @@ bool Npc::setGoToLadder() {
     return false;
   auto inter = go2.wp->ladder;
   auto pos   = inter->nearestPoint(*this);
-  if(mvAlgo.isClose(pos,MAX_AI_USE_DISTANCE)) {
+  if(MoveAlgo::isClose(*this,pos,MAX_AI_USE_DISTANCE)) {
     if(!inter->isAvailable())
       setAnim(AnimationSolver::Idle);
     else if(setInteraction(inter))
@@ -1861,7 +1868,7 @@ void Npc::takeDamage(Npc &other, const Bullet* b) {
 
   assert(b==nullptr || !b->isSpell());
   const auto& pose    = visual.pose();
-  const bool  isJumpb = pose.isJumpBack();
+  const bool  isJumpb = pose.isJumpBack(owner.tickCount());
   const bool  isBlock = (!other.isMonster() || other.inventory().activeWeapon()!=nullptr) &&
                          fghAlgo.isInFocusAngle(*this,other) &&
                          pose.isDefence(owner.tickCount());
@@ -1900,6 +1907,7 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
   if(std::cos(da*M_PI/180.0)<0)
     lastHitType='A'; else
     lastHitType='B';
+  aiState.loopNextTime = owner.tickCount(); // force ZS_MM_Attack_Loop call
 
   DamageCalculator::Damage dmg={};
   DamageCalculator::Val    hitResult;
@@ -1935,7 +1943,8 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
     if(bodyStateMasked()!=BS_UNCONSCIOUS && interactive()==nullptr && !isSwim() && !mvAlgo.isClimb()) {
       const bool noInter = (hnpc->bodystate_interruptable_override!=0);
       if(!noInter) {
-        visual.setAnimRotate(*this,0);
+        //NOTE: kepp rotation animation: this results in more accurate fight with trolls
+        // visual.setAnimRotate(*this,0);
         visual.interrupt(); // TODO: put down in pipeline, at Pose and merge with setAnimAngGet
         }
 

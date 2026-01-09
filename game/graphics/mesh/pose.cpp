@@ -623,9 +623,11 @@ bool Pose::isDefence(uint64_t tickCount) const {
   return false;
   }
 
-bool Pose::isJumpBack() const {
+bool Pose::isJumpBack(uint64_t tickCount) const {
   for(auto& i:lay) {
     if(i.bs==BS_PARADE && i.seq->data->defWindow.empty())
+      return true;
+    if(i.bs==BS_PARADE && i.seq->isDefWindow(tickCount-i.sAnim))
       return true;
     }
   return false;
