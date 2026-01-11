@@ -479,8 +479,9 @@ bool Npc::resetPositionToTA() {
   if(!isPlayer())
     setInteraction(nullptr,true);
 
-  if(routines.empty() && !isPlayer())
-    return currentTaPoint()!=nullptr;
+  // return monsters to their way-points
+  // if(routines.empty() && !isPlayer())
+  //   return currentTaPoint()!=nullptr;
 
   attachToPoint(nullptr);
   clearAiQueue();
