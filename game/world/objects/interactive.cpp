@@ -174,6 +174,8 @@ void Interactive::postValidate() {
   for(auto& i:attPos)
     if(i.user!=nullptr && i.user->interactive()!=this)
       i.user = nullptr;
+  if(visual.updateAnimation(nullptr,this,world,0,true))
+    animChanged = true;
   }
 
 void Interactive::resetPositionToTA(int32_t state) {
@@ -206,7 +208,7 @@ void Interactive::setVisual(const zenkit::VirtualObject& vob) {
   }
 
 void Interactive::updateAnimation(uint64_t dt) {
-  if(visual.updateAnimation(nullptr,this,world,dt))
+  if(visual.updateAnimation(nullptr,this,world,dt,false))
     animChanged = true;
   }
 

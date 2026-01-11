@@ -496,7 +496,7 @@ bool MdlVisual::isUsingTorch() const {
   return torch.view!=nullptr;
   }
 
-bool MdlVisual::updateAnimation(Npc* npc, Interactive* mobsi, World& world, uint64_t dt) {
+bool MdlVisual::updateAnimation(Npc* npc, Interactive* mobsi, World& world, uint64_t dt, bool force) {
   Pose&    pose      = *skInst;
   uint64_t tickCount = world.tickCount();
   auto     pos3      = Vec3{pos.at(3,0), pos.at(3,1), pos.at(3,2)};
@@ -520,7 +520,7 @@ bool MdlVisual::updateAnimation(Npc* npc, Interactive* mobsi, World& world, uint
 
   solver.update(tickCount);
   pose.setObjectMatrix(pos,false);
-  const bool changed = pose.update(tickCount);
+  const bool changed = pose.update(tickCount, force);
 
   if(changed)
     view.setPose(pos,pose);

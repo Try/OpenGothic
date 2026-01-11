@@ -129,7 +129,7 @@ class Npc final {
     float      qDistTo(const Interactive& p) const;
     float      qDistTo(const Item& p) const;
 
-    void       updateAnimation(uint64_t dt);
+    void       updateAnimation(uint64_t dt, bool force = false);
     void       updateTransform();
 
     std::string_view displayName() const;

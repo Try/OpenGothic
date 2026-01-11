@@ -266,9 +266,9 @@ bool ObjVisual::isAnimExist(std::string_view name) const {
   return false;
   }
 
-bool ObjVisual::updateAnimation(Npc* npc, Interactive* mobsi, World& world, uint64_t dt) {
+bool ObjVisual::updateAnimation(Npc* npc, Interactive* mobsi, World& world, uint64_t dt, bool force) {
   if(type==M_Mdl) {
-    bool ret = mdl.view.updateAnimation(npc,mobsi,world,dt);
+    bool ret = mdl.view.updateAnimation(npc,mobsi,world,dt,force);
     if(ret)
       mdl.view.syncAttaches();
     return ret;

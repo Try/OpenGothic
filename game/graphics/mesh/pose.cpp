@@ -312,7 +312,7 @@ void Pose::processLayers(AnimationSolver& solver, uint64_t tickCount) {
     }
   }
 
-bool Pose::update(uint64_t tickCount) {
+bool Pose::update(uint64_t tickCount, bool force) {
   if(lay.size()==0) {
     const bool ret = needToUpdate;
     if(needToUpdate || lastUpdate==0)
@@ -323,7 +323,7 @@ bool Pose::update(uint64_t tickCount) {
     }
 
   bool needMkSkeleton = false;
-  if(lastUpdate!=tickCount) {
+  if(lastUpdate!=tickCount || force) {
     for(auto& i:lay) {
       const Animation::Sequence* seq = i.seq;
       if(0<i.comb && i.comb<=i.seq->comb.size()) {
@@ -342,7 +342,7 @@ bool Pose::update(uint64_t tickCount) {
     needToUpdate = needMkSkeleton;
     }
 
-  if(needMkSkeleton) {
+  if(needMkSkeleton || force) {
     mkSkeleton(pos);
     return true;
     }

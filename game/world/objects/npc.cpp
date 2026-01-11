@@ -4563,10 +4563,10 @@ Matrix4x4 Npc::mkPositionMatrix() const {
   }
 
 void Npc::updateTransform() {
-  updateAnimation(0);
+  updateAnimation(0, true);
   }
 
-void Npc::updateAnimation(uint64_t dt) {
+void Npc::updateAnimation(uint64_t dt, bool force) {
   const auto camera = Gothic::inst().camera();
   if(isPlayer() && camera!=nullptr && camera->isFree())
     dt = 0;
@@ -4599,7 +4599,7 @@ void Npc::updateAnimation(uint64_t dt) {
     durtyTranform = 0;
     }
 
-  bool syncAtt = visual.updateAnimation(this,nullptr,owner,dt);
+  bool syncAtt = visual.updateAnimation(this,nullptr,owner,dt,force);
   if(syncAtt)
     visual.syncAttaches();
   }
