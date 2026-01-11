@@ -98,6 +98,7 @@ GameSession::GameSession(std::string file) {
   //std::string_view hero = "Scavenger";
   //std::string_view hero = "StoneGolem";
   //std::string_view hero = "Waran";
+  //std::string_view hero = "FireWaran";
   //std::string_view hero = "Bloodfly";
   //std::string_view hero = "Gobbo_Skeleton";
   if(!Gothic::inst().isBenchmarkMode())

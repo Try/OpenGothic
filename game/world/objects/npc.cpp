@@ -1486,7 +1486,7 @@ bool Npc::implAttack(uint64_t dt) {
     mvAlgo.tick(dt,MoveAlgo::FaiMove);
     return true;
     }
-  if(bs==BS_STUMBLE || bs==BS_LIE || isInAir()) {
+  if(bs==BS_STUMBLE || isInAir()) {
     mvAlgo.tick(dt,MoveAlgo::FaiMove);
     return true;
     }
@@ -1675,6 +1675,8 @@ bool Npc::implAttack(uint64_t dt) {
 
   if(act==FightAlgo::MV_MOVEA || act==FightAlgo::MV_MOVEG ||
      act==FightAlgo::MV_TURNA || act==FightAlgo::MV_TURNG) {
+    const bool prGRange = fghAlgo.isInGRange(*this, *currentTarget, owner.script());
+
     if(!(mvAlgo.checkLastBounce() && implTurnTo(*currentTarget,dt))) {
       go2.set(currentTarget,(act==FightAlgo::MV_MOVEG || act==FightAlgo::MV_TURNG) ?
                                GoToHint::GT_EnemyG : GoToHint::GT_EnemyA);
@@ -1686,7 +1688,7 @@ bool Npc::implAttack(uint64_t dt) {
     const bool isWRange = fghAlgo.isInWRange(*this, *currentTarget, owner.script());
     const bool isFocus  = fghAlgo.isInFocusAngle(*this, *currentTarget);
 
-    if((isWRange || isGRange) && isFocus) {
+    if((isWRange || (isGRange!=prGRange)) && isFocus) {
       visual.setAnimRotate(*this, 0);
       fghAlgo.consumeAction();
       aiState.loopNextTime = owner.tickCount(); // force ZS_MM_Attack_Loop call
@@ -1908,7 +1910,6 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
   if(std::cos(da*M_PI/180.0)<0)
     lastHitType='A'; else
     lastHitType='B';
-  aiState.loopNextTime = owner.tickCount(); // force ZS_MM_Attack_Loop call
 
   DamageCalculator::Damage dmg={};
   DamageCalculator::Val    hitResult;

@@ -322,6 +322,7 @@ bool Pose::update(uint64_t tickCount) {
     return ret;
     }
 
+  bool needMkSkeleton = false;
   if(lastUpdate!=tickCount) {
     for(auto& i:lay) {
       const Animation::Sequence* seq = i.seq;
@@ -329,14 +330,20 @@ bool Pose::update(uint64_t tickCount) {
         if(auto sx = i.seq->comb[size_t(i.comb-1)])
           seq = sx;
         }
-      needToUpdate |= updateFrame(*seq,i.bs,i.sBlend,lastUpdate,i.sAnim,tickCount);
+
+      auto&        d         = *seq->data;
+      const size_t numFrames = d.numFrames;
+      if(numFrames==1 && !needToUpdate)
+        continue; //mobsi
+
+      needMkSkeleton |= updateFrame(*seq,i.bs,i.sBlend,lastUpdate,i.sAnim,tickCount);
       }
-    lastUpdate = tickCount;
+    lastUpdate   = tickCount;
+    needToUpdate = needMkSkeleton;
     }
 
-  if(needToUpdate) {
+  if(needMkSkeleton) {
     mkSkeleton(pos);
-    needToUpdate = false;
     return true;
     }
   return false;
@@ -345,12 +352,10 @@ bool Pose::update(uint64_t tickCount) {
 bool Pose::updateFrame(const Animation::Sequence &s, BodyState bs, uint64_t sBlend,
                        uint64_t barrier, uint64_t sTime, uint64_t now) {
   auto&        d         = *s.data;
-  const size_t numFrames = d.numFrames;
   const size_t idSize    = d.nodeIndex.size();
+  const size_t numFrames = d.numFrames;
   if(numFrames==0 || idSize==0 || d.samples.size()%idSize!=0)
-    return false;
-  if(numFrames==1 && !needToUpdate)
-    return false;
+    return false; // error
 
   (void)barrier;
   now = now-sTime;
