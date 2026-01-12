@@ -719,7 +719,7 @@ bool MoveAlgo::isClose(const Npc& npc, const WayPoint& p, float dist) {
 bool MoveAlgo::isClose(const Npc& npc, const Tempest::Vec3& p, float dist) {
   // NOTE: this need to be consistent with current go2 point implementation
   auto  dp  = (p - npc.position());
-  if(std::abs(dp.y)<150)
+  if(std::abs(dp.y)<250)
     dp.y = 0;
   float len = dp.quadLength();
   return (len<dist*dist);
