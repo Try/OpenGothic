@@ -445,13 +445,12 @@ PackedMesh::PackedMesh(const zenkit::SoftSkinMesh& skinned) {
   std::vector<SkeletalData> vertices(mesh.positions.size());
   // Extract weights and local positions
   auto& stream = skinned.weights;
-  for(size_t i=0; i<vertices.size(); ++i) {
+  for(size_t i=0; i<stream.size() && i<vertices.size(); ++i) {
     auto& vert = vertices[i];
-    if(stream.size()<=i) {
-      continue;
-      }
-    for(size_t j=0; j<stream[i].size(); j++) {
-      auto& weight = stream[i][j];
+    auto& wx   = stream[i];
+
+    for(size_t j=0; j<wx.size(); j++) {
+      auto& weight = wx[j];
       vert.boneIndices[j]    = weight.node_index;
       vert.localPositions[j] = {weight.position.x, weight.position.y, weight.position.z};
       vert.weights[j]        = weight.weight;
