@@ -43,7 +43,7 @@ void MoveAlgo::tickMobsi(uint64_t dt) {
   if(npc.interactive()->isStaticState())
     return;
 
-  auto dp  = npc.animMoveSpeed(dt);
+  auto dp = npc.animMoveSpeed(dt);
   if(npc.interactive()->isLadder()) {
     auto mat = npc.interactive()->transform();
     mat.project(dp);
@@ -92,31 +92,41 @@ bool MoveAlgo::tickSlide(uint64_t dt) {
     setAsSlide(false);
     return true;
     }
-  if(dY>fallThreshold*2) {
+  if(dY>fallThreshold*1.1) {
     setInAir  (true);
     setAsSlide(false);
     return false;
     }
 
-  const float normXZ    = std::sqrt(norm.x*norm.x+norm.z*norm.z);
-  const float normXZInv = std::sqrt(1.f - normXZ*normXZ);
-
   DynamicWorld::CollisionTest info;
-  if(normXZ<0.01f || norm.y>=1.f || !testSlide(pos+Tempest::Vec3(0,fallThreshold,0),info)) {
+  if(norm.y<=0 || norm.y>=0.99f || !testSlide(pos,info,true)) {
     setAsSlide(false);
     return false;
     }
 
+  const auto tangent = Tempest::Vec3::crossProduct(norm, Tempest::Vec3(0,1,0));
+  const auto slide   = Tempest::Vec3::crossProduct(norm, tangent);
+
   auto dp = fallSpeed*float(dt);
-  if(!tryMove(dp.x,dp.y,dp.z,info)) {
-    onGravityFailed(info,dt);
-    } else {
-    norm.x =  normXZInv*norm.x/normXZ;
-    norm.z =  normXZInv*norm.z/normXZ;
-    norm.y = -normXZ   *norm.y/normXZInv;
-    fallSpeed += norm*float(dt)*gravity;
+  if(tryMove(dp.x,dp.y,dp.z,info)) {
+    fallSpeed += slide*float(dt)*gravity;
     fallCount  = 1;
     }
+  else if(tryMove(dp.x,0.f,dp.z,info)) {
+    fallSpeed += Tempest::Vec3(slide.x, 0.f, slide.z)*float(dt)*gravity;
+    fallCount  = 1;
+    }
+  else {
+    onGravityFailed(info,dt);
+    }
+
+  /*
+  if(fallCount>0 && !tryMove(dp.x,dp.y,dp.z,info)) {
+    onGravityFailed(info,dt);
+    } else {
+    fallSpeed += slide*float(dt)*gravity;
+    fallCount  = 1;
+    }*/
 
   npc.setAnimRotate(0);
   if(!npc.isDown()) {
@@ -361,7 +371,7 @@ bool MoveAlgo::tickRun(uint64_t dt, MvFlags moveFlg) {
   else if(0.f<=dY && dY<fallThreshold) {
     const bool walk = bool(npc.walkMode()&WalkBit::WM_Walk);
     DynamicWorld::CollisionTest info;
-    if(onGound && testSlide(pos+dp+Tempest::Vec3(0,fallThreshold,0),info)) {
+    if(onGound && testSlide(pos+dp,info)) {
       if(walk) {
         DynamicWorld::CollisionTest info;
         info.normal  = dp;
@@ -371,6 +381,8 @@ bool MoveAlgo::tickRun(uint64_t dt, MvFlags moveFlg) {
         }
       if(!tryMove(dp.x,-dY,dp.z,info))
         onMoveFailed(dp,info,dt);
+      fallSpeed = Tempest::Vec3();
+      fallCount = 0;
       setAsSlide(true);
       return true;
       }
@@ -385,7 +397,7 @@ bool MoveAlgo::tickRun(uint64_t dt, MvFlags moveFlg) {
     }
   else if(-fallThreshold<dY && dY<0.f) {
     DynamicWorld::CollisionTest info;
-    if(onGound && testSlide(pos+dp+Tempest::Vec3(0,fallThreshold,0),info)) {
+    if(onGound && testSlide(pos+dp,info)) {
       onMoveFailed(dp,info,dt);
       return true;
       }
@@ -605,20 +617,26 @@ Tempest::Vec3 MoveAlgo::go2WpMoveSpeed(Tempest::Vec3 dp, const Tempest::Vec3& to
   return dp;
   }
 
-bool MoveAlgo::testSlide(const Tempest::Vec3& pos, DynamicWorld::CollisionTest& out) const {
+bool MoveAlgo::testSlide(const Tempest::Vec3& pos, DynamicWorld::CollisionTest& out, bool cont) const {
   if(isInAir() || npc.bodyStateMasked()==BS_JUMP)
     return false;
 
-  auto  norm             = normalRay(pos);
   // check ground
-  const float slideBegin = slideAngle();
+  const auto  norm       = normalRay(pos);
+  const float slideBegin = std::min(slideAngle() + (cont ? 0.1f : 0.f), 1.f);
   const float slideEnd   = slideAngle2();
+
+  out.normal = norm;
 
   if(!(slideEnd<norm.y && norm.y<slideBegin)) {
     return false;
     }
 
-  out.normal = norm;
+  const auto tangent = Tempest::Vec3::crossProduct(norm, Tempest::Vec3(0,1,0));
+  const auto slide   = Tempest::Vec3::crossProduct(norm, tangent);
+
+  if(!npc.testMove(pos+slide*gravity*0.15f))
+    return false;
   return true;
   }
 
