@@ -88,7 +88,6 @@ class Renderer final {
     void drawSunMoon      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview, bool isSun);
 
     void drawSwRT         (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
-    void drawSwRT8        (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
 
     void stashSceneAux    (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
 
