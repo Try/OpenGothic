@@ -394,7 +394,7 @@ bool DialogMenu::haveToShowSubtitles(bool isPl) const {
         // since other is the player, this is considered player subtitles again
         return showSubtitlesPlayer;
 
-      case default:
+      default:
         return false;
     }
   } else {
