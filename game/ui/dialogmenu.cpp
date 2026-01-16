@@ -382,15 +382,15 @@ bool DialogMenu::haveToShowSubtitles(bool isPl) const {
   if(isPl){
     return showSubtitlesPlayer;
   } else if(other != nullptr) {
-    switch (other.processPolicy()) {
-      case(ProcessPolicy::AiNormal):
+    switch (other->processPolicy()) {
+      case(NpcProcessPolicy::AiNormal):
         return showSubtitlesAmbient;
 
-      case(ProcessPolicy::AiFar):
-      case(ProcessPolicy::AiFar2):
+      case(NpcProcessPolicy::AiFar):
+      case(NpcProcessPolicy::AiFar2):
         return showSubtitlesNoise;
 
-      case(ProcessPolicy::Player):
+      case(NpcProcessPolicy::Player):
         // since other is the player, this is considered player subtitles again
         return showSubtitlesPlayer;
 
