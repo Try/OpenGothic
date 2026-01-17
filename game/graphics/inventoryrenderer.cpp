@@ -18,9 +18,10 @@ InventoryRenderer::InventoryRenderer()
 
 void InventoryRenderer::draw(Tempest::Encoder<CommandBuffer>& cmd) {
   Tempest::Matrix4x4 mv = Tempest::Matrix4x4::mkIdentity();
+  mv.translate(0, 0, 0.5f);
   mv.scale(0.8f,1.f,1.f);
 
-  auto&  pso = Shaders::inst().inventory;
+  auto& pso = Shaders::inst().inventory;
   for(auto& i:items) {
     cmd.setViewport(i.x,i.y,i.w,i.h);
     for(size_t r=0;r<i.mesh.nodesCount();++r) {
@@ -30,7 +31,10 @@ void InventoryRenderer::draw(Tempest::Encoder<CommandBuffer>& cmd) {
       if(auto s = n.mesh()) {
         auto sl = n.meshSlice();
         auto p  = mv;
+        p.scale(1, 1, 0.25f);
+
         p.mul(n.position());
+        p.mul(i.viewMat);
 
         cmd.setBinding(0, *m.tex);
         cmd.setPushData(p);
@@ -42,14 +46,12 @@ void InventoryRenderer::draw(Tempest::Encoder<CommandBuffer>& cmd) {
   }
 
 void InventoryRenderer::reset(bool full) {
-  if(!full)
-    prevItems = std::move(items);
   items.clear();
   }
 
 void InventoryRenderer::drawItem(int x, int y, int w, int h, const ::Item& item) {
   auto& itData = item.handle();
-  if(auto mesh=Resources::loadMesh(itData.visual)) {
+  if(auto mesh = Resources::loadMesh(itData.visual)) {
     float    sz  = (mesh->bbox[1]-mesh->bbox[0]).length();
     auto     mv  = (mesh->bbox[1]+mesh->bbox[0])*0.5f;
     ItmFlags flg = ItmFlags(item.mainFlag());
@@ -62,7 +64,6 @@ void InventoryRenderer::drawItem(int x, int y, int w, int h, const ::Item& item)
 
     Tempest::Matrix4x4 mat;
     mat.identity();
-    mat.scale(sz);
 
     float rotx = float(itData.inv_rot_x);
     float roty = float(itData.inv_rot_y);
@@ -125,12 +126,13 @@ void InventoryRenderer::drawItem(int x, int y, int w, int h, const ::Item& item)
       mat.rotateOY(invY);
       }
     else if(flg&ITM_CAT_NONE) {
-      static const float invX = 135;
-      static const float invY = 90;
-      static const float invZ = 45;
-      mat.rotateOX(invX-rotx);
-      mat.rotateOZ(invZ-rotz);
-      mat.rotateOY(invY-roty);
+      static float invXa = 135;
+      static float invYa = 90;
+      static float invZa = 45;
+      //invXa++;
+      mat.rotateOX(invXa-rotx);
+      mat.rotateOZ(invZa-rotz);
+      mat.rotateOY(invYa-roty);
       } else {
       static const float invX = 180;
       static const float invY = -90;
@@ -146,16 +148,13 @@ void InventoryRenderer::drawItem(int x, int y, int w, int h, const ::Item& item)
       mat.set(i,0,trY);
       mat.set(i,2,trX);
       }
+    mat.scale(sz);
     mat.translate(-mv);
-
-    for(int i=0;i<3;++i){
-      mat.set(i,2,mat.at(i,2)*0.2f);
-      }
-    mat.set(3,2, 0.75f);//+itData.inv_zbias/1000.f);
 
     Itm itm;
     itm.mesh = MeshObjects::Mesh(itmGroup,*mesh,itData.material,0,itData.material,false);
-    itm.mesh.setObjMatrix(mat);
+    itm.mesh.setObjMatrix(Matrix4x4::mkIdentity());
+    itm.viewMat = mat;
     itm.x    = x;
     itm.y    = y;
     itm.w    = w;
