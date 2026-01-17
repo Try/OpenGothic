@@ -504,9 +504,10 @@ const zenkit::ICamera& Camera::cameraDef() const {
   }
 
 void Camera::clampRotation(Tempest::Vec3& spin) {
+  //NOTE: min elevation is zero for nomal camera. assume that it's ignored by vanilla
   const auto& def     = cameraDef();
   float       maxElev = isMarvin() ? +90 : (def.max_elevation - rotEleAz.x);
-  float       minElev = isMarvin() ? -90 : (def.min_elevation - rotEleAz.x);
+  float       minElev = isMarvin() ? -90 : -60; //(def.min_elevation - rotEleAz.x);
   if(spin.x>maxElev)
     spin.x = maxElev;
   if(spin.x<minElev)
@@ -612,7 +613,7 @@ void Camera::followCamera(Vec3& pos, Vec3 dest, float dtF) {
 
 void Camera::followAng(Vec3& spin, Vec3 dest, float dtF, bool ver) {
   const auto& def  = cameraDef();
-  const float velo = ver ? def.velo_rot : 9.f;
+  const float velo = ver ? def.velo_rot : 12.f;
   followAng(spin.x,dest.x,velo,dtF);
   followAng(spin.y,dest.y,velo,dtF);
   }
@@ -625,7 +626,7 @@ void Camera::followAng(float& ang, float dest, float speed, float dtF) {
     return;
     }
 
-  static const float min=-120, max=120;
+  static const float min=-90, max=90;
   if(da>max+1.f) {
     shift = (da-max);
     }
