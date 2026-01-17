@@ -59,14 +59,18 @@ void Camera::reset(const Npc* pl) {
 void Camera::save(Serialize &s) {
   s.write(src.range, src.target, src.spin,
           dst.range, dst.target, dst.spin);
-  s.write(cameraPos,origin,rotOffset);
+  s.write(cameraPos,origin,angles);
+  s.write(rotOffset,rotEleAz,offsetAng);
   }
 
 void Camera::load(Serialize &s, Npc* pl) {
   reset(pl);
+  if(s.version()<54)
+    return;
   s.read(src.range, src.target, src.spin,
          dst.range, dst.target, dst.spin);
-  s.read(cameraPos,origin,rotOffset);
+  s.read(cameraPos,origin,angles);
+  s.read(rotOffset,rotEleAz,offsetAng);
   }
 
 void Camera::changeZoom(int delta) {
