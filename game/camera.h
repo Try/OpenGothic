@@ -132,9 +132,12 @@ class Camera final {
 
     Tempest::Vec3         cameraPos = {};
     Tempest::Vec3         origin    = {};
+    Tempest::Vec3         angles    = {};
+
     Tempest::Vec3         rotOffset = {};
     Tempest::Vec3         rotEleAz  = {};
     Tempest::Vec3         offsetAng = {};
+
     State                 src, dst;
 
     Pin                   pin;

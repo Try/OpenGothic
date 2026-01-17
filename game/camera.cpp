@@ -169,14 +169,14 @@ void Camera::setMarvinMode(Camera::MarvinMode nextMod) {
       rotOffset.y = 0;
       }
     if(nextMod==M_Pinned) {
-      const auto& def    = cameraDef();
+      //const auto& def    = cameraDef();
       auto        offset = origin;
       Matrix4x4   rotMat = pl->cameraMatrix(false);
 
       rotMat.inverse();
       rotMat.project(offset);
       pin.origin = offset;
-      pin.spin.x = src.spin.x - def.best_elevation;
+      pin.spin.x = src.spin.x;
       pin.spin.y = src.spin.y - (pl ? pl->rotation() : 0);
       }
     }
@@ -265,7 +265,7 @@ Matrix4x4 Camera::projective() const {
 
 Matrix4x4 Camera::viewShadowLwc(const Tempest::Vec3& lightDir, size_t layer) const {
   auto  vp       = viewProjLwc();
-  float rotation = (180+src.spin.y-rotOffset.y);
+  float rotation = (180+angles.y-rotOffset.y);
   // if(layer==0)
   //   return viewShadowVsm(cameraPos-origin,rotation,vp,lightDir);
   return mkViewShadow(cameraPos-origin,rotation,vp,lightDir,layer);
@@ -320,7 +320,7 @@ Matrix4x4 Camera::mkViewShadowVsm(const Vec3& cameraPos, const Vec3& ldir) const
 
 Matrix4x4 Camera::viewShadow(const Vec3& lightDir, size_t layer) const {
   auto  vp       = viewProj();
-  float rotation = (180+src.spin.y-rotOffset.y);
+  float rotation = (180+angles.y-rotOffset.y);
   // if(layer==0)
   //   return viewShadowVsm(cameraPos,rotation,vp,lightDir);
   return mkViewShadow(cameraPos,rotation,vp,lightDir,layer);
@@ -501,12 +501,12 @@ const zenkit::ICamera& Camera::cameraDef() const {
 
 void Camera::clampRotation(Tempest::Vec3& spin) {
   const auto& def     = cameraDef();
-  float       maxElev = isMarvin() ? 90 : def.max_elevation;
-  float       minElev = isMarvin() ? -90 : def.min_elevation;
+  float       maxElev = isMarvin() ? +90 : (def.max_elevation - rotEleAz.x);
+  float       minElev = isMarvin() ? -90 : (def.min_elevation - rotEleAz.x);
   if(spin.x>maxElev)
     spin.x = maxElev;
   if(spin.x<minElev)
-    ;//spin.x = def.minElevation;
+    spin.x = minElev;
   }
 
 void Camera::implMove(Tempest::Event::KeyType key, uint64_t dt) {
@@ -672,6 +672,10 @@ void Camera::calcControlPoints(float dtF) {
                             def.rot_offset_z);
   auto  rotBest      = Vec3(0,def.best_azimuth,0);
 
+  if(!isMarvin()) {
+    followAng(rotEleAz, Vec3(def.best_elevation, def.best_azimuth, 0), dtF, true);
+    followAng(rotOffset, rotOffsetDef, dtF, true);
+    }
   clampRotation(dst.spin);
 
   float range = src.range*100.f;
@@ -682,19 +686,18 @@ void Camera::calcControlPoints(float dtF) {
     src.target   = dst.target;
     cameraPos    = src.target;
     rotOffset    = Vec3();
+    rotEleAz     = Vec3();
     rotOffsetDef = Vec3();
     rotBest      = Vec3();
     //spin.y += def.bestAzimuth;
     }
+
   if(isCutscene()) {
     rotOffset    = rotOffsetDef;
     range        = 0;
     }
 
-  followAng(rotEleAz, Vec3(def.best_elevation, def.best_azimuth, 0), dtF, true);
   followAng(src.spin, dst.spin, dtF, false);
-  if(!isMarvin())
-    followAng(rotOffset, rotOffsetDef, dtF, true);
 
   Matrix4x4 rotOffsetMat;
   rotOffsetMat.identity();
@@ -712,6 +715,8 @@ void Camera::calcControlPoints(float dtF) {
   followCamera(cameraPos,src.target,dtF);
 
   origin = cameraPos - dir*range;
+  angles = src.spin + rotEleAz + offsetAng;
+
   if(camMarvinMod==M_Free || isCutscene()) {
     return;
     }
@@ -721,17 +726,19 @@ void Camera::calcControlPoints(float dtF) {
     auto rotMat = pl->cameraMatrix(false);
     auto offset = pin.origin;
     rotMat.project(offset);
-    origin     = offset;
     src.target = dst.target;
     src.spin   = dst.spin + pin.spin;
     offsetAng  = Vec3();
+
+    origin     = offset;
+    angles     = src.spin + rotEleAz + offsetAng;
     return;
     }
 
   if(def.collision!=0) {
     // range  = calcCameraColision(camTg,origin,src.spin,range);
     // origin = cameraPos - dir*range;
-    origin = calcCameraColision(camTg,origin,src.spin+rotEleAz+offsetAng,range);
+    origin = calcCameraColision(camTg,origin,angles,range);
     range  = (origin - camTg).length();
     }
 
@@ -750,6 +757,7 @@ void Camera::calcControlPoints(float dtF) {
     rotOffsetMat.rotateOY(180-src.spin.y);
     rotOffsetMat.project(offset);
     origin += offset;
+    angles = src.spin + rotEleAz + offsetAng;
     }
   }
 
@@ -859,6 +867,7 @@ void Camera::resetDst() {
   const auto& def = cameraDef();
   // dst.spin.x = def.best_elevation;
   dst.range  = def.best_range;
+  dst.spin   = Vec3(0);
   }
 
 void Camera::debugDraw(DbgPainter& p) {
@@ -915,13 +924,11 @@ Matrix4x4 Camera::viewProj() const {
   }
 
 Matrix4x4 Camera::view() const {
-  auto spin = src.spin+rotEleAz+offsetAng;
-  return mkView(origin,spin);
+  return mkView(origin, angles);
   }
 
 Matrix4x4 Camera::viewLwc() const {
-  auto spin = src.spin+rotEleAz+offsetAng;
-  return mkView(Vec3(0),spin);
+  return mkView(Vec3(0), angles);
   }
 
 Matrix4x4 Camera::viewProjLwc() const {
