@@ -48,7 +48,7 @@ void Camera::reset(const Npc* pl) {
   dst.range    = userRange*(def.max_range-def.min_range)+def.min_range;
   dst.target   = pl ? pl->cameraBone() : Vec3();
 
-  dst.spin.x   = def.best_elevation;
+  dst.spin.x   = 0; //def.best_elevation;
   dst.spin.y   = pl ? pl->rotation() : 0;
 
   src.spin     = dst.spin;
@@ -606,10 +606,11 @@ void Camera::followCamera(Vec3& pos, Vec3 dest, float dtF) {
   pos = dest;
   }
 
-void Camera::followAng(Vec3& spin, Vec3 dest, float dtF) {
-  const auto& def = cameraDef();
-  followAng(spin.x,dest.x,def.velo_rot,dtF);
-  followAng(spin.y,dest.y,def.velo_rot,dtF);
+void Camera::followAng(Vec3& spin, Vec3 dest, float dtF, bool ver) {
+  const auto& def  = cameraDef();
+  const float velo = ver ? def.velo_rot : 9.f;
+  followAng(spin.x,dest.x,velo,dtF);
+  followAng(spin.y,dest.y,velo,dtF);
   }
 
 void Camera::followAng(float& ang, float dest, float speed, float dtF) {
@@ -620,7 +621,7 @@ void Camera::followAng(float& ang, float dest, float speed, float dtF) {
     return;
     }
 
-  static const float min=-45, max=45;
+  static const float min=-120, max=120;
   if(da>max+1.f) {
     shift = (da-max);
     }
@@ -690,14 +691,15 @@ void Camera::calcControlPoints(float dtF) {
     range        = 0;
     }
 
-  followAng(src.spin,  dst.spin+rotBest, dtF);
+  followAng(rotEleAz, Vec3(def.best_elevation, def.best_azimuth, 0), dtF, true);
+  followAng(src.spin, dst.spin, dtF, false);
   if(!isMarvin())
-    followAng(rotOffset, rotOffsetDef, dtF);
+    followAng(rotOffset, rotOffsetDef, dtF, true);
 
   Matrix4x4 rotOffsetMat;
   rotOffsetMat.identity();
-  rotOffsetMat.rotateOY(180-src.spin.y);
-  rotOffsetMat.rotateOX(src.spin.x);
+  rotOffsetMat.rotateOY(180-src.spin.y-rotEleAz.y);
+  rotOffsetMat.rotateOX(src.spin.x+rotEleAz.x);
   rotOffsetMat.project(targetOffset);
 
   Vec3 dir = {0,0,1};
@@ -729,7 +731,7 @@ void Camera::calcControlPoints(float dtF) {
   if(def.collision!=0) {
     // range  = calcCameraColision(camTg,origin,src.spin,range);
     // origin = cameraPos - dir*range;
-    origin = calcCameraColision(camTg,origin,src.spin+offsetAng,range);
+    origin = calcCameraColision(camTg,origin,src.spin+rotEleAz+offsetAng,range);
     range  = (origin - camTg).length();
     }
 
@@ -855,7 +857,7 @@ void Camera::resetDst() {
   if(isMarvin())
     return;
   const auto& def = cameraDef();
-  dst.spin.x = def.best_elevation;
+  // dst.spin.x = def.best_elevation;
   dst.range  = def.best_range;
   }
 
@@ -913,12 +915,12 @@ Matrix4x4 Camera::viewProj() const {
   }
 
 Matrix4x4 Camera::view() const {
-  auto spin = src.spin+offsetAng;
+  auto spin = src.spin+rotEleAz+offsetAng;
   return mkView(origin,spin);
   }
 
 Matrix4x4 Camera::viewLwc() const {
-  auto spin = src.spin+offsetAng;
+  auto spin = src.spin+rotEleAz+offsetAng;
   return mkView(Vec3(0),spin);
   }
 

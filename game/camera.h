@@ -133,6 +133,7 @@ class Camera final {
     Tempest::Vec3         cameraPos = {};
     Tempest::Vec3         origin    = {};
     Tempest::Vec3         rotOffset = {};
+    Tempest::Vec3         rotEleAz  = {};
     Tempest::Vec3         offsetAng = {};
     State                 src, dst;
 
@@ -182,7 +183,7 @@ class Camera final {
 
     void                  followCamera(Tempest::Vec3& pos,  Tempest::Vec3 dest, float dtF);
     void                  followPos   (Tempest::Vec3& pos,  Tempest::Vec3 dest, float dtF);
-    void                  followAng   (Tempest::Vec3& spin, Tempest::Vec3 dest, float dtF);
+    void                  followAng   (Tempest::Vec3& spin, Tempest::Vec3 dest, float dtF, bool ver);
     static void           followAng   (float& ang, float dest, float speed, float dtF);
 
     const zenkit::ICamera& cameraDef() const;
