@@ -24,14 +24,14 @@ class InventoryRenderer {
       };
 
     struct Itm {
-      MeshObjects::Mesh mesh;
-      int x=0,y=0,w=0,h=0;
+      MeshObjects::Mesh  mesh;
+      Tempest::Matrix4x4 viewMat;
+      int x=0, y=0, w=0, h=0;
       };
 
-    SceneGlobals           scene;
-    VisualObjects          visual;
-    MeshObjects            itmGroup;
-    std::vector<Itm>       items;
-    std::vector<Itm>       prevItems; // reseve previous to avoid bucket reallocation
+    SceneGlobals     scene;
+    VisualObjects    visual;
+    MeshObjects      itmGroup;
+    std::vector<Itm> items;
   };
 
