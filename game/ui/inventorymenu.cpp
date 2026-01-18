@@ -688,10 +688,11 @@ void InventoryMenu::drawHeader(Painter &p, std::string_view title, int x, int y)
   const float scale = Gothic::interfaceScale(this);
   auto&       fnt   = Resources::font(scale);
 
-  const int   dw    = slotSize().w*2;
-  const int   dh    = int(34*scale);
   const int   tw    = fnt.textSize(title).w;
   const int   th    = fnt.textSize(title).h;
+  const int   padd  = int(8*scale);
+  const int   dw    = std::max(slotSize().w*2, tw+padd*2);
+  const int   dh    = int(34*scale);
 
   if(tex) {
     p.setBrush(*tex);
