@@ -23,7 +23,9 @@ endif()
 
 if(NOT MSVC)
   target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wconversion -Wno-strict-aliasing -Werror)
-
+  if(CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "8.0")
+    target_compile_options(${PROJECT_NAME} PRIVATE -Wno-class-memaccess)
+  endif()
   if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "7.1" AND NOT APPLE AND NOT ${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
     target_compile_options(${PROJECT_NAME} PRIVATE -Wno-format-truncation)
   endif()
