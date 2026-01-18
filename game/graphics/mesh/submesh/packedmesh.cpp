@@ -883,7 +883,9 @@ void PackedMesh::packCWBVH8(const zenkit::Mesh& mesh) {
 
   std::vector<UVec4> nodes(sizeof(CWBVH8)/sizeof(UVec4));
   auto root = packCWBVH8(mesh, nodes, frag.data(), frag.size());
-  std::memcpy(nodes.data(), &root, sizeof(root));
+  static_assert(sizeof(CWBVH8) == sizeof(UVec4) * 5);
+  auto* dest = reinterpret_cast<CWBVH8*>(nodes.data());
+  *dest = root;
 
   //TODO: ensure, that first node is a box node
   bvh8Nodes = std::move(nodes);
