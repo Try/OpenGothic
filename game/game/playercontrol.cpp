@@ -247,14 +247,10 @@ bool PlayerControl::isPressed(KeyCodec::Action a) const {
   return ctrl[a];
   }
 
-void PlayerControl::onRotateMouse(float dAngle) {
-  dAngle = std::max(-40.f,std::min(dAngle,40.f));
-  rotMouse += dAngle*0.3f;
-  }
-
-void PlayerControl::onRotateMouseDy(float dAngle) {
-  dAngle = std::max(-100.f,std::min(dAngle,100.f));
-  rotMouseY += dAngle*0.2f;
+void PlayerControl::onRotateMouse(float dAngleX, float dAngleY) {
+  // dAngleY = std::clamp(dAngleY, -100.f, 100.f);
+  rotMouse  += dAngleX;
+  rotMouseY += dAngleY;
   }
 
 void PlayerControl::tickFocus() {
@@ -563,8 +559,8 @@ bool PlayerControl::tickMove(uint64_t dt) {
   if(pl==nullptr)
     return true;
 
-  static const float speedRotX = 750.f;
-  rotMouse = std::min(std::abs(rotMouse), speedRotX*dtF) * (rotMouse>=0 ? 1 : -1);
+  // static const float speedRotX = 750.f;
+  // rotMouse = std::min(std::abs(rotMouse), speedRotX*dtF) * (rotMouse>=0 ? 1 : -1);
   implMove(dt);
 
   float runAngle = pl->runAngle();
@@ -664,7 +660,8 @@ void PlayerControl::implMove(uint64_t dt) {
     return;
     }
 
-  int rotation=0;
+  //float rotCam   = 0;
+  int   rotation = 0;
   if(allowRot) {
     if(this->wantsToTurnLeft()) {
       rot += rspeed;
@@ -680,7 +677,8 @@ void PlayerControl::implMove(uint64_t dt) {
       if(rotMouse>0)
         rotation = -1; else
         rotation = 1;
-      rot +=rotMouse;
+      rot    +=rotMouse;
+      //rotCam += rotMouse;
       rotMouse  = 0;
       }
     rotY+=rotMouseY;
@@ -1054,7 +1052,7 @@ void PlayerControl::assignRunAngle(Npc& pl, float rotation, uint64_t dt) {
   if(angle>rotation)
     dest = -std::min(-dangle,maxV);
 
-  float a = std::clamp(dtF*2.5f, 0.f, 1.f);
+  float a = std::clamp(dtF*1.5f, 0.f, 1.f);
   runAngleDest   = runAngleDest*(1.f-a)+dest*a;
   runAngleSmooth = wrld.tickCount() + 200;
   }
@@ -1065,7 +1063,7 @@ void PlayerControl::setAnimRotate(Npc& pl, float rotation, int anim, bool force,
   float dangle = (rotation-angle)/dtF;
   auto& wrld   = pl.world();
 
-  if(std::fabs(dangle)<100.f && !force) // 100 deg per second threshold
+  if(std::fabs(dangle)<30.f && !force) // 100 deg per second threshold
     anim = 0;
   if(anim!=0 && pl.isAttackAnim())
     anim = 0;
@@ -1073,7 +1071,7 @@ void PlayerControl::setAnimRotate(Npc& pl, float rotation, int anim, bool force,
     force = true;
   if(!force && wrld.tickCount()<turnAniSmooth)
     return;
-  turnAniSmooth = wrld.tickCount() + 150;
+  turnAniSmooth = wrld.tickCount() + 100;
   rotationAni   = anim;
   pl.setAnimRotate(anim);
   }

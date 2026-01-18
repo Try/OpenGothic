@@ -32,7 +32,7 @@ void TouchInput::mouseDragEvent(Tempest::MouseEvent& e) {
   mpos = e.pos();
   if(std::abs(dp.x)>0) {
     const float scale = 4.f;
-    ctrl.onRotateMouse(float(-dp.x) * scale);
+    ctrl.onRotateMouse(float(-dp.x) * scale, 0.f);
     }
   }
 

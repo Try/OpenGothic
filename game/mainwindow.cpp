@@ -344,16 +344,16 @@ void MainWindow::tickMouse() {
   PointF dpScaled = PointF(float(dMouse.x)*mouseSensitivity,float(dMouse.y)*mouseSensitivity);
   dpScaled.x/=float(w());
   dpScaled.y/=float(h());
-
-  dpScaled*=1000.f;
-  dpScaled.y /= 7.f;
   if(camLookaroundInverse)
     dpScaled.y *= -1.f;
 
+  static float mul = 125.f;
+  dpScaled *= mul;
+  //dpScaled.y /= 7.f;
+
   camera->onRotateMouse(PointF(dpScaled.y,-dpScaled.x));
   if(!inventory.isActive()) {
-    player.onRotateMouse  (-dpScaled.x);
-    player.onRotateMouseDy(-dpScaled.y);
+    player.onRotateMouse(-dpScaled.x, -dpScaled.y);
     }
 
   dMouse = Point();

@@ -23,8 +23,7 @@ class PlayerControl final {
     void  onKeyPressed (KeyCodec::Action a, Tempest::Event::KeyType key, KeyCodec::Mapping mapping = KeyCodec::Mapping::Primary);
     void  onKeyReleased(KeyCodec::Action a, KeyCodec::Mapping mapping = KeyCodec::Mapping::Primary);
     bool  isPressed(KeyCodec::Action a) const;
-    void  onRotateMouse(float dAngle);
-    void  onRotateMouseDy(float dAngle);
+    void  onRotateMouse(float dAngleX, float dAngleY);
 
     void  changeZoom(int delta);
     void  tickFocus();
