@@ -612,8 +612,11 @@ void Camera::followCamera(Vec3& pos, Vec3 dest, float dtF) {
   }
 
 void Camera::followAng(Vec3& spin, Vec3 dest, float dtF, bool ver) {
+  // tuned agains vanilla: by running in cyrcle up+left and measuring azimuth diference in cam-debug
+  static float gvelo = 7.5f;
+
   const auto& def  = cameraDef();
-  const float velo = ver ? def.velo_rot : 15.f;
+  const float velo = ver ? def.velo_rot : gvelo;
   followAng(spin.x,dest.x,velo,dtF);
   followAng(spin.y,dest.y,velo,dtF);
   }
