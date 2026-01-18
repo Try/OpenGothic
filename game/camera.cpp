@@ -613,7 +613,7 @@ void Camera::followCamera(Vec3& pos, Vec3 dest, float dtF) {
 
 void Camera::followAng(Vec3& spin, Vec3 dest, float dtF, bool ver) {
   const auto& def  = cameraDef();
-  const float velo = ver ? def.velo_rot : 12.f;
+  const float velo = ver ? def.velo_rot : 15.f;
   followAng(spin.x,dest.x,velo,dtF);
   followAng(spin.y,dest.y,velo,dtF);
   }
@@ -628,10 +628,10 @@ void Camera::followAng(float& ang, float dest, float speed, float dtF) {
 
   static const float min=-90, max=90;
   if(da>max+1.f) {
-    shift = (da-max);
+    //shift = (da-max);
     }
   if(da<min-1.f) {
-    shift = (da-min);
+    //shift = (da-min);
     }
   ang += shift;
   }
