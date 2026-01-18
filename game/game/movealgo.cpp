@@ -99,7 +99,7 @@ bool MoveAlgo::tickSlide(uint64_t dt) {
     }
 
   DynamicWorld::CollisionTest info;
-  if(norm.y<=0 || norm.y>=0.99f || !testSlide(pos,info,true)) {
+  if(norm.y<=0 || norm.y>=0.99f || !testSlide(pos+Tempest::Vec3(0,fallThreshold,0),info,true)) {
     setAsSlide(false);
     return false;
     }
@@ -371,7 +371,7 @@ bool MoveAlgo::tickRun(uint64_t dt, MvFlags moveFlg) {
   else if(0.f<=dY && dY<fallThreshold) {
     const bool walk = bool(npc.walkMode()&WalkBit::WM_Walk);
     DynamicWorld::CollisionTest info;
-    if(onGound && testSlide(pos+dp,info)) {
+    if(onGound && testSlide(pos+dp+Tempest::Vec3(0,fallThreshold,0),info)) {
       if(walk) {
         DynamicWorld::CollisionTest info;
         info.normal  = dp;
@@ -397,7 +397,7 @@ bool MoveAlgo::tickRun(uint64_t dt, MvFlags moveFlg) {
     }
   else if(-fallThreshold<dY && dY<0.f) {
     DynamicWorld::CollisionTest info;
-    if(onGound && testSlide(pos+dp,info)) {
+    if(onGound && testSlide(pos+dp+Tempest::Vec3(0,fallThreshold,0),info)) {
       onMoveFailed(dp,info,dt);
       return true;
       }
