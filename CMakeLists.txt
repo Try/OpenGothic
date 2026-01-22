@@ -120,7 +120,11 @@ add_definitions(-DTSF_NO_STDIO)
 include_directories(lib/TinySoundFont)
 
 # Tempest
-set(TEMPEST_BUILD_SHARED ON  CACHE INTERNAL "")
+if(WIN32)
+  set(TEMPEST_BUILD_SHARED ON  CACHE INTERNAL "")
+else()
+  set(TEMPEST_BUILD_SHARED OFF CACHE INTERNAL "")
+endif()
 add_subdirectory(lib/Tempest/Engine)
 include_directories(lib/Tempest/Engine/include)
 target_link_libraries(${PROJECT_NAME} Tempest)
@@ -171,12 +175,6 @@ if(WIN32)
         COMMAND ${CMAKE_COMMAND} -E copy
         ${CMAKE_SOURCE_DIR}/scripts/Gothic2Notr.bat
         ${CMAKE_CURRENT_BINARY_DIR}/opengothic/Gothic2Notr.bat)
-elseif(UNIX)
-    add_custom_command(
-        TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy
-        ${CMAKE_SOURCE_DIR}/scripts/Gothic2Notr.sh
-        ${CMAKE_CURRENT_BINARY_DIR}/opengothic/Gothic2Notr.sh)
 endif()
 
 # in debug mode, enable sanitizers
