@@ -35,17 +35,14 @@ jobs:
       - name: Build
         run: cmake --build build --target Gothic2Notr -j $(nproc)
 
-      - name: Package
-        run: |
-          cd build/opengothic
-          echo "gothic-linux-v${{ github.run_number }}" > VERSION
-          zip -r opengothic_linux.zip VERSION Gothic2Notr Gothic2Notr.sh *.so 2>/dev/null || zip -r opengothic_linux.zip VERSION Gothic2Notr Gothic2Notr.sh
-
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: opengothic_linux
-          path: build/opengothic/opengothic_linux.zip
+          path: |
+            build/opengothic/Gothic2Notr
+            build/opengothic/Gothic2Notr.sh
+            build/opengothic/*.so
 
   linux-deb:
     runs-on: ubuntu-24.04
@@ -119,21 +116,21 @@ jobs:
       - name: Build
         run: cmake --build build --target Gothic2Notr
 
-      - name: Package
+      - name: Copy runtime DLLs
         shell: pwsh
         run: |
-          cd build/opengothic
-          echo "gothic-win64-v${{ github.run_number }}" > VERSION
-          Copy-Item "C:\msys64\mingw64\bin\libgcc_s_seh-1.dll" .
-          Copy-Item "C:\msys64\mingw64\bin\libstdc++-6.dll" .
-          Copy-Item "C:\msys64\mingw64\bin\libwinpthread-1.dll" .
-          Compress-Archive -Path VERSION,*.exe,*.dll,*.bat -DestinationPath opengothic_win.zip
+          Copy-Item "C:\msys64\mingw64\bin\libgcc_s_seh-1.dll" build/opengothic/
+          Copy-Item "C:\msys64\mingw64\bin\libstdc++-6.dll" build/opengothic/
+          Copy-Item "C:\msys64\mingw64\bin\libwinpthread-1.dll" build/opengothic/
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: opengothic_win
-          path: build/opengothic/opengothic_win.zip
+          path: |
+            build/opengothic/*.exe
+            build/opengothic/*.dll
+            build/opengothic/*.bat
 
   macos:
     runs-on: macos-13
@@ -156,17 +153,14 @@ jobs:
       - name: Build
         run: cmake --build build --target Gothic2Notr -j $(sysctl -n hw.ncpu)
 
-      - name: Package
-        run: |
-          cd build/opengothic
-          echo "gothic-osx-v${{ github.run_number }}" > VERSION
-          zip -r opengothic_osx.zip VERSION Gothic2Notr Gothic2Notr.sh *.dylib 2>/dev/null || zip -r opengothic_osx.zip VERSION Gothic2Notr Gothic2Notr.sh
-
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: opengothic_osx
-          path: build/opengothic/opengothic_osx.zip
+          path: |
+            build/opengothic/Gothic2Notr
+            build/opengothic/Gothic2Notr.sh
+            build/opengothic/*.dylib
 
   release:
     if: startsWith(github.ref, 'refs/tags/')
@@ -180,13 +174,19 @@ jobs:
         with:
           path: artifacts
 
+      - name: Package release archives
+        run: |
+          cd artifacts/opengothic_linux && zip -r ../opengothic_linux.zip . && cd ../..
+          cd artifacts/opengothic_win && zip -r ../opengothic_win.zip . && cd ../..
+          cd artifacts/opengothic_osx && zip -r ../opengothic_osx.zip . && cd ../..
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           draft: true
           prerelease: true
           files: |
-            artifacts/opengothic_linux/opengothic_linux.zip
-            artifacts/opengothic_deb/opengothic_*.deb
-            artifacts/opengothic_win/opengothic_win.zip
-            artifacts/opengothic_osx/opengothic_osx.zip
+            artifacts/opengothic_linux.zip
+            artifacts/opengothic_deb/*.deb
+            artifacts/opengothic_win.zip
+            artifacts/opengothic_osx.zip
