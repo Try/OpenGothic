@@ -125,9 +125,7 @@ after_build:
 
       $NAME = $BASE_NAME + '_linux.zip'
       7z a $NAME    VERSION
-      7z a $NAME    "*.so"
       7z a $NAME    "Gothic2Notr"
-      7z a $NAME    "Gothic2Notr.sh"
       }
 
     if($IsMacOS) {
@@ -135,9 +133,7 @@ after_build:
 
       $NAME = $BASE_NAME + '_osx.zip'
       7z a $NAME    VERSION
-      7z a $NAME    "*.dylib"
       7z a $NAME    "Gothic2Notr"
-      7z a $NAME    "Gothic2Notr.sh"
       }
 
 artifacts:
