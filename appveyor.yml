@@ -106,8 +106,8 @@ build_script:
   - cmake --version
   - cmd: if NOT "%VCVARSALL%" == "" call "%VCVARSALL%" %PLATFORM%
   - cmd: cmake -H. -Bbuild -G "%GENERATOR%" -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo -DCMAKE_SH=CMAKE_SH-NOTFOUND -DCMAKE_POLICY_VERSION_MINIMUM=3.5
-  - sh:  if [ -z "$BUILD_DEB" ]; then cmake -H. -Bbuild -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo; fi
-  - sh:  if [ -z "$BUILD_DEB" ]; then cmake --build ./build --target Gothic2Notr; fi
+  - cmd: cmake --build ./build --target Gothic2Notr
+  - sh:  if [ -z "$BUILD_DEB" ]; then cmake -H. -Bbuild -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo && cmake --build ./build --target Gothic2Notr; fi
   - sh:  if [ "$BUILD_DEB" = "true" ]; then dpkg-buildpackage -us -uc -b && cp ../*.deb .; fi
 
 after_build:
