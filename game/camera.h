@@ -49,7 +49,7 @@ class Camera final {
     void reset(const Npc* pl);
 
     void save(Serialize &s);
-    void load(Serialize &s,Npc* pl);
+    void load(Serialize &s, Npc* pl);
 
     void changeZoom(int delta);
     void setViewport(uint32_t w, uint32_t h);
@@ -134,8 +134,8 @@ class Camera final {
     Tempest::Vec3         origin    = {};
     Tempest::Vec3         angles    = {};
 
-    Tempest::Vec3         rotOffset = {};
     Tempest::Vec3         rotEleAz  = {};
+    Tempest::Vec3         rotOffset = {};
     Tempest::Vec3         offsetAng = {};
 
     State                 src, dst;
@@ -143,7 +143,7 @@ class Camera final {
     Pin                   pin;
 
     float                 dlgDist    = 0;
-    float                 userRange  = 0.13f;
+    float                 userRange  = 0;
     float                 targetVelo = 0;
     float                 veloTrans  = 0;
 
@@ -168,13 +168,18 @@ class Camera final {
     static float          offsetAngleMul;
     static const float    minLength;
 
-    void                  calcControlPoints(float dtF);
+    void                  tickFirstPerson(float dtF);
+    void                  tickThirdPerson(float dtF);
+
+    Tempest::Vec3         clampRotation(Tempest::Vec3 spin);
+    float                 calcCameraColision2(const Tempest::Vec3& target, const Tempest::Vec3& origin, const Tempest::Vec3& rotSpin, float dist) const;
+    Tempest::Vec3         calcCameraColision(const Tempest::Vec3& target, const Tempest::Vec3& origin, const Tempest::Vec3& rotSpin, float dist) const;
 
     Tempest::Vec3         calcOffsetAngles(const Tempest::Vec3& srcOrigin, const Tempest::Vec3& target) const;
     Tempest::Vec3         calcOffsetAngles(Tempest::Vec3 srcOrigin, Tempest::Vec3 dstOrigin, Tempest::Vec3 target) const;
-    Tempest::Vec3         calcCameraColision(const Tempest::Vec3& target, const Tempest::Vec3& origin, const Tempest::Vec3& rotSpin, float dist) const;
 
     void                  implMove(Tempest::KeyEvent::KeyType t, uint64_t dt);
+
     Tempest::Matrix4x4    mkView    (const Tempest::Vec3& pos, const Tempest::Vec3& spin) const;
     Tempest::Matrix4x4    mkRotation(const Tempest::Vec3& spin) const;
     Tempest::Matrix4x4    mkViewShadow(const Tempest::Vec3& cameraPos, float rotation,
@@ -182,11 +187,10 @@ class Camera final {
     Tempest::Matrix4x4    mkViewShadowVsm(const Tempest::Vec3& cameraPos, const Tempest::Vec3& ldir) const;
     void                  resetDst();
 
-    void                  clampRotation(Tempest::Vec3& spin);
-
     void                  followCamera(Tempest::Vec3& pos,  Tempest::Vec3 dest, float dtF);
     void                  followPos   (Tempest::Vec3& pos,  Tempest::Vec3 dest, float dtF);
-    void                  followAng   (Tempest::Vec3& spin, Tempest::Vec3 dest, float dtF, bool ver);
+    void                  followSpin  (Tempest::Vec3& spin, Tempest::Vec3 dest, float dtF);
+    void                  followAng   (Tempest::Vec3& spin, Tempest::Vec3 dest, float dtF);
     static void           followAng   (float& ang, float dest, float speed, float dtF);
 
     const zenkit::ICamera& cameraDef() const;

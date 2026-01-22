@@ -326,7 +326,7 @@ void MainWindow::processMouse(MouseEvent& event, bool enable) {
     }
   }
 
-void MainWindow::tickMouse() {
+void MainWindow::tickMouse(uint64_t dt) {
   auto camera = Gothic::inst().camera();
   if(dialogs.hasContent() || Gothic::inst().isPause() || camera==nullptr || camera->isCutscene()) {
     dMouse = Point();
@@ -356,11 +356,16 @@ void MainWindow::tickMouse() {
   if(camLookaroundInverse)
     dpScaled.y *= -1.f;
 
-  static float mul = 125.f;
+  static float mul = 270.f;
   dpScaled *= mul;
 
-  Log::d("mouse dMouse   = ", dMouse.x,   ", ", dMouse.y);
-  Log::d("mouse dpScaled = ", dpScaled.x, ", ", dpScaled.y);
+  static float psMax = 720.f;
+  const float  dtF   = float(dt)/1000.f;
+  dpScaled.x = std::clamp(dpScaled.x, -(psMax*dtF), psMax*dtF);
+  dpScaled.y = std::clamp(dpScaled.y, -(psMax*dtF), psMax*dtF);
+
+  // Log::d("mouse dMouse   = ", dMouse.x,   ", ", dMouse.y);
+  // Log::d("mouse dpScaled = ", dpScaled.x, ", ", dpScaled.y);
 
   camera->onRotateMouse(PointF(dpScaled.y,-dpScaled.x));
   if(!inventory.isActive()) {
@@ -887,11 +892,11 @@ uint64_t MainWindow::tick() {
   else if(runtimeMode==R_Suspended) {
     auto camera = Gothic::inst().camera();
     if(camera!=nullptr && camera->isFree()) {
-      player.tickCameraMove(dt);
-      tickMouse();
+      //player.tickCameraMove(dt);
+      tickMouse(dt);
       }
     update();
-    return dt;
+    return 0;
     }
 
   dialogs.tick(dt);
@@ -903,7 +908,7 @@ uint64_t MainWindow::tick() {
     ;//clearInput();
   if(document.isActive())
     clearInput();
-  tickMouse();
+  tickMouse(dt);
   player.tickMove(dt);
   update();
   return dt;
