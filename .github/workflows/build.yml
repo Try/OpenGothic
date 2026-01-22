@@ -104,11 +104,10 @@ jobs:
         run: cmake --build build --target Gothic2Notr
 
       - name: Copy runtime DLLs
-        shell: pwsh
         run: |
-          Copy-Item "C:\msys64\mingw64\bin\libgcc_s_seh-1.dll" build/opengothic/
-          Copy-Item "C:\msys64\mingw64\bin\libstdc++-6.dll" build/opengothic/
-          Copy-Item "C:\msys64\mingw64\bin\libwinpthread-1.dll" build/opengothic/
+          cp "$MINGW_PREFIX/bin/libgcc_s_seh-1.dll" build/opengothic/
+          cp "$MINGW_PREFIX/bin/libstdc++-6.dll" build/opengothic/
+          cp "$MINGW_PREFIX/bin/libwinpthread-1.dll" build/opengothic/
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
