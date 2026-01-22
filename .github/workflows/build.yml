@@ -63,13 +63,15 @@ jobs:
           echo "static const char* appBuild = \"OpenGothic v${{ github.run_number }}\";" >> game/build.h
 
       - name: Build Debian package
-        run: dpkg-buildpackage -us -uc -b
+        run: |
+          dpkg-buildpackage -us -uc -b
+          cp ../opengothic_*.deb .
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: opengothic_deb
-          path: ../opengothic_*.deb
+          path: opengothic_*.deb
 
   windows:
     runs-on: windows-latest
