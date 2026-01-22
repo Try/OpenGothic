@@ -35,7 +35,7 @@ install:
     if($IsLinux) {
       sudo apt-get update
       if($env:BUILD_DEB) {
-        sudo apt-get --yes install devscripts debhelper libvulkan-dev libasound2-dev libx11-dev libxcursor-dev
+        sudo apt-get --yes install cmake devscripts debhelper libvulkan-dev libasound2-dev libx11-dev libxcursor-dev
       } else {
         sudo apt-get --yes install libvulkan-dev libasound2-dev libx11-dev libxcursor-dev
       }
