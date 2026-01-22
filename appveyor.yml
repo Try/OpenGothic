@@ -35,10 +35,9 @@ install:
     if($IsLinux) {
       sudo apt-get update
       if($env:BUILD_DEB) {
-        sudo apt-get --yes install cmake devscripts debhelper libvulkan-dev libasound2-dev libx11-dev libxcursor-dev
-      } else {
-        sudo apt-get --yes install libvulkan-dev libasound2-dev libx11-dev libxcursor-dev
+        sudo apt-get --yes install cmake devscripts debhelper
       }
+      sudo apt-get --yes install libvulkan-dev libasound2-dev libx11-dev libxcursor-dev
       # Vulkan SDK
       $env:VULKAN_SDK      = "$env:APPVEYOR_BUILD_FOLDER/VulkanSDK/$VK_SDK/x86_64"
       $env:VK_LAYER_PATH   = "$env:VULKAN_SDK/etc/vulkan/explicit_layers.d"
