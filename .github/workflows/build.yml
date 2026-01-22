@@ -103,7 +103,7 @@ jobs:
       - name: Install glslang
         shell: pwsh
         run: |
-          Invoke-WebRequest -Uri "https://github.com/KhronosGroup/glslang/releases/download/main-tot/glslang-main-windows-x64-Release.zip" -OutFile glslang.zip
+          Invoke-WebRequest -Uri "https://github.com/KhronosGroup/glslang/releases/download/master-tot/glslang-main-windows-x64-Release.zip" -OutFile glslang.zip
           Expand-Archive glslang.zip -DestinationPath glslang
           echo "${{ github.workspace }}\glslang\bin" >> $env:GITHUB_PATH
 
