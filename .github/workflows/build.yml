@@ -1,0 +1,192 @@
+name: Build
+
+on:
+  push:
+    branches: [master]
+    tags: ['*']
+  pull_request:
+    branches: [master]
+
+env:
+  BUILD_TYPE: RelWithDebInfo
+  VK_SDK_VERSION: 1.4.304.0
+
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y glslang-tools libvulkan-dev libasound2-dev libx11-dev libxcursor-dev
+
+      - name: Generate build version
+        run: |
+          echo '#pragma once' > game/build.h
+          echo "static const char* appBuild = \"OpenGothic v${{ github.run_number }}\";" >> game/build.h
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+
+      - name: Build
+        run: cmake --build build --target Gothic2Notr -j $(nproc)
+
+      - name: Package
+        run: |
+          cd build/opengothic
+          echo "gothic-linux-v${{ github.run_number }}" > VERSION
+          zip -r opengothic_linux.zip VERSION Gothic2Notr Gothic2Notr.sh *.so 2>/dev/null || zip -r opengothic_linux.zip VERSION Gothic2Notr Gothic2Notr.sh
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: opengothic_linux
+          path: build/opengothic/opengothic_linux.zip
+
+  linux-deb:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y devscripts debhelper cmake g++ glslang-tools \
+            libvulkan-dev libasound2-dev libx11-dev libxcursor-dev
+
+      - name: Generate build version
+        run: |
+          echo '#pragma once' > game/build.h
+          echo "static const char* appBuild = \"OpenGothic v${{ github.run_number }}\";" >> game/build.h
+
+      - name: Build Debian package
+        run: dpkg-buildpackage -us -uc -b
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: opengothic_deb
+          path: ../opengothic_*.deb
+
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-ninja
+
+      - name: Install Vulkan SDK
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri "https://sdk.lunarg.com/sdk/download/${{ env.VK_SDK_VERSION }}/windows/VulkanSDK-${{ env.VK_SDK_VERSION }}-Installer.exe" -OutFile VulkanSDK.exe
+          ./VulkanSDK.exe --accept-licenses --default-answer --confirm-command install | Out-Null
+          echo "VULKAN_SDK=C:/VulkanSDK/${{ env.VK_SDK_VERSION }}" >> $env:GITHUB_ENV
+
+      - name: Install glslang
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri "https://github.com/KhronosGroup/glslang/releases/download/main-tot/glslang-main-windows-x64-Release.zip" -OutFile glslang.zip
+          Expand-Archive glslang.zip -DestinationPath glslang
+          echo "${{ github.workspace }}\glslang\bin" >> $env:GITHUB_PATH
+
+      - name: Generate build version
+        shell: pwsh
+        run: |
+          echo '#pragma once' > game/build.h
+          echo "static const char* appBuild = `"OpenGothic v${{ github.run_number }}`";" >> game/build.h
+
+      - name: Configure
+        run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+
+      - name: Build
+        run: cmake --build build --target Gothic2Notr
+
+      - name: Package
+        shell: pwsh
+        run: |
+          cd build/opengothic
+          echo "gothic-win64-v${{ github.run_number }}" > VERSION
+          Copy-Item "C:\msys64\mingw64\bin\libgcc_s_seh-1.dll" .
+          Copy-Item "C:\msys64\mingw64\bin\libstdc++-6.dll" .
+          Copy-Item "C:\msys64\mingw64\bin\libwinpthread-1.dll" .
+          Compress-Archive -Path VERSION,*.exe,*.dll,*.bat -DestinationPath opengothic_win.zip
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: opengothic_win
+          path: build/opengothic/opengothic_win.zip
+
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: brew install glslang molten-vk
+
+      - name: Generate build version
+        run: |
+          echo '#pragma once' > game/build.h
+          echo "static const char* appBuild = \"OpenGothic v${{ github.run_number }}\";" >> game/build.h
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+
+      - name: Build
+        run: cmake --build build --target Gothic2Notr -j $(sysctl -n hw.ncpu)
+
+      - name: Package
+        run: |
+          cd build/opengothic
+          echo "gothic-osx-v${{ github.run_number }}" > VERSION
+          zip -r opengothic_osx.zip VERSION Gothic2Notr Gothic2Notr.sh *.dylib 2>/dev/null || zip -r opengothic_osx.zip VERSION Gothic2Notr Gothic2Notr.sh
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: opengothic_osx
+          path: build/opengothic/opengothic_osx.zip
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [linux, linux-deb, windows, macos]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          prerelease: true
+          files: |
+            artifacts/opengothic_linux/opengothic_linux.zip
+            artifacts/opengothic_deb/opengothic_*.deb
+            artifacts/opengothic_win/opengothic_win.zip
+            artifacts/opengothic_osx/opengothic_osx.zip
