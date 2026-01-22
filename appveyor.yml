@@ -19,11 +19,11 @@ environment:
       VCVARSALL:  "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Auxiliary/Build/vcvarsall.bat"
       PLATFORM:   x64
 
-    - APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2404
+    - APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2204
       GENERATOR:  ""
       RELEASABLE: true
 
-    - APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2404
+    - APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2204
       GENERATOR:  ""
       RELEASABLE: true
       BUILD_DEB:  true
