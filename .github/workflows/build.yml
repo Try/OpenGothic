@@ -139,7 +139,7 @@ jobs:
       - name: Workaround for missing fp.h on modern macOS
         run: |
           sudo mkdir -p /usr/local/include
-          echo '/* stub fp.h - fp.h was removed in modern macOS */' | sudo tee /usr/local/include/fp.h
+          echo '#include <math.h>' | sudo tee /usr/local/include/fp.h
 
       - name: Configure
         run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
