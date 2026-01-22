@@ -1,0 +1,5 @@
+opengothic (0.88-1) unstable; urgency=medium
+
+  * Initial Debian packaging.
+
+ -- Michael Langfermann <versable@gmail.com>  Wed, 22 Jan 2026 12:00:00 +0000

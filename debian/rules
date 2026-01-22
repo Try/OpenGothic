@@ -1,0 +1,24 @@
+#!/usr/bin/make -f
+
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+
+%:
+	dh $@
+
+override_dh_auto_configure:
+	dh_auto_configure -- \
+		-DCMAKE_BUILD_TYPE=RelWithDebInfo \
+		-DZK_ENABLE_INSTALL=OFF \
+		-DINSTALL_LIBS=OFF \
+		-DINSTALL_CMAKE_FILES=OFF
+
+# Custom install: only install the binary and required shared library
+override_dh_auto_install:
+	install -D -m 755 obj-*/opengothic/Gothic2Notr debian/opengothic/usr/games/Gothic2Notr
+	install -D -m 644 obj-*/opengothic/libTempest.so debian/opengothic/usr/lib/$(DEB_HOST_MULTIARCH)/opengothic/libTempest.so
+	# Add library path for the private shared library
+	install -d debian/opengothic/etc/ld.so.conf.d
+	echo "/usr/lib/$(DEB_HOST_MULTIARCH)/opengothic" > debian/opengothic/etc/ld.so.conf.d/opengothic.conf
+
+override_dh_shlibdeps:
+	dh_shlibdeps -l$(CURDIR)/debian/opengothic/usr/lib/$(DEB_HOST_MULTIARCH)/opengothic
