@@ -9,7 +9,6 @@ on:
 
 env:
   BUILD_TYPE: RelWithDebInfo
-  VK_SDK_VERSION: 1.4.304.0
 
 jobs:
   linux:
@@ -91,20 +90,8 @@ jobs:
             mingw-w64-x86_64-gcc
             mingw-w64-x86_64-cmake
             mingw-w64-x86_64-ninja
-
-      - name: Install Vulkan SDK
-        shell: pwsh
-        run: |
-          Invoke-WebRequest -Uri "https://sdk.lunarg.com/sdk/download/${{ env.VK_SDK_VERSION }}/windows/VulkanSDK-${{ env.VK_SDK_VERSION }}-Installer.exe" -OutFile VulkanSDK.exe
-          ./VulkanSDK.exe --accept-licenses --default-answer --confirm-command install | Out-Null
-          echo "VULKAN_SDK=C:/VulkanSDK/${{ env.VK_SDK_VERSION }}" >> $env:GITHUB_ENV
-
-      - name: Install glslang
-        shell: pwsh
-        run: |
-          Invoke-WebRequest -Uri "https://github.com/KhronosGroup/glslang/releases/download/master-tot/glslang-master-windows-x64-Release.zip" -OutFile glslang.zip
-          Expand-Archive glslang.zip -DestinationPath glslang
-          echo "${{ github.workspace }}\glslang\bin" >> $env:GITHUB_PATH
+            mingw-w64-x86_64-glslang
+            mingw-w64-x86_64-vulkan-devel
 
       - name: Generate build version
         shell: pwsh
