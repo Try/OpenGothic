@@ -120,7 +120,11 @@ add_definitions(-DTSF_NO_STDIO)
 include_directories(lib/TinySoundFont)
 
 # Tempest
-set(TEMPEST_BUILD_SHARED OFF CACHE INTERNAL "")
+if(WIN32)
+  set(TEMPEST_BUILD_SHARED ON  CACHE INTERNAL "")
+else()
+  set(TEMPEST_BUILD_SHARED OFF CACHE INTERNAL "")
+endif()
 add_subdirectory(lib/Tempest/Engine)
 include_directories(lib/Tempest/Engine/include)
 target_link_libraries(${PROJECT_NAME} Tempest)
