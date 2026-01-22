@@ -40,8 +40,6 @@ jobs:
           name: opengothic_linux
           path: |
             build/opengothic/Gothic2Notr
-            build/opengothic/Gothic2Notr.sh
-            build/opengothic/*.so
 
   linux-deb:
     runs-on: ubuntu-24.04
@@ -153,8 +151,6 @@ jobs:
           name: opengothic_osx
           path: |
             build/opengothic/Gothic2Notr
-            build/opengothic/Gothic2Notr.sh
-            build/opengothic/*.dylib
 
   release:
     if: startsWith(github.ref, 'refs/tags/')
