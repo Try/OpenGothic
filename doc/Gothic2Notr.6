@@ -70,6 +70,18 @@ Enable anti-aliasing. Number can be 0-2, where 2 is the most expensive AA.
 .TP
 .B \-window
 Windowed debugging mode (not recommended for normal play).
+.TP
+.BI \-benchmark " [ci]"
+Run an automated benchmark without user input. Reports average FPS and
+1% low FPS to the console, log.txt, and standard output. Typically used
+with
+.B \-devmode \-nomenu
+for automated testing. If
+.B ci
+is specified, the program exits automatically after completion (useful
+for regression testing). The benchmark can be restarted in-game with
+.B ztoggle timedemo
+or cancelled by loading a save game.
 .SH GRAPHICS OPTIONS
 The in-game menu provides additional graphics settings:
 .TP

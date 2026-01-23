@@ -158,22 +158,23 @@ The game menu in Gothic 2 is done by scripting. While the original graphics sett
 Rendering distance is not customizable.
 
 ## Command line arguments
-| Argument(s)            | Description                                                      |
-| ---------------------- | -------                                                          |
-| `-g`                   | specify path containing Gothic game data                         |
-| `-game:<modfile.ini>`  | specify game modification manifest (GothicStarter compatibility) |
-| `-nomenu`              | skip main menu                                                   |
-| `-devmode`             | enable marvin-mode at start of the game                          |
-| `-w <worldname.zen>`   | startup world; newworld.zen is default                           |
-| `-save q`              | load the quick save on start                                     |
-| `-save <number>`       | load a specified save-game slot on start                         |
-| `-v -validation`       | enable validation layers for graphics api                        |
-| `-dx12`                | force DirectX 12 renderer instead of Vulkan (Windows only)       |
-| `-g1`                  | assume a Gothic 1 installation                                   |
-| `-g2c`                 | assume a Gothic 2 classic installation                           |
-| `-g2`                  | assume a Gothic 2 night of the raven installation                |
-| `-rt <boolean>`        | explicitly enable or disable ray-query                           |
-| `-gi <boolean>`        | explicitly enable or disable ray-traced global illumination      |
-| `-ms <boolean>`        | explicitly enable or disable meshlets                            |
-| `-aa <number>`         | enable anti-aliasing (number = 1-2, 2 = most expensive AA)       |
-| `-window`              | windowed debugging mode (not to be used for playing)             |
+| Argument(s)            | Description                                                                                        |
+| ---------------------- | -------                                                                                            |
+| `-g`                   | specify path containing Gothic game data                                                           |
+| `-game:<modfile.ini>`  | specify game modification manifest (GothicStarter compatibility)                                   |
+| `-nomenu`              | skip main menu                                                                                     |
+| `-devmode`             | enable marvin-mode at start of the game                                                            |
+| `-w <worldname.zen>`   | startup world; newworld.zen is default                                                             |
+| `-save q`              | load the quick save on start                                                                       |
+| `-save <number>`       | load a specified save-game slot on start                                                           |
+| `-v -validation`       | enable validation layers for graphics api                                                          |
+| `-dx12`                | force DirectX 12 renderer instead of Vulkan (Windows only)                                         |
+| `-g1`                  | assume a Gothic 1 installation                                                                     |
+| `-g2c`                 | assume a Gothic 2 classic installation                                                             |
+| `-g2`                  | assume a Gothic 2 night of the raven installation                                                  |
+| `-rt <boolean>`        | explicitly enable or disable ray-query                                                             |
+| `-gi <boolean>`        | explicitly enable or disable ray-traced global illumination                                        |
+| `-ms <boolean>`        | explicitly enable or disable meshlets                                                              |
+| `-aa <number>`         | enable anti-aliasing (number = 1-2, 2 = most expensive AA)                                         |
+| `-window`              | windowed debugging mode (not to be used for playing)                                               |
+| `-benchmark [ci]`      | run automated benchmark, reports avg/1% low FPS to stdout and log.txt; `ci` exits after completion |
