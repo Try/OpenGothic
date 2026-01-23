@@ -178,3 +178,4 @@ Rendering distance is not customizable.
 | `-aa <number>`         | enable anti-aliasing (number = 1-2, 2 = most expensive AA)                                         |
 | `-window`              | windowed debugging mode (not to be used for playing)                                               |
 | `-benchmark [ci]`      | run automated benchmark, reports avg/1% low FPS to stdout and log.txt; `ci` exits after completion |
+| `-h` `--help`          | show help message                                                                                  |
