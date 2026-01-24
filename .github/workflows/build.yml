@@ -10,6 +10,7 @@ on:
 
 env:
   BUILD_TYPE: RelWithDebInfo
+  BUILD_VERSION: OpenGothic v1.0.${{ github.run_number + 3623 }}  # offset to continue from AppVeyor
 
 jobs:
   linux:
@@ -27,7 +28,7 @@ jobs:
       - name: Generate build version
         run: |
           echo '#pragma once' > game/build.h
-          echo "static const char* appBuild = \"OpenGothic v${{ github.run_number }}\";" >> game/build.h
+          echo "static const char* appBuild = \"${{ env.BUILD_VERSION }}\";" >> game/build.h
 
       - name: Configure
         run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
@@ -57,7 +58,7 @@ jobs:
       - name: Generate build version
         run: |
           echo '#pragma once' > game/build.h
-          echo "static const char* appBuild = \"OpenGothic v${{ github.run_number }}\";" >> game/build.h
+          echo "static const char* appBuild = \"${{ env.BUILD_VERSION }}\";" >> game/build.h
 
       - name: Build Debian package
         run: |
@@ -95,7 +96,7 @@ jobs:
         shell: pwsh
         run: |
           echo '#pragma once' > game/build.h
-          echo "static const char* appBuild = `"OpenGothic v${{ github.run_number }}`";" >> game/build.h
+          echo "static const char* appBuild = `"${{ env.BUILD_VERSION }}`";" >> game/build.h
 
       - name: Configure
         run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
@@ -131,7 +132,7 @@ jobs:
       - name: Generate build version
         run: |
           echo '#pragma once' > game/build.h
-          echo "static const char* appBuild = \"OpenGothic v${{ github.run_number }}\";" >> game/build.h
+          echo "static const char* appBuild = \"${{ env.BUILD_VERSION }}\";" >> game/build.h
 
       - name: Workaround for missing fp.h on modern macOS
         run: |
@@ -164,7 +165,7 @@ jobs:
       - name: Generate build version
         run: |
           echo '#pragma once' > game/build.h
-          echo "static const char* appBuild = \"OpenGothic v${{ github.run_number }}\";" >> game/build.h
+          echo "static const char* appBuild = \"${{ env.BUILD_VERSION }}\";" >> game/build.h
 
       - name: Workaround for missing fp.h on modern macOS
         run: |
