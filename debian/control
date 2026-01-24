@@ -1,0 +1,26 @@
+Source: opengothic
+Section: games
+Priority: optional
+Maintainer: Michael Langfermann <versable@gmail.com>
+Build-Depends: debhelper-compat (= 13),
+               cmake,
+               g++,
+               glslang-tools,
+               libvulkan-dev,
+               libasound2-dev,
+               libx11-dev,
+               libxcursor-dev
+Standards-Version: 4.6.2
+Homepage: https://github.com/Try/OpenGothic
+Rules-Requires-Root: no
+
+Package: opengothic
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Open source re-implementation of Gothic 2: Night of the Raven
+ OpenGothic is a feature-complete Gothic game client, compatible with the
+ original game data and mods. It makes the original Gothic 1 and Gothic 2
+ work on modern systems using Vulkan graphics.
+ .
+ Gothic 2: Night of the Raven is required as OpenGothic does not provide
+ any built-in game assets or scripts.
