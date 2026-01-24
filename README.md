@@ -47,11 +47,14 @@ Supported systems are:
 
 ### Linux
 1. If not already done, install Gothic 2 via Wine/Proton or copy the game files from a Windows installation.
-2. You can download a build from [CI](https://ci.appveyor.com/project/Try/opengothic/history?branch=master) and extract into a folder of your choice. Alternatively, OpenGothic can be built manually. For Arch the [AUR](https://aur.archlinux.org/packages/opengothic) provides a third-party package.
+2. Install OpenGothic using one of these options:
+   * **Debian/Ubuntu**: Download the `.deb` package from [Releases](https://github.com/Try/opengothic/releases/latest) and install with `sudo dpkg -i opengothic_*.deb`
+   * **Arch**: Install from [AUR](https://aur.archlinux.org/packages/opengothic)
+   * **Other distros**: Download the portable build from [CI](https://ci.appveyor.com/project/Try/opengothic/history?branch=master) or build manually
 
-3. Run `Gothic2Notr.sh -g "~/PlayOnLinux's virtual drives/Gothic2_gog/drive_c/Gothic II"` (example path, use the path to your Gothic 2 installation instead)
+3. Run `Gothic2Notr -g "~/PlayOnLinux's virtual drives/Gothic2_gog/drive_c/Gothic II"` (example path, use the path to your Gothic 2 installation instead)
 
-   You can edit `Gothic2Notr.sh` and change the line `exec "$DIR/Gothic2Notr" "$@"` to
+   For the portable build, you can edit `Gothic2Notr.sh` and change the line `exec "$DIR/Gothic2Notr" "$@"` to
 
    `exec "$DIR/Gothic2Notr" "$@" -g "~/PlayOnLinux's virtual drives/Gothic2_gog/drive_c/Gothic II"`
 
