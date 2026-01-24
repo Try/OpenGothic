@@ -38,9 +38,8 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: opengothic_linux
-          path: |
-            build/opengothic/Gothic2Notr
+          name: opengothic_linux_x64
+          path: build/opengothic/Gothic2Notr
 
   linux-deb:
     runs-on: ubuntu-24.04
@@ -63,16 +62,16 @@ jobs:
       - name: Build Debian package
         run: |
           dpkg-buildpackage -us -uc -b
-          cp ../opengothic_*.deb .
+          cp ../opengothic_*.deb opengothic_x64.deb
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: opengothic_deb
-          path: opengothic_*.deb
+          path: opengothic_x64.deb
 
   windows:
-    runs-on: windows-latest
+    runs-on: windows-2025
     defaults:
       run:
         shell: msys2 {0}
@@ -113,14 +112,14 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: opengothic_win
+          name: opengothic_win_x64
           path: |
             build/opengothic/*.exe
             build/opengothic/*.dll
             build/opengothic/*.bat
 
-  macos:
-    runs-on: macos-latest
+  macos-arm64:
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
         with:
@@ -148,13 +147,46 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: opengothic_osx
+          name: opengothic_osx_arm64
+          path: |
+            build/opengothic/Gothic2Notr
+
+  macos-x64:
+    runs-on: macos-15-intel
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: brew install glslang molten-vk
+
+      - name: Generate build version
+        run: |
+          echo '#pragma once' > game/build.h
+          echo "static const char* appBuild = \"OpenGothic v${{ github.run_number }}\";" >> game/build.h
+
+      - name: Workaround for missing fp.h on modern macOS
+        run: |
+          sudo mkdir -p /usr/local/include
+          echo '#include <math.h>' | sudo tee /usr/local/include/fp.h
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+
+      - name: Build
+        run: cmake --build build --target Gothic2Notr -j $(sysctl -n hw.ncpu)
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: opengothic_osx_x64
           path: |
             build/opengothic/Gothic2Notr
 
   release:
     if: startsWith(github.ref, 'refs/tags/')
-    needs: [linux, linux-deb, windows, macos]
+    needs: [linux, linux-deb, windows, macos-arm64, macos-x64]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -166,9 +198,10 @@ jobs:
 
       - name: Package release archives
         run: |
-          cd artifacts/opengothic_linux && zip -r ../opengothic_linux.zip . && cd ../..
-          cd artifacts/opengothic_win && zip -r ../opengothic_win.zip . && cd ../..
-          cd artifacts/opengothic_osx && zip -r ../opengothic_osx.zip . && cd ../..
+          cd artifacts/opengothic_linux_x64 && zip -r ../opengothic_linux_x64.zip . && cd ../..
+          cd artifacts/opengothic_win_x64 && zip -r ../opengothic_win_x64.zip . && cd ../..
+          cd artifacts/opengothic_osx_arm64 && zip -r ../opengothic_osx_arm64.zip . && cd ../..
+          cd artifacts/opengothic_osx_x64 && zip -r ../opengothic_osx_x64.zip . && cd ../..
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
@@ -176,7 +209,8 @@ jobs:
           draft: true
           prerelease: true
           files: |
-            artifacts/opengothic_linux.zip
-            artifacts/opengothic_deb/*.deb
-            artifacts/opengothic_win.zip
-            artifacts/opengothic_osx.zip
+            artifacts/opengothic_linux_x64.zip
+            artifacts/opengothic_deb/opengothic_x64.deb
+            artifacts/opengothic_win_x64.zip
+            artifacts/opengothic_osx_arm64.zip
+            artifacts/opengothic_osx_x64.zip
