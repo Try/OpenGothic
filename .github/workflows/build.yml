@@ -1,0 +1,181 @@
+name: Build
+
+on:
+  push:
+    branches: [master]
+    tags: ['*']
+  pull_request:
+    branches: [master]
+
+env:
+  BUILD_TYPE: RelWithDebInfo
+
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y glslang-tools libvulkan-dev libasound2-dev libx11-dev libxcursor-dev
+
+      - name: Generate build version
+        run: |
+          echo '#pragma once' > game/build.h
+          echo "static const char* appBuild = \"OpenGothic v${{ github.run_number }}\";" >> game/build.h
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+
+      - name: Build
+        run: cmake --build build --target Gothic2Notr -j $(nproc)
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: opengothic_linux
+          path: |
+            build/opengothic/Gothic2Notr
+
+  linux-deb:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential devscripts debhelper cmake g++ \
+            glslang-tools libvulkan-dev libasound2-dev libx11-dev libxcursor-dev
+
+      - name: Generate build version
+        run: |
+          echo '#pragma once' > game/build.h
+          echo "static const char* appBuild = \"OpenGothic v${{ github.run_number }}\";" >> game/build.h
+
+      - name: Build Debian package
+        run: |
+          dpkg-buildpackage -us -uc -b
+          cp ../opengothic_*.deb .
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: opengothic_deb
+          path: opengothic_*.deb
+
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-ninja
+            mingw-w64-x86_64-glslang
+            mingw-w64-x86_64-vulkan-devel
+
+      - name: Generate build version
+        shell: pwsh
+        run: |
+          echo '#pragma once' > game/build.h
+          echo "static const char* appBuild = `"OpenGothic v${{ github.run_number }}`";" >> game/build.h
+
+      - name: Configure
+        run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+
+      - name: Build
+        run: cmake --build build --target Gothic2Notr
+
+      - name: Copy runtime DLLs
+        run: |
+          cp "$MINGW_PREFIX/bin/libgcc_s_seh-1.dll" build/opengothic/
+          cp "$MINGW_PREFIX/bin/libstdc++-6.dll" build/opengothic/
+          cp "$MINGW_PREFIX/bin/libwinpthread-1.dll" build/opengothic/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: opengothic_win
+          path: |
+            build/opengothic/*.exe
+            build/opengothic/*.dll
+            build/opengothic/*.bat
+
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: brew install glslang molten-vk
+
+      - name: Generate build version
+        run: |
+          echo '#pragma once' > game/build.h
+          echo "static const char* appBuild = \"OpenGothic v${{ github.run_number }}\";" >> game/build.h
+
+      - name: Workaround for missing fp.h on modern macOS
+        run: |
+          sudo mkdir -p /usr/local/include
+          echo '#include <math.h>' | sudo tee /usr/local/include/fp.h
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+
+      - name: Build
+        run: cmake --build build --target Gothic2Notr -j $(sysctl -n hw.ncpu)
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: opengothic_osx
+          path: |
+            build/opengothic/Gothic2Notr
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [linux, linux-deb, windows, macos]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Package release archives
+        run: |
+          cd artifacts/opengothic_linux && zip -r ../opengothic_linux.zip . && cd ../..
+          cd artifacts/opengothic_win && zip -r ../opengothic_win.zip . && cd ../..
+          cd artifacts/opengothic_osx && zip -r ../opengothic_osx.zip . && cd ../..
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          prerelease: true
+          files: |
+            artifacts/opengothic_linux.zip
+            artifacts/opengothic_deb/*.deb
+            artifacts/opengothic_win.zip
+            artifacts/opengothic_osx.zip
