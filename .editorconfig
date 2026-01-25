@@ -19,7 +19,7 @@ indent_style = space
 indent_size = 2
 
 # GLSL Shaders
-[*.{glsl,vert,frag,comp}]
+[*.{glsl,vert,frag,comp,tese,tesc,task,mesh}]
 indent_style = space
 indent_size = 2
 
