@@ -10,10 +10,22 @@ on:
 
 env:
   BUILD_TYPE: RelWithDebInfo
-  BUILD_VERSION: OpenGothic v1.0.${{ github.run_number + 3623 }}  # offset to continue from AppVeyor
+  BUILD_OFFSET: 3623  # continue from AppVeyor build numbers
 
 jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      semver: ${{ steps.version.outputs.semver }}
+    steps:
+      - id: version
+        run: |
+          echo "version=OpenGothic v1.0.$((GITHUB_RUN_NUMBER + BUILD_OFFSET))" >> $GITHUB_OUTPUT
+          echo "semver=1.0.$((GITHUB_RUN_NUMBER + BUILD_OFFSET))" >> $GITHUB_OUTPUT
+
   linux:
+    needs: setup
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -28,7 +40,7 @@ jobs:
       - name: Generate build version
         run: |
           echo '#pragma once' > game/build.h
-          echo "static const char* appBuild = \"${{ env.BUILD_VERSION }}\";" >> game/build.h
+          echo "static const char* appBuild = \"${{ needs.setup.outputs.version }}\";" >> game/build.h
 
       - name: Configure
         run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
@@ -39,10 +51,11 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: opengothic_linux_x64
+          name: opengothic_${{ needs.setup.outputs.semver }}_linux_x64
           path: build/opengothic/Gothic2Notr
 
   linux-deb:
+    needs: setup
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -58,20 +71,22 @@ jobs:
       - name: Generate build version
         run: |
           echo '#pragma once' > game/build.h
-          echo "static const char* appBuild = \"${{ env.BUILD_VERSION }}\";" >> game/build.h
+          echo "static const char* appBuild = \"${{ needs.setup.outputs.version }}\";" >> game/build.h
+          dch -v "${{ needs.setup.outputs.semver }}" -D unstable -M "Automated build"
 
       - name: Build Debian package
         run: |
           dpkg-buildpackage -us -uc -b
-          cp ../opengothic_*.deb opengothic_x64.deb
+          cp ../opengothic_*.deb opengothic_${{ needs.setup.outputs.semver }}_linux_x64.deb
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: opengothic_linux_deb
-          path: opengothic_x64.deb
+          name: opengothic_${{ needs.setup.outputs.semver }}_linux_x64.deb
+          path: opengothic_${{ needs.setup.outputs.semver }}_linux_x64.deb
 
   windows:
+    needs: setup
     runs-on: windows-2025
     defaults:
       run:
@@ -96,7 +111,7 @@ jobs:
         shell: pwsh
         run: |
           echo '#pragma once' > game/build.h
-          echo "static const char* appBuild = `"${{ env.BUILD_VERSION }}`";" >> game/build.h
+          echo "static const char* appBuild = `"${{ needs.setup.outputs.version }}`";" >> game/build.h
 
       - name: Configure
         run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
@@ -113,13 +128,14 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: opengothic_win_x64
+          name: opengothic_${{ needs.setup.outputs.semver }}_win_x64
           path: |
             build/opengothic/*.exe
             build/opengothic/*.dll
             build/opengothic/*.bat
 
   macos-arm64:
+    needs: setup
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
@@ -132,7 +148,7 @@ jobs:
       - name: Generate build version
         run: |
           echo '#pragma once' > game/build.h
-          echo "static const char* appBuild = \"${{ env.BUILD_VERSION }}\";" >> game/build.h
+          echo "static const char* appBuild = \"${{ needs.setup.outputs.version }}\";" >> game/build.h
 
       - name: Workaround for missing fp.h on modern macOS
         run: |
@@ -148,11 +164,12 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: opengothic_osx_arm64
+          name: opengothic_${{ needs.setup.outputs.semver }}_osx_arm64
           path: |
             build/opengothic/Gothic2Notr
 
   macos-x64:
+    needs: setup
     runs-on: macos-15-intel
     steps:
       - uses: actions/checkout@v4
@@ -165,7 +182,7 @@ jobs:
       - name: Generate build version
         run: |
           echo '#pragma once' > game/build.h
-          echo "static const char* appBuild = \"${{ env.BUILD_VERSION }}\";" >> game/build.h
+          echo "static const char* appBuild = \"${{ needs.setup.outputs.version }}\";" >> game/build.h
 
       - name: Workaround for missing fp.h on modern macOS
         run: |
@@ -181,13 +198,13 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: opengothic_osx_x64
+          name: opengothic_${{ needs.setup.outputs.semver }}_osx_x64
           path: |
             build/opengothic/Gothic2Notr
 
   release:
     if: startsWith(github.ref, 'refs/tags/')
-    needs: [linux, linux-deb, windows, macos-arm64, macos-x64]
+    needs: [setup, linux, linux-deb, windows, macos-arm64, macos-x64]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -198,11 +215,13 @@ jobs:
           path: artifacts
 
       - name: Package release archives
+        env:
+          VERSION: ${{ needs.setup.outputs.semver }}
         run: |
-          cd artifacts/opengothic_linux_x64 && zip -r ../opengothic_linux_x64.zip . && cd ../..
-          cd artifacts/opengothic_win_x64 && zip -r ../opengothic_win_x64.zip . && cd ../..
-          cd artifacts/opengothic_osx_arm64 && zip -r ../opengothic_osx_arm64.zip . && cd ../..
-          cd artifacts/opengothic_osx_x64 && zip -r ../opengothic_osx_x64.zip . && cd ../..
+          cd artifacts/opengothic_${VERSION}_linux_x64 && zip -r ../opengothic_${VERSION}_linux_x64.zip . && cd ../..
+          cd artifacts/opengothic_${VERSION}_win_x64 && zip -r ../opengothic_${VERSION}_win_x64.zip . && cd ../..
+          cd artifacts/opengothic_${VERSION}_osx_arm64 && zip -r ../opengothic_${VERSION}_osx_arm64.zip . && cd ../..
+          cd artifacts/opengothic_${VERSION}_osx_x64 && zip -r ../opengothic_${VERSION}_osx_x64.zip . && cd ../..
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
@@ -210,8 +229,8 @@ jobs:
           draft: true
           prerelease: true
           files: |
-            artifacts/opengothic_linux_x64.zip
-            artifacts/opengothic_linux_deb/opengothic_linux_x64.deb
-            artifacts/opengothic_win_x64.zip
-            artifacts/opengothic_osx_arm64.zip
-            artifacts/opengothic_osx_x64.zip
+            artifacts/opengothic_${{ needs.setup.outputs.semver }}_linux_x64.zip
+            artifacts/opengothic_${{ needs.setup.outputs.semver }}_linux_x64.deb/opengothic_${{ needs.setup.outputs.semver }}_linux_x64.deb
+            artifacts/opengothic_${{ needs.setup.outputs.semver }}_win_x64.zip
+            artifacts/opengothic_${{ needs.setup.outputs.semver }}_osx_arm64.zip
+            artifacts/opengothic_${{ needs.setup.outputs.semver }}_osx_x64.zip
