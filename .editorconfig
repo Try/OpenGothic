@@ -1,0 +1,39 @@
+root = true
+
+# Default for all files
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# C/C++ source files
+[*.{cpp,h,hpp,hh,cc,c}]
+indent_style = space
+indent_size = 2
+max_line_length = 120
+
+# CMake
+[{CMakeLists.txt,*.cmake}]
+indent_style = space
+indent_size = 2
+
+# GLSL Shaders
+[*.{glsl,vert,frag,comp,tese,tesc,task,mesh}]
+indent_style = space
+indent_size = 2
+
+# Python scripts
+[*.py]
+indent_style = space
+indent_size = 2
+
+# Lua scripts
+[*.lua]
+indent_style = space
+indent_size = 2
+
+# YAML/Markdown
+[*.{yml,yaml,md}]
+indent_style = space
+indent_size = 2
