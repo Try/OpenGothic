@@ -51,7 +51,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: opengothic_linux_x64
+          name: opengothic_${{ needs.setup.outputs.semver }}_linux_x64
           path: build/opengothic/Gothic2Notr
 
   linux-deb:
@@ -77,13 +77,13 @@ jobs:
       - name: Build Debian package
         run: |
           dpkg-buildpackage -us -uc -b
-          cp ../opengothic_*.deb opengothic_x64.deb
+          cp ../opengothic_*.deb opengothic_${{ needs.setup.outputs.semver }}_linux_x64.deb
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: opengothic_linux_deb
-          path: opengothic_x64.deb
+          name: opengothic_${{ needs.setup.outputs.semver }}_linux_x64.deb
+          path: opengothic_${{ needs.setup.outputs.semver }}_linux_x64.deb
 
   windows:
     needs: setup
@@ -128,7 +128,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: opengothic_win_x64
+          name: opengothic_${{ needs.setup.outputs.semver }}_win_x64
           path: |
             build/opengothic/*.exe
             build/opengothic/*.dll
@@ -164,7 +164,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: opengothic_osx_arm64
+          name: opengothic_${{ needs.setup.outputs.semver }}_osx_arm64
           path: |
             build/opengothic/Gothic2Notr
 
@@ -198,7 +198,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: opengothic_osx_x64
+          name: opengothic_${{ needs.setup.outputs.semver }}_osx_x64
           path: |
             build/opengothic/Gothic2Notr
 
@@ -218,22 +218,19 @@ jobs:
         env:
           VERSION: ${{ needs.setup.outputs.semver }}
         run: |
-          cd artifacts/opengothic_linux_x64 && zip -r ../opengothic_${VERSION}_linux_x64.zip . && cd ../..
-          cd artifacts/opengothic_win_x64 && zip -r ../opengothic_${VERSION}_win_x64.zip . && cd ../..
-          cd artifacts/opengothic_osx_arm64 && zip -r ../opengothic_${VERSION}_osx_arm64.zip . && cd ../..
-          cd artifacts/opengothic_osx_x64 && zip -r ../opengothic_${VERSION}_osx_x64.zip . && cd ../..
-          mv artifacts/opengothic_linux_deb/opengothic_x64.deb artifacts/opengothic_${VERSION}_linux_x64.deb
+          cd artifacts/opengothic_${VERSION}_linux_x64 && zip -r ../opengothic_${VERSION}_linux_x64.zip . && cd ../..
+          cd artifacts/opengothic_${VERSION}_win_x64 && zip -r ../opengothic_${VERSION}_win_x64.zip . && cd ../..
+          cd artifacts/opengothic_${VERSION}_osx_arm64 && zip -r ../opengothic_${VERSION}_osx_arm64.zip . && cd ../..
+          cd artifacts/opengothic_${VERSION}_osx_x64 && zip -r ../opengothic_${VERSION}_osx_x64.zip . && cd ../..
 
       - name: Create Release
-        env:
-          VERSION: ${{ needs.setup.outputs.semver }}
         uses: softprops/action-gh-release@v2
         with:
           draft: true
           prerelease: true
           files: |
             artifacts/opengothic_${{ needs.setup.outputs.semver }}_linux_x64.zip
-            artifacts/opengothic_${{ needs.setup.outputs.semver }}_linux_x64.deb
+            artifacts/opengothic_${{ needs.setup.outputs.semver }}_linux_x64.deb/opengothic_${{ needs.setup.outputs.semver }}_linux_x64.deb
             artifacts/opengothic_${{ needs.setup.outputs.semver }}_win_x64.zip
             artifacts/opengothic_${{ needs.setup.outputs.semver }}_osx_arm64.zip
             artifacts/opengothic_${{ needs.setup.outputs.semver }}_osx_x64.zip
