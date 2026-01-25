@@ -17,9 +17,12 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
+      semver: ${{ steps.version.outputs.semver }}
     steps:
       - id: version
-        run: echo "version=OpenGothic v1.0.$((GITHUB_RUN_NUMBER + BUILD_OFFSET))" >> $GITHUB_OUTPUT
+        run: |
+          echo "version=OpenGothic v1.0.$((GITHUB_RUN_NUMBER + BUILD_OFFSET))" >> $GITHUB_OUTPUT
+          echo "semver=1.0.$((GITHUB_RUN_NUMBER + BUILD_OFFSET))" >> $GITHUB_OUTPUT
 
   linux:
     needs: setup
@@ -200,7 +203,7 @@ jobs:
 
   release:
     if: startsWith(github.ref, 'refs/tags/')
-    needs: [linux, linux-deb, windows, macos-arm64, macos-x64]
+    needs: [setup, linux, linux-deb, windows, macos-arm64, macos-x64]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -211,20 +214,25 @@ jobs:
           path: artifacts
 
       - name: Package release archives
+        env:
+          VERSION: ${{ needs.setup.outputs.semver }}
         run: |
-          cd artifacts/opengothic_linux_x64 && zip -r ../opengothic_linux_x64.zip . && cd ../..
-          cd artifacts/opengothic_win_x64 && zip -r ../opengothic_win_x64.zip . && cd ../..
-          cd artifacts/opengothic_osx_arm64 && zip -r ../opengothic_osx_arm64.zip . && cd ../..
-          cd artifacts/opengothic_osx_x64 && zip -r ../opengothic_osx_x64.zip . && cd ../..
+          cd artifacts/opengothic_linux_x64 && zip -r ../opengothic_${VERSION}_linux_x64.zip . && cd ../..
+          cd artifacts/opengothic_win_x64 && zip -r ../opengothic_${VERSION}_win_x64.zip . && cd ../..
+          cd artifacts/opengothic_osx_arm64 && zip -r ../opengothic_${VERSION}_osx_arm64.zip . && cd ../..
+          cd artifacts/opengothic_osx_x64 && zip -r ../opengothic_${VERSION}_osx_x64.zip . && cd ../..
+          mv artifacts/opengothic_linux_deb/opengothic_x64.deb artifacts/opengothic_${VERSION}_linux_x64.deb
 
       - name: Create Release
+        env:
+          VERSION: ${{ needs.setup.outputs.semver }}
         uses: softprops/action-gh-release@v2
         with:
           draft: true
           prerelease: true
           files: |
-            artifacts/opengothic_linux_x64.zip
-            artifacts/opengothic_linux_deb/opengothic_linux_x64.deb
-            artifacts/opengothic_win_x64.zip
-            artifacts/opengothic_osx_arm64.zip
-            artifacts/opengothic_osx_x64.zip
+            artifacts/opengothic_${{ needs.setup.outputs.semver }}_linux_x64.zip
+            artifacts/opengothic_${{ needs.setup.outputs.semver }}_linux_x64.deb
+            artifacts/opengothic_${{ needs.setup.outputs.semver }}_win_x64.zip
+            artifacts/opengothic_${{ needs.setup.outputs.semver }}_osx_arm64.zip
+            artifacts/opengothic_${{ needs.setup.outputs.semver }}_osx_x64.zip
