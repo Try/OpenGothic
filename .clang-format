@@ -1,0 +1,75 @@
+Language: Cpp
+Standard: c++17
+
+# Indentation
+IndentWidth: 2
+TabWidth: 2
+UseTab: Never
+AccessModifierOffset: -2
+IndentCaseLabels: true
+NamespaceIndentation: None
+IndentPPDirectives: BeforeHash
+
+# Braces
+BreakBeforeBraces: Attach
+AllowShortBlocksOnASingleLine: Empty
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortLoopsOnASingleLine: false
+AllowShortLambdasOnASingleLine: All
+AllowShortCaseLabelsOnASingleLine: false
+
+# Line width
+ColumnLimit: 120
+
+# Alignment
+AlignAfterOpenBracket: Align
+AlignConsecutiveAssignments: Consecutive
+AlignConsecutiveDeclarations: None
+AlignEscapedNewlines: Right
+AlignOperands: true
+AlignTrailingComments: true
+PointerAlignment: Left
+QualifierAlignment: Left
+
+# Arguments and parameters
+AllowAllArgumentsOnNextLine: true
+AllowAllParametersOfDeclarationOnNextLine: true
+BinPackArguments: true
+BinPackParameters: true
+
+# Breaks
+AlwaysBreakAfterReturnType: None
+AlwaysBreakTemplateDeclarations: Yes
+BreakBeforeBinaryOperators: None
+BreakBeforeTernaryOperators: true
+BreakConstructorInitializers: BeforeColon
+BreakInheritanceList: BeforeColon
+ConstructorInitializerIndentWidth: 2
+PackConstructorInitializers: BinPack
+
+# Spaces
+SpaceAfterCStyleCast: false
+SpaceAfterLogicalNot: false
+SpaceAfterTemplateKeyword: false
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeCpp11BracedList: false
+SpaceBeforeCtorInitializerColon: true
+SpaceBeforeInheritanceColon: true
+SpaceBeforeParens: Never
+SpaceBeforeRangeBasedForLoopColon: true
+SpaceInEmptyParentheses: false
+SpacesInAngles: false
+SpacesInCStyleCastParentheses: false
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+SpacesBeforeTrailingComments: 1
+
+# Other
+Cpp11BracedListStyle: true
+FixNamespaceComments: true
+IncludeBlocks: Preserve
+ReflowComments: true
+SortIncludes: false
+SortUsingDeclarations: false
+CompactNamespaces: false
