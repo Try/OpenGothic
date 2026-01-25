@@ -13,6 +13,18 @@ EXCLUDE_PATTERNS       = */lib/*
 # Output
 GENERATE_HTML          = YES
 GENERATE_LATEX         = NO
+GENERATE_TREEVIEW      = YES
+DISABLE_INDEX          = NO
+FULL_SIDEBAR           = NO
+HTML_COLORSTYLE        = LIGHT
+
+# doxygen-awesome-css
+HTML_EXTRA_STYLESHEET  = lib/doxygen-awesome-css/doxygen-awesome.css \
+                         lib/doxygen-awesome-css/doxygen-awesome-sidebar-only.css \
+                         lib/doxygen-awesome-css/doxygen-awesome-sidebar-only-darkmode-toggle.css
+HTML_EXTRA_FILES       = lib/doxygen-awesome-css/doxygen-awesome-darkmode-toggle.js \
+                         lib/doxygen-awesome-css/doxygen-awesome-fragment-copy-button.js \
+                         lib/doxygen-awesome-css/doxygen-awesome-paragraph-link.js
 
 # Extraction
 EXTRACT_ALL            = YES
