@@ -1,0 +1,32 @@
+# Doxyfile for OpenGothic
+
+PROJECT_NAME           = "OpenGothic"
+PROJECT_BRIEF          = "Open source reimplementation of Gothic I and II"
+OUTPUT_DIRECTORY       = docs
+
+# Input
+INPUT                  = game
+FILE_PATTERNS          = *.cpp *.h *.hpp
+RECURSIVE              = YES
+EXCLUDE_PATTERNS       = */lib/*
+
+# Output
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+
+# Extraction
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = NO
+EXTRACT_STATIC         = YES
+
+# Source browsing
+SOURCE_BROWSER         = YES
+INLINE_SOURCES         = NO
+
+# Graphs (requires graphviz)
+HAVE_DOT               = NO
+CLASS_DIAGRAMS         = YES
+
+# Warnings
+WARN_IF_UNDOCUMENTED   = NO
+WARN_IF_DOC_ERROR      = YES

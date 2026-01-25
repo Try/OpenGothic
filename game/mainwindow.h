@@ -1,3 +1,8 @@
+/**
+ * @file mainwindow.h
+ * @brief Main application window for OpenGothic
+ */
+
 #pragma once
 
 #include "camera.h"
@@ -42,14 +47,33 @@ class MenuRoot;
 class GameSession;
 class Interactive;
 
+/**
+ * @brief Main application window handling game rendering and input
+ *
+ * MainWindow is the primary window class that manages the game's rendering loop,
+ * user input handling, UI composition, and game state transitions. It coordinates
+ * between the renderer, game session, and various UI components (menus, dialogs,
+ * inventory, etc.).
+ */
 class MainWindow : public Tempest::Window {
   public:
+    /**
+     * @brief Constructs the main window
+     * @param device The graphics device used for rendering
+     */
     explicit MainWindow(Tempest::Device& device);
+
     ~MainWindow() override;
 
+    /**
+     * @brief Returns the current UI scaling factor
+     * @return Scale factor based on system DPI settings
+     */
     float uiScale() const;
 
   private:
+    /// @name Event Handlers
+    /// @{
     void paintEvent     (Tempest::PaintEvent& event) override;
     void resizeEvent    (Tempest::SizeEvent & event) override;
 
@@ -64,7 +88,10 @@ class MainWindow : public Tempest::Window {
     void keyUpEvent     (Tempest::KeyEvent&   event) override;
 
     void focusEvent     (Tempest::FocusEvent&  event) override;
+    /// @}
 
+    /// @name Drawing Helpers
+    /// @{
     void paintFocus     (Tempest::Painter& p, const Focus& fc, const Tempest::Matrix4x4& vp);
     void paintFocus     (Tempest::Painter& p, Tempest::Rect rect);
 
@@ -74,10 +101,14 @@ class MainWindow : public Tempest::Window {
     void drawLoading (Tempest::Painter& p,int x,int y,int w,int h);
     void drawSaving  (Tempest::Painter& p);
     void drawSaving  (Tempest::Painter& p, const Tempest::Texture2d& back, int w, int h, float scale);
+    /// @}
 
-    void startGame(std::string_view slot);
-    void loadGame (std::string_view slot);
-    void saveGame (std::string_view slot, std::string_view name);
+    /// @name Game Session Control
+    /// @{
+    void startGame(std::string_view slot);                        ///< Start a new game from the given world slot
+    void loadGame (std::string_view slot);                        ///< Load a saved game from the given slot
+    void saveGame (std::string_view slot, std::string_view name); ///< Save current game to slot
+    /// @}
 
     void onVideo(std::string_view fname);
     void onStartLoading();
@@ -106,10 +137,13 @@ class MainWindow : public Tempest::Window {
 
     Camera::Mode solveCameraMode() const;
 
+    /**
+     * @brief Runtime execution mode for debugging
+     */
     enum RuntimeMode : uint8_t {
-      R_Normal,
-      R_Suspended,
-      R_Step,
+      R_Normal,     ///< Normal game execution
+      R_Suspended,  ///< Game logic paused (Marvin mode)
+      R_Step,       ///< Single-step execution
       };
 
     Tempest::Device&      device;
@@ -163,19 +197,27 @@ class MainWindow : public Tempest::Window {
     Tempest::Shortcut         funcKey[11];
     Tempest::Shortcut         displayPos;
 
+    /**
+     * @brief Stores benchmark metrics for performance analysis
+     */
     struct BenchmarkData {
-      std::vector<uint64_t> low1procent;
+      std::vector<uint64_t> low1procent;  ///< Frame times for lowest 1% calculation
       size_t                numFrames = 0;
       double                fpsSum = 0;
       void                  push(uint64_t t);
       void                  clear();
       };
+
+    /**
+     * @brief Rolling FPS counter using last 10 frame times
+     */
     struct Fps {
-      uint64_t dt[10]={};
-      double   get() const;
+      uint64_t dt[10]={};        ///< Ring buffer of frame delta times
+      double   get() const;      ///< Calculate average FPS
       void     push(uint64_t t);
       };
-    Fps           fps;
-    BenchmarkData benchmark;
-    uint64_t      maxFpsInv = 0;
+
+    Fps           fps;           ///< Current FPS tracker
+    BenchmarkData benchmark;     ///< Benchmark data collector
+    uint64_t      maxFpsInv = 0; ///< Inverse of max FPS limit (ms per frame)
   };
