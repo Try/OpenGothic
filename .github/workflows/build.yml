@@ -10,10 +10,19 @@ on:
 
 env:
   BUILD_TYPE: RelWithDebInfo
-  BUILD_VERSION: OpenGothic v1.0.${{ github.run_number + 3623 }}  # offset to continue from AppVeyor
+  BUILD_OFFSET: 3623  # continue from AppVeyor build numbers
 
 jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - id: version
+        run: echo "version=OpenGothic v1.0.$((GITHUB_RUN_NUMBER + BUILD_OFFSET))" >> $GITHUB_OUTPUT
+
   linux:
+    needs: setup
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -28,7 +37,7 @@ jobs:
       - name: Generate build version
         run: |
           echo '#pragma once' > game/build.h
-          echo "static const char* appBuild = \"${{ env.BUILD_VERSION }}\";" >> game/build.h
+          echo "static const char* appBuild = \"${{ needs.setup.outputs.version }}\";" >> game/build.h
 
       - name: Configure
         run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
@@ -43,6 +52,7 @@ jobs:
           path: build/opengothic/Gothic2Notr
 
   linux-deb:
+    needs: setup
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -58,7 +68,7 @@ jobs:
       - name: Generate build version
         run: |
           echo '#pragma once' > game/build.h
-          echo "static const char* appBuild = \"${{ env.BUILD_VERSION }}\";" >> game/build.h
+          echo "static const char* appBuild = \"${{ needs.setup.outputs.version }}\";" >> game/build.h
 
       - name: Build Debian package
         run: |
@@ -72,6 +82,7 @@ jobs:
           path: opengothic_x64.deb
 
   windows:
+    needs: setup
     runs-on: windows-2025
     defaults:
       run:
@@ -96,7 +107,7 @@ jobs:
         shell: pwsh
         run: |
           echo '#pragma once' > game/build.h
-          echo "static const char* appBuild = `"${{ env.BUILD_VERSION }}`";" >> game/build.h
+          echo "static const char* appBuild = `"${{ needs.setup.outputs.version }}`";" >> game/build.h
 
       - name: Configure
         run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
@@ -120,6 +131,7 @@ jobs:
             build/opengothic/*.bat
 
   macos-arm64:
+    needs: setup
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
@@ -132,7 +144,7 @@ jobs:
       - name: Generate build version
         run: |
           echo '#pragma once' > game/build.h
-          echo "static const char* appBuild = \"${{ env.BUILD_VERSION }}\";" >> game/build.h
+          echo "static const char* appBuild = \"${{ needs.setup.outputs.version }}\";" >> game/build.h
 
       - name: Workaround for missing fp.h on modern macOS
         run: |
@@ -153,6 +165,7 @@ jobs:
             build/opengothic/Gothic2Notr
 
   macos-x64:
+    needs: setup
     runs-on: macos-15-intel
     steps:
       - uses: actions/checkout@v4
@@ -165,7 +178,7 @@ jobs:
       - name: Generate build version
         run: |
           echo '#pragma once' > game/build.h
-          echo "static const char* appBuild = \"${{ env.BUILD_VERSION }}\";" >> game/build.h
+          echo "static const char* appBuild = \"${{ needs.setup.outputs.version }}\";" >> game/build.h
 
       - name: Workaround for missing fp.h on modern macOS
         run: |
