@@ -3,6 +3,11 @@ name: Documentation
 on:
   push:
     branches: [master]
+    paths:
+      - 'game/**'
+      - 'docs/**'
+      - 'Doxyfile'
+      - '.github/workflows/docs.yml'
   workflow_dispatch:
 
 permissions:
