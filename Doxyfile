@@ -5,8 +5,9 @@ PROJECT_BRIEF          = "Open source reimplementation of Gothic I and II"
 OUTPUT_DIRECTORY       = docs
 
 # Input
-INPUT                  = game
-FILE_PATTERNS          = *.cpp *.h *.hpp
+INPUT                  = game docs/mainpage.md
+FILE_PATTERNS          = *.cpp *.h *.hpp *.md
+USE_MDFILE_AS_MAINPAGE = docs/mainpage.md
 RECURSIVE              = YES
 EXCLUDE_PATTERNS       = */lib/*
 
