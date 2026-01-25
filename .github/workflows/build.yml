@@ -72,6 +72,7 @@ jobs:
         run: |
           echo '#pragma once' > game/build.h
           echo "static const char* appBuild = \"${{ needs.setup.outputs.version }}\";" >> game/build.h
+          dch -v "${{ needs.setup.outputs.semver }}" -D unstable -M "Automated build"
 
       - name: Build Debian package
         run: |
