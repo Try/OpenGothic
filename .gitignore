@@ -26,5 +26,8 @@ out/*
 .vs/
 internal/
 
-#os
+# os
 .DS_Store
+
+# Doxigen
+docs/html/
