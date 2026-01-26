@@ -85,6 +85,67 @@ jobs:
           name: opengothic_${{ needs.setup.outputs.semver }}_linux_x64.deb
           path: opengothic_${{ needs.setup.outputs.semver }}_linux_x64.deb
 
+  linux-arm64:
+    needs: setup
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y glslang-tools libvulkan-dev libasound2-dev libx11-dev libxcursor-dev
+
+      - name: Generate build version
+        run: |
+          echo '#pragma once' > game/build.h
+          echo "static const char* appBuild = \"${{ needs.setup.outputs.version }}\";" >> game/build.h
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+
+      - name: Build
+        run: cmake --build build --target Gothic2Notr -j $(nproc)
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: opengothic_${{ needs.setup.outputs.semver }}_linux_arm64
+          path: build/opengothic/Gothic2Notr
+
+  linux-deb-arm64:
+    needs: setup
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential devscripts debhelper cmake g++ \
+            glslang-tools libvulkan-dev libasound2-dev libx11-dev libxcursor-dev
+
+      - name: Generate build version
+        run: |
+          echo '#pragma once' > game/build.h
+          echo "static const char* appBuild = \"${{ needs.setup.outputs.version }}\";" >> game/build.h
+          dch -v "${{ needs.setup.outputs.semver }}" -D unstable -M "Automated build"
+
+      - name: Build Debian package
+        run: |
+          dpkg-buildpackage -us -uc -b
+          cp ../opengothic_*.deb opengothic_${{ needs.setup.outputs.semver }}_linux_arm64.deb
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: opengothic_${{ needs.setup.outputs.semver }}_linux_arm64.deb
+          path: opengothic_${{ needs.setup.outputs.semver }}_linux_arm64.deb
+
   windows:
     needs: setup
     runs-on: windows-2025
@@ -204,7 +265,7 @@ jobs:
 
   release:
     if: startsWith(github.ref, 'refs/tags/')
-    needs: [setup, linux, linux-deb, windows, macos-arm64, macos-x64]
+    needs: [setup, linux, linux-deb, linux-arm64, linux-deb-arm64, windows, macos-arm64, macos-x64]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -219,6 +280,7 @@ jobs:
           VERSION: ${{ needs.setup.outputs.semver }}
         run: |
           cd artifacts/opengothic_${VERSION}_linux_x64 && zip -r ../opengothic_${VERSION}_linux_x64.zip . && cd ../..
+          cd artifacts/opengothic_${VERSION}_linux_arm64 && zip -r ../opengothic_${VERSION}_linux_arm64.zip . && cd ../..
           cd artifacts/opengothic_${VERSION}_win_x64 && zip -r ../opengothic_${VERSION}_win_x64.zip . && cd ../..
           cd artifacts/opengothic_${VERSION}_osx_arm64 && zip -r ../opengothic_${VERSION}_osx_arm64.zip . && cd ../..
           cd artifacts/opengothic_${VERSION}_osx_x64 && zip -r ../opengothic_${VERSION}_osx_x64.zip . && cd ../..
@@ -231,6 +293,8 @@ jobs:
           files: |
             artifacts/opengothic_${{ needs.setup.outputs.semver }}_linux_x64.zip
             artifacts/opengothic_${{ needs.setup.outputs.semver }}_linux_x64.deb/opengothic_${{ needs.setup.outputs.semver }}_linux_x64.deb
+            artifacts/opengothic_${{ needs.setup.outputs.semver }}_linux_arm64.zip
+            artifacts/opengothic_${{ needs.setup.outputs.semver }}_linux_arm64.deb/opengothic_${{ needs.setup.outputs.semver }}_linux_arm64.deb
             artifacts/opengothic_${{ needs.setup.outputs.semver }}_win_x64.zip
             artifacts/opengothic_${{ needs.setup.outputs.semver }}_osx_arm64.zip
             artifacts/opengothic_${{ needs.setup.outputs.semver }}_osx_x64.zip
