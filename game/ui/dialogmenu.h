@@ -142,8 +142,10 @@ class DialogMenu : public Tempest::Widget {
     PScreen                             printMsg[MAX_PRINT];
     uint64_t                            remPrint=0;
 
-    bool                                dlgAnimation        = true;
-    bool                                showSubtitles       = true;
-    bool                                showSubtitlesPlayer = true;
-    uint64_t                            choiceAnimTime      = 0;
+    bool                                dlgAnimation         = true;
+    bool                                showSubtitles        = true;
+    bool                                showSubtitlesAmbient = true;
+    bool                                showSubtitlesPlayer  = true;
+    bool                                showSubtitlesNoise   = false;
+    uint64_t                            choiceAnimTime       = 0;
   };
