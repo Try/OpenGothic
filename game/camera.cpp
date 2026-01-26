@@ -600,7 +600,7 @@ void Camera::implMove(Tempest::Event::KeyType key, uint64_t dt) {
 void Camera::setPosition(const Tempest::Vec3& pos) {
   dst.target = pos;
   src.target = dst.target;
-  cameraPos  = dst.target;
+  origin     = dst.target;
   }
 
 void Camera::setDestPosition(const Tempest::Vec3& pos) {
@@ -727,9 +727,16 @@ void Camera::tick(uint64_t dt) {
 
   switch (camMarvinMod) {
     case M_Normal: {
-      if(fpEnable) {
+      if(isCutscene()) {
+        src.target = dst.target;
+        src.spin   = dst.spin;
+        origin     = src.target;
+        angles     = src.spin;
+        }
+      else if(fpEnable && camMod!=Dialog) {
         tickFirstPerson(dtF);
-        } else {
+        }
+      else {
         tickThirdPerson(dtF);
         }
       break;
@@ -782,20 +789,10 @@ void Camera::tickFirstPerson(float /*dtF*/) {
   src.spin   = dst.spin;
   src.target = dst.target;
 
-  origin     = dst.target;
-  angles     = dst.spin;
-
-  /*
-  Matrix4x4 rotOffsetMat;
-  rotOffsetMat.identity();
-  rotOffsetMat.rotateOY(src.spin.y);
-  rotOffsetMat.project(offset);
-  */
-
   Vec3 offset = {0,0,20};
   rotMat.project(offset);
   origin = offset;
-  //origin += offset;
+  angles = dst.spin;
   }
 
 void Camera::tickThirdPerson(float dtF) {
@@ -833,13 +830,21 @@ void Camera::tickThirdPerson(float dtF) {
 
   // range  = calcCameraColision(camTg,origin,src.spin,range);
   // origin = cameraPos - dir*range;
-  float range  = src.range*100.f;
+  float range  = (camMod==Dialog) ? dlgDist : src.range*100.f;
   auto  target = src.target + dir*range;
   origin = target;
   //origin = origin+(target-origin)*std::min(1.f, 15.f*dtF);
 
   const auto offsetAng = calcOffsetAngles(origin, dst.target + targetOffset + dir*range, dst.target);
   angles    = src.spin - rotOffset + offsetAng;
+
+  if(camMod==Dialog) {
+    // TODO: DialogCams.zen
+    src.spin   = dst.spin;
+    src.target = dst.target;
+    origin     = src.target + dir*range;
+    angles     = src.spin;
+    }
 
   if(true && def.collision!=0) {
     auto rangles = src.spin - rotOffsetDef;
