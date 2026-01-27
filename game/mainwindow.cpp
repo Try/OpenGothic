@@ -281,8 +281,17 @@ void MainWindow::paintEvent(PaintEvent& event) {
 void MainWindow::resizeEvent(SizeEvent&) {
   for(auto& i:fence)
     i.wait();
+
+  auto rectBefore = SystemApi::windowClientRect(hwnd());
+  Tempest::Log::i("MainWindow::resizeEvent: Starting resize - window: ", rectBefore.w, "x", rectBefore.h);
+
   swapchain.reset();
   renderer.resetSwapchain();
+
+  auto rectAfter = SystemApi::windowClientRect(hwnd());
+  Tempest::Log::i("MainWindow::resizeEvent: After swapchain reset - window: ", rectAfter.w, "x", rectAfter.h);
+  Tempest::Log::i("MainWindow::resizeEvent: Swapchain size: ", swapchain.w(), "x", swapchain.h());
+
   if(auto camera = Gothic::inst().camera())
     camera->setViewport(swapchain.w(),swapchain.h());
 
@@ -291,6 +300,8 @@ void MainWindow::resizeEvent(SizeEvent&) {
   setCursorPosition(rect.w/2,rect.h/2);
   setCursorShape(fs ? CursorShape::Hidden : CursorShape::Arrow);
   dMouse = Point();
+
+  Tempest::Log::i("MainWindow::resizeEvent: Resize completed");
   }
 
 void MainWindow::mouseDownEvent(MouseEvent &event) {
@@ -519,6 +530,7 @@ void MainWindow::keyUpEvent(KeyEvent &event) {
     if(auto pl = Gothic::inst().player())
       rootMenu.setPlayer(*pl);
     clearInput();
+    //event.accept();
     }
   else if(act==KeyCodec::Inventory && !dialogs.isActive()) {
     if(inventory.isActive()) {

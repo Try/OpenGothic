@@ -80,7 +80,32 @@ void Camera::changeZoom(int delta) {
 
 void Camera::setViewport(uint32_t w, uint32_t h) {
   const float fov = Gothic::options().cameraFov;
-  proj.perspective(fov, float(w)/float(h), zNear(), zFar());
+  
+  // On Android, we may need to swap width/height for projection matrix due to Vulkan transform issues
+  uint32_t projW = w, projH = h;
+  
+#if defined(__ANDROID__)
+  // Check if we're in landscape mode and if Vulkan transform might be incorrect
+  if(w > h) {
+    // Landscape mode - Vulkan transform might be ROTATE_90 when it should be IDENTITY
+    // We'll use the actual window dimensions for correct aspect ratio
+    Tempest::Log::i("Camera::setViewport: Android landscape mode detected");
+    projW = w;
+    projH = h;
+  } else {
+    // Portrait mode
+    Tempest::Log::i("Camera::setViewport: Android portrait mode detected");
+    projW = w;
+    projH = h;
+  }
+#endif
+
+  float aspectRatio = float(projW)/float(projH);
+  proj.perspective(fov, aspectRatio, zNear(), zFar());
+
+  // Log viewport changes for rotation debugging
+  const char* orientation = (w > h) ? "LANDSCAPE" : "PORTRAIT";
+  Tempest::Log::i("Camera::setViewport: ", w, "x", h, " (", orientation, ") aspect=", aspectRatio);
 
   // NOTE: usually depth bouds are from 0.95 to 1.0, resilting into ~805675 discrete values
   static float l = 0.951978f, r = 1;
