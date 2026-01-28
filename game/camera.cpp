@@ -329,20 +329,12 @@ Matrix4x4 Camera::projective() const {
   return ret;
   }
 
-Matrix4x4 Camera::viewShadowLwc(const Tempest::Vec3& lightDir, size_t layer) const {
-  auto  vp       = viewProjLwc();
-  float rotation = (180+angles.y);
-  // if(layer==0)
-  //   return viewShadowVsm(cameraPos-origin,rotation,vp,lightDir);
-  return mkViewShadow(cameraPos-origin,rotation,vp,lightDir,layer);
-  }
-
 Matrix4x4 Camera::viewShadowVsm(const Tempest::Vec3& ldir) const {
-  return mkViewShadowVsm(cameraPos,ldir);
+  return mkViewShadowVsm(src.target,ldir);
   }
 
 Matrix4x4 Camera::viewShadowVsmLwc(const Tempest::Vec3& ldir) const {
-  return mkViewShadowVsm(cameraPos-origin,ldir);
+  return mkViewShadowVsm(src.target-origin,ldir);
   }
 
 Matrix4x4 Camera::mkViewShadowVsm(const Vec3& cameraPos, const Vec3& ldir) const {
@@ -389,7 +381,15 @@ Matrix4x4 Camera::viewShadow(const Vec3& lightDir, size_t layer) const {
   float rotation = (180+angles.y);
   // if(layer==0)
   //   return viewShadowVsm(cameraPos,rotation,vp,lightDir);
-  return mkViewShadow(cameraPos,rotation,vp,lightDir,layer);
+  return mkViewShadow(src.target,rotation,vp,lightDir,layer);
+  }
+
+Matrix4x4 Camera::viewShadowLwc(const Tempest::Vec3& lightDir, size_t layer) const {
+  auto  vp       = viewProjLwc();
+  float rotation = (180+angles.y);
+  // if(layer==0)
+  //   return viewShadowVsm(cameraPos-origin,rotation,vp,lightDir);
+  return mkViewShadow(src.target-origin,rotation,vp,lightDir,layer);
   }
 
 Matrix4x4 Camera::mkViewShadow(const Vec3& cameraPos, float rotation, const Tempest::Matrix4x4& viewProj, const Vec3& lightDir, size_t layer) const {
@@ -796,6 +796,7 @@ void Camera::tickFirstPerson(float /*dtF*/) {
   }
 
 void Camera::tickThirdPerson(float dtF) {
+  //const auto  pl  = Gothic::inst().player();
   const auto& def = cameraDef();
 
   auto mkRotMatrix = [](Vec3 spin){
@@ -813,49 +814,52 @@ void Camera::tickThirdPerson(float dtF) {
                             def.rot_offset_y,
                             def.rot_offset_z);
 
-  dst.spin = clampRotation(dst.spin);
-  followAng(rotOffset, rotOffsetDef, dtF);
+  if(camMod==Dialog) {
+    // TODO: DialogCams.zen
+    src.target = dst.target;
+    src.spin   = dst.spin;
+    rotOffset  = Vec3(0);
+    } else {
+    dst.spin = clampRotation(dst.spin);
 
-  followSpin(src.spin, dst.spin, dtF);
-  //src.spin = dst.spin;
+    followAng(rotOffset,   rotOffsetDef, dtF);
+    followSpin(src.spin,   dst.spin,     dtF);
+    followPos (src.target, dst.target,   dtF);
+    //src.target = dst.target;
+    }
+
+  const auto targetOffsetMat = mkRotMatrix(src.spin);
+  targetOffsetMat.project(targetOffset);
 
   const auto rotOffsetMat = mkRotMatrix(src.spin);
-  rotOffsetMat.project(targetOffset);
-
-  Vec3 dir = {0,0,-1};
+  auto dir = Vec3{0,0,-1};
   rotOffsetMat.project(dir);
-
-  followPos(src.target, dst.target + targetOffset, dtF);
-  //src.target = dst.target + targetOffset;
 
   // range  = calcCameraColision(camTg,origin,src.spin,range);
   // origin = cameraPos - dir*range;
   float range  = (camMod==Dialog) ? dlgDist : src.range*100.f;
-  auto  target = src.target + dir*range;
-  origin = target;
-  //origin = origin+(target-origin)*std::min(1.f, 15.f*dtF);
-
-  const auto offsetAng = calcOffsetAngles(origin, dst.target + targetOffset + dir*range, dst.target);
-  angles    = src.spin - rotOffset + offsetAng;
-
-  if(camMod==Dialog) {
-    // TODO: DialogCams.zen
-    src.spin   = dst.spin;
-    src.target = dst.target;
-    origin     = src.target + dir*range;
-    angles     = src.spin;
-    }
+  angles       = src.spin - rotOffset;
 
   if(true && def.collision!=0) {
-    auto rangles = src.spin - rotOffsetDef;
-    auto dview   = (origin - dst.target);
-    range = calcCameraColision2(dst.target,origin,rangles,dview.length());
+    // testd in marvin: collision is calculated from 'target', not from npc
+    range = calcCameraColision2(src.target,dir,angles,range);
+    // NOTE: with range < 80, camera gradually moves up in vanilla
+    if(range<80) {
+      range    = 150;
+      angles.x = 90;
 
-    origin = dst.target + Vec3::normalize(dview)*range;
-    /* NOTE: with range < 80, camera gradually moves up in vanilla
-    if(range<80)
-      rotBest.x = 80;
-      */
+      const auto rotOffsetMat = mkRotMatrix(angles);
+      dir = Vec3{0,0,-1};
+      rotOffsetMat.project(dir);
+      }
+    }
+
+  origin       = src.target + targetOffset + dir*range;
+  //origin = origin+(target-origin)*std::min(1.f, 15.f*dtF);
+
+  if(camMod==Dialog) {
+    //origin = src.target + dir*range;
+    //angles = src.spin;
     }
 
   static bool dbg = false;
@@ -865,14 +869,16 @@ void Camera::tickThirdPerson(float dtF) {
     }
   }
 
-float Camera::calcCameraColision2(const Tempest::Vec3& target, const Tempest::Vec3& origin, const Tempest::Vec3& angles, float dist) const {
+float Camera::calcCameraColision2(const Tempest::Vec3& target, const Tempest::Vec3& dir, const Tempest::Vec3& angles, float range) const {
   //static float minDist = 20;
   static float padding = 20;
   static int n = 1, nn=1;
 
   auto world = Gothic::inst().world();
   if(world==nullptr)
-    return dist;
+    return range;
+
+  const auto origin = target + dir*range;
 
   Matrix4x4 vinv = projective();
   vinv.mul(mkView(origin,angles));
@@ -882,7 +888,7 @@ float Camera::calcCameraColision2(const Tempest::Vec3& target, const Tempest::Ve
   auto  dview  = (origin - target);
 
   raysCasted = 0;
-  float distM = dist;
+  float distM = range;
   for(int i=-1;i<=n;++i)
     for(int r=-n;r<=n;++r) {
       raysCasted++;
@@ -890,14 +896,14 @@ float Camera::calcCameraColision2(const Tempest::Vec3& target, const Tempest::Ve
       Tempest::Vec3 r1 = {u,v,depthNear};
       vinv.project(r1);
       auto dr = (r1 - target);
-      dr = dr * (dist+padding) / (dr.length()+0.00001f);
+      dr = dr * (range+padding) / (dr.length()+0.00001f);
 
       auto rc = physic.ray(target, target+dr);
       if(!rc.hasCol)
         continue;
 
       auto  tr    = (rc.v - target);
-      float dist1 = Vec3::dotProduct(dview,tr)/dist;
+      float dist1 = Vec3::dotProduct(dview,tr)/range;
 
       dist1 = std::max<float>(dist1-padding, 0);
       if(dist1<distM)
@@ -986,6 +992,18 @@ Vec3 Camera::calcOffsetAngles(const Vec3& origin, const Vec3& target) const {
   float x0  = std::atan2(sXZ.y,Vec2(sXZ.x,sXZ.z).length())*180.f/float(M_PI);
 
   return Vec3(x0,-y0,0);
+  }
+
+Vec3 Camera::calcOffsetAngles2(Tempest::Vec3 srcOrigin, Tempest::Vec3 dstOrigin, Tempest::Vec3 target) const {
+  auto src = calcOffsetAngles2(srcOrigin-target);
+  auto dst = calcOffsetAngles2(dstOrigin-target);
+  return (src - dst);
+  }
+
+Vec3 Camera::calcOffsetAngles2(const Tempest::Vec3& sXZ) const {
+  float x0  = std::atan2(sXZ.y,Vec2(sXZ.x,sXZ.z).length())*180.f/float(M_PI);
+  float y0  = std::atan2(sXZ.x,sXZ.z)*180.f/float(M_PI);
+  return Vec3(x0,y0,0);
   }
 
 Vec3 Camera::calcOffsetAngles(Vec3 srcOrigin, Vec3 dstOrigin, Vec3 target) const {

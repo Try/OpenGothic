@@ -172,11 +172,14 @@ class Camera final {
     void                  tickThirdPerson(float dtF);
 
     Tempest::Vec3         clampRotation(Tempest::Vec3 spin);
-    float                 calcCameraColision2(const Tempest::Vec3& target, const Tempest::Vec3& origin, const Tempest::Vec3& rotSpin, float dist) const;
+    float                 calcCameraColision2(const Tempest::Vec3& target, const Tempest::Vec3& dir, const Tempest::Vec3& rotSpin, float dist) const;
     Tempest::Vec3         calcCameraColision(const Tempest::Vec3& target, const Tempest::Vec3& origin, const Tempest::Vec3& rotSpin, float dist) const;
 
-    Tempest::Vec3         calcOffsetAngles(const Tempest::Vec3& srcOrigin, const Tempest::Vec3& target) const;
+    Tempest::Vec3         calcOffsetAngles2(Tempest::Vec3 srcOrigin, Tempest::Vec3 dstOrigin, Tempest::Vec3 target) const;
+    Tempest::Vec3         calcOffsetAngles2(const Tempest::Vec3& diff) const;
+
     Tempest::Vec3         calcOffsetAngles(Tempest::Vec3 srcOrigin, Tempest::Vec3 dstOrigin, Tempest::Vec3 target) const;
+    Tempest::Vec3         calcOffsetAngles(const Tempest::Vec3& srcOrigin, const Tempest::Vec3& target) const;
 
     void                  implMove(Tempest::KeyEvent::KeyType t, uint64_t dt);
 
