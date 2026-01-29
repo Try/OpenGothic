@@ -130,16 +130,12 @@ class Camera final {
       Tempest::Vec3       spin   = {};
       };
 
-    Tempest::Vec3         cameraPos = {};
     Tempest::Vec3         origin    = {};
     Tempest::Vec3         angles    = {};
 
-    Tempest::Vec3         rotEleAz  = {};
     Tempest::Vec3         rotOffset = {};
-    Tempest::Vec3         offsetAng = {};
 
     State                 src, dst;
-
     Pin                   pin;
 
     float                 dlgDist    = 0;
@@ -172,14 +168,13 @@ class Camera final {
     void                  tickThirdPerson(float dtF);
 
     Tempest::Vec3         clampRotation(Tempest::Vec3 spin);
-    float                 calcCameraColision2(const Tempest::Vec3& target, const Tempest::Vec3& dir, const Tempest::Vec3& rotSpin, float dist) const;
-    Tempest::Vec3         calcCameraColision(const Tempest::Vec3& target, const Tempest::Vec3& origin, const Tempest::Vec3& rotSpin, float dist) const;
-
-    Tempest::Vec3         calcOffsetAngles2(Tempest::Vec3 srcOrigin, Tempest::Vec3 dstOrigin, Tempest::Vec3 target) const;
-    Tempest::Vec3         calcOffsetAngles2(const Tempest::Vec3& diff) const;
+    float                 calcCameraColision(const Tempest::Vec3& target, const Tempest::Vec3& dir, const Tempest::Vec3& rotSpin, float dist) const;
+    Tempest::Vec3         calcCameraColision(const Tempest::Vec3& from, const Tempest::Vec3& dir) const;
 
     Tempest::Vec3         calcOffsetAngles(Tempest::Vec3 srcOrigin, Tempest::Vec3 dstOrigin, Tempest::Vec3 target) const;
     Tempest::Vec3         calcOffsetAngles(const Tempest::Vec3& srcOrigin, const Tempest::Vec3& target) const;
+
+    void                  resetDst();
 
     void                  implMove(Tempest::KeyEvent::KeyType t, uint64_t dt);
 
@@ -188,7 +183,6 @@ class Camera final {
     Tempest::Matrix4x4    mkViewShadow(const Tempest::Vec3& cameraPos, float rotation,
                                        const Tempest::Matrix4x4& viewProj, const Tempest::Vec3& lightDir, size_t layer) const;
     Tempest::Matrix4x4    mkViewShadowVsm(const Tempest::Vec3& cameraPos, const Tempest::Vec3& ldir) const;
-    void                  resetDst();
 
     void                  followCamera(Tempest::Vec3& pos,  Tempest::Vec3 dest, float dtF);
     void                  followPos   (Tempest::Vec3& pos,  Tempest::Vec3 dest, float dtF);
