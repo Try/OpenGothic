@@ -89,7 +89,7 @@ class MainWindow : public Tempest::Window {
     void setFullscreen(bool fs);
 
     void processMouse(Tempest::MouseEvent& event, bool enable);
-    void tickMouse();
+    void tickMouse(uint64_t dt);
     void onSettings();
 
     void setupUi();
