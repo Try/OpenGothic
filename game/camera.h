@@ -85,18 +85,12 @@ class Camera final {
     void tick(uint64_t dt);
     void debugDraw(DbgPainter& p);
 
-    Tempest::PointF    spin()     const;
-    Tempest::PointF    destSpin() const;
+    Tempest::PointF    spin() const;
     Tempest::Vec3      destTarget() const;
 
     void               setSpin(const Tempest::PointF& p);
-    void               setDestSpin(const Tempest::PointF& p);
-
     void               setTarget(const Tempest::Vec3& pos);
-    void               setDestTarget(const Tempest::Vec3& pos);
-
     void               setPosition(const Tempest::Vec3& pos);
-
     void               setDialogDistance(float d);
 
     void               onRotateMouse(const Tempest::PointF& dpos);
@@ -120,23 +114,27 @@ class Camera final {
     float              zFar()  const;
 
   private:
+    struct Pin {
+      Tempest::Vec3       origin = {};
+      Tempest::Vec3       spin   = {};
+      };
+
     struct State {
       float               range  = 3.f;
       Tempest::Vec3       spin   = {};
       Tempest::Vec3       target = {};
       };
 
-    struct Pin {
-      Tempest::Vec3       origin = {};
-      Tempest::Vec3       spin   = {};
+    struct Interpolated {
+      Tempest::Vec3       target    = {};
+      Tempest::Vec3       rotOffset = {};
       };
 
     Tempest::Vec3         origin    = {};
     Tempest::Vec3         angles    = {};
 
-    Tempest::Vec3         rotOffset = {};
-
-    State                 src, dst;
+    State                 state;
+    Interpolated          inter;
     Pin                   pin;
 
     float                 dlgDist    = 0;

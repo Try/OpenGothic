@@ -24,13 +24,13 @@ static float angleMod(float a) {
     a-=360.f;
   return a;
   }
-
+/*
 static Vec3 angleMod(Vec3 a) {
   a.x = angleMod(a.x);
   a.y = angleMod(a.y);
   a.z = angleMod(a.z);
   return a;
-  }
+  }*/
 
 static zenkit::Quat fromAngles(Vec3 angles) {
   float roll  = float(angles.x*M_PI)/180.f;
@@ -90,35 +90,33 @@ void Camera::reset(const Npc* pl) {
   const auto& def = cameraDef();
 
   userRange    = (def.best_range - def.min_range)/(def.max_range - def.min_range);
-  dst.range    = userRange*(def.max_range-def.min_range)+def.min_range;
-  dst.target   = pl ? pl->cameraBone() : Vec3();
+  state.range  = userRange*(def.max_range-def.min_range)+def.min_range;
+  state.target = pl ? pl->cameraBone() : Vec3();
 
-  dst.spin.x   = 0;
-  dst.spin.y   = pl ? pl->rotation() : 0;
-  dst.spin    += Vec3(def.best_elevation,
-                      def.best_azimuth,
-                      def.best_rot_z);
-
-  src.spin     = dst.spin;
+  state.spin.x  = 0;
+  state.spin.y  = pl ? pl->rotation() : 0;
+  state.spin   += Vec3(def.best_elevation,
+                       def.best_azimuth,
+                       def.best_rot_z);
 
   tickThirdPerson(-1.f);
   }
 
 void Camera::save(Serialize &s) {
-  s.write(src.range, src.target, src.spin,
-          dst.range, dst.target, dst.spin);
+  s.write(state.range, state.spin, state.target, inter.target);
   s.write(origin,angles);
-  s.write(rotOffset);
+  s.write(inter.rotOffset);
+
+  // s.write(state.range);
   }
 
 void Camera::load(Serialize &s, Npc* pl) {
   reset(pl);
   if(s.version()<54)
     return;
-  s.read(src.range, src.target, src.spin,
-         dst.range, dst.target, dst.spin);
+  s.read(state.range, state.spin, state.target, inter.target);
   s.read(origin,angles);
-  s.read(rotOffset);
+  s.read(inter.rotOffset);
   }
 
 void Camera::changeZoom(int delta) {
@@ -195,53 +193,35 @@ void Camera::setMode(Camera::Mode m) {
     }
 
   if(auto pl = Gothic::inst().player()) {
-    dst.spin.x = 0;
-    dst.spin.y = pl->rotation();
+    state.spin = Vec3(0, pl->rotation(), 0);
     }
 
   const auto& def = cameraDef();
   auto  rotBest   = Vec3(def.best_elevation,
                          def.best_azimuth,
                          def.best_rot_z);
-  dst.spin += rotBest;
+  state.spin += rotBest;
   }
 
 void Camera::setMarvinMode(Camera::MarvinMode nextMod) {
   if(camMarvinMod==nextMod)
     return;
 
-  /*
-  if(camMarvinMod==M_Pinned) {
-    src.spin     = dst.spin;
-    float range  = src.range*100.f;
-    Vec3  dir    = {0,0,1};
-    Matrix4x4 rotOffsetMat;
-    rotOffsetMat.identity();
-    rotOffsetMat.rotateOY(180-src.spin.y);
-    rotOffsetMat.rotateOX(src.spin.x);
-    rotOffsetMat.project(dir);
-    dst.target  = origin +dir*range;
-    src.target  = dst.target;
-    cameraPos   = src.target;
-    rotOffset.y = 0;
-    }
-  */
-
   if(nextMod==M_Pinned) {
     const auto pl = Gothic::inst().player();
 
-    auto      offset = origin - dst.target;
+    auto      offset = origin;
     Matrix4x4 rotMat = pl!=nullptr ? pl->cameraMatrix(false) : Matrix4x4::mkIdentity();
     rotMat.inverse();
     rotMat.project(offset);
 
-    pin.origin = offset;//origin - dst.target;
+    pin.origin = offset;
     pin.spin   = angles;
     }
   else if(nextMod==M_Free) {
-    dst.spin   = angles;
-    dst.target = origin;
-    src = dst;
+    state.spin   = angles;
+    state.target = origin;
+    inter.target = origin;
     }
   camMarvinMod = nextMod;
   }
@@ -298,26 +278,16 @@ void Camera::toggleDebug() {
   }
 
 void Camera::setSpin(const PointF &p) {
-  dst.spin = angleMod(Vec3(p.x,p.y,0));
-  src.spin = dst.spin;
-  }
-
-void Camera::setDestSpin(const PointF& p) {
-  dst.spin = /*angleMod*/(Vec3(p.x,p.y,0));
+  state.spin = /*angleMod*/(Vec3(p.x,p.y,0));
   }
 
 void Camera::setTarget(const Tempest::Vec3& pos) {
-  dst.target = pos;
-  src.target = pos;
-  }
-
-void Camera::setDestTarget(const Tempest::Vec3& pos) {
-  dst.target = pos;
+  state.target = pos;
   }
 
 void Camera::onRotateMouse(const PointF& dpos) {
-  dst.spin.x += dpos.x;
-  dst.spin.y += dpos.y;
+  state.spin.x += dpos.x;
+  state.spin.y += dpos.y;
   }
 
 Matrix4x4 Camera::projective() const {
@@ -328,11 +298,11 @@ Matrix4x4 Camera::projective() const {
   }
 
 Matrix4x4 Camera::viewShadowVsm(const Tempest::Vec3& ldir) const {
-  return mkViewShadowVsm(src.target,ldir);
+  return mkViewShadowVsm(inter.target,ldir);
   }
 
 Matrix4x4 Camera::viewShadowVsmLwc(const Tempest::Vec3& ldir) const {
-  return mkViewShadowVsm(src.target-origin,ldir);
+  return mkViewShadowVsm(inter.target-origin,ldir);
   }
 
 Matrix4x4 Camera::mkViewShadowVsm(const Vec3& cameraPos, const Vec3& ldir) const {
@@ -379,7 +349,7 @@ Matrix4x4 Camera::viewShadow(const Vec3& lightDir, size_t layer) const {
   float rotation = (180+angles.y);
   // if(layer==0)
   //   return viewShadowVsm(cameraPos,rotation,vp,lightDir);
-  return mkViewShadow(src.target,rotation,vp,lightDir,layer);
+  return mkViewShadow(inter.target,rotation,vp,lightDir,layer);
   }
 
 Matrix4x4 Camera::viewShadowLwc(const Tempest::Vec3& lightDir, size_t layer) const {
@@ -387,7 +357,7 @@ Matrix4x4 Camera::viewShadowLwc(const Tempest::Vec3& lightDir, size_t layer) con
   float rotation = (180+angles.y);
   // if(layer==0)
   //   return viewShadowVsm(cameraPos-origin,rotation,vp,lightDir);
-  return mkViewShadow(src.target-origin,rotation,vp,lightDir,layer);
+  return mkViewShadow(inter.target-origin,rotation,vp,lightDir,layer);
   }
 
 Matrix4x4 Camera::mkViewShadow(const Vec3& cameraPos, float rotation, const Tempest::Matrix4x4& viewProj, const Vec3& lightDir, size_t layer) const {
@@ -572,27 +542,27 @@ void Camera::implMove(Tempest::Event::KeyType key, uint64_t dt) {
   float cx        = std::cos(angles.x*k);
 
   if(key==KeyEvent::K_A) {
-    dst.target.x += dpos*c;
-    dst.target.z += dpos*s;
+    origin.x += dpos*c;
+    origin.z += dpos*s;
     }
   if(key==KeyEvent::K_D) {
-    dst.target.x -= dpos*c;
-    dst.target.z -= dpos*s;
+    origin.x -= dpos*c;
+    origin.z -= dpos*s;
     }
   if(key==KeyEvent::K_W) {
-    dst.target.x += dpos*s*cx;
-    dst.target.z -= dpos*c*cx;
-    dst.target.y -= dpos*sx;
+    origin.x += dpos*s*cx;
+    origin.z -= dpos*c*cx;
+    origin.y -= dpos*sx;
     }
   if(key==KeyEvent::K_S) {
-    dst.target.x -= dpos*s*cx;
-    dst.target.z += dpos*c*cx;
-    dst.target.y += dpos*sx;
+    origin.x -= dpos*s*cx;
+    origin.z += dpos*c*cx;
+    origin.y += dpos*sx;
     }
   if(key==KeyEvent::K_Q)
-    dst.spin.y += dRot;
+    state.spin.y += dRot;
   if(key==KeyEvent::K_E)
-    dst.spin.y -= dRot;
+    state.spin.y -= dRot;
   }
 
 void Camera::setPosition(const Tempest::Vec3& pos) {
@@ -697,8 +667,7 @@ void Camera::tick(uint64_t dt) {
 
   {
     const auto& def = cameraDef();
-    dst.range = def.min_range + (def.max_range-def.min_range)*userRange;
-    src.range = dst.range;
+    state.range = def.min_range + (def.max_range-def.min_range)*userRange;
   }
 
   // normalize angles in -180..180 range, for convinience
@@ -710,11 +679,7 @@ void Camera::tick(uint64_t dt) {
   switch (camMarvinMod) {
     case M_Normal: {
       if(isCutscene()) {
-        src.target = origin;
-        dst.target = origin;
-
-        angles   = dst.spin;
-        src.spin = dst.spin;
+        // nop
         }
       else if(fpEnable && camMod!=Dialog) {
         tickFirstPerson(dtF);
@@ -729,9 +694,7 @@ void Camera::tick(uint64_t dt) {
       break;
       }
     case M_Free: {
-      src.target = dst.target;
-      origin     = dst.target;
-      angles     = followRot(angles, dst.spin, dtF, 10.f);
+      angles = followRot(angles, state.spin, dtF, 10.f);
       break;
       }
     case M_Pinned: {
@@ -740,7 +703,7 @@ void Camera::tick(uint64_t dt) {
 
       auto offset = pin.origin;
       rotMat.project(offset);
-      origin     = dst.target + offset;
+      origin     = offset;
       angles     = pin.spin;
       break;
       }
@@ -752,7 +715,7 @@ void Camera::tick(uint64_t dt) {
     auto& physic = *world->physic();
 
     if(pl!=nullptr && !pl->isInWater()) {
-      inWater = physic.cameraRay(src.target, origin).waterCol % 2;
+      inWater = physic.cameraRay(inter.target, origin).waterCol % 2;
       } else {
       // NOTE: find a way to avoid persistent tracking
       inWater = inWater ^ (physic.cameraRay(prev, origin).waterCol % 2);
@@ -764,17 +727,13 @@ void Camera::tickFirstPerson(float /*dtF*/) {
   const auto pl     = Gothic::inst().player();
   const auto rotMat = pl!=nullptr ? pl->cameraMatrix(true) : Matrix4x4::mkIdentity();
 
-  //dst.spin.y = pl!=nullptr ? pl->rotation() : 0;
-  //dst.spin.z = 0;
-
-  dst.spin   = clampRotation(dst.spin);
-  src.spin   = dst.spin;
-  src.target = dst.target;
+  state.spin   = clampRotation(state.spin);
+  inter.target = state.target;
 
   Vec3 offset = {0,0,20};
   rotMat.project(offset);
   origin = offset;
-  angles = dst.spin;
+  angles = state.spin;
   }
 
 void Camera::tickThirdPerson(float dtF) {
@@ -794,46 +753,43 @@ void Camera::tickThirdPerson(float dtF) {
   auto  rotOffsetDef = Vec3(def.rot_offset_x,
                             def.rot_offset_y,
                             def.rot_offset_z);
-  auto  range        = (camMod==Dialog) ? dlgDist : src.range*100.f;
+  auto  range        = (camMod==Dialog) ? dlgDist : state.range*100.f;
 
   if(camMod==Dialog) {
     // TODO: DialogCams.zen
-    src.target = dst.target;
-    rotOffset  = Vec3(0);
+    inter.target    = state.target;
+    inter.rotOffset = Vec3(0);
     }
 
   if(camMod!=Dialog) {
-    dst.spin  = clampRotation(dst.spin);
-    rotOffset = followRot(rotOffset, rotOffsetDef, dtF, def.velo_rot);
+    state.spin      = clampRotation(state.spin);
+    inter.rotOffset = followRot(inter.rotOffset, rotOffsetDef, dtF, def.velo_rot);
     }
 
-  // degenerated interpolant - TODO: remove it
-  src.spin = dst.spin;
-
-  const auto rotOffsetMat = mkRotMatrix(dst.spin);
+  const auto rotOffsetMat = mkRotMatrix(state.spin);
   if(camMod!=Dialog) {
     rotOffsetMat.project(targetOffset);
     // vanilla clamps target-offset according to collision
     if(def.collision!=0) {
-      targetOffset = calcCameraColision(dst.target, targetOffset);
+      targetOffset = calcCameraColision(state.target, targetOffset);
       }
     // and has leash-like follow for target+offset
     // ignores def.translate
-    src.target = followTarget(src.target, dst.target+targetOffset, dtF);
+    inter.target = followTarget(inter.target, state.target+targetOffset, dtF);
     }
 
   auto dir = Vec3{0,0,-1};
   rotOffsetMat.project(dir);
 
   if(true && def.collision!=0) {
-    auto rotation = calcLookAtAngles(src.target + dir*range, src.target, rotOffset, dst.spin);
+    auto rotation = calcLookAtAngles(inter.target + dir*range, inter.target, inter.rotOffset, state.spin);
     // testd in marvin: collision is calculated from offseted 'target', not from npc
-    range = calcCameraColision(src.target,dir,rotation,range);
+    range = calcCameraColision(inter.target, dir, rotation, range);
     // NOTE: with range < 80, camera gradually moves up in vanilla
     if(range<80.f) {
       range      = 150; // also collision?!
       rotation.x = 80;
-      rotation.y = dst.spin.y;
+      rotation.y = state.spin.y;
       const auto rotOffsetMat = mkRotMatrix(rotation);
       dir = Vec3{0,0,-1};
       rotOffsetMat.project(dir);
@@ -841,13 +797,13 @@ void Camera::tickThirdPerson(float dtF) {
     }
 
   if(def.translate!=0)
-    origin = followTrans(origin, src.target + dir*range, (camMod!=Dialog ? dtF : -1.f), def.velo_trans);
-  angles = calcLookAtAngles(origin, src.target, rotOffset, dst.spin);
+    origin = followTrans(origin, inter.target + dir*range, (camMod!=Dialog ? dtF : -1.f), def.velo_trans);
+  angles = calcLookAtAngles(origin, inter.target, inter.rotOffset, state.spin);
 
   static bool dbg = false;
   if(dbg) {
-    origin = dst.target + targetOffset + dir*range;
-    angles = calcLookAtAngles(origin, dst.target, rotOffset, dst.spin);
+    origin = state.target + targetOffset + dir*range;
+    angles = calcLookAtAngles(origin, state.target, inter.rotOffset, state.spin);
     }
   }
 
@@ -949,9 +905,11 @@ void Camera::resetDst() {
   if(isMarvin())
     return;
   const auto& def = cameraDef();
-  // dst.spin.x = def.best_elevation;
-  dst.range  = def.best_range;
-  dst.spin   = Vec3(0);
+
+  state.range = def.best_range;
+  state.spin  = Vec3(0);
+
+  //userRange   = (def.best_range - def.min_range)/(def.max_range - def.min_range);
   }
 
 Matrix4x4 Camera::mkView(const Vec3& pos, const Vec3& spin) const {
@@ -980,14 +938,14 @@ void Camera::debugDraw(DbgPainter& p) {
     return;
 
   p.setPen(Color(0,1,0));
-  p.drawLine(dst.target, src.target);
-  p.drawLine(src.target, origin);
+  p.drawLine(state.target, inter.target);
+  p.drawLine(inter.target, origin);
 
   if(auto pl = Gothic::inst().player()) {
     float a  = pl->rotationRad();
     float c  = std::cos(a), s = std::sin(a);
     auto  ln = Vec3(c,0,s)*25.f;
-    p.drawLine(src.target-ln, src.target+ln);
+    p.drawLine(inter.target-ln, inter.target+ln);
     }
 
   auto& fnt = Resources::font(1.0);
@@ -996,31 +954,27 @@ void Camera::debugDraw(DbgPainter& p) {
   string_frm buf("RaysCasted: ",raysCasted);
   p.drawText(8,y,buf); y += fnt.pixelSize();
 
-  buf = string_frm("PlayerPos : ",dst.target.x, ' ', dst.target.y, ' ', dst.target.z);
+  buf = string_frm("PlayerPos : ",state.target.x, ' ', state.target.y, ' ', state.target.z);
   p.drawText(8,y,buf); y += fnt.pixelSize();
 
   buf = string_frm("targetVelo : ",targetVelo);
   p.drawText(8,y,buf); y += fnt.pixelSize()*4;
 
-  buf = string_frm("Range To Player : ", (src.target-origin).length());
+  buf = string_frm("Range To Player : ", (inter.target-origin).length());
   p.drawText(8,y,buf); y += fnt.pixelSize();
 
-  buf = string_frm("Azimuth : ", angleMod(dst.spin.y-angles.y));
+  buf = string_frm("Azimuth : ", angleMod(state.spin.y-angles.y));
   p.drawText(8,y,buf); y += fnt.pixelSize();
-  buf = string_frm("Elevation : ", rotOffset.x+angles.x);
+  buf = string_frm("Elevation : ", inter.rotOffset.x+angles.x);
   p.drawText(8,y,buf); y += fnt.pixelSize();
   }
 
 PointF Camera::spin() const {
-  return PointF(src.spin.x,src.spin.y);
-  }
-
-PointF Camera::destSpin() const {
-  return PointF(dst.spin.x,dst.spin.y);
+  return PointF(state.spin.x,state.spin.y);
   }
 
 Vec3 Camera::destTarget() const {
-  return dst.target;
+  return state.target;
   }
 
 Matrix4x4 Camera::viewProj() const {

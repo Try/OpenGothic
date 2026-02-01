@@ -37,7 +37,7 @@ bool WorldView::isInPfxRange(const Vec3& pos) const {
 
 void WorldView::tick(uint64_t /*dt*/) {
   auto& cam = owner.gameSession().camera();
-  pfxGroup.setViewerPos(cam.destTarget());
+  pfxGroup.setViewerPos(cam.originLwc());
   }
 
 void WorldView::resetRendering() {
