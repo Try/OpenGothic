@@ -935,19 +935,19 @@ void MainWindow::tickCamera(uint64_t dt) {
     const bool fs = SystemApi::isFullscreen(hwnd());
     if(!fs && mouseP[Event::ButtonLeft]) {
       camera.setSpin(camera.destSpin());
-      camera.setDestPosition(pos);
+      camera.setDestTarget(pos);
       }
     else if(dialogs.isActive() && !dialogs.isMobsiDialog()) {
       dialogs.dialogCamera(camera);
       }
     else if(inventory.isActive()) {
-      camera.setDestPosition(pos);
+      camera.setDestTarget(pos);
       }
     else if(player.focus().npc!=nullptr && meleeFocus && pl!=nullptr) {
       auto spin = camera.destSpin();
       spin.y = pl->rotation();
       camera.setDestSpin(spin);
-      camera.setDestPosition(pos);
+      camera.setDestTarget(pos);
       }
     else if(pl!=nullptr) {
       auto spin = camera.destSpin();
@@ -956,7 +956,7 @@ void MainWindow::tickCamera(uint64_t dt) {
       if(pl->isDive() && !camera.isMarvin())
         spin.x = -pl->rotationY();
       camera.setDestSpin(spin);
-      camera.setDestPosition(pos);
+      camera.setDestTarget(pos);
       }
     }
 

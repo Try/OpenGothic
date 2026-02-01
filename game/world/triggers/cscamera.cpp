@@ -224,7 +224,7 @@ Vec3 CsCamera::position() {
 
 PointF CsCamera::spin(Tempest::Vec3& d) {
   if(targetSpline.size()==0)
-    d = d - Gothic::inst().camera()->destPosition();
+    d = d - Gothic::inst().camera()->originLwc();
   else if(targetSpline.size()==1)
     d = targetSpline.keyframe[0].c[3] - d;
   else if(targetSpline.size()>1) {

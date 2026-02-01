@@ -87,14 +87,15 @@ class Camera final {
 
     Tempest::PointF    spin()     const;
     Tempest::PointF    destSpin() const;
-
-    Tempest::Vec3      destPosition() const;
+    Tempest::Vec3      destTarget() const;
 
     void               setSpin(const Tempest::PointF& p);
     void               setDestSpin(const Tempest::PointF& p);
 
+    void               setTarget(const Tempest::Vec3& pos);
+    void               setDestTarget(const Tempest::Vec3& pos);
+
     void               setPosition(const Tempest::Vec3& pos);
-    void               setDestPosition(const Tempest::Vec3& pos);
 
     void               setDialogDistance(float d);
 
@@ -170,6 +171,8 @@ class Camera final {
     Tempest::Vec3         clampRotation(Tempest::Vec3 spin);
     float                 calcCameraColision(const Tempest::Vec3& target, const Tempest::Vec3& dir, const Tempest::Vec3& rotSpin, float dist) const;
     Tempest::Vec3         calcCameraColision(const Tempest::Vec3& from, const Tempest::Vec3& dir) const;
+
+    Tempest::Vec3         calcLookAtAngles(const Tempest::Vec3& origin, const Tempest::Vec3& target, const Tempest::Vec3& rotOffset) const;
 
     Tempest::Vec3         calcOffsetAngles(Tempest::Vec3 srcOrigin, Tempest::Vec3 dstOrigin, Tempest::Vec3 target) const;
     Tempest::Vec3         calcOffsetAngles(const Tempest::Vec3& srcOrigin, const Tempest::Vec3& target) const;

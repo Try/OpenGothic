@@ -1043,7 +1043,7 @@ void PlayerControl::assignRunAngle(Npc& pl, float rotation, uint64_t dt) {
     return;
     }
 
-  const float maxV = 15.0f;
+  const float maxV = 12.5f;
   dangle = std::pow(std::abs(dangle)/maxV,2.f)*maxV*sgn;
 
   float dest = 0;

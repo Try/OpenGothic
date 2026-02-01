@@ -341,7 +341,7 @@ bool Marvin::exec(std::string_view v) {
       Npc* player = Gothic::inst().player();
       if(c==nullptr || player==nullptr)
         return false;
-      auto pos = c->destPosition();
+      auto pos = c->destTarget();
       player->setPosition(pos.x,pos.y,pos.z);
       player->updateTransform();
       c->reset();

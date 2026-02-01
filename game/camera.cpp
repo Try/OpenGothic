@@ -98,7 +98,7 @@ void Camera::reset(const Npc* pl) {
   dst.spin.y   = pl ? pl->rotation() : 0;
   dst.spin    += Vec3(def.best_elevation,
                       def.best_azimuth,
-                      0);
+                      def.best_rot_z);
 
   src.spin     = dst.spin;
 
@@ -205,7 +205,7 @@ void Camera::setMode(Camera::Mode m) {
   const auto& def = cameraDef();
   auto  rotBest   = Vec3(def.best_elevation,
                          def.best_azimuth,
-                         0);
+                         def.best_rot_z);
   dst.spin += rotBest;
   }
 
@@ -313,6 +313,16 @@ void Camera::setDestSpin(const PointF& p) {
     dst.spin.x = -90;
   if(dst.spin.x>90)
     dst.spin.x = 90;
+  }
+
+void Camera::setTarget(const Tempest::Vec3& pos) {
+  dst.target = pos;
+  src.target = pos;
+  }
+
+void Camera::setDestTarget(const Tempest::Vec3& pos) {
+  //if(camMarvinMod!=M_Free && (camMarvinMod!=M_Freeze || camMod==Dialog))
+  dst.target = pos;
   }
 
 void Camera::onRotateMouse(const PointF& dpos) {
@@ -598,14 +608,7 @@ void Camera::implMove(Tempest::Event::KeyType key, uint64_t dt) {
   }
 
 void Camera::setPosition(const Tempest::Vec3& pos) {
-  dst.target = pos;
-  src.target = dst.target;
-  origin     = dst.target;
-  }
-
-void Camera::setDestPosition(const Tempest::Vec3& pos) {
-  if(camMarvinMod!=M_Free && (camMarvinMod!=M_Freeze || camMod==Dialog))
-    dst.target = pos;
+  origin = pos;
   }
 
 void Camera::setDialogDistance(float d) {
@@ -634,7 +637,7 @@ void Camera::followPos(Vec3& pos, Vec3 dest, float dtF) {
   if(inertiaTarget) {
     veloTrans = std::min(def.velo_trans*100, targetVelo*mul);
     } else {
-    veloTrans = def.velo_trans*100;
+    veloTrans = def.velo_trans;
     }
 
   float tr = std::min(veloTrans*dtF,len);
@@ -673,7 +676,7 @@ void Camera::followSpin(Tempest::Vec3& spin, Tempest::Vec3 dest, float dtF) {
     }
 
 #if 1
-  static float gvelo = 8.85f;
+  static float gvelo = 10.f;
   const zenkit::Quat sx = fromAngles(spin);
   const zenkit::Quat dx = fromAngles(dest);
 
@@ -697,14 +700,6 @@ void Camera::followAng(float& ang, float dest, float speed, float dtF) {
   if(std::abs(da)<=0.0001f || dtF<0.f) {
     ang = dest;
     return;
-    }
-
-  static const float min=-90, max=90;
-  if(da>max+1.f) {
-    //shift = (da-max);
-    }
-  if(da<min-1.f) {
-    //shift = (da-min);
     }
   ang += shift;
   }
@@ -826,8 +821,8 @@ void Camera::tickThirdPerson(float dtF) {
     dst.spin = clampRotation(dst.spin);
 
     followAng (rotOffset, rotOffsetDef, dtF);
-    followSpin(src.spin,  dst.spin,     dtF);
-    //src.spin = dst.spin;
+    //followSpin(src.spin,  dst.spin,     dtF);
+    src.spin = dst.spin;
     }
 
   const auto rotOffsetMat = mkRotMatrix(src.spin);
@@ -844,40 +839,34 @@ void Camera::tickThirdPerson(float dtF) {
   auto dir = Vec3{0,0,-1};
   rotOffsetMat.project(dir);
 
-  auto rotation = src.spin - rotOffset;
   if(true && def.collision!=0) {
+    auto rotation = calcLookAtAngles(src.target + dir*range, src.target, rotOffset);
     // testd in marvin: collision is calculated from offseted 'target', not from npc
     range = calcCameraColision(src.target,dir,rotation,range);
     // NOTE: with range < 80, camera gradually moves up in vanilla
-    static float thresholdMax = 85.f;
-    static float thresholdMin = 75.f;
-    if(range<thresholdMax) {
-      const float a = std::max(0.f, range-thresholdMin)/(thresholdMax-thresholdMin);
-      range      = range*a + 150.f*(1.f-a);
-      rotation.x = rotation.x*a + 90.f*(1.f-a);
-
+    if(range<80.f) {
+      range      = 150;
+      rotation.x = 90;
       const auto rotOffsetMat = mkRotMatrix(rotation);//!
       dir = Vec3{0,0,-1};
       rotOffsetMat.project(dir);
       }
     }
 
-  auto followX = [](Vec3 a, Vec3 b, float dtF) {
+  auto followTranslation = [](Vec3 a, Vec3 b, float dtF, float velo) {
     if(dtF<0)
       return b;
     static float k = 10.f;
     return a + (b-a)*std::min(1.f, k*dtF);
     };
-  (void)followX;
 
-  // origin = followX(origin, src.target + dir*range, dtF);
-  origin = src.target + dir*range;
-  angles = rotation;
+  origin = followTranslation(origin, src.target + dir*range, (camMod!=Dialog ? dtF : -1.f), def.velo_trans);
+  angles = calcLookAtAngles(origin, src.target, rotOffset);
 
   static bool dbg = false;
   if(dbg) {
     origin = dst.target + targetOffset + dir*range;
-    angles = dst.spin + rotOffset;
+    angles = calcLookAtAngles(origin, dst.target, rotOffset);
     }
   }
 
@@ -923,6 +912,15 @@ float Camera::calcCameraColision(const Tempest::Vec3& target, const Tempest::Vec
       }
 
   return distM;
+  }
+
+Vec3 Camera::calcLookAtAngles(const Tempest::Vec3& origin, const Tempest::Vec3& target, const Vec3& rotOffset) const {
+  auto  sXZ = (origin - target);
+
+  float y0  = std::atan2(sXZ.x,sXZ.z)*180.f/float(M_PI);
+  float x0  = std::atan2(sXZ.y,Vec2(sXZ.x,sXZ.z).length())*180.f/float(M_PI);
+
+  return Vec3(x0,-y0,0) - rotOffset;
   }
 
 Vec3 Camera::calcCameraColision(const Tempest::Vec3& from, const Tempest::Vec3& dir) const {
@@ -1023,6 +1021,7 @@ void Camera::debugDraw(DbgPainter& p) {
 
   p.setPen(Color(0,1,0));
   p.drawLine(dst.target, src.target);
+  p.drawLine(src.target, origin);
 
   if(auto pl = Gothic::inst().player()) {
     float a  = pl->rotationRad();
@@ -1060,7 +1059,7 @@ PointF Camera::destSpin() const {
   return PointF(dst.spin.x,dst.spin.y);
   }
 
-Vec3 Camera::destPosition() const {
+Vec3 Camera::destTarget() const {
   return dst.target;
   }
 
