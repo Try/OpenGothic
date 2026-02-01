@@ -172,10 +172,8 @@ class Camera final {
     float                 calcCameraColision(const Tempest::Vec3& target, const Tempest::Vec3& dir, const Tempest::Vec3& rotSpin, float dist) const;
     Tempest::Vec3         calcCameraColision(const Tempest::Vec3& from, const Tempest::Vec3& dir) const;
 
-    Tempest::Vec3         calcLookAtAngles(const Tempest::Vec3& origin, const Tempest::Vec3& target, const Tempest::Vec3& rotOffset) const;
-
-    Tempest::Vec3         calcOffsetAngles(Tempest::Vec3 srcOrigin, Tempest::Vec3 dstOrigin, Tempest::Vec3 target) const;
-    Tempest::Vec3         calcOffsetAngles(const Tempest::Vec3& srcOrigin, const Tempest::Vec3& target) const;
+    Tempest::Vec3         calcLookAtAngles(const Tempest::Vec3& origin, const Tempest::Vec3& target,
+                                           const Tempest::Vec3& rotOffset, const Tempest::Vec3& defSpin) const;
 
     void                  resetDst();
 
@@ -187,9 +185,10 @@ class Camera final {
                                        const Tempest::Matrix4x4& viewProj, const Tempest::Vec3& lightDir, size_t layer) const;
     Tempest::Matrix4x4    mkViewShadowVsm(const Tempest::Vec3& cameraPos, const Tempest::Vec3& ldir) const;
 
-    void                  followCamera(Tempest::Vec3& pos,  Tempest::Vec3 dest, float dtF);
-    void                  followPos   (Tempest::Vec3& pos,  Tempest::Vec3 dest, float dtF);
-    void                  followSpin  (Tempest::Vec3& spin, Tempest::Vec3 dest, float dtF);
+    Tempest::Vec3         followTarget(Tempest::Vec3 pos,  Tempest::Vec3 dest, float dtF);
+    Tempest::Vec3         followTrans (Tempest::Vec3 pos,  Tempest::Vec3 dest, float dtF, float velo);
+    Tempest::Vec3         followRot   (Tempest::Vec3 spin, Tempest::Vec3 dest, float dtF, float velo);
+
     void                  followAng   (Tempest::Vec3& spin, Tempest::Vec3 dest, float dtF);
     static void           followAng   (float& ang, float dest, float speed, float dtF);
 

@@ -931,7 +931,7 @@ void MainWindow::tickCamera(uint64_t dt) {
                              ws==WeaponState::W2H);
   auto       pos          = pl!=nullptr ? pl->cameraBone(camera.isFirstPerson()) : Vec3();
 
-  if(!camera.isCutscene()) {
+  if(!camera.isCutscene() && !camera.isFree()) {
     const bool fs = SystemApi::isFullscreen(hwnd());
     if(!fs && mouseP[Event::ButtonLeft]) {
       camera.setSpin(camera.destSpin());
@@ -949,7 +949,7 @@ void MainWindow::tickCamera(uint64_t dt) {
       camera.setDestSpin(spin);
       camera.setDestTarget(pos);
       }
-    else if(pl!=nullptr) {
+    else if(pl!=nullptr && !camera.isFree()) {
       auto spin = camera.destSpin();
       if(pl->interactive()==nullptr && !pl->isDown())
         spin.y = pl->rotation();
