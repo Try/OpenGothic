@@ -723,10 +723,11 @@ void Camera::tick(uint64_t dt) {
   switch (camMarvinMod) {
     case M_Normal: {
       if(isCutscene()) {
-        src.target = dst.target;
-        src.spin   = dst.spin;
-        origin     = src.target;
-        angles     = src.spin;
+        src.target = origin;
+        dst.target = origin;
+
+        angles   = dst.spin;
+        src.spin = dst.spin;
         }
       else if(fpEnable && camMod!=Dialog) {
         tickFirstPerson(dtF);
