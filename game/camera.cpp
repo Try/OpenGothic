@@ -1,5 +1,6 @@
 #include "camera.h"
 
+#include <Tempest/Application>
 #include <Tempest/Log>
 
 #include "world/objects/npc.h"
@@ -641,6 +642,16 @@ Vec3 Camera::followTarget(Vec3 pos, Vec3 dest, float dtF) {
 Tempest::Vec3 Camera::followTrans(Vec3 pos, Tempest::Vec3 dest, float dtF, float velo) {
   if(dtF<0)
     return dest;
+
+  /*
+  static uint64_t time = 0;
+  if((dest-pos).length()<1 || velo==0) {
+    auto tx = Tempest::Application::tickCount();
+    if(velo>0)
+      Log::d("time = ", tx-time);
+    time = tx;
+    }
+  */
   static float k = 0.25f;
   return pos + (dest-pos)*std::min(1.f, k*velo*dtF);
   }
@@ -650,7 +661,6 @@ Tempest::Vec3 Camera::followRot(Vec3 spin, Tempest::Vec3 dest, float dtF, float 
     return dest;
 
 #if 1
-  // static float gvelo = 10.f;
   const zenkit::Quat sx = fromAngles(spin);
   const zenkit::Quat dx = fromAngles(dest);
 
