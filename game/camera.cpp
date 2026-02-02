@@ -104,20 +104,20 @@ void Camera::reset(const Npc* pl) {
   }
 
 void Camera::save(Serialize &s) {
-  s.write(state.range, state.spin, state.target, inter.target);
-  s.write(origin,angles);
-  s.write(inter.rotOffset);
-
-  // s.write(state.range);
+  s.write(state.range, state.spin, state.target);
+  s.write(inter.target, inter.rotOffset);
+  s.write(origin,angles,veloTrans);
+  s.write(userRange);
   }
 
 void Camera::load(Serialize &s, Npc* pl) {
   reset(pl);
   if(s.version()<54)
     return;
-  s.read(state.range, state.spin, state.target, inter.target);
-  s.read(origin,angles);
-  s.read(inter.rotOffset);
+  s.read(state.range, state.spin, state.target);
+  s.read(inter.target, inter.rotOffset);
+  s.read(origin,angles,veloTrans);
+  s.read(userRange);
   }
 
 void Camera::changeZoom(int delta) {
@@ -187,17 +187,14 @@ void Camera::setMode(const Camera::Mode m) {
     return m==Normal || m==Inventory || m==Melee || m==Ranged || m==Magic;
     };
 
-  const auto prev  = camMod;
-  camMod = m;
-
-  //const bool reset = true; //(m==Inventory || camMod==Inventory || camMod==Dialog || camMod==Dive || m==Fall || camMod==Fall);
-  const bool reset = !(isRegular(prev) && isRegular(m));
-
-  if(prev==Mode::Cutscene) {
+  const bool reset = !(isRegular(camMod) && isRegular(m));
+  if(camMod==Mode::Cutscene) {
     state.spin   = angles;
     state.target = origin;
     inter.target = origin;
     }
+
+  camMod = m;
 
   if(camMarvinMod==M_Free || camMarvinMod==M_Freeze)
     return;
@@ -206,8 +203,8 @@ void Camera::setMode(const Camera::Mode m) {
 
   if(reset) {
     state.range = def.best_range;
+    userRange   = (def.best_range - def.min_range)/(def.max_range - def.min_range);
     state.spin  = Vec3(0);
-    //userRange   = (def.best_range - def.min_range)/(def.max_range - def.min_range);
     }
 
   if(auto pl = Gothic::inst().player()) {
@@ -310,7 +307,7 @@ void Camera::setPosition(const Tempest::Vec3& pos) {
   }
 
 void Camera::setDialogDistance(float d) {
-  dlgDist = d;
+  dlgRange = d;
   }
 
 void Camera::onRotateMouse(const PointF& dpos) {
@@ -805,7 +802,7 @@ void Camera::tickThirdPerson(float dtF) {
   auto  rotOffsetDef = Vec3(def.rot_offset_x,
                             def.rot_offset_y,
                             def.rot_offset_z);
-  auto  range        = (camMod==Dialog) ? dlgDist : state.range*100.f;
+  auto  range        = (camMod==Dialog) ? dlgRange : state.range*100.f;
 
   if(camMod==Dialog) {
     // TODO: DialogCams.zen

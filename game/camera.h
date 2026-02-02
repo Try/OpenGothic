@@ -132,18 +132,18 @@ class Camera final {
       Tempest::Vec3       rotOffset = {};
       };
 
-    Tempest::Vec3         origin    = {};
-    Tempest::Vec3         angles    = {};
-
     State                 state;
     Interpolated          inter;
     Pin                   pin;
 
-    Tempest::Vec3         veloTrans  = {};
+    Tempest::Vec3         origin    = {};
+    Tempest::Vec3         angles    = {};
+    Tempest::Vec3         veloTrans = {};
+    float                 userRange  = 0;
+
     float                 targetVelo = 0;
 
-    float                 dlgDist    = 0;
-    float                 userRange  = 0;
+    float                 dlgRange   = 0;
 
     Tempest::Matrix4x4    proj;
     uint32_t              vpWidth=0;
