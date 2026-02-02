@@ -139,12 +139,11 @@ class Camera final {
     Interpolated          inter;
     Pin                   pin;
 
-    float                 veloTrans  = 0;
-    Tempest::Vec3         veloTrans3 = {};
+    Tempest::Vec3         veloTrans  = {};
+    float                 targetVelo = 0;
 
     float                 dlgDist    = 0;
     float                 userRange  = 0;
-    float                 targetVelo = 0;
 
     Tempest::Matrix4x4    proj;
     uint32_t              vpWidth=0;

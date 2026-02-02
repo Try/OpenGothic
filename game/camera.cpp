@@ -607,6 +607,22 @@ Vec3 Camera::followTarget(Vec3 pos, Vec3 dest, float dtF) {
 
   // no idea how it trully meant to work in vanilla game
   if(inertiaTarget) {
+    static float mul11 = 8.f;
+    static float mul12 = 2.f;
+
+    veloTrans = veloTrans+(dp-veloTrans)*std::min(1.f, mul11*dtF);
+    pos += veloTrans*std::min(1.f, mul12*dtF);
+    return pos;
+    } else {
+    static float mul21 = 3.f;
+
+    veloTrans = dp;
+    pos += veloTrans*std::min(1.f, mul21*dtF);
+    return pos;
+    }
+
+  /*
+  if(inertiaTarget) {
     static float mul  = 2.1f;
     static float mul1 = 10.f;
 
@@ -623,6 +639,7 @@ Vec3 Camera::followTarget(Vec3 pos, Vec3 dest, float dtF) {
     float k  = tr/len;
     pos += dp*k;
     }
+  */
 
   /*
     {
@@ -738,6 +755,11 @@ void Camera::tick(uint64_t dt) {
       break;
       }
     }
+
+  {
+    //NOTE: in vanilla output of velocity is garbage in general, but zero for static camera
+    targetVelo = (origin - prev).length()/dtF;
+  }
 
   auto world = Gothic::inst().world();
   if(world!=nullptr) {
