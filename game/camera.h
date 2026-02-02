@@ -62,7 +62,7 @@ class Camera final {
     void moveLeft(uint64_t dt);
     void moveRight(uint64_t dt);
 
-    void setMode(Mode m);
+    void setMode(const Mode m);
     void setMarvinMode(MarvinMode m);
     bool isMarvin() const;
     bool isFree() const;
@@ -90,6 +90,8 @@ class Camera final {
 
     void               setSpin(const Tempest::PointF& p);
     void               setTarget(const Tempest::Vec3& pos);
+
+    void               setAngles(const Tempest::PointF& pos);
     void               setPosition(const Tempest::Vec3& pos);
     void               setDialogDistance(float d);
 
@@ -172,8 +174,6 @@ class Camera final {
 
     Tempest::Vec3         calcLookAtAngles(const Tempest::Vec3& origin, const Tempest::Vec3& target,
                                            const Tempest::Vec3& rotOffset, const Tempest::Vec3& defSpin) const;
-
-    void                  resetDst();
 
     void                  implMove(Tempest::KeyEvent::KeyType t, uint64_t dt);
 

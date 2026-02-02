@@ -178,25 +178,41 @@ void Camera::moveRight(uint64_t dt) {
   implMove(KeyEvent::K_D,dt);
   }
 
-void Camera::setMode(Camera::Mode m) {
+void Camera::setMode(const Camera::Mode m) {
   if(camMod==m)
     return;
 
-  const bool reset = true; //(m==Inventory || camMod==Inventory || camMod==Dialog || camMod==Dive || m==Fall || camMod==Fall);
+  auto isRegular = [](const Camera::Mode m){
+    return m==Normal || m==Inventory || m==Melee || m==Ranged || m==Magic;
+    };
+
+  const auto prev  = camMod;
   camMod = m;
 
-  if(camMarvinMod==M_Freeze)
+  //const bool reset = true; //(m==Inventory || camMod==Inventory || camMod==Dialog || camMod==Dive || m==Fall || camMod==Fall);
+  const bool reset = !(isRegular(prev) && isRegular(m));
+
+  if(prev==Mode::Cutscene) {
+    state.spin   = angles;
+    state.target = origin;
+    inter.target = origin;
+    }
+
+  if(camMarvinMod==M_Free || camMarvinMod==M_Freeze)
     return;
 
+  const auto& def = cameraDef();
+
   if(reset) {
-    resetDst();
+    state.range = def.best_range;
+    state.spin  = Vec3(0);
+    //userRange   = (def.best_range - def.min_range)/(def.max_range - def.min_range);
     }
 
   if(auto pl = Gothic::inst().player()) {
     state.spin = Vec3(0, pl->rotation(), 0);
     }
 
-  const auto& def = cameraDef();
   auto  rotBest   = Vec3(def.best_elevation,
                          def.best_azimuth,
                          def.best_rot_z);
@@ -270,7 +286,6 @@ void Camera::setLookBack(bool lb) {
   if(lbEnable==lb)
     return;
   lbEnable = lb;
-  resetDst();
   }
 
 void Camera::toggleDebug() {
@@ -283,6 +298,18 @@ void Camera::setSpin(const PointF &p) {
 
 void Camera::setTarget(const Tempest::Vec3& pos) {
   state.target = pos;
+  }
+
+void Camera::setAngles(const Tempest::PointF& p) {
+  angles = /*angleMod*/(Vec3(p.x,p.y,0));
+  }
+
+void Camera::setPosition(const Tempest::Vec3& pos) {
+  origin = pos;
+  }
+
+void Camera::setDialogDistance(float d) {
+  dlgDist = d;
   }
 
 void Camera::onRotateMouse(const PointF& dpos) {
@@ -565,14 +592,6 @@ void Camera::implMove(Tempest::Event::KeyType key, uint64_t dt) {
     state.spin.y -= dRot;
   }
 
-void Camera::setPosition(const Tempest::Vec3& pos) {
-  origin = pos;
-  }
-
-void Camera::setDialogDistance(float d) {
-  dlgDist = d;
-  }
-
 Vec3 Camera::followTarget(Vec3 pos, Vec3 dest, float dtF) {
   auto dp  = (dest-pos);
   auto len = dp.length();
@@ -663,6 +682,10 @@ void Camera::tick(uint64_t dt) {
   if(Gothic::inst().isPause() || (camMarvinMod==M_Freeze && camMod!=Dialog))
     return;
 
+  if(isCutscene()) {
+    return; // handle pass thru water ?
+    }
+
   const float dtF = float(dt)/1000.f;
 
   {
@@ -678,10 +701,7 @@ void Camera::tick(uint64_t dt) {
 
   switch (camMarvinMod) {
     case M_Normal: {
-      if(isCutscene()) {
-        // nop
-        }
-      else if(fpEnable && camMod!=Dialog) {
+      if(fpEnable && camMod!=Dialog) {
         tickFirstPerson(dtF);
         }
       else {
@@ -899,17 +919,6 @@ Vec3 Camera::clampRotation(Tempest::Vec3 spin) {
   spin.x = std::clamp(spin.x, minElev, maxElev);
   spin.y = std::clamp(spin.y, minAzim, maxAzim);
   return (spin + plSpin);
-  }
-
-void Camera::resetDst() {
-  if(isMarvin())
-    return;
-  const auto& def = cameraDef();
-
-  state.range = def.best_range;
-  state.spin  = Vec3(0);
-
-  //userRange   = (def.best_range - def.min_range)/(def.max_range - def.min_range);
   }
 
 Matrix4x4 Camera::mkView(const Vec3& pos, const Vec3& spin) const {
