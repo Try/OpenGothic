@@ -559,8 +559,6 @@ bool PlayerControl::tickMove(uint64_t dt) {
   if(pl==nullptr)
     return true;
 
-  // static const float speedRotX = 750.f;
-  // rotMouse = std::min(std::abs(rotMouse), speedRotX*dtF) * (rotMouse>=0 ? 1 : -1);
   implMove(dt);
 
   float runAngle = pl->runAngle();
@@ -660,8 +658,7 @@ void PlayerControl::implMove(uint64_t dt) {
     return;
     }
 
-  //float rotCam   = 0;
-  int   rotation = 0;
+  int rotation = 0;
   if(allowRot) {
     if(this->wantsToTurnLeft()) {
       rot += rspeed;
@@ -677,8 +674,7 @@ void PlayerControl::implMove(uint64_t dt) {
       if(rotMouse>0)
         rotation = -1; else
         rotation = 1;
-      rot    +=rotMouse;
-      //rotCam += rotMouse;
+      rot += rotMouse;
       rotMouse  = 0;
       }
     rotY+=rotMouseY;
