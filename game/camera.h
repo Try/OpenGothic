@@ -87,6 +87,7 @@ class Camera final {
 
     Tempest::PointF    spin() const;
     Tempest::Vec3      destTarget() const;
+    float              azimuth() const;
 
     void               setSpin(const Tempest::PointF& p);
     void               setTarget(const Tempest::Vec3& pos);

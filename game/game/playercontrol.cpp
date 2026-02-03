@@ -1032,29 +1032,17 @@ void PlayerControl::quitPicklock(Npc& pl) {
 
 void PlayerControl::assignRunAngle(Npc& pl, float rotation, uint64_t dt) {
   float dtF    = (float(dt)/1000.f);
-  float angle  = pl.rotation();
-  float dangle = (rotation-angle)/dtF;
-  float sgn    = (dangle>0 ? 1 : -1);
-  auto& wrld   = pl.world();
-
-  if(std::fabs(dangle)<0.1f || pl.walkMode()!=WalkBit::WM_Run) {
-    if(runAngleSmooth<wrld.tickCount())
-      runAngleDest = 0;
-    return;
-    }
-
-  const float maxV = 12.5f;
-  dangle = std::pow(std::abs(dangle)/maxV,2.f)*maxV*sgn;
+  auto  camera = Gothic::inst().camera();
 
   float dest = 0;
-  if(angle<rotation)
-    dest =  std::min( dangle,maxV);
-  if(angle>rotation)
-    dest = -std::min(-dangle,maxV);
+  if(camera!=nullptr && pl.walkMode()==WalkBit::WM_Run && pl.bodyState()==BS_RUN) {
+    const float az   = camera->azimuth();
+    const float maxV = 14.5f;
+    dest = std::min(std::abs(az), maxV)*(az>=0 ? 1 : -1);
+    }
 
-  float a = std::clamp(dtF*1.5f, 0.f, 1.f);
-  runAngleDest   = runAngleDest*(1.f-a)+dest*a;
-  runAngleSmooth = wrld.tickCount() + 200;
+  float a = std::min(dtF*5.f, 1.f);
+  runAngleDest = runAngleDest*(1.f-a)+dest*a;
   }
 
 void PlayerControl::setAnimRotate(Npc& pl, float rotation, int anim, bool force, uint64_t dt) {

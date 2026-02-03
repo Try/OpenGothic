@@ -1007,6 +1007,10 @@ void Camera::debugDraw(DbgPainter& p) {
   p.drawText(8,y,buf); y += fnt.pixelSize();
   }
 
+float Camera::azimuth() const {
+  return angleMod(state.spin.y-angles.y);
+  }
+
 PointF Camera::spin() const {
   return PointF(state.spin.x,state.spin.y);
   }
