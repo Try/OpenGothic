@@ -561,8 +561,14 @@ void MainWindow::paintFocus(Painter& p, const Focus& focus, const Matrix4x4& vp)
   if(pl==nullptr)
     return;
 
+  auto pw  = 1.f;
   auto pos = focus.displayPosition();
-  vp.project(pos.x,pos.y,pos.z);
+  vp.project(pos.x,pos.y,pos.z,pw);
+
+  if(pw<=0.f)
+    return;
+
+  pos /= pw;
 
   int   ix  = int((0.5f*pos.x+0.5f)*float(w()));
   int   iy  = int((0.5f*pos.y+0.5f)*float(h()));
