@@ -75,10 +75,7 @@ static Vec3 toAngles(zenkit::Quat q) {
   return Vec3(roll,yaw,pitch)*float(180.f/M_PI);
   }
 
-float       Camera::maxDist          = 150;
-float       Camera::baseSpeeed       = 200;
-float       Camera::offsetAngleMul   = 0.1f;
-const float Camera::minLength        = 0.0001f;
+const float Camera::minLength = 0.0001f;
 
 Camera::Camera() {
   }
@@ -617,26 +614,6 @@ Vec3 Camera::followTarget(Vec3 pos, Vec3 dest, float dtF) {
     pos += veloTrans*std::min(1.f, mul21*dtF);
     return pos;
     }
-
-  /*
-  if(inertiaTarget) {
-    static float mul  = 2.1f;
-    static float mul1 = 10.f;
-
-    static float velo = 40.f;
-    targetVelo = targetVelo + (len-targetVelo)*std::min(1.f,dtF*mul1);
-    veloTrans  = std::min(velo*100, targetVelo*mul);
-
-    float tr = std::min(veloTrans*dtF,len);
-    float k  = tr/len;
-    pos += dp*k;
-    } else {
-    static float mul2 = 3.f;
-    float tr = std::min(mul2*len*dtF, len);
-    float k  = tr/len;
-    pos += dp*k;
-    }
-  */
 
   /*
     {

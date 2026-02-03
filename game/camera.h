@@ -162,9 +162,6 @@ class Camera final {
 
     mutable int           raysCasted = 0;
 
-    static float          maxDist;
-    static float          baseSpeeed;
-    static float          offsetAngleMul;
     static const float    minLength;
 
     void                  tickFirstPerson(float dtF);
