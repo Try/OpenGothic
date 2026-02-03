@@ -339,12 +339,6 @@ void MainWindow::tickMouse(uint64_t dt) {
     return;
     }
 
-  static bool once = false;
-  if(!once) {
-    once = true;
-    Log::d("mouse sensitivity = ", MouseUtil::mouseSysSpeed());
-    }
-
   if(dMouse==Point())
     return;
 
@@ -892,7 +886,6 @@ uint64_t MainWindow::tick() {
   else if(runtimeMode==R_Suspended) {
     auto camera = Gothic::inst().camera();
     if(camera!=nullptr && camera->isFree()) {
-      //player.tickCameraMove(dt);
       tickMouse(dt);
       }
     update();

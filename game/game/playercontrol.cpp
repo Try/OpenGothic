@@ -248,7 +248,6 @@ bool PlayerControl::isPressed(KeyCodec::Action a) const {
   }
 
 void PlayerControl::onRotateMouse(float dAngleX, float dAngleY) {
-  // dAngleY = std::clamp(dAngleY, -100.f, 100.f);
   rotMouse  += dAngleX;
   rotMouseY += dAngleY;
   }
@@ -1047,7 +1046,7 @@ void PlayerControl::setAnimRotate(Npc& pl, float rotation, int anim, bool force,
   float dangle = (rotation-angle)/dtF;
   auto& wrld   = pl.world();
 
-  if(std::fabs(dangle)<30.f && !force) // 100 deg per second threshold
+  if(std::fabs(dangle)<30.f && !force) // 30 deg per second threshold
     anim = 0;
   if(anim!=0 && pl.isAttackAnim())
     anim = 0;
