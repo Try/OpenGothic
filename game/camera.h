@@ -30,6 +30,7 @@ class Camera final {
       Dive,
       Fall,
       Cutscene,
+      FirstPerson,
       };
 
     enum MarvinMode {

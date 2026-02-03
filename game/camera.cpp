@@ -196,6 +196,13 @@ void Camera::setMode(const Camera::Mode m) {
   if(camMarvinMod==M_Free || camMarvinMod==M_Freeze)
     return;
 
+  if(camMod==Camera::FirstPerson) {
+    if(auto pl = Gothic::inst().player()) {
+      state.spin = Vec3(0, pl->rotation(), 0);
+      }
+    return;
+    }
+
   const auto& def = cameraDef();
 
   if(reset) {
@@ -208,9 +215,9 @@ void Camera::setMode(const Camera::Mode m) {
     state.spin = Vec3(0, pl->rotation(), 0);
     }
 
-  auto  rotBest   = Vec3(def.best_elevation,
-                         def.best_azimuth,
-                         def.best_rot_z);
+  auto rotBest = Vec3(def.best_elevation,
+                      def.best_azimuth,
+                      def.best_rot_z);
   state.spin += rotBest;
   }
 
@@ -702,7 +709,7 @@ void Camera::tick(uint64_t dt) {
 
   switch (camMarvinMod) {
     case M_Normal: {
-      if(fpEnable && camMod!=Dialog) {
+      if(camMod==Camera::FirstPerson) {
         tickFirstPerson(dtF);
         }
       else {

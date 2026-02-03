@@ -967,10 +967,15 @@ void MainWindow::tickCamera(uint64_t dt) {
   }
 
 Camera::Mode MainWindow::solveCameraMode() const {
-  if(auto camera = Gothic::inst().camera()) {
-    if(camera->isFree())
-      return Camera::Normal;
-    }
+  const auto camera = Gothic::inst().camera();
+  if(camera!=nullptr && camera->isFree())
+    return Camera::Normal;
+
+  if(dialogs.isActive())
+    return Camera::Dialog;
+
+  if(camera!=nullptr && camera->isFirstPerson())
+    return Camera::FirstPerson;
 
   if(inventory.isOpen()==InventoryMenu::State::Equip ||
      inventory.isOpen()==InventoryMenu::State::Ransack)
@@ -980,9 +985,6 @@ Camera::Mode MainWindow::solveCameraMode() const {
     if(pl->interactive()!=nullptr)
       return Camera::Mobsi;
     }
-
-  if(dialogs.isActive())
-    return Camera::Dialog;
 
   if(auto pl = Gothic::inst().player()) {
     if(pl->isDead())
