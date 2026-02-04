@@ -55,7 +55,6 @@ class Renderer final {
     void prepareUniforms();
     void resetShadowmap();
     void resetSkyFog();
-    void resetGiData();
 
     void prepareSky       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview);
     void prepareSSAO      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview);
@@ -200,7 +199,6 @@ class Renderer final {
       Tempest::StorageImage     probesGBuffRayT;
       Tempest::StorageImage     probesLighting;
       Tempest::StorageImage     probesLightingPrev;
-      bool                      fisrtFrame = false;
       } gi;
 
     struct {

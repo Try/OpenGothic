@@ -233,17 +233,15 @@ void Renderer::toggleGi() {
     return;
 
   settings.giEnabled = !settings.giEnabled;
-  gi.fisrtFrame = true;
 
   device.waitIdle();
   if(auto wview  = Gothic::inst().worldView()) {
     wview->resetRendering();
     }
   if(settings.giEnabled) {
-    // need a projective shadow, for gi to
+    // need a projective shadow, for gi
     resetShadowmap();
     }
-  resetGiData();
   prepareUniforms();
   }
 
@@ -280,7 +278,6 @@ void Renderer::toggleRtsm() {
   }
 
 void Renderer::onWorldChanged() {
-  gi.fisrtFrame = true;
   sky.lutIsInitialized = false;
   shaders.waitCompiler();
 
@@ -959,27 +956,6 @@ void Renderer::drawRtsmDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const 
 #endif
   cmd.setPipeline(shaders.rtsmDbg);
   cmd.draw(nullptr, 0, 3);
-  }
-
-void Renderer::resetGiData() {
-  if(!settings.giEnabled)
-    return;
-  if(!gi.hashTable.isEmpty())
-    return;
-
-  auto& device = Resources::device();
-  const uint32_t maxProbes = gi.maxProbes;
-
-  gi.hashTable          = device.ssbo(nullptr, 2'097'152*sizeof(uint32_t)); // 8MB
-  gi.voteTable          = device.ssbo(nullptr, gi.hashTable.byteSize());
-  gi.probes             = device.ssbo(nullptr, maxProbes*32 + 64);        // probes and header
-  gi.freeList           = device.ssbo(nullptr, maxProbes*sizeof(uint32_t) + sizeof(int32_t));
-  gi.probesGBuffDiff    = device.image2d(TextureFormat::RGBA8, gi.atlasDim*16, gi.atlasDim*16); // 16x16 tile
-  gi.probesGBuffNorm    = device.image2d(TextureFormat::RGBA8, gi.atlasDim*16, gi.atlasDim*16);
-  gi.probesGBuffRayT    = device.image2d(TextureFormat::R16,   gi.atlasDim*16, gi.atlasDim*16);
-  gi.probesLighting     = device.image2d(TextureFormat::R11G11B10UF, gi.atlasDim*3, gi.atlasDim*2);
-  gi.probesLightingPrev = device.image2d(TextureFormat::R11G11B10UF, uint32_t(gi.probesLighting.w()), uint32_t(gi.probesLighting.h()));
-  gi.fisrtFrame         = true;
   }
 
 void Renderer::drawHiZ(Encoder<CommandBuffer>& cmd, WorldView& view) {
@@ -1909,35 +1885,45 @@ void Renderer::prepareGi(Encoder<CommandBuffer>& cmd, WorldView& wview) {
     return;
     }
 
-  const size_t maxHash = gi.hashTable.byteSize()/sizeof(uint32_t);
+  const bool fisrtFrame = gi.voteTable.isEmpty();
 
-  auto& scene = wview.sceneGlobals();
+  auto& hashTable          = usesSsbo(gi.hashTable, 2'097'152*sizeof(uint32_t)); // 8MB
+  auto& voteTable          = usesSsbo(gi.voteTable, gi.hashTable.byteSize());
+  auto& probes             = usesSsbo(gi.probes,    gi.maxProbes*32 + 64);       // probes and header
+  auto& freeList           = usesSsbo(gi.freeList,  gi.maxProbes*sizeof(uint32_t) + sizeof(int32_t));
+  auto& probesGBuffDiff    = usesImage2d(gi.probesGBuffDiff,    TextureFormat::RGBA8, gi.atlasDim*16, gi.atlasDim*16); // 16x16 tile
+  auto& probesGBuffNorm    = usesImage2d(gi.probesGBuffNorm,    TextureFormat::RGBA8, gi.atlasDim*16, gi.atlasDim*16);
+  auto& probesGBuffRayT    = usesImage2d(gi.probesGBuffRayT,    TextureFormat::R16,   gi.atlasDim*16, gi.atlasDim*16);
+  auto& probesLighting     = usesImage2d(gi.probesLighting,     TextureFormat::R11G11B10UF, gi.atlasDim*3, gi.atlasDim*2);
+  auto& probesLightingPrev = usesImage2d(gi.probesLightingPrev, TextureFormat::R11G11B10UF, uint32_t(gi.probesLighting.w()), uint32_t(gi.probesLighting.h()));
+
+  const auto&  scene   = wview.sceneGlobals();
+  const size_t maxHash = hashTable.byteSize()/sizeof(uint32_t);
 
   cmd.setFramebuffer({});
-  if(gi.fisrtFrame) {
+  if(fisrtFrame) {
     cmd.setDebugMarker("GI-Init");
-    cmd.setBinding(0, gi.voteTable);
-    cmd.setBinding(1, gi.hashTable);
-    cmd.setBinding(2, gi.probes);
-    cmd.setBinding(3, gi.freeList);
+    cmd.setBinding(0, voteTable);
+    cmd.setBinding(1, hashTable);
+    cmd.setBinding(2, probes);
+    cmd.setBinding(3, freeList);
     cmd.setPipeline(shaders.probeInit);
     cmd.dispatch(1);
     cmd.setPipeline(shaders.probeClearHash);
     cmd.dispatchThreads(maxHash);
 
-    cmd.setBinding(0, gi.probesLighting);
+    cmd.setBinding(0, probesLighting);
     cmd.setBinding(1, Resources::fallbackBlack());
     cmd.setPipeline(shaders.copyImg);
-    cmd.dispatchThreads(gi.probesLighting.size());
-    gi.fisrtFrame = false;
+    cmd.dispatchThreads(probesLighting.size());
     }
 
   static bool alloc = true;
   cmd.setDebugMarker("GI-Alloc");
-  cmd.setBinding(0, gi.voteTable);
-  cmd.setBinding(1, gi.hashTable);
-  cmd.setBinding(2, gi.probes);
-  cmd.setBinding(3, gi.freeList);
+  cmd.setBinding(0, voteTable);
+  cmd.setBinding(1, hashTable);
+  cmd.setBinding(2, probes);
+  cmd.setBinding(3, freeList);
   cmd.setPipeline(shaders.probeClear);
   cmd.dispatchThreads(maxHash);
 
@@ -1946,17 +1932,17 @@ void Renderer::prepareGi(Encoder<CommandBuffer>& cmd, WorldView& wview) {
     cmd.setBinding(1, gbufDiffuse, Sampler::nearest());
     cmd.setBinding(2, gbufNormal,  Sampler::nearest());
     cmd.setBinding(3, zbuffer,     Sampler::nearest());
-    cmd.setBinding(4, gi.voteTable);
-    cmd.setBinding(5, gi.hashTable);
-    cmd.setBinding(6, gi.probes);
-    cmd.setBinding(7, gi.freeList);
+    cmd.setBinding(4, voteTable);
+    cmd.setBinding(5, hashTable);
+    cmd.setBinding(6, probes);
+    cmd.setBinding(7, freeList);
     cmd.setPipeline(shaders.probeVote);
     cmd.dispatchThreads(sceneDepth.size());
 
-    cmd.setBinding(0, gi.voteTable);
-    cmd.setBinding(1, gi.hashTable);
-    cmd.setBinding(2, gi.probes);
-    cmd.setBinding(3, gi.freeList);
+    cmd.setBinding(0, voteTable);
+    cmd.setBinding(1, hashTable);
+    cmd.setBinding(2, probes);
+    cmd.setBinding(3, freeList);
     cmd.setPipeline(shaders.probePrune);
     cmd.dispatchThreads(gi.maxProbes);
 
@@ -1964,21 +1950,21 @@ void Renderer::prepareGi(Encoder<CommandBuffer>& cmd, WorldView& wview) {
     cmd.setBinding(1, gbufDiffuse, Sampler::nearest());
     cmd.setBinding(2, gbufNormal,  Sampler::nearest());
     cmd.setBinding(3, zbuffer,     Sampler::nearest());
-    cmd.setBinding(4, gi.voteTable);
-    cmd.setBinding(5, gi.hashTable);
-    cmd.setBinding(6, gi.probes);
-    cmd.setBinding(7, gi.freeList);
+    cmd.setBinding(4, voteTable);
+    cmd.setBinding(5, hashTable);
+    cmd.setBinding(6, probes);
+    cmd.setBinding(7, freeList);
     cmd.setPipeline(shaders.probeAlocation);
     cmd.dispatchThreads(sceneDepth.size());
     }
 
   cmd.setDebugMarker("GI-Trace");
   cmd.setBinding(0, wview.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-  cmd.setBinding(1, gi.probesGBuffDiff);
-  cmd.setBinding(2, gi.probesGBuffNorm);
-  cmd.setBinding(3, gi.probesGBuffRayT);
-  cmd.setBinding(4, gi.hashTable);
-  cmd.setBinding(5, gi.probes);
+  cmd.setBinding(1, probesGBuffDiff);
+  cmd.setBinding(2, probesGBuffNorm);
+  cmd.setBinding(3, probesGBuffRayT);
+  cmd.setBinding(4, hashTable);
+  cmd.setBinding(5, probes);
   cmd.setBinding(6, scene.rtScene.tlas);
   cmd.setBinding(7, Sampler::bilinear());
   cmd.setBinding(8, scene.rtScene.tex);
@@ -1989,31 +1975,31 @@ void Renderer::prepareGi(Encoder<CommandBuffer>& cmd, WorldView& wview) {
   cmd.dispatch(1024); // TODO: dispath indirect?
 
   cmd.setDebugMarker("GI-HashMap");
-  cmd.setBinding(0, gi.voteTable);
-  cmd.setBinding(1, gi.hashTable);
-  cmd.setBinding(2, gi.probes);
-  cmd.setBinding(3, gi.freeList);
+  cmd.setBinding(0, voteTable);
+  cmd.setBinding(1, hashTable);
+  cmd.setBinding(2, probes);
+  cmd.setBinding(3, freeList);
   cmd.setPipeline(shaders.probeClearHash);
   cmd.dispatchThreads(maxHash);
   cmd.setPipeline(shaders.probeMakeHash);
   cmd.dispatchThreads(gi.maxProbes);
 
   cmd.setDebugMarker("GI-Lighting");
-  cmd.setBinding(0, gi.probesLightingPrev);
-  cmd.setBinding(1, gi.probesLighting);
+  cmd.setBinding(0, probesLightingPrev);
+  cmd.setBinding(1, probesLighting);
   cmd.setPipeline(shaders.copyImg);
-  cmd.dispatchThreads(gi.probesLighting.size());
+  cmd.dispatchThreads(probesLighting.size());
 
   cmd.setBinding(0, wview.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-  cmd.setBinding(1, gi.probesLighting);
-  cmd.setBinding(2, gi.probesGBuffDiff, Sampler::nearest());
-  cmd.setBinding(3, gi.probesGBuffNorm, Sampler::nearest());
-  cmd.setBinding(4, gi.probesGBuffRayT, Sampler::nearest());
-  cmd.setBinding(5, sky.viewCldLut, Sampler::bilinear());
-  cmd.setBinding(6, shadowMap[1], Sampler::bilinear());
-  cmd.setBinding(7, gi.probesLightingPrev, Sampler::nearest());
-  cmd.setBinding(8, gi.hashTable);
-  cmd.setBinding(9, gi.probes);
+  cmd.setBinding(1, probesLighting);
+  cmd.setBinding(2, probesGBuffDiff, Sampler::nearest());
+  cmd.setBinding(3, probesGBuffNorm, Sampler::nearest());
+  cmd.setBinding(4, probesGBuffRayT, Sampler::nearest());
+  cmd.setBinding(5, sky.viewCldLut,  Sampler::bilinear());
+  cmd.setBinding(6, shadowMap[1],    Sampler::bilinear());
+  cmd.setBinding(7, probesLightingPrev, Sampler::nearest());
+  cmd.setBinding(8, hashTable);
+  cmd.setBinding(9, probes);
   cmd.setPipeline(shaders.probeLighting);
   cmd.dispatch(1024);
   }
