@@ -326,7 +326,7 @@ void MainWindow::processMouse(MouseEvent& event, bool enable) {
     }
   }
 
-void MainWindow::tickMouse() {
+void MainWindow::tickMouse(uint64_t dt) {
   auto camera = Gothic::inst().camera();
   if(dialogs.hasContent() || Gothic::inst().isPause() || camera==nullptr || camera->isCutscene()) {
     dMouse = Point();
@@ -339,21 +339,31 @@ void MainWindow::tickMouse() {
     return;
     }
 
+  if(dMouse==Point())
+    return;
+
   const bool  camLookaroundInverse = Gothic::inst().settingsGetI("GAME","camLookaroundInverse");
   const float mouseSensitivity     = Gothic::inst().settingsGetF("GAME","mouseSensitivity")/MouseUtil::mouseSysSpeed();
   PointF dpScaled = PointF(float(dMouse.x)*mouseSensitivity,float(dMouse.y)*mouseSensitivity);
   dpScaled.x/=float(w());
   dpScaled.y/=float(h());
-
-  dpScaled*=1000.f;
-  dpScaled.y /= 7.f;
   if(camLookaroundInverse)
     dpScaled.y *= -1.f;
 
+  static float mul = 270.f;
+  dpScaled *= mul;
+
+  static float psMax = 720.f;
+  const float  dtF   = float(dt)/1000.f;
+  dpScaled.x = std::clamp(dpScaled.x, -(psMax*dtF), psMax*dtF);
+  dpScaled.y = std::clamp(dpScaled.y, -(psMax*dtF), psMax*dtF);
+
+  // Log::d("mouse dMouse   = ", dMouse.x,   ", ", dMouse.y);
+  // Log::d("mouse dpScaled = ", dpScaled.x, ", ", dpScaled.y);
+
   camera->onRotateMouse(PointF(dpScaled.y,-dpScaled.x));
   if(!inventory.isActive()) {
-    player.onRotateMouse  (-dpScaled.x);
-    player.onRotateMouseDy(-dpScaled.y);
+    player.onRotateMouse(-dpScaled.x, -dpScaled.y);
     }
 
   dMouse = Point();
@@ -551,8 +561,14 @@ void MainWindow::paintFocus(Painter& p, const Focus& focus, const Matrix4x4& vp)
   if(pl==nullptr)
     return;
 
+  auto pw  = 1.f;
   auto pos = focus.displayPosition();
-  vp.project(pos.x,pos.y,pos.z);
+  vp.project(pos.x,pos.y,pos.z,pw);
+
+  if(pw<=0.f)
+    return;
+
+  pos /= pw;
 
   int   ix  = int((0.5f*pos.x+0.5f)*float(w()));
   int   iy  = int((0.5f*pos.y+0.5f)*float(h()));
@@ -876,11 +892,10 @@ uint64_t MainWindow::tick() {
   else if(runtimeMode==R_Suspended) {
     auto camera = Gothic::inst().camera();
     if(camera!=nullptr && camera->isFree()) {
-      player.tickCameraMove(dt);
-      tickMouse();
+      tickMouse(dt);
       }
     update();
-    return dt;
+    return 0;
     }
 
   dialogs.tick(dt);
@@ -892,7 +907,7 @@ uint64_t MainWindow::tick() {
     ;//clearInput();
   if(document.isActive())
     clearInput();
-  tickMouse();
+  tickMouse(dt);
   player.tickMove(dt);
   update();
   return dt;
@@ -915,32 +930,32 @@ void MainWindow::tickCamera(uint64_t dt) {
                              ws==WeaponState::W2H);
   auto       pos          = pl!=nullptr ? pl->cameraBone(camera.isFirstPerson()) : Vec3();
 
-  if(!camera.isCutscene()) {
+  if(!camera.isCutscene() && !camera.isFree()) {
     const bool fs = SystemApi::isFullscreen(hwnd());
     if(!fs && mouseP[Event::ButtonLeft]) {
-      camera.setSpin(camera.destSpin());
-      camera.setDestPosition(pos);
+      camera.setSpin(camera.spin());
+      camera.setTarget(pos);
       }
     else if(dialogs.isActive() && !dialogs.isMobsiDialog()) {
       dialogs.dialogCamera(camera);
       }
     else if(inventory.isActive()) {
-      camera.setDestPosition(pos);
+      camera.setTarget(pos);
       }
     else if(player.focus().npc!=nullptr && meleeFocus && pl!=nullptr) {
-      auto spin = camera.destSpin();
+      auto spin = camera.spin();
       spin.y = pl->rotation();
-      camera.setDestSpin(spin);
-      camera.setDestPosition(pos);
+      camera.setSpin(spin);
+      camera.setTarget(pos);
       }
-    else if(pl!=nullptr) {
-      auto spin = camera.destSpin();
+    else if(pl!=nullptr && !camera.isFree()) {
+      auto spin = camera.spin();
       if(pl->interactive()==nullptr && !pl->isDown())
         spin.y = pl->rotation();
       if(pl->isDive() && !camera.isMarvin())
         spin.x = -pl->rotationY();
-      camera.setDestSpin(spin);
-      camera.setDestPosition(pos);
+      camera.setSpin(spin);
+      camera.setTarget(pos);
       }
     }
 
@@ -952,10 +967,15 @@ void MainWindow::tickCamera(uint64_t dt) {
   }
 
 Camera::Mode MainWindow::solveCameraMode() const {
-  if(auto camera = Gothic::inst().camera()) {
-    if(camera->isFree())
-      return Camera::Normal;
-    }
+  const auto camera = Gothic::inst().camera();
+  if(camera!=nullptr && camera->isFree())
+    return Camera::Normal;
+
+  if(dialogs.isActive())
+    return Camera::Dialog;
+
+  if(camera!=nullptr && camera->isFirstPerson())
+    return Camera::FirstPerson;
 
   if(inventory.isOpen()==InventoryMenu::State::Equip ||
      inventory.isOpen()==InventoryMenu::State::Ransack)
@@ -965,9 +985,6 @@ Camera::Mode MainWindow::solveCameraMode() const {
     if(pl->interactive()!=nullptr)
       return Camera::Mobsi;
     }
-
-  if(dialogs.isActive())
-    return Camera::Dialog;
 
   if(auto pl = Gothic::inst().player()) {
     if(pl->isDead())

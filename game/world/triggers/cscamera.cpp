@@ -166,7 +166,7 @@ void CsCamera::onTrigger(const TriggerEvent& evt) {
     auto cPos = position();
     camera.setMode(Camera::Mode::Cutscene);
     camera.setPosition(cPos);
-    camera.setSpin(spin(cPos));
+    camera.setAngles(spin(cPos));
     }
   }
 
@@ -207,7 +207,7 @@ void CsCamera::tick(uint64_t /*dt*/) {
   if(camera.isCutscene()) {
     auto cPos = position();
     camera.setPosition(cPos);
-    camera.setSpin(spin(cPos));
+    camera.setAngles(spin(cPos));
     }
   }
 
@@ -224,7 +224,7 @@ Vec3 CsCamera::position() {
 
 PointF CsCamera::spin(Tempest::Vec3& d) {
   if(targetSpline.size()==0)
-    d = d - Gothic::inst().camera()->destPosition();
+    d = d - Gothic::inst().camera()->originLwc();
   else if(targetSpline.size()==1)
     d = targetSpline.keyframe[0].c[3] - d;
   else if(targetSpline.size()>1) {
@@ -238,6 +238,5 @@ PointF CsCamera::spin(Tempest::Vec3& d) {
   if(d.x!=0.f || d.z!=0.f)
     spinY = 90 + k * std::atan2(d.z,d.x);
 
-  auto& def = Gothic::cameraDef().stdCam();
-  return {-spinX + def.rot_offset_x, spinY + def.rot_offset_y};
+  return {-spinX, spinY};
   }

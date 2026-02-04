@@ -30,6 +30,7 @@ class Camera final {
       Dive,
       Fall,
       Cutscene,
+      FirstPerson,
       };
 
     enum MarvinMode {
@@ -49,7 +50,7 @@ class Camera final {
     void reset(const Npc* pl);
 
     void save(Serialize &s);
-    void load(Serialize &s,Npc* pl);
+    void load(Serialize &s, Npc* pl);
 
     void changeZoom(int delta);
     void setViewport(uint32_t w, uint32_t h);
@@ -62,7 +63,7 @@ class Camera final {
     void moveLeft(uint64_t dt);
     void moveRight(uint64_t dt);
 
-    void setMode(Mode m);
+    void setMode(const Mode m);
     void setMarvinMode(MarvinMode m);
     bool isMarvin() const;
     bool isFree() const;
@@ -85,17 +86,15 @@ class Camera final {
     void tick(uint64_t dt);
     void debugDraw(DbgPainter& p);
 
-    Tempest::PointF    spin()     const;
-    Tempest::PointF    destSpin() const;
-
-    Tempest::Vec3      destPosition() const;
+    Tempest::PointF    spin() const;
+    Tempest::Vec3      destTarget() const;
+    float              azimuth() const;
 
     void               setSpin(const Tempest::PointF& p);
-    void               setDestSpin(const Tempest::PointF& p);
+    void               setTarget(const Tempest::Vec3& pos);
 
+    void               setAngles(const Tempest::PointF& pos);
     void               setPosition(const Tempest::Vec3& pos);
-    void               setDestPosition(const Tempest::Vec3& pos);
-
     void               setDialogDistance(float d);
 
     void               onRotateMouse(const Tempest::PointF& dpos);
@@ -119,29 +118,34 @@ class Camera final {
     float              zFar()  const;
 
   private:
+    struct Pin {
+      Tempest::Vec3       origin = {};
+      Tempest::Vec3       spin   = {};
+      };
+
     struct State {
       float               range  = 3.f;
       Tempest::Vec3       spin   = {};
       Tempest::Vec3       target = {};
       };
 
-    struct Pin {
-      Tempest::Vec3       origin = {};
-      Tempest::Vec3       spin   = {};
+    struct Interpolated {
+      Tempest::Vec3       target    = {};
+      Tempest::Vec3       rotOffset = {};
       };
 
-    Tempest::Vec3         cameraPos = {};
-    Tempest::Vec3         origin    = {};
-    Tempest::Vec3         rotOffset = {};
-    Tempest::Vec3         offsetAng = {};
-    State                 src, dst;
-
+    State                 state;
+    Interpolated          inter;
     Pin                   pin;
 
-    float                 dlgDist    = 0;
-    float                 userRange  = 0.13f;
+    Tempest::Vec3         origin    = {};
+    Tempest::Vec3         angles    = {};
+    Tempest::Vec3         veloTrans = {};
+    float                 userRange  = 0;
+
     float                 targetVelo = 0;
-    float                 veloTrans  = 0;
+
+    float                 dlgRange   = 0;
 
     Tempest::Matrix4x4    proj;
     uint32_t              vpWidth=0;
@@ -159,29 +163,30 @@ class Camera final {
 
     mutable int           raysCasted = 0;
 
-    static float          maxDist;
-    static float          baseSpeeed;
-    static float          offsetAngleMul;
     static const float    minLength;
 
-    void                  calcControlPoints(float dtF);
+    void                  tickFirstPerson(float dtF);
+    void                  tickThirdPerson(float dtF);
 
-    Tempest::Vec3         calcOffsetAngles(const Tempest::Vec3& srcOrigin, const Tempest::Vec3& target) const;
-    Tempest::Vec3         calcOffsetAngles(Tempest::Vec3 srcOrigin, Tempest::Vec3 dstOrigin, Tempest::Vec3 target) const;
-    Tempest::Vec3         calcCameraColision(const Tempest::Vec3& target, const Tempest::Vec3& origin, const Tempest::Vec3& rotSpin, float dist) const;
+    Tempest::Vec3         clampRotation(Tempest::Vec3 spin);
+    float                 calcCameraColision(const Tempest::Vec3& target, const Tempest::Vec3& dir, const Tempest::Vec3& rotSpin, float dist) const;
+    Tempest::Vec3         calcCameraColision(const Tempest::Vec3& from, const Tempest::Vec3& dir) const;
+
+    Tempest::Vec3         calcLookAtAngles(const Tempest::Vec3& origin, const Tempest::Vec3& target,
+                                           const Tempest::Vec3& rotOffset, const Tempest::Vec3& defSpin) const;
 
     void                  implMove(Tempest::KeyEvent::KeyType t, uint64_t dt);
+
     Tempest::Matrix4x4    mkView    (const Tempest::Vec3& pos, const Tempest::Vec3& spin) const;
     Tempest::Matrix4x4    mkRotation(const Tempest::Vec3& spin) const;
     Tempest::Matrix4x4    mkViewShadow(const Tempest::Vec3& cameraPos, float rotation,
                                        const Tempest::Matrix4x4& viewProj, const Tempest::Vec3& lightDir, size_t layer) const;
     Tempest::Matrix4x4    mkViewShadowVsm(const Tempest::Vec3& cameraPos, const Tempest::Vec3& ldir) const;
-    void                  resetDst();
 
-    void                  clampRotation(Tempest::Vec3& spin);
+    Tempest::Vec3         followTarget(Tempest::Vec3 pos,  Tempest::Vec3 dest, float dtF);
+    Tempest::Vec3         followTrans (Tempest::Vec3 pos,  Tempest::Vec3 dest, float dtF, float velo);
+    Tempest::Vec3         followRot   (Tempest::Vec3 spin, Tempest::Vec3 dest, float dtF, float velo);
 
-    void                  followCamera(Tempest::Vec3& pos,  Tempest::Vec3 dest, float dtF);
-    void                  followPos   (Tempest::Vec3& pos,  Tempest::Vec3 dest, float dtF);
     void                  followAng   (Tempest::Vec3& spin, Tempest::Vec3 dest, float dtF);
     static void           followAng   (float& ang, float dest, float speed, float dtF);
 
