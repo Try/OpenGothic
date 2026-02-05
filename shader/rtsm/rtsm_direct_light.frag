@@ -39,5 +39,5 @@ void main() {
 
   const vec3  local       = linear * localLights;
 
-  outColor = vec4(luminance * scene.exposure + local * max(2.0, scene.exposure), 1);
+  outColor = vec4(luminance * scene.exposure + local * max(1.0, scene.exposure), 1);
   }

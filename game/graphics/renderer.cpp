@@ -2016,7 +2016,7 @@ void Renderer::prepareExposure(Encoder<CommandBuffer>& cmd, WorldView& wview) {
   push.sunOcclusion = smoothstep(0.0f, 0.01f, sunDir.y);
 
   static float override = 0;
-  static float add      = 1.f;
+  static float add      = 1.5f;
   if(override>0)
     push.baseL = override;
   push.baseL += add;

@@ -98,8 +98,8 @@ void main() {
     // night shift
     // const vec3 shift = purkinjeShift(color/exposure)*exposure;
     const vec3 shift = purkinjeShift(color/exposure, 1.5)*exposure;
-    color += shift;
-    // in vanilla game night time attenuated as rgb{134 104 125}
+    //color += shift;
+    // in vanilla game night time attenuated as rgb{18 16 60}
     // color += vec3(shift.r, 0, shift.b);
   }
 
