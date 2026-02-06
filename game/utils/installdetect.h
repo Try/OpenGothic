@@ -8,7 +8,7 @@ class InstallDetect final {
     InstallDetect();
 
     std::u16string detectG2();
-#if defined(__OSX__) || defined(__IOS__)
+#if defined(__OSX__) || defined(__IOS__) || defined(__ANDROID__)
     static std::u16string applicationSupportDirectory();
 #endif
 
@@ -20,7 +20,7 @@ class InstallDetect final {
     std::u16string pfiles, pfilesX86;
 #endif
 
-#if defined(__OSX__) || defined(__IOS__)
+#if defined(__OSX__) || defined(__IOS__) || defined(__ANDROID__)
     std::u16string appDir;
 #endif
   };
