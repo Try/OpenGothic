@@ -57,7 +57,9 @@ DialogMenu::~DialogMenu() {
 void DialogMenu::setupSettings() {
   dlgAnimation        = Gothic::settingsGetI("GAME","animatedWindows");
   showSubtitles       = Gothic::settingsGetI("GAME","subTitles");
+  showSubtitlesAmbient = Gothic::settingsGetI("GAME","subTitlesAmbient");
   showSubtitlesPlayer = Gothic::settingsGetI("GAME","subTitlesPlayer");
+  showSubtitlesNoise = Gothic::settingsGetI("GAME","subTitlesNoise");
   }
 
 void DialogMenu::tick(uint64_t dt) {
@@ -374,7 +376,30 @@ bool DialogMenu::haveToWaitOutput() const {
   }
 
 bool DialogMenu::haveToShowSubtitles(bool isPl) const {
-  return showSubtitles && (showSubtitlesPlayer || !isPl);
+  if(!showSubtitles){
+    return false;
+  }
+  if(isPl){
+    return showSubtitlesPlayer;
+  } else if(other != nullptr) {
+    switch (other->processPolicy()) {
+      case(NpcProcessPolicy::AiNormal):
+        return showSubtitlesAmbient;
+
+      case(NpcProcessPolicy::AiFar):
+      case(NpcProcessPolicy::AiFar2):
+        return showSubtitlesNoise;
+
+      case(NpcProcessPolicy::Player):
+        // since other is the player, this is considered player subtitles again
+        return showSubtitlesPlayer;
+
+      default:
+        return false;
+    }
+  } else {
+    return false;
+  }
   }
 
 void DialogMenu::startTrade() {
