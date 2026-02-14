@@ -150,11 +150,6 @@ jobs:
           echo '#pragma once' > game/build.h
           echo "static const char* appBuild = \"${{ needs.setup.outputs.version }}\";" >> game/build.h
 
-      - name: Workaround for missing fp.h on modern macOS
-        run: |
-          sudo mkdir -p /usr/local/include
-          echo '#include <math.h>' | sudo tee /usr/local/include/fp.h
-
       - name: Configure
         run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
 
@@ -183,11 +178,6 @@ jobs:
         run: |
           echo '#pragma once' > game/build.h
           echo "static const char* appBuild = \"${{ needs.setup.outputs.version }}\";" >> game/build.h
-
-      - name: Workaround for missing fp.h on modern macOS
-        run: |
-          sudo mkdir -p /usr/local/include
-          echo '#include <math.h>' | sudo tee /usr/local/include/fp.h
 
       - name: Configure
         run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
