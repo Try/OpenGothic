@@ -26,6 +26,8 @@
 #include "commandline.h"
 #include "gothic.h"
 
+#include <Tempest/SystemApi>
+
 using namespace Tempest;
 
 MainWindow::MainWindow(Device& device)
@@ -368,6 +370,43 @@ void MainWindow::tickMouse() {
     }
 
   dMouse = Point();
+  }
+
+void MainWindow::tickGamepad() {
+  auto gp = SystemApi::gamepadState();
+  if(!gp.connected)
+    return;
+
+  auto camera = Gothic::inst().camera();
+  if(dialogs.hasContent() || Gothic::inst().isPause() || camera==nullptr || camera->isCutscene())
+    return;
+
+  const float deadzone = 0.15f;
+  const float sensitivity = 15.0f;
+
+  float rx = gp.rightStickX;
+  float ry = gp.rightStickY;
+
+  if(std::abs(rx) < deadzone) rx = 0.0f;
+  if(std::abs(ry) < deadzone) ry = 0.0f;
+
+  if(rx != 0.0f || ry != 0.0f) {
+    PointF dp(ry * sensitivity, -rx * sensitivity);
+    camera->onRotateMouse(dp);
+
+    if(!inventory.isActive()) {
+      player.onRotateMouse(-dp.y);
+      player.onRotateMouseDy(-dp.x);
+      }
+    }
+
+  float lx = gp.leftStickX;
+  float ly = gp.leftStickY;
+
+  if(std::abs(lx) < deadzone) lx = 0.0f;
+  if(std::abs(ly) < deadzone) ly = 0.0f;
+
+  player.setGamepadAxis(lx, ly);
   }
 
 void MainWindow::onSettings() {
@@ -890,6 +929,7 @@ uint64_t MainWindow::tick() {
     if(camera!=nullptr && camera->isFree()) {
       player.tickCameraMove(dt);
       tickMouse();
+      tickGamepad();
       }
     update();
     return dt;
@@ -905,6 +945,7 @@ uint64_t MainWindow::tick() {
   if(document.isActive())
     clearInput();
   tickMouse();
+  tickGamepad();
   player.tickMove(dt);
   update();
   return dt;

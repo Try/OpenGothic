@@ -25,6 +25,7 @@ class PlayerControl final {
     bool  isPressed(KeyCodec::Action a) const;
     void  onRotateMouse(float dAngle);
     void  onRotateMouseDy(float dAngle);
+    void  setGamepadAxis(float lx, float ly);
 
     void  changeZoom(int delta);
     void  tickFocus();
@@ -143,6 +144,8 @@ class PlayerControl final {
     Focus          currentFocus;
     float          rotMouse=0;
     float          rotMouseY=0;
+    float          gamepadLX=0;
+    float          gamepadLY=0;
     bool           casting = false;
     size_t         pickLockProgress = 0;
 
@@ -182,17 +185,17 @@ class PlayerControl final {
     //////////////////////////////////
 
     auto wantsToMoveForward() const -> bool {
-      return movement.forwardBackward.value() > 0.f;
+      return movement.forwardBackward.value() > 0.f || gamepadLY < -0.2f;
       }
     auto wantsToMoveBackward() const -> bool {
-      return movement.forwardBackward.value() < 0.f;
+      return movement.forwardBackward.value() < 0.f || gamepadLY > 0.2f;
       }
 
     auto wantsToStrafeRight() const -> bool {
-      return movement.strafeRightLeft.value() > 0.f;
+      return movement.strafeRightLeft.value() > 0.f || gamepadLX > 0.2f;
       }
     auto wantsToStrafeLeft() const -> bool {
-      return movement.strafeRightLeft.value() < 0.f;
+      return movement.strafeRightLeft.value() < 0.f || gamepadLX < -0.2f;
       }
 
     auto wantsToTurnRight() const -> bool {

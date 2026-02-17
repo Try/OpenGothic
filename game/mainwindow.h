@@ -90,6 +90,7 @@ class MainWindow : public Tempest::Window {
 
     void processMouse(Tempest::MouseEvent& event, bool enable);
     void tickMouse();
+    void tickGamepad();
     void onSettings();
 
     void setupUi();
