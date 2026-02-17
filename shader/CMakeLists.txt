@@ -6,18 +6,18 @@ set(HEADER "${PROJECT_BINARY_DIR}/sprv/shader.h")
 set(CPP    "${PROJECT_BINARY_DIR}/sprv/shader.cpp")
 
 file(GLOB_RECURSE SOURCES
-  "${CMAKE_SOURCE_DIR}/shader/*.vert"
-  "${CMAKE_SOURCE_DIR}/shader/*.tesc"
-  "${CMAKE_SOURCE_DIR}/shader/*.tese"
-  "${CMAKE_SOURCE_DIR}/shader/*.geom"
-  "${CMAKE_SOURCE_DIR}/shader/*.frag"
-  "${CMAKE_SOURCE_DIR}/shader/*.glsl"
-  "${CMAKE_SOURCE_DIR}/shader/*.task"
-  "${CMAKE_SOURCE_DIR}/shader/*.mesh"
-  "${CMAKE_SOURCE_DIR}/shader/*.comp")
+  "${CMAKE_CURRENT_LIST_DIR}/*.vert"
+  "${CMAKE_CURRENT_LIST_DIR}/*.tesc"
+  "${CMAKE_CURRENT_LIST_DIR}/*.tese"
+  "${CMAKE_CURRENT_LIST_DIR}/*.geom"
+  "${CMAKE_CURRENT_LIST_DIR}/*.frag"
+  "${CMAKE_CURRENT_LIST_DIR}/*.glsl"
+  "${CMAKE_CURRENT_LIST_DIR}/*.task"
+  "${CMAKE_CURRENT_LIST_DIR}/*.mesh"
+  "${CMAKE_CURRENT_LIST_DIR}/*.comp")
 
 file(GLOB_RECURSE GLSL_SOURCES
-  "${CMAKE_SOURCE_DIR}/shader/*.glsl")
+  "${CMAKE_CURRENT_LIST_DIR}/*.glsl")
 
 # GLSL to SPIRV compiler
 find_program(GLSLANGVALIDATOR glslangValidator "/opt/homebrew/bin")
@@ -27,7 +27,7 @@ endif()
 
 function(add_shader OUTPUT SOURCE)
   set(OUTPUT_FILE "${PROJECT_BINARY_DIR}/sprv/${OUTPUT}.sprv")
-  set(SOURCE_FILE "${CMAKE_SOURCE_DIR}/shader/${SOURCE}")
+  set(SOURCE_FILE "${CMAKE_CURRENT_LIST_DIR}/${SOURCE}")
   set(OPENGOTHIC_SHADERS      ${OPENGOTHIC_SHADERS}      ${SOURCE_FILE} PARENT_SCOPE)
   set(OPENGOTHIC_SHADERS_SPRV ${OPENGOTHIC_SHADERS_SPRV} ${OUTPUT_FILE} PARENT_SCOPE)
 
@@ -67,7 +67,7 @@ function(add_shader OUTPUT SOURCE)
     OUTPUT     ${OUTPUT_FILE}
     DEPENDS    ${SOURCE_FILE} ${GLSL_SOURCES}
     COMMAND    ${CMAKE_COMMAND} -E make_directory "${PROJECT_BINARY_DIR}/sprv/"
-    COMMAND    ${GLSLANGVALIDATOR} -V ${VARS} -I"${CMAKE_SOURCE_DIR}/shader" "${SOURCE_FILE}" -o ${OUTPUT_FILE}
+    COMMAND    ${GLSLANGVALIDATOR} -V ${VARS} -I"${CMAKE_CURRENT_LIST_DIR}" "${SOURCE_FILE}" -o ${OUTPUT_FILE}
     )
 endfunction(add_shader)
 
@@ -373,13 +373,13 @@ add_custom_command(
   OUTPUT     ${HEADER} ${CPP}
   DEPENDS    ${OPENGOTHIC_SHADERS_SPRV}
   COMMAND    ${CMAKE_COMMAND} -E make_directory "${PROJECT_BINARY_DIR}/sprv/"
-  COMMAND    ${CMAKE_COMMAND} -P "${CMAKE_SOURCE_DIR}/shader/link_shaders.cmake"
+  COMMAND    ${CMAKE_COMMAND} -P "${CMAKE_CURRENT_LIST_DIR}/link_shaders.cmake"
   WORKING_DIRECTORY "${PROJECT_BINARY_DIR}"
   )
 
 add_custom_target(shader
   DEPENDS ${HEADER} ${CPP}
-  SOURCES ${SOURCES} "${CMAKE_SOURCE_DIR}/shader/link_shaders.cmake")
+  SOURCES ${SOURCES} "${CMAKE_CURRENT_LIST_DIR}/link_shaders.cmake")
 
 add_library(${PROJECT_NAME} STATIC ${HEADER} ${CPP})
 add_dependencies(${PROJECT_NAME} shader)
