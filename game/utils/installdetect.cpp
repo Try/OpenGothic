@@ -32,7 +32,15 @@ std::u16string InstallDetect::detectG2() {
   if(ret.empty())
     ret = detectG2(pfilesX86);
   return ret;
-#elif defined(__OSX__) || defined(__IOS__) || defined(__ANDROID__)
+#elif defined(__ANDROID__)
+  // Check external storage
+  if(FileUtil::exists(u"/storage/emulated/0/Gothic2/"))
+    return u"/storage/emulated/0/Gothic2/";
+  // First check app's private data directory
+  if(FileUtil::exists(appDir))
+    return appDir;
+  return u"";
+#elif defined(__OSX__) || defined(__IOS__)
   if(FileUtil::exists(appDir))
     return appDir;
   return u"";
