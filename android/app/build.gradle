@@ -1,0 +1,69 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.example.opengothic'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId "com.example.opengothic"
+        minSdk 24
+        targetSdk 35
+        versionCode 1
+        versionName "1.0"
+
+        externalNativeBuild {
+            cmake {
+                cppFlags '-std=c++20 -fvisibility=hidden -ffunction-sections -fdata-sections'
+                arguments '-DANDROID_STL=c++_static',
+                          '-DBUILD_SHARED_LIBS=ON',
+                          '-DCMAKE_BUILD_TYPE=Release'
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    splits {
+        abi {
+            enable true
+            reset()
+            include 'arm64-v8a', 'x86_64'
+            universalApk false  // Set true if you also want a fat APK with all ABIs
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    externalNativeBuild {
+        cmake {
+            path file('src/main/cpp/CMakeLists.txt')
+            version '3.22.1'
+        }
+    }
+
+    buildFeatures {
+        prefab true
+    }
+
+    packagingOptions {
+        jniLibs {
+            // Debug symbols stripped automatically in release
+        }
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'com.google.android.material:material:1.12.0'
+    implementation 'androidx.games:games-activity:3.0.5'
+}
