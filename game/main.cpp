@@ -18,14 +18,6 @@
 #include "utils/installdetect.h"
 #endif
 
-#if defined(__ANDROID__)
-#include <android_native_app_glue.h>
-#include <android/log.h>
-extern "C" void tempest_android_main(struct android_app* app);
-static struct android_app* g_android_app = nullptr;
-int main(int argc, const char** argv);
-#endif
-
 #include "utils/crashlog.h"
 #include "mainwindow.h"
 #include "gothic.h"
@@ -74,22 +66,6 @@ std::unique_ptr<Tempest::AbstractGraphicsApi> mkApi(const CommandLine& g) {
   return std::make_unique<Tempest::VulkanApi>(flg);
 #endif
   }
-
-#if defined(__ANDROID__)
-extern "C" void android_main(struct android_app* app) {
-  g_android_app = app;
-  tempest_android_main(app);
-
-  // Set up working directory
-  auto appdir = InstallDetect::applicationSupportDirectory();
-  if(!appdir.empty()) {
-    std::filesystem::current_path(appdir);
-  }
-
-  const char* argv[] = {"opengothic", nullptr};
-  main(1, argv);
-}
-#endif
 
 int main(int argc,const char** argv) {
 #if defined(__IOS__)

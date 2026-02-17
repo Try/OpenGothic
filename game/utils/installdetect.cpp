@@ -1,6 +1,7 @@
 #include "installdetect.h"
 
 #include <Tempest/Platform>
+#include <Tempest/TextCodec>
 
 #ifdef __WINDOWS__
 #include "windows.h"
@@ -13,7 +14,6 @@
 extern "C" struct android_app* tempest_android_get_app();
 #endif
 
-#include <cstring>
 #include "utils/fileutil.h"
 
 InstallDetect::InstallDetect() {
@@ -89,13 +89,6 @@ std::u16string InstallDetect::applicationSupportDirectory() {
   if(path == nullptr)
     return u"";
 
-  // Convert UTF-8 to UTF-16
-  std::u16string ret;
-  size_t len = std::strlen(path);
-  ret.reserve(len);
-  for(size_t i = 0; i < len; ++i) {
-    ret.push_back(static_cast<char16_t>(static_cast<unsigned char>(path[i])));
-  }
-  return ret;
+  return Tempest::TextCodec::toUtf16(path);
   }
 #endif
