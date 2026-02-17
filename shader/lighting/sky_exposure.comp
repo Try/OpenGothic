@@ -101,20 +101,21 @@ void main() {
     const float clouds   = (1.0 - pow(cldVal, 4));
     // const float clouds   = max(1.0 - exp(-cldVal*2), 0.01);
 
-    const vec3  NightAmbient = vec3(0.05);
+    // in vanilla game night time attenuated as rgb{18 16 60}
+    // const vec3  NightAmbient = vec3(0.2, 0.2, 1)*0.36;
     const vec3  sunColor     = scene.sunColor * tr;
-    const vec3  ambient      = scene.ambient  * tr + NightAmbient;
+    const vec3  ambient      = scene.ambient  * tr;
 
     const vec3  light  = sunColor*Fd_Lambert + ambient + skyIrradiance();
     const float objLum = dot(light, vec3(0.2125, 0.7154, 0.0721));
     const float skyLum = (vmin + vmax) * 0.5 * scene.GSunIntensity;
 
-    const float lum    = max(max(objLum*2.5, skyLum*clouds*1.5), 0.5);
+    const float lum    = max(objLum*2.5, skyLum*clouds*1.5);
 
     // float lum = tr.b;
     scene.sunColor     = sunColor * clouds * push.sunOcclusion;
     scene.ambient      = ambient  * clouds;
-    scene.exposure     = 1.0 / max(lum+push.baseL, 0.0000005);
+    scene.exposure     = 1.0 / max(lum*1.25 + push.baseL, 0.0000001);
     //scene.exposure     = 1.0 / max(6400, 0.0000005);
     scene.luminanceMed = lum;
     }

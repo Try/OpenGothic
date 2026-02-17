@@ -65,21 +65,14 @@ void main() {
   const vec3  linear = textureAlbedo(diff);
   const float ao     = textureSsao();
 
-  vec3 ambient = scene.ambient;
-  vec3 sky     = skyIrradiance();
+  vec3 ambient = scene.ambient + (norm.y*0.25+0.75) * NightAmbient * Fd_Lambert;
+  vec3 sky     = skyIrradiance(); // * Fd_Lambert is accounted in integration
 
-  //vec3 lcolor  = mix(ambient, sky, max(0, norm.y*0.8));
-  vec3 luminance  = (ambient + sky)*0.5;
-  // vec3 lcolor  = ambient + sky*clamp(norm.y*0.5, 0,1);
+  vec3 luminance  = sky + ambient;
 
-  vec3 color = luminance * ao;  // * Fd_Lambert is accounted in integration
+  vec3 color = luminance;
   color *= linear;
-
-  // outColor = vec4(vec3(grayscale(color)), 0);
-  // return;
-
-  // night shift
-  // color += purkinjeShift(color, 2.5); //TODO: use it globally at tonemapping
+  color *= ao;
   color *= scene.exposure;
 
   outColor = vec4(color, 1);

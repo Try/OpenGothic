@@ -29,7 +29,7 @@ using namespace Tempest;
  *
  */
 static const float DirectSunLux  = 128'000.f;
-static const float DirectMoonLux = 1.f;
+static const float DirectMoonLux = 0.32f;
 
 // static const float NightLight    = 0.36f;
 // static const float ShadowSunLux  = 10'000.f;
@@ -138,11 +138,12 @@ void Sky::updateLight(const int64_t now) {
   ambient  = DirectSunLux  * float(1.0/M_PI) * groundAlbedo * sunOcclude;
   ambient += DirectMoonLux * float(1.0/M_PI) * groundAlbedo;
   // ambient *= 0.78f; // atmosphere transmission is in shader
-  ambient *= 0.68f;           // NdoL prediction
+  ambient *= 0.68f;           // NdotL prediction
   ambient *= 0.5;             // maybe in shadow or maybe not
   ambient *= 2.0*float(M_PI); // 2*pi (hermisphere integral)
-  // ambient *= 0.8f;            // tuneup
   ambient *= float(1.0/M_PI); // predivide by lambertian lobe
+
+  ambient *= 0.5f;            // tuneup
 
   //ambient += Vec3(0.001f);     // should avoid zeros
 

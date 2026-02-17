@@ -33,7 +33,7 @@ vec4 clouds(vec3 at, float nightPhase, vec3 highlight,
   night.rgb = srgbDecode(night.rgb);
 
   day.rgb   = day.rgb  *highlight*5.0;
-  night.rgb = night.rgb*0.00001;
+  night.rgb = night.rgb*0.000014;
 
   day  .a   = day  .a*(1.0-nightPhase);
   //night.a   = night.a*(nightPhase);

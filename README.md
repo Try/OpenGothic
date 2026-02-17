@@ -11,7 +11,8 @@ The goal of this project is to make a feature-complete Gothic game client, compa
 ![Screenshoot](scr0.png)
 
 #### Work in progress
-[![Build status](https://ci.appveyor.com/api/projects/status/github/Try/opengothic?svg=true)](https://ci.appveyor.com/project/Try/opengothic?branch=master)
+[![Build status](https://img.shields.io/github/actions/workflow/status/Try/OpenGothic/build.yml?branch=master)](https://github.com/Try/OpenGothic/actions?query=build.yml?query=branch%3Amaster)
+
 
 Development is focused on Gothic 2 and new features are not tested for compatibility with Gothic 1. While Gothic 1 is not officially supported, pull requests that fix Gothic 1 — and general — bugs are welcome.
 
@@ -36,7 +37,7 @@ Supported systems are:
     * "C:\Program Files (x86)\Steam\steamapps\common\Gothic II"
 2. Download OpenGothic and extract it into a folder of your choice. Available options are:
     * A [Pre-Release](https://github.com/Try/opengothic/releases/latest) (recommended)
-    * Alternatively a recent test build from [CI](https://ci.appveyor.com/project/Try/opengothic/history?branch=master)
+    * Alternatively a recent test build from [CI](https://github.com/Try/OpenGothic/actions?query=build.yml?query=branch%3Amaster)
 3. Run `Gothic2Notr.exe`.
 
    If nothing happens, check `log.txt` and look for the line `invalid gothic path`. In this case OpenGothic fails to find your Gothic installation and you have to explicitly specify its location via `-g` parameter. Either you create a shortcut to `Gothic2Notr.exe` and change the target line in Properties to e.g.
@@ -50,7 +51,7 @@ Supported systems are:
 2. Install OpenGothic using one of these options:
    * **Debian/Ubuntu**: Download the `.deb` package from [Releases](https://github.com/Try/opengothic/releases/latest) and install with `sudo dpkg -i opengothic_*.deb`
    * **Arch**: Install from [AUR](https://aur.archlinux.org/packages/opengothic)
-   * **Other distros**: Download the portable build from [CI](https://ci.appveyor.com/project/Try/opengothic/history?branch=master) or build manually
+   * **Other distros**: Download the portable build from [CI](https://github.com/Try/OpenGothic/actions?query=build.yml?query=branch%3Amaster) or build manually
 
 3. Run `Gothic2Notr -g "~/PlayOnLinux's virtual drives/Gothic2_gog/drive_c/Gothic II"` (example path, use the path to your Gothic 2 installation instead)
 
@@ -63,7 +64,7 @@ Supported systems are:
 ### MacOS
 1. If not already done, install Gothic 2. Instructions on how to obtain the game files can be found [here](https://macsourceports.com/faq#getgamedata). OpenGothic comes with automatic path detection if your Gothic files are in `"~/Library/Application Support/OpenGothic"`.
 2. Download a build from [Mac Source Ports](https://macsourceports.com/game/gothic2) and follow the installation instructions given there.
-   Alternatively, recent test builds are available from [CI](https://ci.appveyor.com/project/Try/opengothic/history?branch=master) and can be extracted into a folder of your choice. You can compile a fresh build as well.
+   Alternatively, recent test builds are available from [CI](https://github.com/Try/OpenGothic/actions?query=build.yml?query=branch%3Amaster) and can be extracted into a folder of your choice. You can compile a fresh build as well.
 3. Run `Gothic2Notr.sh`
 
    If OpenGothic fails to find your Gothic 2 files, you have to explicitly specify its location via `-g` parameter.

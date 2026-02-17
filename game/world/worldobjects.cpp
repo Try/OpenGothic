@@ -219,7 +219,7 @@ void WorldObjects::tick(uint64_t dt, uint64_t dtPlayer) {
   const float nearDist              = 3000*3000;
   const float farDist               = 6000*6000;
 
-  auto cpos  = camera!=nullptr ? camera->destPosition() : Vec3();
+  auto cpos  = camera!=nullptr ? camera->originLwc() : Vec3();
   auto plPos = pl!=nullptr ? pl->position() : cpos;
   for(auto& i:npcArr) {
     float dist = (i->position()-plPos).quadLength();

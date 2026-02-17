@@ -23,9 +23,8 @@ class PlayerControl final {
     void  onKeyPressed (KeyCodec::Action a, Tempest::Event::KeyType key, KeyCodec::Mapping mapping = KeyCodec::Mapping::Primary);
     void  onKeyReleased(KeyCodec::Action a, KeyCodec::Mapping mapping = KeyCodec::Mapping::Primary);
     bool  isPressed(KeyCodec::Action a) const;
-    void  onRotateMouse(float dAngle);
-    void  onRotateMouseDy(float dAngle);
     void  setGamepadAxis(float lx, float ly);
+    void  onRotateMouse(float dAngleX, float dAngleY);
 
     void  changeZoom(int delta);
     void  tickFocus();
@@ -76,10 +75,10 @@ class PlayerControl final {
 
     using Action=KeyCodec::Action;
 
-    struct AxisStatus { 
+    struct AxisStatus {
         /// Main direction (e.g. W or Up arrow)
         std::array<bool, KeyCodec::NumMappings> main;
-        
+
         /// Reverse direction (e.g. S or Down arrow)
         std::array<bool, KeyCodec::NumMappings> reverse;
 
@@ -110,7 +109,7 @@ class PlayerControl final {
             }
           return false;
           }
-        
+
         /// Is any key pressed that activates the reverse direction
         /// (e.g. S or Down arrow in Forward-Backward axis)
         auto anyReverse() const -> bool {
@@ -122,7 +121,7 @@ class PlayerControl final {
       };
 
     struct MovementStatus {
-      AxisStatus forwardBackward;  
+      AxisStatus forwardBackward;
       AxisStatus strafeRightLeft;
       AxisStatus turnRightLeft;
 
@@ -133,7 +132,7 @@ class PlayerControl final {
         this->turnRightLeft.reset();
         }
       } movement;
-    
+
     bool           ctrl[Action::Last]={};
     bool           wctrl[WeaponAction::Last]={};
     bool           actrl[7]={};
@@ -150,7 +149,6 @@ class PlayerControl final {
     size_t         pickLockProgress = 0;
 
     float          runAngleDest   = 0.f;
-    uint64_t       runAngleSmooth = 0;
     uint64_t       turnAniSmooth  = 0;
     int            rotationAni    = 0;
     bool           g2Ctrl         = false;

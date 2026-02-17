@@ -173,21 +173,19 @@ void main() {
     // debug
     // colorSum = vec4(vec3(1,0,0)*scene.GSunIntensity,1);
     colorSum.rgb = probeReadAmbient(probesLighting, 0, norm, vec3(0,1,0));
-    colorSum.w   = 1;
+    colorSum.w   = 1;  // * Fd_Lambert is accounted in integration
     } else {
     colorSum.rgb = colorSum.rgb/max(colorSum.w, minW);
     }
 
   // const vec3  linear = vec3(1);
-  const vec3  linear = textureAlbedo(diff); //  * Fd_Lambert is accounted in integration
-  const float ao     = textureSsao();
-  vec3 lcolor = colorSum.rgb;
+  const vec3  linear  = textureAlbedo(diff);
+  const float ao      = textureSsao();
+  const vec3  ambient = colorSum.rgb + (norm.y*0.25+0.75) * NightAmbient * Fd_Lambert;
 
-  vec3 color  = lcolor;
+  vec3 color = ambient;
   color *= linear;
   color *= ao;
-  // night shift
-  //color += purkinjeShift(color, 2.5); //TODO: use it globally at tonemapping
   color *= scene.exposure;
   outColor = vec4(color, 1);
 

@@ -159,16 +159,21 @@ vec3 rayOrigin(ivec2 frag, float depth, vec3 normal) {
   return (wpos.xyz + normal*NormalBias)/wpos.w;
   }
 
-float lightIntensity(const vec3 normal, const float distance, const vec3 ldir, const float lrange) {
-  const float distanceSquare = (distance * distance);
-  const float factor         = distanceSquare / (lrange * lrange);
-  const float smoothFactor   = max(1.0 - factor * factor, 0.0);
-  if(factor>1.0)
+float squareFalloffAttenuation(const float distance, const float lightInvRadius) {
+  float distanceSquare = (distance * distance);
+  float factor         = distanceSquare * lightInvRadius * lightInvRadius;
+  float smoothFactor   = max(1.0 - factor * factor, 0.0);
+  return (smoothFactor * smoothFactor) / max(factor, 0.005);
+  }
+
+float lightIntensity(const vec3 normal, const float distance, const vec3 ldir, const float lightRange) {
+  if(distance>lightRange)
     return 0;
 
+  float falloff = squareFalloffAttenuation(distance, 1.0/lightRange);
   float lambert = max(0.0,-dot(ldir,normal));
-  float lx      = (lambert/max(factor, 0.005)) * (smoothFactor*smoothFactor);
-  return lx * Fd_Lambert * 0.1;
+
+  return lambert * falloff * Fd_Lambert * 0.25;
   }
 
 const  uint  MaxChunk = NumThreads/2;

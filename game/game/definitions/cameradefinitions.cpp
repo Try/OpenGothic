@@ -1,7 +1,12 @@
 #include "cameradefinitions.h"
 
+#include <Tempest/Log>
+#include <zenkit/vobs/Camera.hh>
+
 #include "gothic.h"
 #include "utils/string_frm.h"
+
+using namespace Tempest;
 
 CameraDefinitions::CameraDefinitions() {
   auto vm = Gothic::inst().createPhoenixVm("Camera.dat");
@@ -28,6 +33,28 @@ CameraDefinitions::CameraDefinitions() {
   camModSwim      = getCam("CAMMODSWIM");
   camModDive      = getCam("CAMMODDIVE");
   camModFall      = getCam("CAMMODFALL");
+
+  // dialog presets: unused yet
+  std::vector<zenkit::VCutsceneCamera> cameras;
+  try {
+    std::unique_ptr<zenkit::Read> read;
+    auto zen = Resources::openReader("DialogCams.ZEN", read);
+
+    while(!read->eof()) {
+      zenkit::ArchiveObject   obj {};
+      zenkit::VCutsceneCamera preset {};
+      zen->read_object_begin(obj);
+      preset.load(*zen, Gothic::inst().version().game == 1 ? zenkit::GameVersion::GOTHIC_1
+                                                           : zenkit::GameVersion::GOTHIC_2);
+      cameras.emplace_back(std::move(preset));
+      if(!zen->read_object_end()) {
+        zen->skip_object(true);
+        }
+      }
+    }
+  catch(...) {
+    Log::e("unable to load Zen-file: \"DialogCams.ZEN\"");
+    }
   }
 
 const zenkit::ICamera& CameraDefinitions::mobsiCam(std::string_view tag, std::string_view pos) const {

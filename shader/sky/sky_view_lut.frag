@@ -60,9 +60,8 @@ void main() {
   const vec3 viewPos  = vec3(0.0, RPlanet + scene.plPosY, 0.0);
 
   const float DirectSunLux  = scene.GSunIntensity;
-  const float DirectMoonLux = 0.32f;
-  // const float NightLight    = 0.36f;
-  const float moonInt       = DirectMoonLux/DirectSunLux;
+  const float DirectMoonLux = GMoonIntensity;
+  const vec3  moonInt       = NightAmbient/DirectSunLux;
 
   float azimuthAngle = (uv.x - 0.5)*2.0*M_PI;
   // Non-linear mapping of altitude. See Section 5.3 of the paper.
@@ -91,7 +90,6 @@ void main() {
   float tMax        = (groundDist < 0.0) ? atmoDist : groundDist;
 
   vec3  sun  = raymarchScattering(viewPos, rayDir, sunDir, tMax);
-  //vec3  moon = vec3(0);
-  vec3  moon = raymarchScattering(viewPos, rayDir, normalize(vec3(-1,1,0)), tMax) * scene.isNight * moonInt;
+  vec3  moon = raymarchScattering(viewPos, rayDir, normalize(vec3(-1,1,0)), tMax) * scene.isNight * (moonInt);
   outColor = vec4(sun+moon, 1.0);
   }
