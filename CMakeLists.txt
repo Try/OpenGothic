@@ -1,6 +1,17 @@
 cmake_minimum_required(VERSION 3.16)
 
 project(Gothic2Notr LANGUAGES C CXX)
+
+# Option to generate Android build directory (run with: cmake -DGENERATE_ANDROID_BUILD=ON -P CMakeLists.txt)
+option(GENERATE_ANDROID_BUILD "Generate Android/Gradle build directory from templates" OFF)
+if(GENERATE_ANDROID_BUILD)
+    include(${CMAKE_SOURCE_DIR}/cmake/android/GenerateAndroidBuild.cmake)
+    generate_android_build(
+        SOURCE_DIR "${CMAKE_SOURCE_DIR}"
+        OUTPUT_DIR "${CMAKE_SOURCE_DIR}/build/android-build"
+    )
+    return()
+endif()
 set(CMAKE_CXX_STANDARD 20)
 set(BUILD_SHARED_LIBS OFF)
 

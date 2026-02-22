@@ -405,7 +405,7 @@ void MainWindow::tickGamepad() {
     camera->onRotateMouse(dp);
 
     if(!inventory.isActive()) {
-      player.onRotateMouse(-dp.y);
+      player.onRotateMouse(-dp.y, dp.x);
       }
     }
 

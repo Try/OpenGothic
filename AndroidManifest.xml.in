@@ -15,14 +15,8 @@
     <uses-feature android:name="android.hardware.vulkan.version" android:required="true" android:version="0x00401000" />
 
     <application
-        android:allowBackup="true"
-        android:dataExtractionRules="@xml/data_extraction_rules"
-        android:fullBackupContent="@xml/backup_rules"
-        android:icon="@mipmap/ic_launcher"
-        android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
-        android:supportsRtl="true"
-        android:theme="@style/Theme.OpenGothic"
+        android:allowBackup="false"
+        android:label="@ANDROID_PROJECT_NAME@"
         android:hasFragileUserData="true"
         android:requestLegacyExternalStorage="true"
         tools:targetApi="31">
@@ -36,7 +30,7 @@
 
             <meta-data
                 android:name="android.app.lib_name"
-                android:value="opengothic" />
+                android:value="@ANDROID_LIB_NAME@" />
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

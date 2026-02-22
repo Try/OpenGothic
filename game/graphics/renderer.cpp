@@ -193,10 +193,6 @@ void Renderer::setupSettings() {
   settings.vidResIndex = Gothic::inst().settingsGetF("INTERNAL","vidResIndex");
   settings.aaEnabled = (Gothic::options().aaPreset>0) && (settings.vidResIndex==0);
 
-  settings.shadowResolution = uint32_t(Gothic::settingsGetI("INTERNAL","shadowResolution"));
-  if(settings.shadowResolution == 0)
-    settings.shadowResolution = 2048; // fallback default
-
   // direct lighting
   if(settings.rtsmEnabled)
     shadow.directLightPso = &shaders.rtsmDirectLight;
