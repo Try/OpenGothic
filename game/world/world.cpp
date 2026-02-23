@@ -904,9 +904,8 @@ const WayPoint *World::findFreePoint(const Npc &npc, std::string_view name) cons
       return p;
       }
     }
-  auto pos = npc.position();
-  pos.y+=npc.translateY();
 
+  const auto pos = npc.centerPosition();
   return wmatrix->findFreePoint(pos,name,[&npc](const WayPoint& wp) -> bool {
     if(wp.isLocked())
       return false;
@@ -925,8 +924,7 @@ const WayPoint *World::findFreePoint(const Tempest::Vec3& pos, std::string_view 
   }
 
 const WayPoint *World::findNextFreePoint(const Npc &npc, std::string_view name) const {
-  auto pos = npc.position();
-  pos.y+=npc.translateY();
+  auto pos = npc.centerPosition();
   auto cur = npc.currentWayPoint();
   if(cur!=nullptr && !cur->checkName(name)) {
     cur = nullptr;
@@ -943,9 +941,7 @@ const WayPoint *World::findNextFreePoint(const Npc &npc, std::string_view name) 
   }
 
 const WayPoint* World::findNextWayPoint(const Npc &npc) const {
-  auto pos = npc.position();
-  pos.y+=npc.translateY();
-
+  auto pos     = npc.centerPosition();
   auto nearest = npc.currentWayPoint();
   if(nearest==nullptr || nearest->isFreePoint()) {
     nearest = findWayPoint(pos);
@@ -983,8 +979,7 @@ void World::detectItem(const Tempest::Vec3& p, const float r, const std::functio
   }
 
 WayPath World::wayTo(const Npc &npc, const WayPoint &end) const {
-  auto npcPos = npc.position();
-  npcPos.y += npc.translateY();
+  const auto npcPos = npc.centerPosition();
 
   auto begin = npc.currentWayPoint();
   if(begin==&end && MoveAlgo::isClose(npc,end)) {

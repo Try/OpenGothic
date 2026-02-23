@@ -57,15 +57,12 @@ Vec3 WayPoint::direction() const {
   return dir;
   }
 
-float WayPoint::qDistTo(float ix, float iy, float iz) const {
-  float dx = pos.x-ix;
-  float dy = pos.y-iy;
-  float dz = pos.z-iz;
-  return dx*dx+dy*dy+dz*dz;
+float WayPoint::qDistTo(const Tempest::Vec3& to) const {
+  return (pos-to).quadLength();
   }
 
 void WayPoint::connect(WayPoint &w) {
-  int32_t l = int32_t(std::sqrt(qDistTo(w.pos.x,w.pos.y,w.pos.z)));
+  int32_t l = int32_t(std::sqrt(qDistTo(w.pos)));
   if(l<=0)
     return;
   Conn c;

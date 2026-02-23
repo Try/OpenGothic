@@ -735,9 +735,9 @@ bool Interactive::attach(Npc& npc, Interactive::Pos& to) {
   float x=0, y=0, z=0;
   mat.project(x,y,z);
 
-  const Tempest::Vec3 mv = {x,y-npc.translateY(),z};
+  const Tempest::Vec3 mv = {x,y,z};
 
-  if((npc.position()-mv).quadLength()>MAX_AI_USE_DISTANCE*MAX_AI_USE_DISTANCE) {
+  if((npc.centerPosition()-mv).quadLength()>MAX_AI_USE_DISTANCE*MAX_AI_USE_DISTANCE) {
     if(npc.isPlayer()) {
       auto& sc = npc.world().script();
       sc.printMobTooFar(npc);

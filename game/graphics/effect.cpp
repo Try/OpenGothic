@@ -16,7 +16,7 @@ Effect::Effect(PfxEmitter&& pfx, std::string_view node)
   }
 
 Effect::Effect(const VisualFx& vfx, World& owner, const Npc& src, SpellFxKey key)
-  :Effect(vfx, owner, src.position(), key) {
+  :Effect(vfx, owner, src.centerPosition(), key) {
   }
 
 Effect::Effect(const VisualFx& v, World& owner, const Vec3& inPos, SpellFxKey k) {

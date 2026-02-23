@@ -42,7 +42,7 @@ void Npc::GoTo::load(Serialize& fin) {
 
 Vec3 Npc::GoTo::target() const {
   if(npc!=nullptr)
-    return npc->position() + Vec3(0, npc->translateY(), 0);
+    return npc->centerPosition();
   if(wp!=nullptr)
     return wp->position();
   return pos;
@@ -704,7 +704,7 @@ std::string_view Npc::formerPortalName() {
   }
 
 float Npc::qDistTo(const Vec3 pos) const {
-  auto dp = pos - Vec3(x,y+translateY(),z);
+  auto dp = pos - centerPosition();
   return dp.quadLength();
   }
 
@@ -715,7 +715,7 @@ float Npc::qDistTo(const WayPoint *f) const {
   }
 
 float Npc::qDistTo(const Npc &p) const {
-  return qDistTo(Vec3(p.x,p.y+p.translateY(),p.z));
+  return qDistTo(p.centerPosition());
   }
 
 float Npc::qDistTo(const Interactive &p) const {
@@ -3257,8 +3257,7 @@ Item* Npc::takeItem(Item& item) {
     return nullptr;
     }
 
-  auto dpos = item.position()-position();
-  dpos.y-=translateY();
+  auto dpos = item.position()-centerPosition();
   const Animation::Sequence* sq = setAnimAngGet(Npc::Anim::ItmGet,Pose::calcAniCombVert(dpos));
   if(sq==nullptr)
     return nullptr;

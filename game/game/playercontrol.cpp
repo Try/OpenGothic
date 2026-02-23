@@ -358,7 +358,7 @@ void PlayerControl::moveFocus(FocusAction act) {
     return;
 
   auto vp  = c->viewProj();
-  auto pos = currentFocus.npc->position()+Tempest::Vec3(0,currentFocus.npc->translateY(),0);
+  auto pos = currentFocus.npc->centerPosition();
   vp.project(pos);
 
   Npc* next = nullptr;
@@ -367,7 +367,7 @@ void PlayerControl::moveFocus(FocusAction act) {
     auto npc = w->npcById(i);
     if(npc->isPlayer())
       continue;
-    auto p = npc->position()+Tempest::Vec3(0,npc->translateY(),0);
+    auto p = npc->centerPosition();
     vp.project(p);
 
     if(std::abs(p.x)>1.f || std::abs(p.y)>1.f || p.z<0.f)

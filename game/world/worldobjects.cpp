@@ -340,7 +340,7 @@ Npc* WorldObjects::insertPlayer(std::unique_ptr<Npc> &&npc, std::string_view at)
     if(p)
       pos=p;
     }
-  npc->setPosition  (pos->position() );
+  npc->setPosition  (pos->groundPos  );
   npc->setDirection (pos->direction());
   npc->attachToPoint(pos);
   npc->updateTransform();
