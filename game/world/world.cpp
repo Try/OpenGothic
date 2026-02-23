@@ -723,8 +723,8 @@ void World::sendImmediatePerc(Npc& self, Npc& other, Npc& victim, Item& item, in
   }
 
 Sound World::addWeaponHitEffect(Npc& src, const Bullet* srcArrow, Npc& reciver) {
-  auto p0 = src.position();
-  auto p1 = reciver.position();
+  auto p0 = src.centerPosition();
+  auto p1 = reciver.centerPosition();
 
   Tempest::Matrix4x4 pos;
   pos.identity();

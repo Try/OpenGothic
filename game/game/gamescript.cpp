@@ -3384,7 +3384,7 @@ void GameScript::snd_play3d(std::shared_ptr<zenkit::INpc> npcRef, std::string_vi
     return;
   for(auto& c:file)
     c = char(std::toupper(c));
-  auto sfx = ::Sound(*owner.world(),::Sound::T_3D,file,npc->position(),0.f,false);
+  auto sfx = ::Sound(*owner.world(),::Sound::T_3D,file,npc->centerPosition(),0.f,false);
   sfx.play();
   }
 

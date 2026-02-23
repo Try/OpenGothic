@@ -373,7 +373,7 @@ void WorldObjects::removeNpc(Npc& npc) {
 
 void WorldObjects::tickNear(uint64_t /*dt*/) {
   for(Npc* i:npcNear) {
-    auto pos = i->position() + Vec3(0,i->translateY(),0);
+    auto pos = i->centerPosition();
     for(CollisionZone* z:collisionZn)
       if(z->checkPos(pos))
         z->onIntersect(*i);
