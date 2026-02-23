@@ -163,6 +163,7 @@ struct GameMenu::ListViewDialog : Dialog {
       if(list.value+1<int(num))
         list.value++;
       }
+    owner.update();
     }
 
   void paintEvent (PaintEvent&) override {}
