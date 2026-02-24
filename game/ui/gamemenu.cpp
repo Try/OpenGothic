@@ -50,11 +50,9 @@ struct GameMenu::ListContentDialog : Dialog {
       }
     if(e.key==Event::K_W || e.key==Event::K_Up) {
       onMove(-1);
-      update();
       }
     if(e.key==Event::K_S || e.key==Event::K_Down) {
       onMove(+1);
-      update();
       }
     }
 
@@ -141,11 +139,9 @@ struct GameMenu::ListViewDialog : Dialog {
       }
     if(e.key==Event::K_W || e.key==Event::K_Up) {
       onMove(-1);
-      update();
       }
     if(e.key==Event::K_S || e.key==Event::K_Down) {
       onMove(+1);
-      update();
       }
     }
 
@@ -163,7 +159,7 @@ struct GameMenu::ListViewDialog : Dialog {
       if(list.value+1<int(num))
         list.value++;
       }
-    owner.update();
+    update();
     }
 
   void paintEvent (PaintEvent&) override {}
