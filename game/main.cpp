@@ -14,7 +14,7 @@
 #include <Tempest/MetalApi>
 #endif
 
-#if defined(__IOS__)
+#if defined(__IOS__) || defined(__ANDROID__)
 #include "utils/installdetect.h"
 #endif
 
@@ -53,7 +53,7 @@ std::unique_ptr<Tempest::AbstractGraphicsApi> mkApi(const CommandLine& g) {
       break;
 #endif
     case CommandLine::Vulkan:
-#if !defined(__APPLE__)
+#if !defined(__APPLE__) || defined(__ANDROID__)
       return std::make_unique<Tempest::VulkanApi>(flg);
 #else
       break;
@@ -72,6 +72,13 @@ int main(int argc,const char** argv) {
   {
     auto appdir = InstallDetect::applicationSupportDirectory();
     std::filesystem::current_path(appdir);
+  }
+#elif defined(__ANDROID__)
+  {
+    auto appdir = InstallDetect::applicationSupportDirectory();
+    if(!appdir.empty()) {
+      std::filesystem::current_path(appdir);
+    }
   }
 #endif
 

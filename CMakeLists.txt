@@ -1,6 +1,17 @@
 cmake_minimum_required(VERSION 3.16)
 
 project(Gothic2Notr LANGUAGES C CXX)
+
+# Option to generate Android build directory (run with: cmake -DGENERATE_ANDROID_BUILD=ON -P CMakeLists.txt)
+option(GENERATE_ANDROID_BUILD "Generate Android/Gradle build directory from templates" OFF)
+if(GENERATE_ANDROID_BUILD)
+    include(${CMAKE_SOURCE_DIR}/cmake/android/GenerateAndroidBuild.cmake)
+    generate_android_build(
+        SOURCE_DIR "${CMAKE_SOURCE_DIR}"
+        OUTPUT_DIR "${CMAKE_SOURCE_DIR}/build/android-build"
+    )
+    return()
+endif()
 set(CMAKE_CXX_STANDARD 20)
 set(BUILD_SHARED_LIBS OFF)
 
@@ -11,7 +22,11 @@ set(CMAKE_RELWITHDEBINFO_POSTFIX "")
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_SKIP_RPATH ON)
 
-add_executable(${PROJECT_NAME})
+if(ANDROID)
+  add_library(${PROJECT_NAME} SHARED)
+else()
+  add_executable(${PROJECT_NAME})
+endif()
 
 if(MSVC)
   add_definitions(-D_USE_MATH_DEFINES)
@@ -59,6 +74,12 @@ elseif(IOS)
     MACOSX_BUNDLE_BUNDLE_VERSION 1
     MACOSX_BUNDLE_SHORT_VERSION_STRING "1.0"
     XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "iPhone Developer")
+elseif(ANDROID)
+  # Android build configuration
+  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -u ANativeActivity_onCreate")
+  # Build as shared library for Android
+  set_target_properties(${PROJECT_NAME} PROPERTIES
+    LIBRARY_OUTPUT_NAME "opengothic")
 elseif(APPLE)
   enable_language(OBJCXX)
 endif()
@@ -96,6 +117,12 @@ endif()
 
 if(WIN32)
   target_link_libraries(${PROJECT_NAME} shlwapi DbgHelp)
+elseif(ANDROID)
+  # Add android_native_app_glue
+  set(ANDROID_NATIVE_APP_GLUE_DIR "${ANDROID_NDK}/sources/android/native_app_glue")
+  target_sources(${PROJECT_NAME} PRIVATE "${ANDROID_NATIVE_APP_GLUE_DIR}/android_native_app_glue.c")
+  target_include_directories(${PROJECT_NAME} PRIVATE "${ANDROID_NATIVE_APP_GLUE_DIR}")
+  target_link_libraries(${PROJECT_NAME} android log)
 elseif(UNIX)
   target_link_libraries(${PROJECT_NAME} -lpthread -ldl)
 endif()

@@ -1,6 +1,7 @@
 #include "installdetect.h"
 
 #include <Tempest/Platform>
+#include <Tempest/TextCodec>
 
 #ifdef __WINDOWS__
 #include "windows.h"
@@ -8,7 +9,11 @@
 #include "shlwapi.h"
 #endif
 
-#include <cstring>
+#ifdef __ANDROID__
+#include <android_native_app_glue.h>
+extern "C" struct android_app* tempest_android_get_app();
+#endif
+
 #include "utils/fileutil.h"
 
 InstallDetect::InstallDetect() {
@@ -16,7 +21,7 @@ InstallDetect::InstallDetect() {
   pfiles    = programFiles(false);
   pfilesX86 = programFiles(true);
 #endif
-#if defined(__OSX__) || defined(__IOS__)
+#if defined(__OSX__) || defined(__IOS__) || defined(__ANDROID__)
   appDir    = applicationSupportDirectory();
 #endif
   }
@@ -27,6 +32,14 @@ std::u16string InstallDetect::detectG2() {
   if(ret.empty())
     ret = detectG2(pfilesX86);
   return ret;
+#elif defined(__ANDROID__)
+  // Check external storage
+  if(FileUtil::exists(u"/storage/emulated/0/Gothic2/"))
+    return u"/storage/emulated/0/Gothic2/";
+  // First check app's private data directory
+  if(FileUtil::exists(appDir))
+    return appDir;
+  return u"";
 #elif defined(__OSX__) || defined(__IOS__)
   if(FileUtil::exists(appDir))
     return appDir;
@@ -60,5 +73,22 @@ std::u16string InstallDetect::programFiles(bool x86) {
   ret.resize(len);
   std::memcpy(&ret[0],path,len*sizeof(char16_t));
   return ret;
+  }
+#endif
+
+#ifdef __ANDROID__
+std::u16string InstallDetect::applicationSupportDirectory() {
+  struct android_app* app = tempest_android_get_app();
+  if(app == nullptr || app->activity == nullptr)
+    return u"";
+
+  // Prefer external data path (accessible without root)
+  const char* path = app->activity->externalDataPath;
+  if(path == nullptr)
+    path = app->activity->internalDataPath;
+  if(path == nullptr)
+    return u"";
+
+  return Tempest::TextCodec::toUtf16(path);
   }
 #endif
