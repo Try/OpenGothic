@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 project(Gothic2Notr LANGUAGES C CXX)
+include(GNUInstallDirs)
 set(CMAKE_CXX_STANDARD 20)
 set(BUILD_SHARED_LIBS OFF)
 
@@ -186,4 +187,5 @@ if(${CMAKE_BUILD_TYPE} MATCHES "Debug")
 endif()
 
 # installation
-install(TARGETS ${PROJECT_NAME} DESTINATION bin)
+install(TARGETS ${PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(FILES doc/Gothic2Notr.6 DESTINATION ${CMAKE_INSTALL_MANDIR}/man6)
