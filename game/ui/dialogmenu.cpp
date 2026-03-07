@@ -58,6 +58,9 @@ void DialogMenu::setupSettings() {
   dlgAnimation        = Gothic::settingsGetI("GAME","animatedWindows");
   showSubtitles       = Gothic::settingsGetI("GAME","subTitles");
   showSubtitlesPlayer = Gothic::settingsGetI("GAME","subTitlesPlayer");
+
+  const float volume = Gothic::inst().settingsGetF("SOUND","soundVolume");
+  soundDevice.setGlobalVolume(volume);
   }
 
 void DialogMenu::tick(uint64_t dt) {

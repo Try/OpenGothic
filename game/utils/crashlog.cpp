@@ -20,8 +20,10 @@
 #include <cxxabi.h>   // __cxa_demangle
 #endif
 
+#if defined(__WINDOWS__)
 #include <dbg/frames.hpp>
 #include <dbg/symbols.hpp>
+#endif
 
 static char gpuName[64]="?";
 

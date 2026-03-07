@@ -88,9 +88,9 @@ include_directories("game")
 ## submodule dependencies
 
 # edd-dbg
-add_subdirectory(lib/edd-dbg)
-include_directories(lib/edd-dbg/include)
 if(WIN32)
+  add_subdirectory(lib/edd-dbg)
+  include_directories(lib/edd-dbg/include)
   target_link_libraries(${PROJECT_NAME} edd_dbg)
 endif()
 

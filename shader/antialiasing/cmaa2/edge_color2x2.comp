@@ -189,7 +189,7 @@ void main() {
     //NOTE: gl_NumWorkGroups is not implemented in DX12
     const ivec2 texSize         = textureSize(sceneTonemapped, 0);
     const ivec2 outputGroupSize = ivec2(CMAA2_CS_OUTPUT_KERNEL_SIZE_X, CMAA2_CS_OUTPUT_KERNEL_SIZE_Y);
-    const ivec2 groupCount      = ivec2(texSize + outputGroupSize - 1) / (outputGroupSize * 2);
+    const ivec2 groupCount      = ivec2(texSize + outputGroupSize * 2 - 1) / (outputGroupSize * 2);
 
     if((atomicAdd(controlBuffer.iterator,1)+1)==(groupCount.x*groupCount.y)) {
       memoryBarrierBuffer();

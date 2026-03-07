@@ -100,23 +100,25 @@ vec3 flatNormal() {
 #endif
 
 #if defined(FORWARD)
-float lambert() {
-  vec3  normal  = normalize(shInp.normal);
+float lambert(const vec3 normal) {
   return clamp(dot(scene.sunDir,normal), 0.0, 1.0);
   }
 
 vec3 diffuseLight() {
-  float light  = lambert();
+  vec3  norm   = normalize(shInp.normal);
+  float light  = lambert(norm);
   float shadow = calcShadow(vec4(shInp.pos,1), 0, scene, textureSm0, textureSm1);
 
   vec3  lcolor  = scene.sunColor * light * shadow;
-  vec3  ambient = scene.ambient; // TODO: irradiance
+  vec3  ambient = scene.ambient + (norm.y*0.25+0.75) * NightAmbient * Fd_Lambert;
+  vec3  sky     = vec3(0); // TODO: irradiance
 
-  return (lcolor * Fd_Lambert + ambient);
+  return (lcolor + ambient + ambient);
   }
 
 vec4 dbgLambert() {
-  float l = lambert();
+  vec3  norm = normalize(shInp.normal);
+  float l    = lambert(norm);
   return vec4(l,l,l,1.0);
   }
 #endif

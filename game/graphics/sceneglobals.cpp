@@ -112,6 +112,9 @@ void SceneGlobals::setViewProject(const Tempest::Matrix4x4& v, const Tempest::Ma
   uboGlobalCpu.viewShadow[1].project(max);
   uboGlobalCpu.closeupShadowSlice = Tempest::Vec2(min.z,max.z);
 
+  if(shadowMap[0]==nullptr || shadowMap[0]->size()==Tempest::Size(1))
+    uboGlobalCpu.closeupShadowSlice = Tempest::Vec2(-65000);
+
   uboGlobalCpu.pfxLeft  = Tempest::Vec3::normalize({vp.at(0,0), vp.at(1,0), vp.at(2,0)});
   uboGlobalCpu.pfxTop   = Tempest::Vec3::normalize({vp.at(0,1), vp.at(1,1), vp.at(2,1)});
   uboGlobalCpu.pfxDepth = Tempest::Vec3::normalize({vp.at(0,2), vp.at(1,2), vp.at(2,2)});
