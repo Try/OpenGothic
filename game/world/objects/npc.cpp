@@ -2795,8 +2795,11 @@ bool Npc::startState(ScriptFn id, std::string_view wp, gtime endTime, bool noFin
   auto& st = owner.script().aiState(id);
   // allowed player states are hard-coded
   // https://forum.worldofplayers.de/forum/threads/1533803-G1-AI_StartState-hardcoded-ZS-states-for-Player?p=26034737&viewfull=1#post26034737
-  if(isPlayer() && !isPlayerEnabledState(st))
-    return false;
+  if(isPlayer() && !isPlayerEnabledState(st)) {
+    // disable for now, as it causes infinite lock in freeze state
+    // https://github.com/Try/OpenGothic/issues/906
+    //return false;
+    }
 
   aiState.started      = false;
   aiState.funcIni      = st.funcIni;
@@ -4070,7 +4073,7 @@ bool Npc::perceptionProcess(Npc &pl) {
   }
 
 bool Npc::perceptionProcess(Npc &pl, Npc* victim, float quadDist, PercType perc) {
-  if(!aiState.started) {
+  if(!aiState.started && aiState.funcIni.isValid()) {
     // avoid ugly soft-lock (ZS_MM_Attack <-> B_MM_AssessWarn) for the orks near ramp
     return false;
     }
