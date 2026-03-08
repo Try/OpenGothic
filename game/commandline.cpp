@@ -225,13 +225,23 @@ std::u16string CommandLine::nestedPath(const std::initializer_list<const char16_
   }
 
 bool CommandLine::validateGothicPath() const {
-  if(gpath.empty())
+  if(gpath.empty()) {
+    Log::e("Gothic path is empty");
     return false;
-  if(!FileUtil::exists(gscript))
+    }
+  if(!FileUtil::exists(gscript)) {
+    Log::e("Missing scripts directory: \"",TextCodec::toUtf8(gscript),"\"");
     return false;
-  if(!FileUtil::exists(nestedPath({u"Data"},Dir::FT_Dir)))
+    }
+  auto dataPath = nestedPath({u"Data"},Dir::FT_Dir);
+  if(!FileUtil::exists(dataPath)) {
+    Log::e("Missing Data directory: \"",TextCodec::toUtf8(dataPath),"\"");
     return false;
-  if(!FileUtil::exists(nestedPath({u"_work",u"Data"},Dir::FT_Dir)))
+    }
+  auto workDataPath = nestedPath({u"_work",u"Data"},Dir::FT_Dir);
+  if(!FileUtil::exists(workDataPath)) {
+    Log::e("Missing _work/Data directory: \"",TextCodec::toUtf8(workDataPath),"\"");
     return false;
+    }
   return true;
   }

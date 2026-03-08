@@ -252,6 +252,11 @@ void PlayerControl::onRotateMouse(float dAngleX, float dAngleY) {
   rotMouseY += dAngleY;
   }
 
+void PlayerControl::setGamepadAxis(float lx, float ly) {
+  gamepadLX = lx;
+  gamepadLY = ly;
+  }
+
 void PlayerControl::tickFocus() {
   currentFocus = findFocus(&currentFocus);
   setTarget(currentFocus.npc);

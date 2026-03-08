@@ -26,6 +26,8 @@
 #include "commandline.h"
 #include "gothic.h"
 
+#include <Tempest/SystemApi>
+
 using namespace Tempest;
 
 MainWindow::MainWindow(Device& device)
@@ -289,8 +291,17 @@ void MainWindow::paintEvent(PaintEvent& event) {
 void MainWindow::resizeEvent(SizeEvent&) {
   for(auto& i:fence)
     i.wait();
+
+  auto rectBefore = SystemApi::windowClientRect(hwnd());
+  Tempest::Log::i("MainWindow::resizeEvent: Starting resize - window: ", rectBefore.w, "x", rectBefore.h);
+
   swapchain.reset();
   renderer.resetSwapchain();
+
+  auto rectAfter = SystemApi::windowClientRect(hwnd());
+  Tempest::Log::i("MainWindow::resizeEvent: After swapchain reset - window: ", rectAfter.w, "x", rectAfter.h);
+  Tempest::Log::i("MainWindow::resizeEvent: Swapchain size: ", swapchain.w(), "x", swapchain.h());
+
   if(auto camera = Gothic::inst().camera())
     camera->setViewport(swapchain.w(),swapchain.h());
 
@@ -299,6 +310,8 @@ void MainWindow::resizeEvent(SizeEvent&) {
   setCursorPosition(rect.w/2,rect.h/2);
   setCursorShape(fs ? CursorShape::Hidden : CursorShape::Arrow);
   dMouse = Point();
+
+  Tempest::Log::i("MainWindow::resizeEvent: Resize completed");
   }
 
 void MainWindow::mouseDownEvent(MouseEvent &event) {
@@ -375,6 +388,42 @@ void MainWindow::tickMouse(uint64_t dt) {
     }
 
   dMouse = Point();
+  }
+
+void MainWindow::tickGamepad() {
+  auto gp = SystemApi::gamepadState();
+  if(!gp.connected)
+    return;
+
+  auto camera = Gothic::inst().camera();
+  if(dialogs.hasContent() || Gothic::inst().isPause() || camera==nullptr || camera->isCutscene())
+    return;
+
+  const float deadzone = 0.15f;
+  const float sensitivity = 15.0f;
+
+  float rx = gp.rightStickX;
+  float ry = gp.rightStickY;
+
+  if(std::abs(rx) < deadzone) rx = 0.0f;
+  if(std::abs(ry) < deadzone) ry = 0.0f;
+
+  if(rx != 0.0f || ry != 0.0f) {
+    PointF dp(ry * sensitivity, -rx * sensitivity);
+    camera->onRotateMouse(dp);
+
+    if(!inventory.isActive()) {
+      player.onRotateMouse(-dp.y, dp.x);
+      }
+    }
+
+  float lx = gp.leftStickX;
+  float ly = gp.leftStickY;
+
+  if(std::abs(lx) < deadzone) lx = 0.0f;
+  if(std::abs(ly) < deadzone) ly = 0.0f;
+
+  player.setGamepadAxis(lx, ly);
   }
 
 void MainWindow::onSettings() {
@@ -537,6 +586,7 @@ void MainWindow::keyUpEvent(KeyEvent &event) {
     if(auto pl = Gothic::inst().player())
       rootMenu.setPlayer(*pl);
     clearInput();
+    //event.accept();
     }
   else if(act==KeyCodec::Inventory && !dialogs.isActive()) {
     if(inventory.isActive()) {
@@ -900,6 +950,7 @@ uint64_t MainWindow::tick() {
   else if(runtimeMode==R_Suspended) {
     auto camera = Gothic::inst().camera();
     if(camera!=nullptr && camera->isFree()) {
+      tickGamepad();
       tickMouse(dt);
       }
     update();
@@ -915,7 +966,8 @@ uint64_t MainWindow::tick() {
     ;//clearInput();
   if(document.isActive())
     clearInput();
-  tickMouse(dt);
+  tickMouse();
+  tickGamepad();
   player.tickMove(dt);
   update();
   return dt;

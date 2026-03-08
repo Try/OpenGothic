@@ -23,6 +23,7 @@ class PlayerControl final {
     void  onKeyPressed (KeyCodec::Action a, Tempest::Event::KeyType key, KeyCodec::Mapping mapping = KeyCodec::Mapping::Primary);
     void  onKeyReleased(KeyCodec::Action a, KeyCodec::Mapping mapping = KeyCodec::Mapping::Primary);
     bool  isPressed(KeyCodec::Action a) const;
+    void  setGamepadAxis(float lx, float ly);
     void  onRotateMouse(float dAngleX, float dAngleY);
 
     void  changeZoom(int delta);
@@ -74,10 +75,10 @@ class PlayerControl final {
 
     using Action=KeyCodec::Action;
 
-    struct AxisStatus { 
+    struct AxisStatus {
         /// Main direction (e.g. W or Up arrow)
         std::array<bool, KeyCodec::NumMappings> main;
-        
+
         /// Reverse direction (e.g. S or Down arrow)
         std::array<bool, KeyCodec::NumMappings> reverse;
 
@@ -108,7 +109,7 @@ class PlayerControl final {
             }
           return false;
           }
-        
+
         /// Is any key pressed that activates the reverse direction
         /// (e.g. S or Down arrow in Forward-Backward axis)
         auto anyReverse() const -> bool {
@@ -120,7 +121,7 @@ class PlayerControl final {
       };
 
     struct MovementStatus {
-      AxisStatus forwardBackward;  
+      AxisStatus forwardBackward;
       AxisStatus strafeRightLeft;
       AxisStatus turnRightLeft;
 
@@ -131,7 +132,7 @@ class PlayerControl final {
         this->turnRightLeft.reset();
         }
       } movement;
-    
+
     bool           ctrl[Action::Last]={};
     bool           wctrl[WeaponAction::Last]={};
     bool           actrl[7]={};
@@ -142,6 +143,8 @@ class PlayerControl final {
     Focus          currentFocus;
     float          rotMouse=0;
     float          rotMouseY=0;
+    float          gamepadLX=0;
+    float          gamepadLY=0;
     bool           casting = false;
     size_t         pickLockProgress = 0;
 
@@ -180,17 +183,17 @@ class PlayerControl final {
     //////////////////////////////////
 
     auto wantsToMoveForward() const -> bool {
-      return movement.forwardBackward.value() > 0.f;
+      return movement.forwardBackward.value() > 0.f || gamepadLY < -0.2f;
       }
     auto wantsToMoveBackward() const -> bool {
-      return movement.forwardBackward.value() < 0.f;
+      return movement.forwardBackward.value() < 0.f || gamepadLY > 0.2f;
       }
 
     auto wantsToStrafeRight() const -> bool {
-      return movement.strafeRightLeft.value() > 0.f;
+      return movement.strafeRightLeft.value() > 0.f || gamepadLX > 0.2f;
       }
     auto wantsToStrafeLeft() const -> bool {
-      return movement.strafeRightLeft.value() < 0.f;
+      return movement.strafeRightLeft.value() < 0.f || gamepadLX < -0.2f;
       }
 
     auto wantsToTurnRight() const -> bool {
