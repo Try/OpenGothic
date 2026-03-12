@@ -830,6 +830,16 @@ void WorldObjects::marchCsCameras(DbgPainter& p) const {
 void WorldObjects::drawVobBoxNpcNear(DbgPainter& p) const {
   for(auto& i:npcNear)
     i->drawVobBox(p);
+
+  auto camera = Gothic::inst().camera();
+  const float nearDist = 3000*3000;
+  for(auto& i:interactiveObj) {
+    auto bbox = i->bBox();
+    auto pos  = (bbox[0]+bbox[1])*0.5f;
+    if((pos-camera->originLwc()).quadLength() > nearDist)
+      continue;
+    i->drawVobBox(p);
+    }
   }
 
 Interactive *WorldObjects::availableMob(const Npc &pl, std::string_view dest) {

@@ -278,6 +278,7 @@ void MainWindow::paintEvent(PaintEvent& event) {
     if(world!=nullptr && c!=nullptr) {
       DbgPainter dbg(p,c->viewProj(),w(),h());
       world->drawVobBoxNpcNear(dbg);
+      player.drawVobBox(dbg);
       }
     }
 

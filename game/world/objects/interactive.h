@@ -32,6 +32,9 @@ class Interactive : public Vob {
     void                save(Serialize& fout) const override;
     void                postValidate();
 
+    void                drawVobBox(DbgPainter& p) const;
+    void                drawVobRay(DbgPainter& p, const Npc& npc) const;
+
     void                resetPositionToTA(int32_t state);
     void                updateAnimation(uint64_t dt);
     void                tick(uint64_t dt);
@@ -137,8 +140,8 @@ class Interactive : public Vob {
     Pos*                findFreePos();
     auto                worldPos(const Pos &to) const -> Tempest::Vec3;
     float               qDistTo(const Npc &npc, const Pos &to) const;
-    Tempest::Matrix4x4  nodeTranform(const Npc &npc, const Pos &p) const;
-    auto                nodePosition(const Npc &npc, const Pos &p) const -> Tempest::Vec3;
+    Tempest::Matrix4x4  nodeTranform(const Npc& npc, const Pos &p) const;
+    auto                nodePosition(const Npc& npc, const Pos &p) const -> Tempest::Vec3;
 
     std::string         vobName;
     std::string         focName;
@@ -172,7 +175,5 @@ class Interactive : public Vob {
     bool                animChanged   = false;
 
     std::vector<Pos>    attPos;
-    PhysicMesh          physic;
-
     ObjVisual           visual;
   };

@@ -178,6 +178,52 @@ void Interactive::postValidate() {
     animChanged = true;
   }
 
+void Interactive::drawVobBox(DbgPainter& p) const {
+  p.setPen(Tempest::Color(1,0,0));
+  //p.drawAabb(bbox[0], bbox[1]);
+  if(auto mesh = visual.protoMesh()) {
+    if(auto* skeleton = mesh->skeleton.get()) {
+      auto bbox = skeleton->bboxCol;
+      p.drawObb(transform(), bbox[0]*2, bbox[1]*2);
+      }
+    }
+
+  p.setBrush(Tempest::Color(0,0,1));
+  for(auto& i:attPos){
+    auto  mat = nodeTranform(i.name);
+    float x   = mat.at(3,0);
+    float y   = mat.at(3,1);
+    float z   = mat.at(3,2);
+    p.drawPoint({x,y,z});
+    }
+  }
+
+void Interactive::drawVobRay(DbgPainter& p, const Npc& npc) const {
+  auto cen = npc.centerPosition();
+
+  if(auto mesh = visual.protoMesh()) {
+    if(auto* skeleton = mesh->skeleton.get()) {
+      auto  boxMin = skeleton->bboxCol[0] * 2.f;
+      auto  boxMax = skeleton->bboxCol[1] * 2.f;
+      auto  at     = (boxMin+boxMax)*0.5f;
+      transform().project(at);
+
+      auto  tMax   = (at - cen).length();
+      auto  dir    = Tempest::Vec3::normalize(at - cen);
+      float tHit   = DynamicWorld::rayBox(cen, dir, tMax, transform(), boxMin, boxMax);
+
+      bool accessable = true;
+      if(!npc.canRayHitPoint(cen+dir*tHit, true))
+        accessable = false;
+      p.setPen(accessable ? Tempest::Color(0,1,0) : Tempest::Color(1,0,0));
+      p.drawLine(cen, cen+dir*tHit);
+
+      p.setPen(Tempest::Color(1,1,0));
+      p.drawLine(cen+dir*tHit, at);
+      }
+    }
+  }
+
 void Interactive::resetPositionToTA(int32_t state) {
   for(auto& i:attPos)
     if(i.user!=nullptr && i.user->isPlayer())
@@ -539,6 +585,24 @@ uint32_t Interactive::stateMask() const {
   }
 
 bool Interactive::canSeeNpc(const Npc& npc, bool freeLos) const {
+  auto cen = npc.centerPosition();
+
+  if(auto mesh = visual.protoMesh()) {
+    if(auto* skeleton = mesh->skeleton.get()) {
+      auto  boxMin = skeleton->bboxCol[0] * 2.f;
+      auto  boxMax = skeleton->bboxCol[1] * 2.f;
+      auto  at     = (boxMin+boxMax)*0.5f;
+      transform().project(at);
+
+      auto  tMax   = (at - cen).length();
+      auto  dir    = (at - cen)/tMax;
+      float tHit   = DynamicWorld::rayBox(cen, dir, tMax, transform(), boxMin, boxMax);
+
+      if(!npc.canRayHitPoint(cen+dir*tHit, true))
+        return false;
+      }
+    }
+
   for(auto& i:attPos){
     auto pos = nodePosition(npc,i);
     if(npc.canSeeNpc(pos,freeLos))
@@ -732,10 +796,9 @@ bool Interactive::attach(Npc& npc, Interactive::Pos& to) {
   assert(to.user==nullptr);
 
   auto mat = nodeTranform(npc,to);
-  float x=0, y=0, z=0;
-  mat.project(x,y,z);
 
-  const Tempest::Vec3 mv = {x,y,z};
+  Tempest::Vec3 mv = {};
+  mat.project(mv);
 
   if((npc.centerPosition()-mv).quadLength()>MAX_AI_USE_DISTANCE*MAX_AI_USE_DISTANCE) {
     if(npc.isPlayer()) {
@@ -860,7 +923,19 @@ float Interactive::qDistTo(const Npc &npc, const Interactive::Pos &to) const {
   return npc.qDistTo(p);
   }
 
-Tempest::Matrix4x4 Interactive::nodeTranform(const Npc &npc, const Pos& p) const {
+Tempest::Matrix4x4 Interactive::nodeTranform(std::string_view nodeName) const {
+  auto mesh = visual.protoMesh();
+  if(mesh==nullptr || mesh->skeleton==nullptr)
+    return Tempest::Matrix4x4();
+
+  auto id  = mesh->skeleton->findNode(nodeName);
+  auto ret = transform();
+  if(id!=size_t(-1))
+    ret = visual.bone(id);
+  return ret;
+  }
+
+Tempest::Matrix4x4 Interactive::nodeTranform(const Npc& npc, const Pos& p) const {
   auto mesh = visual.protoMesh();
   if(mesh==nullptr)
     return Tempest::Matrix4x4();
@@ -903,24 +978,12 @@ Tempest::Matrix4x4 Interactive::nodeTranform(const Npc &npc, const Pos& p) const
   return transform();
   }
 
-Tempest::Vec3 Interactive::nodePosition(const Npc &npc, const Pos &p) const {
+Tempest::Vec3 Interactive::nodePosition(const Npc& npc, const Pos &p) const {
   auto  mat = nodeTranform(npc,p);
   float x   = mat.at(3,0);
   float y   = mat.at(3,1);
   float z   = mat.at(3,2);
   return {x,y,z};
-  }
-
-Tempest::Matrix4x4 Interactive::nodeTranform(std::string_view nodeName) const {
-  auto mesh = visual.protoMesh();
-  if(mesh==nullptr || mesh->skeleton==nullptr)
-    return Tempest::Matrix4x4();
-
-  auto id  = mesh->skeleton->findNode(nodeName);
-  auto ret = transform();
-  if(id!=size_t(-1))
-    ret = visual.bone(id);
-  return ret;
   }
 
 const Animation::Sequence* Interactive::setAnim(Interactive::Anim t) {

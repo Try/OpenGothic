@@ -14,6 +14,7 @@
 #include "world/world.h"
 #include "utils/versioninfo.h"
 #include "utils/fileext.h"
+#include "utils/dbgpainter.h"
 #include "camera.h"
 #include "gothic.h"
 #include "resources.h"
@@ -329,6 +330,15 @@ void Npc::postValidate() {
 
 void Npc::drawVobBox(DbgPainter& p) const {
   physic.debugDraw(p);
+
+  if(auto sk = visual.visualSkeleton()) {
+    auto bbox = sk->bboxCol;
+    auto tr   = transform();
+    tr.translate(0,translateY(),0);
+
+    p.setPen(Color(1,0,0));
+    p.drawObb(tr, bbox[0]*2, bbox[1]*2);
+    }
   }
 
 void Npc::saveAiState(Serialize& fout) const {
