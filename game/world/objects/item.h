@@ -27,6 +27,9 @@ class Item : public Vob {
     ~Item();
     Item& operator=(Item&&)=delete;
 
+    void    drawVobBox(DbgPainter& p) const;
+    void    drawVobRay(DbgPainter& p, const Npc& npc) const;
+
     void    save(Serialize& fout) const override;
 
     virtual void clearView();
@@ -100,6 +103,6 @@ class Item : public Vob {
     uint8_t                        equipped = 0;
     uint8_t                        itSlot   = NSLOT;
 
-    MeshObjects::Mesh              view;
+    MeshObjects::Mesh              visual;
     DynamicWorld::Item             physic;
   };

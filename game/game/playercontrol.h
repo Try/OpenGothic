@@ -164,7 +164,7 @@ class PlayerControl final {
     void           toggleWalkMode();
     void           toggleSneakMode();
     void           moveFocus(FocusAction act);
-    Focus          findFocus(Focus *prev);
+    Focus          findFocus(const Focus* prev) const;
 
     void           clrDraw();
     void           implMove(uint64_t dt);

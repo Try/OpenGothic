@@ -840,6 +840,13 @@ void WorldObjects::drawVobBoxNpcNear(DbgPainter& p) const {
       continue;
     i->drawVobBox(p);
     }
+
+  for(auto& i:items) {
+    auto pos = i->midPosition();
+    if((pos-camera->originLwc()).quadLength() > nearDist)
+      continue;
+    i->drawVobBox(p);
+    }
   }
 
 Interactive *WorldObjects::availableMob(const Npc &pl, std::string_view dest) {

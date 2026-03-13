@@ -3267,8 +3267,8 @@ Item* Npc::takeItem(Item& item) {
     return nullptr;
     }
 
-  auto dpos = item.position()-centerPosition();
-  const Animation::Sequence* sq = setAnimAngGet(Npc::Anim::ItmGet,Pose::calcAniCombVert(dpos));
+  const auto  dpos = item.midPosition()-centerPosition();
+  const auto* sq   = setAnimAngGet(Npc::Anim::ItmGet, Pose::calcAniCombVert(dpos));
   if(sq==nullptr)
     return nullptr;
 
@@ -4501,37 +4501,28 @@ SensesBit Npc::canSenseNpc(const Tempest::Vec3 pos, bool freeLos, bool isNoisy, 
   }
 
 bool Npc::canSeeItem(const Item& it, bool freeLos) const {
-  DynamicWorld* w = owner.physic();
   static const double ref = std::cos(100*M_PI/180.0); // spec requires +-100 view angle range
 
   const auto  itMid = it.midPosition();
+  const auto  cen   = centerPosition();
+  const auto  dir   = itMid - cen;
   const float range = float(hnpc->senses_range);
-  if(qDistTo(itMid)>range*range)
+
+  if(dir.quadLength()>range*range)
     return false;
 
   if(!freeLos) {
-    float dx  = x-itMid.x, dz=z-itMid.z;
+    float dx  = dir.x, dz = dir.z;
     float dir = angleDir(dx,dz);
     float da  = float(M_PI)*(visual.viewDirection()-dir)/180.f;
     if(double(std::cos(da))>ref)
       return false;
     }
 
-  // npc eyesight height
-  auto head = visual.mapHeadBone();
-  auto r    = w->ray(head,itMid);
-  auto err  = (head-itMid)*(1.f-r.hitFraction);
-  if(!r.hasCol || err.length()<25.f) {
-    return true;
-    }
-  if(y<=itMid.y && itMid.y<=head.y) {
-    auto pl = Vec3(head.x,itMid.y,head.z);
-    r   = w->ray(pl,itMid);
-    err = (pl-itMid)*(1.f-r.hitFraction);
-    if(!r.hasCol || err.length()<65.f)
-      return true;
-    }
-  return false;
+  const auto r = owner.physic()->ray(cen, itMid);
+  if(r.hasCol)
+    return false;
+  return true;
   }
 
 bool Npc::isAlignedToGround() const {

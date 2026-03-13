@@ -4,10 +4,12 @@
 
 #include "game/serialize.h"
 #include "game/gamescript.h"
-#include "utils/versioninfo.h"
+#include "graphics/mesh/skeleton.h"
 #include "world/objects/npc.h"
 #include "world/world.h"
+#include "utils/versioninfo.h"
 #include "utils/fileext.h"
+#include "utils/dbgpainter.h"
 
 using namespace Tempest;
 
@@ -20,9 +22,9 @@ Item::Item(World &owner, size_t itemInstance, Type type)
   setCount(1);
 
   if(type!=T_Inventory) {
-    view = world.addView(*hitem);
+    visual = world.addView(*hitem);
     if(type==T_WorldDyn)
-      setPhysicsEnable(view);
+      setPhysicsEnable(visual);
     }
   }
 
@@ -61,24 +63,75 @@ Item::Item(World &owner, Serialize &fin, Type type)
 
   if(type!=T_Inventory) {
     if(!FileExt::hasExt(hitem->visual,"ZEN"))
-      view = world.addView(*hitem);
+      visual = world.addView(*hitem);
     if(type==T_WorldDyn)
-      setPhysicsEnable(view);
+      setPhysicsEnable(visual);
     }
 
   setLocalTransform(mat);
-  view  .setObjMatrix(mat);
+  visual.setObjMatrix(mat);
   physic.setObjMatrix(mat);
   }
 
 Item::Item(Item &&it)
   : Vob(it.world), hitem(it.hitem),
-    pos(it.pos),equipped(it.equipped),itSlot(it.itSlot),view(std::move(it.view)) {
+    pos(it.pos),equipped(it.equipped),itSlot(it.itSlot),visual(std::move(it.visual)) {
   setLocalTransform(it.localTransform());
   physic = std::move(it.physic);
   }
 
 Item::~Item() {
+  }
+
+void Item::drawVobBox(DbgPainter& p) const {
+  p.setPen(Tempest::Color(1,0,0));
+  if(auto mesh = visual.protoMesh()) {
+    if(auto* skeleton = mesh->skeleton.get()) {
+      auto bbox = skeleton->bboxCol;
+      p.drawObb(transform(), bbox[0]*2, bbox[1]*2);
+      } else {
+      auto bbox = mesh->bbox;
+      p.drawObb(transform(), bbox[0], bbox[1]);
+      }
+
+    auto v = (mesh->bbox[0]+mesh->bbox[1])*0.5;
+    p.setPen(Tempest::Color(0,1,0));
+    p.drawPoint(pos+v);
+    }
+  }
+
+void Item::drawVobRay(DbgPainter& p, const Npc& npc) const {
+  auto cen = npc.centerPosition();
+  auto at  = midPosition();
+
+  bool accessable = true;
+  if(!npc.canRayHitPoint(at, true))
+    accessable = false;
+  p.setPen(accessable ? Tempest::Color(0,1,0) : Tempest::Color(1,0,0));
+  p.drawLine(cen, at);
+  /*
+  if(auto mesh = visual.protoMesh()) {
+    if(auto* skeleton = mesh->skeleton.get()) {
+      auto  boxMin = skeleton->bboxCol[0] * 2.f;
+      auto  boxMax = skeleton->bboxCol[1] * 2.f;
+      auto  at     = (boxMin+boxMax)*0.5f;
+      transform().project(at);
+
+      auto  tMax   = (at - cen).length();
+      auto  dir    = Tempest::Vec3::normalize(at - cen);
+      float tHit   = DynamicWorld::rayBox(cen, dir, tMax, transform(), boxMin, boxMax);
+
+      bool accessable = true;
+      if(!npc.canRayHitPoint(cen+dir*tHit, true))
+        accessable = false;
+      p.setPen(accessable ? Tempest::Color(0,1,0) : Tempest::Color(1,0,0));
+      p.drawLine(cen, cen+dir*tHit);
+
+      p.setPen(Tempest::Color(1,1,0));
+      p.drawLine(cen+dir*tHit, at);
+      }
+    }
+  */
   }
 
 void Item::save(Serialize &fout) const {
@@ -99,7 +152,7 @@ void Item::save(Serialize &fout) const {
   }
 
 void Item::clearView() {
-  view = MeshObjects::Mesh();
+  visual = MeshObjects::Mesh();
   }
 
 bool Item::isTorchBurn() const {
@@ -119,7 +172,7 @@ void Item::setObjMatrix(const Tempest::Matrix4x4 &m) {
   pos.y = m.at(3,1);
   pos.z = m.at(3,2);
   setLocalTransform(m);
-  view.setObjMatrix(m);
+  visual.setObjMatrix(m);
   }
 
 bool Item::isMission() const {
@@ -138,7 +191,7 @@ void Item::setAsEquipped(bool e) {
   }
 
 void Item::setPhysicsEnable(World& world) {
-  setPhysicsEnable(view);
+  setPhysicsEnable(visual);
   world.invalidateVobIndex();
   }
 
@@ -182,10 +235,12 @@ Tempest::Vec3 Item::position() const {
   }
 
 Vec3 Item::midPosition() const {
-  auto b = view.bounds();
-  auto v = (b.bbox[1]-b.bbox[0])*0.5;
+  auto b = visual.bounds();
+  auto v = (b.bbox[0]+b.bbox[1])*0.5;
+  transform().project(v);
+  return v;
   // transform().project(v); // doesn't work for Karibik mod
-  return pos + v;
+  // return pos + v;
   }
 
 bool Item::isGold() const {
@@ -322,7 +377,7 @@ void Item::updateMatrix() {
   }
 
 void Item::moveEvent() {
-  view  .setObjMatrix(transform());
+  visual.setObjMatrix(transform());
   physic.setObjMatrix(transform());
   if(!isDynamic())
     world.invalidateVobIndex();
