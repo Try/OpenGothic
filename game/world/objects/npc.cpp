@@ -696,6 +696,10 @@ Vec3 Npc::centerPosition() const {
   return p;
   }
 
+auto Npc::collosionCenter() const -> Vec3 {
+  return physic.center();
+  }
+
 Npc *Npc::lookAtTarget() const {
   return currentLookAtNpc;
   }
@@ -4415,7 +4419,7 @@ bool Npc::canSeeNpc(const Npc &oth, bool freeLos) const {
   const auto mid = oth.bounds().midTr;
   if(canSeeNpc(mid,freeLos))
     return true;
-  const auto ppos = oth.physic.position();
+  const auto ppos = oth.physic.center();
   if(oth.isDown() && canSeeNpc(ppos,freeLos)) {
     // mid of dead npc may endedup inside a wall; extra check for physical center
     return true;

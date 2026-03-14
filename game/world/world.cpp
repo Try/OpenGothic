@@ -645,7 +645,7 @@ Bullet& World::shootSpell(const Item &itm, const Npc &npc, const Npc *target) {
   float           tgRange = vfx==nullptr ? 0 : vfx->emTrjTargetRange;
 
   if(target!=nullptr) {
-    auto tgPos = target->centerPosition();
+    auto tgPos = target->collosionCenter();
     if(vfx!=nullptr) {
       pos   = npc.mapBone(vfx->emTrjOriginNode);
       tgPos = target->mapBone(vfx->emTrjTargetNode);
@@ -668,7 +668,7 @@ Bullet& World::shootBullet(const Item &itm, const Npc &npc, const Npc *target, c
   auto          pos = npc.mapWeaponBone();
 
   if(target!=nullptr) {
-    dir = target->centerPosition() - pos;
+    dir = target->collosionCenter() - pos;
 
     float lxz   = std::sqrt(dir.x*dir.x+0*0+dir.z*dir.z);
     float speed = DynamicWorld::bulletSpeed;

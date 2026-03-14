@@ -1006,6 +1006,15 @@ void DynamicWorld::NpcItem::setUserPointer(void *p) {
   obj->setUserPointer(p);
   }
 
+auto DynamicWorld::NpcItem::center() const -> Tempest::Vec3 {
+  if(obj) {
+    const btTransform&  tr  = obj->getWorldTransform();
+    const Tempest::Vec3 ret = {tr.getOrigin().x(), tr.getOrigin().y(), tr.getOrigin().z()};
+    return ret*100.f;
+    }
+  return {};
+  }
+
 float DynamicWorld::NpcItem::centerY() const {
   if(obj) {
     const btTransform& tr = obj->getWorldTransform();

@@ -91,6 +91,7 @@ class DynamicWorld final {
         void  setEnable(bool e);
         void  setUserPointer(void* p);
 
+        auto  center()  const -> Tempest::Vec3;
         float centerY() const;
 
         bool  testMove(const Tempest::Vec3& to, CollisionTest& out);
