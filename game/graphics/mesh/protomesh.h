@@ -91,6 +91,7 @@ class ProtoMesh {
     size_t                         skinedNodesCount() const;
     Tempest::Matrix4x4             mapToRoot(size_t node) const;
     size_t                         findNode(std::string_view name,size_t def=size_t(-1)) const;
+    const Tempest::Vec3*           bboxCol() const;
 
   private:
     void                           setupScheme(std::string_view s);

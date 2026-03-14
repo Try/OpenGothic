@@ -338,6 +338,12 @@ size_t ProtoMesh::findNode(std::string_view name, size_t def) const {
   return skeleton->findNode(name,def);
   }
 
+const Vec3* ProtoMesh::bboxCol() const {
+  if(skeleton==nullptr)
+    return bbox;
+  return skeleton->bboxCol;
+  }
+
 void ProtoMesh::setupScheme(std::string_view s) {
   auto sep = s.find("_");
   if(sep!=std::string::npos) {

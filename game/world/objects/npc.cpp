@@ -332,12 +332,11 @@ void Npc::drawVobBox(DbgPainter& p) const {
   physic.debugDraw(p);
 
   if(auto sk = visual.visualSkeleton()) {
-    auto bbox = sk->bboxCol;
-    auto tr   = transform();
+    auto tr = transform();
     tr.translate(0,translateY(),0);
 
     p.setPen(Color(1,0,0));
-    p.drawObb(tr, bbox[0]*2, bbox[1]*2);
+    p.drawObb(tr, sk->bboxCol);
     }
   }
 
@@ -4504,7 +4503,7 @@ bool Npc::canSeeItem(const Item& it, bool freeLos) const {
   static const double ref = std::cos(100*M_PI/180.0); // spec requires +-100 view angle range
 
   const auto  itMid = it.midPosition();
-  const auto  cen   = centerPosition();
+  const auto  cen   = visual.mapHeadBone();
   const auto  dir   = itMid - cen;
   const float range = float(hnpc->senses_range);
 
@@ -4519,9 +4518,22 @@ bool Npc::canSeeItem(const Item& it, bool freeLos) const {
       return false;
     }
 
-  const auto r = owner.physic()->ray(cen, itMid);
-  if(r.hasCol)
-    return false;
+  if(auto bbox = it.bBox()) {
+    // npc eyesight height
+    auto  at     = it.midPosition();
+    auto  tMax   = (at - cen).length();
+    auto  dir    = (at - cen)/tMax;
+    float tHit   = DynamicWorld::rayBox(cen, dir, tMax, transform(), bbox[0], bbox[1]);
+
+    const auto r = owner.physic()->ray(cen, cen+dir*tHit);
+    if(r.hasCol)
+      return false;
+    } else {
+    const auto r = owner.physic()->ray(cen, itMid);
+    if(r.hasCol)
+      return false;
+    }
+
   return true;
   }
 

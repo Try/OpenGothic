@@ -4,7 +4,6 @@
 
 #include "game/serialize.h"
 #include "game/gamescript.h"
-#include "graphics/mesh/skeleton.h"
 #include "world/objects/npc.h"
 #include "world/world.h"
 #include "utils/versioninfo.h"
@@ -86,50 +85,33 @@ Item::~Item() {
 void Item::drawVobBox(DbgPainter& p) const {
   p.setPen(Tempest::Color(1,0,0));
   if(auto mesh = visual.protoMesh()) {
-    if(auto* skeleton = mesh->skeleton.get()) {
-      p.drawObb(transform(), skeleton->bboxCol);
-      } else {
-      p.drawObb(transform(), mesh->bbox);
-      }
+    p.drawObb(transform(), mesh->bboxCol());
 
-    auto v = (mesh->bbox[0]+mesh->bbox[1])*0.5;
+    auto v = midPosition();
     p.setPen(Tempest::Color(0,1,0));
-    p.drawPoint(pos+v);
+    p.drawPoint(v);
     }
   }
 
 void Item::drawVobRay(DbgPainter& p, const Npc& npc) const {
-  auto cen = npc.centerPosition();
-  auto at  = midPosition();
+  if(auto bbox = this->bBox()) {
+    // npc eyesight height
+    auto  cen    = npc.mapHeadBone();
+    auto  at     = this->midPosition();
+    auto  tMax   = (at - cen).length();
+    auto  dir    = (at - cen)/tMax;
+    float tHit   = DynamicWorld::rayBox(cen, dir, tMax, transform(), bbox[0], bbox[1]);
 
-  bool accessable = true;
-  if(!npc.canRayHitPoint(at, true))
-    accessable = false;
-  p.setPen(accessable ? Tempest::Color(0,1,0) : Tempest::Color(1,0,0));
-  p.drawLine(cen, at);
-  /*
-  if(auto mesh = visual.protoMesh()) {
-    if(auto* skeleton = mesh->skeleton.get()) {
-      auto  boxMin = skeleton->bboxCol[0] * 2.f;
-      auto  boxMax = skeleton->bboxCol[1] * 2.f;
-      auto  at     = (boxMin+boxMax)*0.5f;
-      transform().project(at);
+    bool accessable = true;
+    const auto r = world.physic()->ray(cen, cen+dir*tHit);
+    if(r.hasCol)
+      accessable = false;
+    p.setPen(accessable ? Tempest::Color(0,1,0) : Tempest::Color(1,0,0));
+    p.drawLine(cen, cen+dir*tHit);
 
-      auto  tMax   = (at - cen).length();
-      auto  dir    = Tempest::Vec3::normalize(at - cen);
-      float tHit   = DynamicWorld::rayBox(cen, dir, tMax, transform(), boxMin, boxMax);
-
-      bool accessable = true;
-      if(!npc.canRayHitPoint(cen+dir*tHit, true))
-        accessable = false;
-      p.setPen(accessable ? Tempest::Color(0,1,0) : Tempest::Color(1,0,0));
-      p.drawLine(cen, cen+dir*tHit);
-
-      p.setPen(Tempest::Color(1,1,0));
-      p.drawLine(cen+dir*tHit, at);
-      }
+    p.setPen(Tempest::Color(1,1,0));
+    p.drawLine(cen+dir*tHit, at);
     }
-  */
   }
 
 void Item::save(Serialize &fout) const {
@@ -232,13 +214,20 @@ Tempest::Vec3 Item::position() const {
   return pos;
   }
 
+const Vec3* Item::bBox() const {
+  if(visual.protoMesh()==nullptr)
+    return nullptr;
+  return visual.protoMesh()->bboxCol();
+  }
+
 Vec3 Item::midPosition() const {
-  auto b = visual.bounds();
-  auto v = (b.bbox[0]+b.bbox[1])*0.5;
-  transform().project(v);
-  return v;
-  // transform().project(v); // doesn't work for Karibik mod
-  // return pos + v;
+  if(auto mesh = visual.protoMesh())  {
+    auto bbox = mesh->bboxCol();
+    auto v    = (bbox[0] + bbox[1])*0.5;
+    transform().project(v); // doesn't use to work for Karibik mod
+    return v;
+    }
+  return pos;
   }
 
 bool Item::isGold() const {

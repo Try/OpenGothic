@@ -182,10 +182,7 @@ void Interactive::drawVobBox(DbgPainter& p) const {
   p.setPen(Tempest::Color(1,0,0));
   //p.drawAabb(bbox[0], bbox[1]);
   if(auto mesh = visual.protoMesh()) {
-    if(auto* skeleton = mesh->skeleton.get()) {
-      auto bbox = skeleton->bboxCol;
-      p.drawObb(transform(), bbox[0], bbox[1]);
-      }
+    p.drawObb(transform(), mesh->bboxCol());
     }
 
   p.setBrush(Tempest::Color(0,0,1));
@@ -202,25 +199,24 @@ void Interactive::drawVobRay(DbgPainter& p, const Npc& npc) const {
   auto cen = npc.centerPosition();
 
   if(auto mesh = visual.protoMesh()) {
-    if(auto* skeleton = mesh->skeleton.get()) {
-      auto  boxMin = skeleton->bboxCol[0];
-      auto  boxMax = skeleton->bboxCol[1];
-      auto  at     = (boxMin+boxMax)*0.5f;
-      transform().project(at);
+    auto  bbox   = mesh->bboxCol();
+    auto  boxMin = bbox[0];
+    auto  boxMax = bbox[1];
+    auto  at     = (boxMin+boxMax)*0.5f;
+    transform().project(at);
 
-      auto  tMax   = (at - cen).length();
-      auto  dir    = Tempest::Vec3::normalize(at - cen);
-      float tHit   = DynamicWorld::rayBox(cen, dir, tMax, transform(), boxMin, boxMax);
+    auto  tMax   = (at - cen).length();
+    auto  dir    = Tempest::Vec3::normalize(at - cen);
+    float tHit   = DynamicWorld::rayBox(cen, dir, tMax, transform(), boxMin, boxMax);
 
-      bool accessable = true;
-      if(!npc.canRayHitPoint(cen+dir*tHit, true))
-        accessable = false;
-      p.setPen(accessable ? Tempest::Color(0,1,0) : Tempest::Color(1,0,0));
-      p.drawLine(cen, cen+dir*tHit);
+    bool accessable = true;
+    if(!npc.canRayHitPoint(cen+dir*tHit, true))
+      accessable = false;
+    p.setPen(accessable ? Tempest::Color(0,1,0) : Tempest::Color(1,0,0));
+    p.drawLine(cen, cen+dir*tHit);
 
-      p.setPen(Tempest::Color(1,1,0));
-      p.drawLine(cen+dir*tHit, at);
-      }
+    p.setPen(Tempest::Color(1,1,0));
+    p.drawLine(cen+dir*tHit, at);
     }
   }
 
@@ -588,19 +584,16 @@ bool Interactive::canSeeNpc(const Npc& npc, bool freeLos) const {
   auto cen = npc.centerPosition();
 
   if(auto mesh = visual.protoMesh()) {
-    if(auto* skeleton = mesh->skeleton.get()) {
-      auto  boxMin = skeleton->bboxCol[0];
-      auto  boxMax = skeleton->bboxCol[1];
-      auto  at     = (boxMin+boxMax)*0.5f;
-      transform().project(at);
+    auto  bbox   = mesh->bboxCol();
+    auto  at     = (bbox[0]+bbox[1])*0.5f;
+    transform().project(at);
 
-      auto  tMax   = (at - cen).length();
-      auto  dir    = (at - cen)/tMax;
-      float tHit   = DynamicWorld::rayBox(cen, dir, tMax, transform(), boxMin, boxMax);
+    auto  tMax   = (at - cen).length();
+    auto  dir    = (at - cen)/tMax;
+    float tHit   = DynamicWorld::rayBox(cen, dir, tMax, transform(), bbox[0], bbox[1]);
 
-      if(!npc.canRayHitPoint(cen+dir*tHit, true))
-        return false;
-      }
+    if(!npc.canRayHitPoint(cen+dir*tHit, true))
+      return false;
     }
 
   for(auto& i:attPos){
