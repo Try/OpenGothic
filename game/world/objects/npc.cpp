@@ -333,7 +333,7 @@ void Npc::drawVobBox(DbgPainter& p) const {
 
   if(auto sk = visual.visualSkeleton()) {
     auto tr = transform();
-    tr.translate(0,translateY(),0);
+    tr.translate(0,visual.pose().translateY(),0);
 
     p.setPen(Color(1,0,0));
     p.drawObb(tr, sk->bboxCol);
@@ -688,10 +688,6 @@ Bounds Npc::bounds() const {
   auto b = visual.bounds();
   b.setObjMatrix(transform());
   return b;
-  }
-
-float Npc::translateY() const {
-  return visual.pose().translateY();
   }
 
 Vec3 Npc::centerPosition() const {
@@ -4315,7 +4311,7 @@ Npc::JumpStatus Npc::tryJump() {
     return ret;
     }
 
-  if(isInAir() && dY<=jumpLow + translateY()) {
+  if(isInAir() && dY<=jumpLow + visual.pose().translateY()) {
     // jumpup -> climb
     ret.anim   = Anim::JumpHang;
     ret.height = jumpY;

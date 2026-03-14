@@ -727,10 +727,8 @@ bool MoveAlgo::isClose(const Npc& npc, const WayPoint& p) {
   }
 
 bool MoveAlgo::isClose(const Npc& npc, const WayPoint& p, float dist) {
-  auto px = p.position();
-  px.y += npc.translateY();
-
-  float len = npc.qDistTo(px);
+  auto  dp  = p.groundPos - npc.position();
+  float len = dp.quadLength();
   return (len<dist*dist);
   }
 

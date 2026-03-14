@@ -40,7 +40,8 @@ struct WorldSound::WSound final {
 struct WorldSound::Zone final {
   Tempest::Vec3 bbox[2]={};
   std::string   name;
-  bool          checkPos(float x,float y,float z) const {
+  bool          checkPos(const Tempest::Vec3& v) const { return checkPos(v.x, v.y, v.z); }
+  bool          checkPos(float x, float y, float z) const {
     return
         bbox[0].x <= x && x<bbox[1].x &&
         bbox[0].y <= y && y<bbox[1].y &&
@@ -222,12 +223,11 @@ void WorldSound::tickSoundZone(Npc& player) {
   nextSoundUpdate = owner.tickCount()+5*1000;
 
   Zone* zone = def.get();
-  if(currentZone!=nullptr &&
-     currentZone->checkPos(plPos.x,plPos.y+player.translateY(),plPos.z)){
+  if(currentZone!=nullptr && currentZone->checkPos(plPos)){
     zone = currentZone;
     } else {
     for(auto& z:zones) {
-      if(z.checkPos(plPos.x,plPos.y+player.translateY(),plPos.z)) {
+      if(z.checkPos(plPos)) {
         zone = &z;
         }
       }
