@@ -17,6 +17,7 @@ class DbgPainter {
     void drawPoint(const Tempest::Vec3& a, int radiusPx = 5);
     void drawAabb(const Tempest::Vec3& min, const Tempest::Vec3& max);
     void drawObb (const Tempest::Matrix4x4& m, const Tempest::Vec3& min, const Tempest::Vec3& max);
+    void drawObb (const Tempest::Matrix4x4& m, const Tempest::Vec3 bbox[2]);
 
     Tempest::Painter&        painter;
     const Tempest::Matrix4x4 mvp;

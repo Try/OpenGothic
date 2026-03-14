@@ -109,3 +109,7 @@ void DbgPainter::drawObb(const Tempest::Matrix4x4& m, const Tempest::Vec3& min, 
   line(Tempest::Vec3(max.x, min.y, max.z), Tempest::Vec3(max.x, max.y, max.z));
   line(Tempest::Vec3(min.x, min.y, max.z), Tempest::Vec3(min.x, max.y, max.z));
   }
+
+void DbgPainter::drawObb(const Tempest::Matrix4x4& m, const Tempest::Vec3 bbox[]) {
+  drawObb(m, bbox[0], bbox[1]);
+  }

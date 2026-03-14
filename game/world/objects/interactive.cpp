@@ -184,7 +184,7 @@ void Interactive::drawVobBox(DbgPainter& p) const {
   if(auto mesh = visual.protoMesh()) {
     if(auto* skeleton = mesh->skeleton.get()) {
       auto bbox = skeleton->bboxCol;
-      p.drawObb(transform(), bbox[0]*2, bbox[1]*2);
+      p.drawObb(transform(), bbox[0], bbox[1]);
       }
     }
 
@@ -203,8 +203,8 @@ void Interactive::drawVobRay(DbgPainter& p, const Npc& npc) const {
 
   if(auto mesh = visual.protoMesh()) {
     if(auto* skeleton = mesh->skeleton.get()) {
-      auto  boxMin = skeleton->bboxCol[0] * 2.f;
-      auto  boxMax = skeleton->bboxCol[1] * 2.f;
+      auto  boxMin = skeleton->bboxCol[0];
+      auto  boxMax = skeleton->bboxCol[1];
       auto  at     = (boxMin+boxMax)*0.5f;
       transform().project(at);
 
@@ -589,8 +589,8 @@ bool Interactive::canSeeNpc(const Npc& npc, bool freeLos) const {
 
   if(auto mesh = visual.protoMesh()) {
     if(auto* skeleton = mesh->skeleton.get()) {
-      auto  boxMin = skeleton->bboxCol[0] * 2.f;
-      auto  boxMax = skeleton->bboxCol[1] * 2.f;
+      auto  boxMin = skeleton->bboxCol[0];
+      auto  boxMax = skeleton->bboxCol[1];
       auto  at     = (boxMin+boxMax)*0.5f;
       transform().project(at);
 

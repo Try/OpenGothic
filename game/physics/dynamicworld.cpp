@@ -700,9 +700,10 @@ float DynamicWorld::soundOclusion(const Tempest::Vec3& from, const Tempest::Vec3
 
 DynamicWorld::NpcItem DynamicWorld::ghostObj(std::string_view visual) {
   Tempest::Vec3 min={0,0,0}, max={0,0,0};
-  if(auto sk=Resources::loadSkeleton(visual)) {
-    min = sk->bboxCol[0];
-    max = sk->bboxCol[1];
+  if(auto sk = Resources::loadSkeleton(visual)) {
+    // scale by 0.5, to be compatible with old behaviour for now
+    min = sk->bboxCol[0] * 0.5f;
+    max = sk->bboxCol[1] * 0.5f;
     }
   auto  obj = npcList->create(min,max);
   float dim = std::max(obj->rX,obj->rZ);

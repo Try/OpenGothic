@@ -87,11 +87,9 @@ void Item::drawVobBox(DbgPainter& p) const {
   p.setPen(Tempest::Color(1,0,0));
   if(auto mesh = visual.protoMesh()) {
     if(auto* skeleton = mesh->skeleton.get()) {
-      auto bbox = skeleton->bboxCol;
-      p.drawObb(transform(), bbox[0]*2, bbox[1]*2);
+      p.drawObb(transform(), skeleton->bboxCol);
       } else {
-      auto bbox = mesh->bbox;
-      p.drawObb(transform(), bbox[0], bbox[1]);
+      p.drawObb(transform(), mesh->bbox);
       }
 
     auto v = (mesh->bbox[0]+mesh->bbox[1])*0.5;
