@@ -4416,11 +4416,8 @@ void Npc::stopWalking() {
   }
 
 bool Npc::canSeeNpc(const Npc &oth, bool freeLos) const {
-  const auto mid = oth.bounds().midTr;
-  if(canSeeNpc(mid,freeLos))
-    return true;
-  const auto ppos = oth.physic.center();
-  if(oth.isDown() && canSeeNpc(ppos,freeLos)) {
+  const auto mid = oth.physic.center();
+  if(canRayHitPoint(mid,freeLos)) {
     // mid of dead npc may endedup inside a wall; extra check for physical center
     return true;
     }
@@ -4429,7 +4426,7 @@ bool Npc::canSeeNpc(const Npc &oth, bool freeLos) const {
   if(oth.visual.visualSkeleton()->BIP01_HEAD==size_t(-1))
     return false;
   auto head = oth.visual.mapHeadBone();
-  if(canSeeNpc(head,freeLos))
+  if(canRayHitPoint(head,freeLos))
     return true;
   return false;
   }
