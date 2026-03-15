@@ -766,8 +766,8 @@ void GameScript::fixNpcPosition(Npc& npc, float angle0, float distBias) {
   auto  pos0 = npc.position();
 
   for(int r = 0; r<=800; r+=20) {
-    for(float ang = 0; ang<360; ang+=30.f) {
-      float a = float((ang+angle0)*M_PI/180.0);
+    for(int ang = 0; ang<360; ang+=30) {
+      float a = float((float(ang)+angle0)*M_PI/180.0);
       float d = float(r)+distBias;
       auto  p = pos0+Vec3(std::cos(a)*d, 0, std::sin(a)*d);
 
@@ -776,12 +776,18 @@ void GameScript::fixNpcPosition(Npc& npc, float angle0, float distBias) {
         continue;
       p.y = ray.v.y;
       npc.setPosition(p);
-      if(!npc.hasCollision())
+      if(!npc.hasCollision()) {
+        npc.updateTransform();
         return;
+        }
+      if(d==0) {
+        // no need to loop multiple angles, with R of zero
+        break;
+        }
       }
     }
 
-  npc.setPosition(pos0);
+  // npc.setPosition(pos0);
   }
 
 void GameScript::eventPlayAni(Npc& npc, std::string_view ani) {
