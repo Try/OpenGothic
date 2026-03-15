@@ -328,18 +328,6 @@ void Npc::postValidate() {
     currentInteract = nullptr;
   }
 
-void Npc::drawVobBox(DbgPainter& p) const {
-  physic.debugDraw(p);
-
-  if(auto sk = visual.visualSkeleton()) {
-    auto tr = transform();
-    tr.translate(0,visual.pose().translateY(),0);
-
-    p.setPen(Color(1,0,0));
-    p.drawObb(tr, sk->bboxCol);
-    }
-  }
-
 void Npc::saveAiState(Serialize& fout) const {
   fout.write(aniWaitTime,waitTime,faiWaitTime,outWaitTime);
   fout.write(uint8_t(aiPolicy));
@@ -4415,6 +4403,41 @@ void Npc::stopWalking() {
   stopWalkAnimation();
   }
 
+void Npc::drawVobBox(DbgPainter& p) const {
+  physic.debugDraw(p);
+
+  if(auto sk = visual.visualSkeleton()) {
+    auto tr = transform();
+    tr.translate(0,visual.pose().translateY(),0);
+
+    p.setPen(Color(1,0,0));
+    p.drawObb(tr, sk->bboxCol);
+    }
+  }
+
+void Npc::drawVobRay(DbgPainter& p, const Npc& oth) const {
+  const bool freeLos = true;
+  const auto mid     = oth.physic.center();
+  p.setPen(Color(0,1,0));
+
+  if(canRayHitPoint(mid,freeLos)) {
+    // mid of dead npc may endedup inside a wall; extra check for physical center
+    p.drawLine(mapHeadBone(), mid);
+    return;
+    }
+  if(oth.visual.visualSkeleton()==nullptr)
+    return;
+  if(oth.visual.visualSkeleton()->BIP01_HEAD==size_t(-1))
+    return;
+  auto head = oth.visual.mapHeadBone();
+  if(canRayHitPoint(head,freeLos)) {
+    p.drawLine(mapHeadBone(), head);
+    return;
+    }
+  p.setPen(Color(1,0,0));
+  p.drawLine(mapHeadBone(), head);
+  }
+
 bool Npc::canSeeNpc(const Npc &oth, bool freeLos) const {
   const auto mid = oth.physic.center();
   if(canRayHitPoint(mid,freeLos)) {
@@ -4439,10 +4462,6 @@ bool Npc::canSeeSource() const {
   if(currentLookAtNpc!=nullptr)
     return canSeeNpc(*currentLookAtNpc, false);
   return false;
-  }
-
-bool Npc::canSeeNpc(const Vec3 pos, bool freeLos) const {
-  return canRayHitPoint(pos, freeLos);
   }
 
 bool Npc::canRayHitPoint(const Tempest::Vec3 pos, bool freeLos, float extRange) const {

@@ -26,7 +26,7 @@ class PlayerControl final {
     bool  isPressed(KeyCodec::Action a) const;
     void  onRotateMouse(float dAngleX, float dAngleY);
 
-    void  drawVobBox(DbgPainter& p) const;
+    void  drawVobRay(DbgPainter& p) const;
 
     void  changeZoom(int delta);
     void  tickFocus();

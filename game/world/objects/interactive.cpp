@@ -598,14 +598,14 @@ bool Interactive::canSeeNpc(const Npc& npc, bool freeLos) const {
 
   for(auto& i:attPos){
     auto pos = nodePosition(npc,i);
-    if(npc.canSeeNpc(pos,freeLos))
+    if(npc.canRayHitPoint(pos,freeLos))
       return true;
     }
 
   // graves
   if(attPos.size()==0){
     auto pos = displayPosition();
-    if(npc.canSeeNpc(pos,freeLos))
+    if(npc.canRayHitPoint(pos,freeLos))
       return true;
     }
   return false;

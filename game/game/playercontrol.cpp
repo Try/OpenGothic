@@ -252,7 +252,7 @@ void PlayerControl::onRotateMouse(float dAngleX, float dAngleY) {
   rotMouseY += dAngleY;
   }
 
-void PlayerControl::drawVobBox(DbgPainter& p) const {
+void PlayerControl::drawVobRay(DbgPainter& p) const {
   auto w = Gothic::inst().world();
   if(w==nullptr || w->player()==nullptr)
     return;
@@ -263,6 +263,9 @@ void PlayerControl::drawVobBox(DbgPainter& p) const {
     }
   if(focus.item!=nullptr) {
     focus.item->drawVobRay(p, *pl);
+    }
+  if(focus.npc!=nullptr) {
+    pl->drawVobRay(p, *focus.npc);
     }
   }
 

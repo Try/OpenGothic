@@ -28,6 +28,7 @@ class Marvin {
 
       // rendering
       C_ToggleFrame,
+      C_ToggleShowRay,
       C_ToggleVobBox,
 
       // game

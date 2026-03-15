@@ -98,7 +98,7 @@ Marvin::Marvin() {
     {"ztoggle renderportals",      C_Invalid},
     {"ztoggle rendervob",          C_Invalid},
     {"ztoggle showportals",        C_Invalid},
-    {"ztoggle showtraceray",       C_Invalid},
+    {"ztoggle showtraceray",       C_ToggleShowRay},
     {"ztoggle tnl",                C_Invalid},
     {"ztoggle vobbox",             C_ToggleVobBox},
     {"zvideores %d %d %d",         C_Invalid},
@@ -350,6 +350,10 @@ bool Marvin::exec(std::string_view v) {
       }
     case C_ToggleFrame:{
       Gothic::inst().setFRate(!Gothic::inst().doFrate());
+      return true;
+      }
+    case C_ToggleShowRay:{
+      Gothic::inst().setVobRays(!Gothic::inst().doVobRays());
       return true;
       }
     case C_ToggleVobBox:{
