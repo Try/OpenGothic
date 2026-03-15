@@ -196,7 +196,7 @@ void Interactive::drawVobBox(DbgPainter& p) const {
   }
 
 void Interactive::drawVobRay(DbgPainter& p, const Npc& npc) const {
-  auto cen = npc.centerPosition();
+  auto head = npc.mapHeadBone();
 
   if(auto mesh = visual.protoMesh()) {
     auto  bbox   = mesh->bboxCol();
@@ -205,18 +205,18 @@ void Interactive::drawVobRay(DbgPainter& p, const Npc& npc) const {
     auto  at     = (boxMin+boxMax)*0.5f;
     transform().project(at);
 
-    auto  tMax   = (at - cen).length();
-    auto  dir    = Tempest::Vec3::normalize(at - cen);
-    float tHit   = DynamicWorld::rayBox(cen, dir, tMax, transform(), boxMin, boxMax);
+    auto  tMax   = (at - head).length();
+    auto  dir    = Tempest::Vec3::normalize(at - head);
+    float tHit   = DynamicWorld::rayBox(head, dir, tMax, transform(), boxMin, boxMax, 0.1f);
 
     bool accessable = true;
-    if(!npc.canRayHitPoint(cen+dir*tHit, true))
+    if(!npc.canRayHitPoint(head+dir*tHit, true))
       accessable = false;
     p.setPen(accessable ? Tempest::Color(0,1,0) : Tempest::Color(1,0,0));
-    p.drawLine(cen, cen+dir*tHit);
+    p.drawLine(head, head+dir*tHit);
 
     p.setPen(Tempest::Color(1,1,0));
-    p.drawLine(cen+dir*tHit, at);
+    p.drawLine(head+dir*tHit, at);
     }
   }
 
@@ -581,18 +581,17 @@ uint32_t Interactive::stateMask() const {
   }
 
 bool Interactive::canSeeNpc(const Npc& npc, bool freeLos) const {
-  auto cen = npc.centerPosition();
-
+  auto head = npc.mapHeadBone();
   if(auto mesh = visual.protoMesh()) {
     auto  bbox   = mesh->bboxCol();
     auto  at     = (bbox[0]+bbox[1])*0.5f;
     transform().project(at);
 
-    auto  tMax   = (at - cen).length();
-    auto  dir    = (at - cen)/tMax;
-    float tHit   = DynamicWorld::rayBox(cen, dir, tMax, transform(), bbox[0], bbox[1]);
+    auto  tMax   = (at - head).length();
+    auto  dir    = (at - head)/tMax;
+    float tHit   = DynamicWorld::rayBox(head, dir, tMax, transform(), bbox[0], bbox[1], 0.1f);
 
-    if(!npc.canRayHitPoint(cen+dir*tHit, true))
+    if(!npc.canRayHitPoint(head+dir*tHit, true))
       return false;
     }
 
@@ -603,11 +602,17 @@ bool Interactive::canSeeNpc(const Npc& npc, bool freeLos) const {
     }
 
   // graves
-  if(attPos.size()==0){
+  if(attPos.size()==0) {
+    // ray-box test should be engough
+    return true;
+    }
+  /*
+  if(attPos.size()==0) {
     auto pos = displayPosition();
     if(npc.canRayHitPoint(pos,freeLos))
       return true;
     }
+  */
   return false;
   }
 

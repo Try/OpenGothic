@@ -923,7 +923,8 @@ float DynamicWorld::materialDensity(zenkit::MaterialGroup mat) {
   }
 
 float DynamicWorld::rayBox(const Tempest::Vec3& orig, const Tempest::Vec3& dir, const float TMax,
-                           const Tempest::Matrix4x4& obj, const Tempest::Vec3& min, const Tempest::Vec3& max) {
+                           const Tempest::Matrix4x4& obj, const Tempest::Vec3& min, const Tempest::Vec3& max,
+                           const float padd) {
   using namespace Tempest;
 
   auto tmp = obj;
@@ -935,7 +936,7 @@ float DynamicWorld::rayBox(const Tempest::Vec3& orig, const Tempest::Vec3& dir, 
   tmp.project(tOri);
   tmp.project(tDir.x, tDir.y, tDir.z, zero);
 
-  float tHit = rayBox(tOri, Vec3(tDir.x, tDir.y, tDir.z), TMax, min, max);
+  float tHit = rayBox(tOri, Vec3(tDir.x, tDir.y, tDir.z), TMax, min, max, padd);
   if(tHit==TMax)
     return TMax;
 
@@ -946,7 +947,8 @@ float DynamicWorld::rayBox(const Tempest::Vec3& orig, const Tempest::Vec3& dir, 
   }
 
 float DynamicWorld::rayBox(const Tempest::Vec3& orig, const Tempest::Vec3& dir, const float TMax,
-                           const Tempest::Vec3& boxMin, const Tempest::Vec3& boxMax) {
+                           const Tempest::Vec3& boxMin, const Tempest::Vec3& boxMax,
+                           const float padd) {
   using namespace Tempest;
 
   Vec3  invDir = Vec3(1.f/dir.x, 1.f/dir.y, 1.f/dir.z);
@@ -959,7 +961,7 @@ float DynamicWorld::rayBox(const Tempest::Vec3& orig, const Tempest::Vec3& dir, 
   float tNear = std::max(0.f,  std::max(t1.x, std::max(t1.y, t1.z)));
   float tFar  = std::min(TMax, std::min(t2.x, std::min(t2.y, t2.z)));
 
-  return tNear > tFar ? TMax : tNear;
+  return tNear > tFar ? TMax : std::max(0.f, tNear-padd);
   }
 
 std::string_view DynamicWorld::validateSectorName(std::string_view name) const {

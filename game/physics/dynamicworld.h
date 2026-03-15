@@ -260,9 +260,11 @@ class DynamicWorld final {
     static float   materialDensity (zenkit::MaterialGroup mat);
 
     static float   rayBox(const Tempest::Vec3& orig, const Tempest::Vec3& dir, const float TMax,
-                          const Tempest::Matrix4x4& obj, const Tempest::Vec3& min, const Tempest::Vec3& max);
+                          const Tempest::Matrix4x4& obj, const Tempest::Vec3& min, const Tempest::Vec3& max,
+                          const float padd = 0.f);
     static float   rayBox(const Tempest::Vec3& orig, const Tempest::Vec3& dir, const float TMax,
-                          const Tempest::Vec3& min, const Tempest::Vec3& max);
+                          const Tempest::Vec3& min, const Tempest::Vec3& max,
+                          const float padd = 0.f);
 
     std::string_view validateSectorName(std::string_view name) const;
 
