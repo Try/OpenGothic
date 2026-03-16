@@ -89,12 +89,6 @@ class Interactive : public Vob {
     void                marchInteractives(DbgPainter& p) const;
 
   protected:
-    Tempest::Matrix4x4  nodeTranform(std::string_view nodeName) const;
-    void                moveEvent() override;
-    float               extendedSearchRadius() const override;
-    virtual void        onStateChanged(){}
-
-  private:
     enum Phase : uint8_t {
       NotStarted = 0,
       Started    = 1,
@@ -115,6 +109,16 @@ class Interactive : public Vob {
       bool                isDistPos() const;
       };
 
+    auto                nodePosition(const Pos &to) const -> Tempest::Vec3;
+    auto                nodePosition(const Npc& npc, const Pos &p) const -> Tempest::Vec3;
+    Tempest::Matrix4x4  nodeTranform(std::string_view nodeName) const;
+    Tempest::Matrix4x4  nodeTranform(const Npc& npc, const Pos &p) const;
+
+    void                moveEvent() override;
+    float               extendedSearchRadius() const override;
+    virtual void        onStateChanged(){}
+
+  private:
     void                setVisual(const zenkit::VirtualObject& vob);
     void                invokeStateFunc(Npc &npc);
     void                implTick(Pos &p);
@@ -138,10 +142,7 @@ class Interactive : public Vob {
     Pos*                findNearest(const Npc& to);
     const Pos*          findFreePos() const;
     Pos*                findFreePos();
-    auto                worldPos(const Pos &to) const -> Tempest::Vec3;
     float               qDistTo(const Npc &npc, const Pos &to) const;
-    Tempest::Matrix4x4  nodeTranform(const Npc& npc, const Pos &p) const;
-    auto                nodePosition(const Npc& npc, const Pos &p) const -> Tempest::Vec3;
 
     std::string         vobName;
     std::string         focName;

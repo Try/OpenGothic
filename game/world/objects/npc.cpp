@@ -2484,8 +2484,13 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
 
       if(inter!=nullptr) {
         auto pos = inter->nearestPoint(*this);
-        auto dp  = pos-position();
-        dp.y = 0;
+        auto ray = owner.physic()->ray(pos, pos+Vec3(0,-MAX_AI_USE_DISTANCE,0));
+        if(ray.hasCol) {
+          // project position on landscape
+          pos = ray.v;
+          }
+
+        auto dp = pos - position();
         if(currentInteract==nullptr && dp.quadLength()>MAX_AI_USE_DISTANCE*MAX_AI_USE_DISTANCE) { // too far
           go2.set(pos);
           // go to MOBSI and then complete AI_UseMob

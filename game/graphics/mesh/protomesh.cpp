@@ -318,20 +318,6 @@ size_t ProtoMesh::skinedNodesCount() const {
   return ret;
   }
 
-Tempest::Matrix4x4 ProtoMesh::mapToRoot(size_t n) const {
-  Tempest::Matrix4x4 m;
-  m.identity();
-
-  while(n<nodes.size()) {
-    auto& nx = nodes[n];
-    auto  mx = nx.transform;
-    mx.mul(m);
-    m = mx;
-    n = nx.parentId;
-    }
-  return m;
-  }
-
 size_t ProtoMesh::findNode(std::string_view name, size_t def) const {
   if(skeleton==nullptr)
     return def;
