@@ -688,7 +688,7 @@ auto Npc::collosionCenter() const -> Vec3 {
   return physic.center();
   }
 
-Npc *Npc::lookAtTarget() const {
+Npc* Npc::lookAtTarget() const {
   return currentLookAtNpc;
   }
 
@@ -716,7 +716,7 @@ float Npc::qDistTo(const Npc &p) const {
   }
 
 float Npc::qDistTo(const Interactive &p) const {
-  auto pos = p.nearestPoint(*this);
+  auto pos = p.nearestPoint(*this,false);
   return qDistTo(pos);
   }
 
@@ -1848,7 +1848,7 @@ bool Npc::setGoToLadder() {
   if(go2.wp==nullptr || go2.wp!=wayPath.first())
     return false;
   auto inter = go2.wp->ladder;
-  auto pos   = inter->nearestPoint(*this);
+  auto pos   = inter->nearestPoint(*this,true);
   if(MoveAlgo::isClose(*this,pos,MAX_AI_USE_DISTANCE)) {
     if(!inter->isAvailable())
       setAnim(AnimationSolver::Idle);
@@ -2483,15 +2483,8 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
         }
 
       if(inter!=nullptr) {
-        auto pos = inter->nearestPoint(*this);
-        auto ray = owner.physic()->ray(pos, pos+Vec3(0,-MAX_AI_USE_DISTANCE,0));
-        if(ray.hasCol) {
-          // project position on landscape
-          pos = ray.v;
-          }
-
-        auto dp = pos - position();
-        if(currentInteract==nullptr && dp.quadLength()>MAX_AI_USE_DISTANCE*MAX_AI_USE_DISTANCE) { // too far
+        auto pos = inter->nearestPoint(*this,true);
+        if(currentInteract==nullptr && !MoveAlgo::isClose(*this, pos, MAX_AI_USE_DISTANCE)) { // too far
           go2.set(pos);
           // go to MOBSI and then complete AI_UseMob
           queue.pushFront(std::move(act));

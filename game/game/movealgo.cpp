@@ -709,14 +709,6 @@ int32_t MoveAlgo::diveTime() const {
 bool MoveAlgo::isClose(const Npc& npc, const Npc& p, float dist) {
   float len = npc.qDistTo(p);
   return (len<dist*dist);
-  /*
-  auto  dp  = npc.position()-p;
-  dp.y = 0;
-  float len = dp.quadLength();
-  if(len<dist*dist)
-    return true;
-  return false;
-  */
   }
 
 bool MoveAlgo::isClose(const Npc& npc, const WayPoint& p) {
@@ -733,12 +725,11 @@ bool MoveAlgo::isClose(const Npc& npc, const WayPoint& p, float dist) {
   }
 
 bool MoveAlgo::isClose(const Npc& npc, const Tempest::Vec3& p, float dist) {
-  // NOTE: this need to be consistent with current go2 point implementation
   auto  dp  = (p - npc.position());
-  if(std::abs(dp.y)<250)
-    dp.y = 0;
   float len = dp.quadLength();
-  return (len<dist*dist);
+  // NOTE: extra check fo vertical only distances:
+  //       some repair planks are too high (~5 meters) in the air
+  return (len<dist*dist) || Tempest::Vec2(dp.x,dp.z).quadLength() < 1.f;
   }
 
 bool MoveAlgo::startClimb(JumpStatus jump) {

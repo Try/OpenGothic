@@ -72,6 +72,6 @@ class WayMatrix final {
     void                   calculateLadderPoints();
 
     const FpIndex&         findFpIndex(std::string_view name) const;
-    const WayPoint*        findFreePoint(float x, float y, float z, const FpIndex &ind,
+    const WayPoint*        findFreePoint(const Tempest::Vec3& at, const FpIndex &ind,
                                          const std::function<bool(const WayPoint&)>& filter) const;
   };

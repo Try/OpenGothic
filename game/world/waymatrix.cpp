@@ -78,7 +78,7 @@ const WayPoint *WayMatrix::findWayPoint(const Vec3& at, const std::function<bool
 
 const WayPoint *WayMatrix::findFreePoint(const Vec3& at, std::string_view name, const std::function<bool(const WayPoint&)>& filter) const {
   auto&  index = findFpIndex(name);
-  return findFreePoint(at.x,at.y,at.z,index,filter);
+  return findFreePoint(at,index,filter);
   }
 
 const WayPoint *WayMatrix::findNextPoint(const Vec3& at) const {
@@ -264,13 +264,13 @@ const WayMatrix::FpIndex &WayMatrix::findFpIndex(std::string_view name) const {
   return *it;
   }
 
-const WayPoint *WayMatrix::findFreePoint(float x, float y, float z, const FpIndex& ind,
+const WayPoint *WayMatrix::findFreePoint(const Vec3& at, const FpIndex& ind,
                                          const std::function<bool(const WayPoint&)>& filter) const {
   float R = distanceThreshold;
-  auto b = std::lower_bound(ind.index.begin(),ind.index.end(), x-R ,[](const WayPoint *a, float b){
+  auto b = std::lower_bound(ind.index.begin(),ind.index.end(), at.x-R ,[](const WayPoint *a, float b){
     return a->pos.x < b;
     });
-  auto e = std::upper_bound(ind.index.begin(),ind.index.end(), x+R ,[](float a,const WayPoint *b){
+  auto e = std::upper_bound(ind.index.begin(),ind.index.end(), at.x+R ,[](float a,const WayPoint *b){
     return a < b->pos.x;
     });
 
@@ -281,10 +281,7 @@ const WayPoint *WayMatrix::findFreePoint(float x, float y, float z, const FpInde
     auto& w  = **i;
     if(!w.isFreePoint())
       continue;
-    float dx = w.pos.x-x;
-    float dy = w.pos.y-y;
-    float dz = w.pos.z-z;
-    float l  = dx*dx+dy*dy+dz*dz;
+    float l = (w.pos - at).quadLength();
     if(l>dist)
       continue;
     if(!filter(w))
