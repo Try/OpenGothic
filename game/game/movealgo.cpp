@@ -725,7 +725,7 @@ bool MoveAlgo::isClose(const Npc& npc, const WayPoint& p, float dist) {
   }
 
 bool MoveAlgo::isClose(const Npc& npc, const Tempest::Vec3& p, float dist) {
-  auto  dp  = (p - npc.position());
+  auto  dp  = (p - npc.centerPosition());
   float len = dp.quadLength();
   // NOTE: extra check fo vertical only distances:
   //       some repair planks are too high (~5 meters) in the air
