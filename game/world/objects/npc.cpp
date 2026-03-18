@@ -682,10 +682,11 @@ Vec3 Npc::centerPosition() const {
   auto p = position();
   //p.y = physic.centerY();
   p.y += visual.pose().translateY();
+  p.y += 15; // seem to be off by ~15 centimeters, according to comparations vanilla testing
   return p;
   }
 
-auto Npc::collosionCenter() const -> Vec3 {
+Vec3 Npc::collosionCenter() const {
   return physic.center();
   }
 
@@ -2327,6 +2328,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
         queue.pushFront(std::move(act));
         break;
         }
+      attachToPoint(nullptr);
       go2.set(act.target);
       wayPath.clear();
       break;
@@ -2337,6 +2339,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
         }
       auto fp = owner.findNextFreePoint(*this,act.s0);
       if(fp!=nullptr) {
+        attachToPoint(fp);
         go2.set(fp,GoToHint::GT_NextFp);
         wayPath.clear();
         }
@@ -4109,6 +4112,7 @@ bool Npc::setInteraction(Interactive *id, bool quick) {
 
   if(id->attach(*this)) {
     currentInteract = id;
+    attachToPoint(nullptr); //NOTE: Fajeth campfire
     if(!quick) {
       visual.stopAnim(*this,"");
       setAnimRotate(0);
