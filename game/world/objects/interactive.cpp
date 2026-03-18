@@ -186,7 +186,7 @@ void Interactive::drawVobBox(DbgPainter& p) const {
 
   for(auto& i:attPos) {
     p.setBrush(Tempest::Color(0,1,0));
-    p.drawPoint(nodePosition(nullptr, i, false));
+    p.drawPoint(nodePosition(nullptr, i));
     }
   }
 
@@ -591,7 +591,7 @@ bool Interactive::canSeeNpc(const Npc& npc, bool freeLos) const {
     }
 
   for(auto& i:attPos){
-    auto pos = nodePosition(&npc,i,false);
+    auto pos = nodePosition(&npc,i);
     if(npc.canRayHitPoint(pos,freeLos))
       return true;
     }
@@ -604,9 +604,9 @@ bool Interactive::canSeeNpc(const Npc& npc, bool freeLos) const {
   return false;
   }
 
-Tempest::Vec3 Interactive::nearestPoint(const Npc& to, bool groundPos) const {
+Tempest::Vec3 Interactive::nearestPoint(const Npc& to) const {
   if(auto p = findNearest(to))
-    return nodePosition(&to, *p, groundPos);
+    return nodePosition(&to, *p);
   return displayPosition();
   }
 
@@ -635,7 +635,7 @@ Interactive::Pos* Interactive::findNearest(const Npc& to) {
   }
 
 float Interactive::qDistTo(const Npc &npc, const Interactive::Pos &to) const {
-  auto p = nodePosition(&npc, to, false);
+  auto p = nodePosition(&npc, to);
   return npc.qDistTo(p);
   }
 
@@ -895,7 +895,7 @@ void Interactive::setDir(Npc &npc, const Tempest::Matrix4x4 &mat) {
   npc.setDirection(Tempest::Vec3(x1-x0, y1-y0, z1-z0));
   }
 
-Tempest::Vec3 Interactive::nodePosition(const Npc* npc, const Interactive::Pos &to, bool groundPos) const {
+Tempest::Vec3 Interactive::nodePosition(const Npc* npc, const Interactive::Pos &to) const {
   auto  p = nodeTranform(npc, to);
   float x = p.at(3,0);
   float y = p.at(3,1);
@@ -916,16 +916,16 @@ Tempest::Vec3 Interactive::nodePosition(const Npc* npc, const Interactive::Pos &
 #endif
   }
 
-Tempest::Matrix4x4 Interactive::nodeTranform(const Npc* npc, const Pos& p) const {
+Tempest::Matrix4x4 Interactive::nodeTranform(const Npc* npc, const Pos& to) const {
   auto mesh = visual.protoMesh();
   if(mesh==nullptr)
     return transform();
 
-  const auto nodeId = p.nodeId; //mesh->findNode(p.name);
+  const auto nodeId = to.nodeId; //mesh->findNode(p.name);
   if(nodeId==size_t(-1))
     return transform();
 
-  if(p.isDistPos() && npc!=nullptr) {
+  if(to.isDistPos() && npc!=nullptr) {
     auto  pos   = position();
     auto  npos  = visual.bone(nodeId);
 
@@ -1067,7 +1067,7 @@ void Interactive::marchInteractives(DbgPainter &p) const {
   p.setBrush(Tempest::Color(1.0,0,0,1));
 
   for(auto& m:attPos) {
-    auto pos = nodePosition(nullptr, m, false);
+    auto pos = nodePosition(nullptr, m);
 
     float x = pos.x;
     float y = pos.y;

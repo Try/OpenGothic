@@ -718,7 +718,7 @@ float Npc::qDistTo(const Npc &p) const {
   }
 
 float Npc::qDistTo(const Interactive &p) const {
-  auto pos = p.nearestPoint(*this,false);
+  auto pos = p.nearestPoint(*this);
   return qDistTo(pos);
   }
 
@@ -1850,7 +1850,7 @@ bool Npc::setGoToLadder() {
   if(go2.wp==nullptr || go2.wp!=wayPath.first())
     return false;
   auto inter = go2.wp->ladder;
-  auto pos   = inter->nearestPoint(*this,true);
+  auto pos   = inter->nearestPoint(*this);
   if(MoveAlgo::isClose(*this,pos,MAX_AI_USE_DISTANCE)) {
     if(!inter->isAvailable())
       setAnim(AnimationSolver::Idle);
@@ -2483,7 +2483,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
         }
 
       if(inter!=nullptr) {
-        auto pos = inter->nearestPoint(*this,true);
+        auto pos = inter->nearestPoint(*this);
         if(currentInteract==nullptr && !MoveAlgo::isClose(*this, pos, MAX_AI_USE_DISTANCE)) { // too far
           go2.set(pos);
           // go to MOBSI and then complete AI_UseMob

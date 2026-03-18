@@ -75,7 +75,7 @@ class Interactive : public Vob {
     uint32_t            stateMask() const;
 
     bool                canSeeNpc(const Npc &npc, bool freeLos) const;
-    Tempest::Vec3       nearestPoint(const Npc& to, bool groundPos) const;
+    Tempest::Vec3       nearestPoint(const Npc& to) const;
 
     bool                isAvailable() const;
     bool                isStaticState() const;
@@ -109,8 +109,8 @@ class Interactive : public Vob {
       bool                isDistPos() const;
       };
 
-    auto                nodePosition(const Npc* npc, const Pos &to, bool groundPos) const -> Tempest::Vec3;
-    Tempest::Matrix4x4  nodeTranform(const Npc* npc, const Pos &p) const;
+    Tempest::Vec3       nodePosition(const Npc* npc, const Pos &to) const;
+    Tempest::Matrix4x4  nodeTranform(const Npc* npc, const Pos &to) const;
     Tempest::Matrix4x4  mapBone(std::string_view nodeName) const;
 
     void                moveEvent() override;
