@@ -252,6 +252,23 @@ void PlayerControl::onRotateMouse(float dAngleX, float dAngleY) {
   rotMouseY += dAngleY;
   }
 
+void PlayerControl::drawVobRay(DbgPainter& p) const {
+  auto w = Gothic::inst().world();
+  if(w==nullptr || w->player()==nullptr)
+    return;
+  auto pl    = w->player();
+  auto focus = findFocus(&currentFocus);
+  if(focus.interactive!=nullptr) {
+    focus.interactive->drawVobRay(p, *pl);
+    }
+  if(focus.item!=nullptr) {
+    focus.item->drawVobRay(p, *pl);
+    }
+  if(focus.npc!=nullptr) {
+    pl->drawVobRay(p, *focus.npc);
+    }
+  }
+
 void PlayerControl::tickFocus() {
   currentFocus = findFocus(&currentFocus);
   setTarget(currentFocus.npc);
@@ -358,7 +375,7 @@ void PlayerControl::moveFocus(FocusAction act) {
     return;
 
   auto vp  = c->viewProj();
-  auto pos = currentFocus.npc->position()+Tempest::Vec3(0,currentFocus.npc->translateY(),0);
+  auto pos = currentFocus.npc->centerPosition();
   vp.project(pos);
 
   Npc* next = nullptr;
@@ -367,7 +384,7 @@ void PlayerControl::moveFocus(FocusAction act) {
     auto npc = w->npcById(i);
     if(npc->isPlayer())
       continue;
-    auto p = npc->position()+Tempest::Vec3(0,npc->translateY(),0);
+    auto p = npc->centerPosition();
     vp.project(p);
 
     if(std::abs(p.x)>1.f || std::abs(p.y)>1.f || p.z<0.f)
@@ -481,7 +498,7 @@ void PlayerControl::marvinO() {
   w->setPlayer(target);
   }
 
-Focus PlayerControl::findFocus(Focus* prev) {
+Focus PlayerControl::findFocus(const Focus* prev) const {
   auto w = Gothic::inst().world();
   auto c = Gothic::inst().camera();
   if(w==nullptr)

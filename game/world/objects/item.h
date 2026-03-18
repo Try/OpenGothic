@@ -27,6 +27,9 @@ class Item : public Vob {
     ~Item();
     Item& operator=(Item&&)=delete;
 
+    void    drawVobBox(DbgPainter& p) const;
+    void    drawVobRay(DbgPainter& p, const Npc& npc) const;
+
     void    save(Serialize& fout) const override;
 
     virtual void clearView();
@@ -52,6 +55,7 @@ class Item : public Vob {
     std::string_view    description() const;
     Tempest::Vec3       position() const;
     Tempest::Vec3       midPosition() const;
+    const Tempest::Vec3*bBox() const;
     bool                isGold() const;
     ItmFlags            mainFlag() const;
     int32_t             itemFlag() const;
@@ -100,6 +104,6 @@ class Item : public Vob {
     uint8_t                        equipped = 0;
     uint8_t                        itSlot   = NSLOT;
 
-    MeshObjects::Mesh              view;
+    MeshObjects::Mesh              visual;
     DynamicWorld::Item             physic;
   };

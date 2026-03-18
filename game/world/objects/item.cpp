@@ -4,10 +4,11 @@
 
 #include "game/serialize.h"
 #include "game/gamescript.h"
-#include "utils/versioninfo.h"
 #include "world/objects/npc.h"
 #include "world/world.h"
+#include "utils/versioninfo.h"
 #include "utils/fileext.h"
+#include "utils/dbgpainter.h"
 
 using namespace Tempest;
 
@@ -20,9 +21,9 @@ Item::Item(World &owner, size_t itemInstance, Type type)
   setCount(1);
 
   if(type!=T_Inventory) {
-    view = world.addView(*hitem);
+    visual = world.addView(*hitem);
     if(type==T_WorldDyn)
-      setPhysicsEnable(view);
+      setPhysicsEnable(visual);
     }
   }
 
@@ -61,24 +62,56 @@ Item::Item(World &owner, Serialize &fin, Type type)
 
   if(type!=T_Inventory) {
     if(!FileExt::hasExt(hitem->visual,"ZEN"))
-      view = world.addView(*hitem);
+      visual = world.addView(*hitem);
     if(type==T_WorldDyn)
-      setPhysicsEnable(view);
+      setPhysicsEnable(visual);
     }
 
   setLocalTransform(mat);
-  view  .setObjMatrix(mat);
+  visual.setObjMatrix(mat);
   physic.setObjMatrix(mat);
   }
 
 Item::Item(Item &&it)
   : Vob(it.world), hitem(it.hitem),
-    pos(it.pos),equipped(it.equipped),itSlot(it.itSlot),view(std::move(it.view)) {
+    pos(it.pos),equipped(it.equipped),itSlot(it.itSlot),visual(std::move(it.visual)) {
   setLocalTransform(it.localTransform());
   physic = std::move(it.physic);
   }
 
 Item::~Item() {
+  }
+
+void Item::drawVobBox(DbgPainter& p) const {
+  p.setPen(Tempest::Color(1,0,0));
+  if(auto mesh = visual.protoMesh()) {
+    p.drawObb(transform(), mesh->bboxCol());
+
+    auto v = midPosition();
+    p.setPen(Tempest::Color(0,1,0));
+    p.drawPoint(v);
+    }
+  }
+
+void Item::drawVobRay(DbgPainter& p, const Npc& npc) const {
+  if(auto bbox = this->bBox()) {
+    // npc eyesight height
+    auto  cen    = npc.mapHeadBone();
+    auto  at     = this->midPosition();
+    auto  tMax   = (at - cen).length();
+    auto  dir    = (at - cen)/tMax;
+    float tHit   = DynamicWorld::rayBox(cen, dir, tMax, transform(), bbox[0], bbox[1]);
+
+    bool accessable = true;
+    const auto r = world.physic()->ray(cen, cen+dir*tHit);
+    if(r.hasCol)
+      accessable = false;
+    p.setPen(accessable ? Tempest::Color(0,1,0) : Tempest::Color(1,0,0));
+    p.drawLine(cen, cen+dir*tHit);
+
+    p.setPen(Tempest::Color(1,1,0));
+    p.drawLine(cen+dir*tHit, at);
+    }
   }
 
 void Item::save(Serialize &fout) const {
@@ -99,7 +132,7 @@ void Item::save(Serialize &fout) const {
   }
 
 void Item::clearView() {
-  view = MeshObjects::Mesh();
+  visual = MeshObjects::Mesh();
   }
 
 bool Item::isTorchBurn() const {
@@ -119,7 +152,7 @@ void Item::setObjMatrix(const Tempest::Matrix4x4 &m) {
   pos.y = m.at(3,1);
   pos.z = m.at(3,2);
   setLocalTransform(m);
-  view.setObjMatrix(m);
+  visual.setObjMatrix(m);
   }
 
 bool Item::isMission() const {
@@ -138,7 +171,7 @@ void Item::setAsEquipped(bool e) {
   }
 
 void Item::setPhysicsEnable(World& world) {
-  setPhysicsEnable(view);
+  setPhysicsEnable(visual);
   world.invalidateVobIndex();
   }
 
@@ -181,11 +214,20 @@ Tempest::Vec3 Item::position() const {
   return pos;
   }
 
+const Vec3* Item::bBox() const {
+  if(visual.protoMesh()==nullptr)
+    return nullptr;
+  return visual.protoMesh()->bboxCol();
+  }
+
 Vec3 Item::midPosition() const {
-  auto b = view.bounds();
-  auto v = (b.bbox[1]-b.bbox[0])*0.5;
-  // transform().project(v); // doesn't work for Karibik mod
-  return pos + v;
+  if(auto mesh = visual.protoMesh())  {
+    auto bbox = mesh->bboxCol();
+    auto v    = (bbox[0] + bbox[1])*0.5;
+    transform().project(v); // doesn't use to work for Karibik mod
+    return v;
+    }
+  return pos;
   }
 
 bool Item::isGold() const {
@@ -322,7 +364,7 @@ void Item::updateMatrix() {
   }
 
 void Item::moveEvent() {
-  view  .setObjMatrix(transform());
+  visual.setObjMatrix(transform());
   physic.setObjMatrix(transform());
   if(!isDynamic())
     world.invalidateVobIndex();

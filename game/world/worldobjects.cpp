@@ -340,7 +340,7 @@ Npc* WorldObjects::insertPlayer(std::unique_ptr<Npc> &&npc, std::string_view at)
     if(p)
       pos=p;
     }
-  npc->setPosition  (pos->position() );
+  npc->setPosition  (pos->groundPos  );
   npc->setDirection (pos->direction());
   npc->attachToPoint(pos);
   npc->updateTransform();
@@ -373,7 +373,7 @@ void WorldObjects::removeNpc(Npc& npc) {
 
 void WorldObjects::tickNear(uint64_t /*dt*/) {
   for(Npc* i:npcNear) {
-    auto pos = i->position() + Vec3(0,i->translateY(),0);
+    auto pos = i->centerPosition();
     for(CollisionZone* z:collisionZn)
       if(z->checkPos(pos))
         z->onIntersect(*i);
@@ -830,11 +830,28 @@ void WorldObjects::marchCsCameras(DbgPainter& p) const {
 void WorldObjects::drawVobBoxNpcNear(DbgPainter& p) const {
   for(auto& i:npcNear)
     i->drawVobBox(p);
+
+  auto camera = Gothic::inst().camera();
+  const float nearDist = 3000*3000;
+  for(auto& i:interactiveObj) {
+    auto bbox = i->bBox();
+    auto pos  = (bbox[0]+bbox[1])*0.5f;
+    if((pos-camera->originLwc()).quadLength() > nearDist)
+      continue;
+    i->drawVobBox(p);
+    }
+
+  for(auto& i:items) {
+    auto pos = i->midPosition();
+    if((pos-camera->originLwc()).quadLength() > nearDist)
+      continue;
+    i->drawVobBox(p);
+    }
   }
 
 Interactive *WorldObjects::availableMob(const Npc &pl, std::string_view dest) {
-  const float  dist=100*10.f;
-  Interactive* ret =nullptr;
+  const float  dist = MOBSI_SEARCH_DISTANCE;
+  Interactive* ret  = nullptr;
 
   if(auto i = pl.interactive()){
     if(i->checkMobName(dest))
@@ -963,6 +980,10 @@ void WorldObjects::resetPositionToTA() {
       npcArr.push_back(std::move(i)); else
       npcRemoved.push_back(std::move(i));
   npcInvalid.clear();
+
+  for(auto& i : npcArr) {
+    i->attachToPoint(nullptr);
+    }
 
   for(size_t i=0;i<npcArr.size();) {
     auto& n = *npcArr[i];

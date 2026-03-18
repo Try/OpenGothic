@@ -11,6 +11,10 @@ Skeleton::Skeleton(const zenkit::ModelHierarchy& src, const Animation* anim, std
   bboxCol[0] = {src.collision_bbox.min.x, src.collision_bbox.min.y, src.collision_bbox.min.z};
   bboxCol[1] = {src.collision_bbox.max.x, src.collision_bbox.max.y, src.collision_bbox.max.z};
 
+  // bbox size apears to be halfed in source file
+  bboxCol[0] *= 2.f;
+  bboxCol[1] *= 2.f;
+
   nodes.resize(src.nodes.size());
   tr.resize(src.nodes.size());
 
@@ -83,7 +87,8 @@ std::string_view Skeleton::defaultMesh() const {
   }
 
 float Skeleton::colisionHeight() const {
-  return std::fabs(bboxCol[1].y-bboxCol[0].y);
+  // scale by 0.5, to be compatible with old behaviour for now
+  return std::fabs(bboxCol[1].y-bboxCol[0].y) * 0.5f;
   }
 
 void Skeleton::mkSkeleton() {

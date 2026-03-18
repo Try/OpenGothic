@@ -14,6 +14,7 @@
 #include "world/world.h"
 #include "utils/versioninfo.h"
 #include "utils/fileext.h"
+#include "utils/dbgpainter.h"
 #include "camera.h"
 #include "gothic.h"
 #include "resources.h"
@@ -42,7 +43,7 @@ void Npc::GoTo::load(Serialize& fin) {
 
 Vec3 Npc::GoTo::target() const {
   if(npc!=nullptr)
-    return npc->position() + Vec3(0, npc->translateY(), 0);
+    return npc->centerPosition();
   if(wp!=nullptr)
     return wp->position();
   return pos;
@@ -325,10 +326,6 @@ void Npc::load(Serialize &fin, size_t id, std::string_view directory) {
 void Npc::postValidate() {
   if(currentInteract!=nullptr && !currentInteract->isAttached(*this))
     currentInteract = nullptr;
-  }
-
-void Npc::drawVobBox(DbgPainter& p) const {
-  physic.debugDraw(p);
   }
 
 void Npc::saveAiState(Serialize& fout) const {
@@ -681,17 +678,19 @@ Bounds Npc::bounds() const {
   return b;
   }
 
-float Npc::translateY() const {
-  return visual.pose().translateY();
-  }
-
 Vec3 Npc::centerPosition() const {
   auto p = position();
-  p.y = physic.centerY();
+  //p.y = physic.centerY();
+  p.y += visual.pose().translateY();
+  p.y += 15; // seem to be off by ~15 centimeters, according to comparations vanilla testing
   return p;
   }
 
-Npc *Npc::lookAtTarget() const {
+Vec3 Npc::collosionCenter() const {
+  return physic.center();
+  }
+
+Npc* Npc::lookAtTarget() const {
   return currentLookAtNpc;
   }
 
@@ -704,7 +703,7 @@ std::string_view Npc::formerPortalName() {
   }
 
 float Npc::qDistTo(const Vec3 pos) const {
-  auto dp = pos - Vec3(x,y+translateY(),z);
+  auto dp = pos - centerPosition();
   return dp.quadLength();
   }
 
@@ -715,7 +714,7 @@ float Npc::qDistTo(const WayPoint *f) const {
   }
 
 float Npc::qDistTo(const Npc &p) const {
-  return qDistTo(Vec3(p.x,p.y+p.translateY(),p.z));
+  return qDistTo(p.centerPosition());
   }
 
 float Npc::qDistTo(const Interactive &p) const {
@@ -1775,22 +1774,25 @@ void Npc::implSetFightMode(const Animation::EvCount& ev) {
 
   if(ev.weaponCh==zenkit::MdsFightMode::NONE && (ws==WeaponState::W1H || ws==WeaponState::W2H)) {
     if(auto melee = invent.currentMeleeWeapon()) {
+      auto at = centerPosition();
       if(melee->handle().material==ItemMaterial::MAT_METAL)
-        sfxWeapon = ::Sound(owner,::Sound::T_Regular,"UNDRAWSOUND_ME.WAV",{x,y+translateY(),z},2500,false); else
-        sfxWeapon = ::Sound(owner,::Sound::T_Regular,"UNDRAWSOUND_WO.WAV",{x,y+translateY(),z},2500,false);
+        sfxWeapon = ::Sound(owner,::Sound::T_Regular,"UNDRAWSOUND_ME.WAV",at,2500,false); else
+        sfxWeapon = ::Sound(owner,::Sound::T_Regular,"UNDRAWSOUND_WO.WAV",at,2500,false);
       sfxWeapon.play();
       }
     }
   else if(ev.weaponCh==zenkit::MdsFightMode::SINGLE_HANDED || ev.weaponCh==zenkit::MdsFightMode::DUAL_HANDED) {
     if(auto melee = invent.currentMeleeWeapon()) {
+      auto at = centerPosition();
       if(melee->handle().material==ItemMaterial::MAT_METAL)
-        sfxWeapon = ::Sound(owner,::Sound::T_Regular,"DRAWSOUND_ME.WAV",{x,y+translateY(),z},2500,false); else
-        sfxWeapon = ::Sound(owner,::Sound::T_Regular,"DRAWSOUND_WO.WAV",{x,y+translateY(),z},2500,false);
+        sfxWeapon = ::Sound(owner,::Sound::T_Regular,"DRAWSOUND_ME.WAV",at,2500,false); else
+        sfxWeapon = ::Sound(owner,::Sound::T_Regular,"DRAWSOUND_WO.WAV",at,2500,false);
       sfxWeapon.play();
       }
     }
   else if(ev.weaponCh==zenkit::MdsFightMode::BOW || ev.weaponCh==zenkit::MdsFightMode::CROSSBOW) {
-    sfxWeapon = ::Sound(owner,::Sound::T_Regular,"DRAWSOUND_BOW",{x,y+translateY(),z},2500,false);
+    auto at = centerPosition();
+    sfxWeapon = ::Sound(owner,::Sound::T_Regular,"DRAWSOUND_BOW",at,2500,false);
     sfxWeapon.play();
     }
   dropTorch();
@@ -2326,8 +2328,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
         queue.pushFront(std::move(act));
         break;
         }
-      currentFp       = nullptr;
-      currentFpLock   = FpLock();
+      attachToPoint(nullptr);
       go2.set(act.target);
       wayPath.clear();
       break;
@@ -2338,8 +2339,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
         }
       auto fp = owner.findNextFreePoint(*this,act.s0);
       if(fp!=nullptr) {
-        currentFp       = fp;
-        currentFpLock   = FpLock(*fp);
+        attachToPoint(fp);
         go2.set(fp,GoToHint::GT_NextFp);
         wayPath.clear();
         }
@@ -2484,9 +2484,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
 
       if(inter!=nullptr) {
         auto pos = inter->nearestPoint(*this);
-        auto dp  = pos-position();
-        dp.y = 0;
-        if(currentInteract==nullptr && dp.quadLength()>MAX_AI_USE_DISTANCE*MAX_AI_USE_DISTANCE) { // too far
+        if(currentInteract==nullptr && !MoveAlgo::isClose(*this, pos, MAX_AI_USE_DISTANCE)) { // too far
           go2.set(pos);
           // go to MOBSI and then complete AI_UseMob
           queue.pushFront(std::move(act));
@@ -2951,7 +2949,7 @@ void Npc::setAiOutputBarrier(uint64_t dt, bool overlay) {
   }
 
 void Npc::emitSoundEffect(std::string_view sound, float range, bool freeSlot) {
-  auto sfx = ::Sound(owner,::Sound::T_Regular,sound,{x,y+translateY(),z},range,freeSlot);
+  auto sfx = ::Sound(owner,::Sound::T_Regular,sound,centerPosition(),range,freeSlot);
   sfx.play();
   }
 
@@ -3257,9 +3255,8 @@ Item* Npc::takeItem(Item& item) {
     return nullptr;
     }
 
-  auto dpos = item.position()-position();
-  dpos.y-=translateY();
-  const Animation::Sequence* sq = setAnimAngGet(Npc::Anim::ItmGet,Pose::calcAniCombVert(dpos));
+  const auto  dpos = item.midPosition()-centerPosition();
+  const auto* sq   = setAnimAngGet(Npc::Anim::ItmGet, Pose::calcAniCombVert(dpos));
   if(sq==nullptr)
     return nullptr;
 
@@ -4118,6 +4115,7 @@ bool Npc::setInteraction(Interactive *id, bool quick) {
 
   if(id->attach(*this)) {
     currentInteract = id;
+    attachToPoint(nullptr); //NOTE: Fajeth campfire
     if(!quick) {
       visual.stopAnim(*this,"");
       setAnimRotate(0);
@@ -4307,7 +4305,7 @@ Npc::JumpStatus Npc::tryJump() {
     return ret;
     }
 
-  if(isInAir() && dY<=jumpLow + translateY()) {
+  if(isInAir() && dY<=jumpLow + visual.pose().translateY()) {
     // jumpup -> climb
     ret.anim   = Anim::JumpHang;
     ret.height = jumpY;
@@ -4407,12 +4405,44 @@ void Npc::stopWalking() {
   stopWalkAnimation();
   }
 
+void Npc::drawVobBox(DbgPainter& p) const {
+  physic.debugDraw(p);
+
+  if(auto sk = visual.visualSkeleton()) {
+    auto tr = transform();
+    tr.translate(0,visual.pose().translateY(),0);
+
+    p.setPen(Color(1,0,0));
+    p.drawObb(tr, sk->bboxCol);
+    }
+  }
+
+void Npc::drawVobRay(DbgPainter& p, const Npc& oth) const {
+  const bool freeLos = true;
+  const auto mid     = oth.physic.center();
+  p.setPen(Color(0,1,0));
+
+  if(canRayHitPoint(mid,freeLos)) {
+    // mid of dead npc may endedup inside a wall; extra check for physical center
+    p.drawLine(mapHeadBone(), mid);
+    return;
+    }
+  if(oth.visual.visualSkeleton()==nullptr)
+    return;
+  if(oth.visual.visualSkeleton()->BIP01_HEAD==size_t(-1))
+    return;
+  auto head = oth.visual.mapHeadBone();
+  if(canRayHitPoint(head,freeLos)) {
+    p.drawLine(mapHeadBone(), head);
+    return;
+    }
+  p.setPen(Color(1,0,0));
+  p.drawLine(mapHeadBone(), head);
+  }
+
 bool Npc::canSeeNpc(const Npc &oth, bool freeLos) const {
-  const auto mid = oth.bounds().midTr;
-  if(canSeeNpc(mid,freeLos))
-    return true;
-  const auto ppos = oth.physic.position();
-  if(oth.isDown() && canSeeNpc(ppos,freeLos)) {
+  const auto mid = oth.physic.center();
+  if(canRayHitPoint(mid,freeLos)) {
     // mid of dead npc may endedup inside a wall; extra check for physical center
     return true;
     }
@@ -4421,7 +4451,7 @@ bool Npc::canSeeNpc(const Npc &oth, bool freeLos) const {
   if(oth.visual.visualSkeleton()->BIP01_HEAD==size_t(-1))
     return false;
   auto head = oth.visual.mapHeadBone();
-  if(canSeeNpc(head,freeLos))
+  if(canRayHitPoint(head,freeLos))
     return true;
   return false;
   }
@@ -4434,10 +4464,6 @@ bool Npc::canSeeSource() const {
   if(currentLookAtNpc!=nullptr)
     return canSeeNpc(*currentLookAtNpc, false);
   return false;
-  }
-
-bool Npc::canSeeNpc(const Vec3 pos, bool freeLos) const {
-  return canRayHitPoint(pos, freeLos);
   }
 
 bool Npc::canRayHitPoint(const Tempest::Vec3 pos, bool freeLos, float extRange) const {
@@ -4492,37 +4518,41 @@ SensesBit Npc::canSenseNpc(const Tempest::Vec3 pos, bool freeLos, bool isNoisy, 
   }
 
 bool Npc::canSeeItem(const Item& it, bool freeLos) const {
-  DynamicWorld* w = owner.physic();
   static const double ref = std::cos(100*M_PI/180.0); // spec requires +-100 view angle range
 
   const auto  itMid = it.midPosition();
+  const auto  cen   = visual.mapHeadBone();
+  const auto  dir   = itMid - cen;
   const float range = float(hnpc->senses_range);
-  if(qDistTo(itMid)>range*range)
+
+  if(dir.quadLength()>range*range)
     return false;
 
   if(!freeLos) {
-    float dx  = x-itMid.x, dz=z-itMid.z;
+    float dx  = dir.x, dz = dir.z;
     float dir = angleDir(dx,dz);
     float da  = float(M_PI)*(visual.viewDirection()-dir)/180.f;
     if(double(std::cos(da))>ref)
       return false;
     }
 
-  // npc eyesight height
-  auto head = visual.mapHeadBone();
-  auto r    = w->ray(head,itMid);
-  auto err  = (head-itMid)*(1.f-r.hitFraction);
-  if(!r.hasCol || err.length()<25.f) {
-    return true;
+  if(auto bbox = it.bBox()) {
+    // npc eyesight height
+    auto  at     = it.midPosition();
+    auto  tMax   = (at - cen).length();
+    auto  dir    = (at - cen)/tMax;
+    float tHit   = DynamicWorld::rayBox(cen, dir, tMax, transform(), bbox[0], bbox[1]);
+
+    const auto r = owner.physic()->ray(cen, cen+dir*tHit);
+    if(r.hasCol)
+      return false;
+    } else {
+    const auto r = owner.physic()->ray(cen, itMid);
+    if(r.hasCol)
+      return false;
     }
-  if(y<=itMid.y && itMid.y<=head.y) {
-    auto pl = Vec3(head.x,itMid.y,head.z);
-    r   = w->ray(pl,itMid);
-    err = (pl-itMid)*(1.f-r.hitFraction);
-    if(!r.hasCol || err.length()<65.f)
-      return true;
-    }
-  return false;
+
+  return true;
   }
 
 bool Npc::isAlignedToGround() const {

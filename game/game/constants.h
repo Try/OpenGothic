@@ -126,7 +126,8 @@ enum Guild: uint32_t {
   };
 
 enum {
-  MAX_AI_USE_DISTANCE = 150
+  MAX_AI_USE_DISTANCE   = 165,
+  MOBSI_SEARCH_DISTANCE = 100*10,
   };
 
 enum {

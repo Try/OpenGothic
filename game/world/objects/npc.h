@@ -83,6 +83,7 @@ class Npc final {
     void       postValidate();
 
     void       drawVobBox(DbgPainter& p) const;
+    void       drawVobRay(DbgPainter& p, const Npc& npc) const;
 
     bool       setPosition (float x,float y,float z);
     bool       setPosition (const Tempest::Vec3& pos);
@@ -119,8 +120,8 @@ class Npc final {
 
     auto       world() -> World&;
 
-    float      translateY() const;
     auto       centerPosition() const -> Tempest::Vec3;
+    auto       collosionCenter() const -> Tempest::Vec3;
     Npc*       lookAtTarget() const;
     auto       portalName() -> std::string_view;
     auto       formerPortalName() -> std::string_view;
@@ -377,7 +378,6 @@ class Npc final {
     void      stopWalking();
 
     bool      canSeeNpc(const Npc& oth, bool freeLos) const;
-    bool      canSeeNpc(const Tempest::Vec3 pos, bool freeLos) const;
     bool      canSeeItem(const Item& it, bool freeLos) const;
     bool      canSeeSource() const;
     bool      canRayHitPoint(const Tempest::Vec3 pos, bool freeLos = true, float extRange=0.f) const;

@@ -700,9 +700,10 @@ float DynamicWorld::soundOclusion(const Tempest::Vec3& from, const Tempest::Vec3
 
 DynamicWorld::NpcItem DynamicWorld::ghostObj(std::string_view visual) {
   Tempest::Vec3 min={0,0,0}, max={0,0,0};
-  if(auto sk=Resources::loadSkeleton(visual)) {
-    min = sk->bboxCol[0];
-    max = sk->bboxCol[1];
+  if(auto sk = Resources::loadSkeleton(visual)) {
+    // scale by 0.5, to be compatible with old behaviour for now
+    min = sk->bboxCol[0] * 0.5f;
+    max = sk->bboxCol[1] * 0.5f;
     }
   auto  obj = npcList->create(min,max);
   float dim = std::max(obj->rX,obj->rZ);
@@ -921,6 +922,48 @@ float DynamicWorld::materialDensity(zenkit::MaterialGroup mat) {
   return 2000.f;
   }
 
+float DynamicWorld::rayBox(const Tempest::Vec3& orig, const Tempest::Vec3& dir, const float TMax,
+                           const Tempest::Matrix4x4& obj, const Tempest::Vec3& min, const Tempest::Vec3& max,
+                           const float padd) {
+  using namespace Tempest;
+
+  auto tmp = obj;
+  tmp.inverse();
+
+  auto tOri = orig;
+  auto tDir = dir;
+  auto zero = 0.f;
+  tmp.project(tOri);
+  tmp.project(tDir.x, tDir.y, tDir.z, zero);
+
+  float tHit = rayBox(tOri, Vec3(tDir.x, tDir.y, tDir.z), TMax, min, max, padd);
+  if(tHit==TMax)
+    return TMax;
+
+  //NOTE: worry about non-uniform scale matrix
+  tDir *= tHit; zero = 0;
+  tmp.project(tDir.x, tDir.y, tDir.z, zero);
+  return tDir.length();
+  }
+
+float DynamicWorld::rayBox(const Tempest::Vec3& orig, const Tempest::Vec3& dir, const float TMax,
+                           const Tempest::Vec3& boxMin, const Tempest::Vec3& boxMax,
+                           const float padd) {
+  using namespace Tempest;
+
+  Vec3  invDir = Vec3(1.f/dir.x, 1.f/dir.y, 1.f/dir.z);
+
+  Vec3  tMin  = (boxMin - orig)*invDir;
+  Vec3  tMax  = (boxMax - orig)*invDir;
+  Vec3  t1    = Vec3{std::min(tMin.x, tMax.x), std::min(tMin.y, tMax.y), std::min(tMin.z, tMax.z)};
+  Vec3  t2    = Vec3{std::max(tMin.x, tMax.x), std::max(tMin.y, tMax.y), std::max(tMin.z, tMax.z)};
+
+  float tNear = std::max(0.f,  std::max(t1.x, std::max(t1.y, t1.z)));
+  float tFar  = std::min(TMax, std::min(t2.x, std::min(t2.y, t2.z)));
+
+  return tNear > tFar ? TMax : std::max(0.f, tNear-padd);
+  }
+
 std::string_view DynamicWorld::validateSectorName(std::string_view name) const {
   return landMesh->validateSectorName(name);
   }
@@ -963,6 +1006,15 @@ void DynamicWorld::NpcItem::setEnable(bool e) {
 
 void DynamicWorld::NpcItem::setUserPointer(void *p) {
   obj->setUserPointer(p);
+  }
+
+auto DynamicWorld::NpcItem::center() const -> Tempest::Vec3 {
+  if(obj) {
+    const btTransform&  tr  = obj->getWorldTransform();
+    const Tempest::Vec3 ret = {tr.getOrigin().x(), tr.getOrigin().y(), tr.getOrigin().z()};
+    return ret*100.f;
+    }
+  return {};
   }
 
 float DynamicWorld::NpcItem::centerY() const {

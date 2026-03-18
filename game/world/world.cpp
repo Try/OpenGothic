@@ -425,6 +425,11 @@ Focus World::findFocus(const Npc &pl, const Focus& def) {
   WorldObjects::SearchOpt optMob {policy.mob_range1,  policy.mob_range2,  policy.mob_azi,  collAlgo};
   WorldObjects::SearchOpt optItm {policy.item_range1, policy.item_range2, policy.item_azi, collAlgo, collType};
 
+  if(pl.weaponState()==WeaponState::NoWeapon) {
+    // used only for dialogs it seems
+    optNpc.rangeMax = std::max(optNpc.rangeMax, policy.npc_longrange);
+    }
+
   auto n     = policy.npc_prio <0 ? nullptr : wobj.findNpcNear    (pl,def.npc,        optNpc);
   auto it    = policy.item_prio<0 ? nullptr : wobj.findItem       (pl,def.item,       optItm);
   auto inter = policy.mob_prio <0 ? nullptr : wobj.findInteractive(pl,def.interactive,optMob);
@@ -645,7 +650,7 @@ Bullet& World::shootSpell(const Item &itm, const Npc &npc, const Npc *target) {
   float           tgRange = vfx==nullptr ? 0 : vfx->emTrjTargetRange;
 
   if(target!=nullptr) {
-    auto tgPos = target->centerPosition();
+    auto tgPos = target->collosionCenter();
     if(vfx!=nullptr) {
       pos   = npc.mapBone(vfx->emTrjOriginNode);
       tgPos = target->mapBone(vfx->emTrjTargetNode);
@@ -668,7 +673,7 @@ Bullet& World::shootBullet(const Item &itm, const Npc &npc, const Npc *target, c
   auto          pos = npc.mapWeaponBone();
 
   if(target!=nullptr) {
-    dir = target->centerPosition() - pos;
+    dir = target->collosionCenter() - pos;
 
     float lxz   = std::sqrt(dir.x*dir.x+0*0+dir.z*dir.z);
     float speed = DynamicWorld::bulletSpeed;
@@ -723,8 +728,8 @@ void World::sendImmediatePerc(Npc& self, Npc& other, Npc& victim, Item& item, in
   }
 
 Sound World::addWeaponHitEffect(Npc& src, const Bullet* srcArrow, Npc& reciver) {
-  auto p0 = src.position();
-  auto p1 = reciver.position();
+  auto p0 = src.centerPosition();
+  auto p1 = reciver.centerPosition();
 
   Tempest::Matrix4x4 pos;
   pos.identity();
@@ -904,9 +909,8 @@ const WayPoint *World::findFreePoint(const Npc &npc, std::string_view name) cons
       return p;
       }
     }
-  auto pos = npc.position();
-  pos.y+=npc.translateY();
 
+  const auto pos = npc.centerPosition();
   return wmatrix->findFreePoint(pos,name,[&npc](const WayPoint& wp) -> bool {
     if(wp.isLocked())
       return false;
@@ -925,8 +929,7 @@ const WayPoint *World::findFreePoint(const Tempest::Vec3& pos, std::string_view 
   }
 
 const WayPoint *World::findNextFreePoint(const Npc &npc, std::string_view name) const {
-  auto pos = npc.position();
-  pos.y+=npc.translateY();
+  auto pos = npc.centerPosition();
   auto cur = npc.currentWayPoint();
   if(cur!=nullptr && !cur->checkName(name)) {
     cur = nullptr;
@@ -943,9 +946,7 @@ const WayPoint *World::findNextFreePoint(const Npc &npc, std::string_view name) 
   }
 
 const WayPoint* World::findNextWayPoint(const Npc &npc) const {
-  auto pos = npc.position();
-  pos.y+=npc.translateY();
-
+  auto pos     = npc.centerPosition();
   auto nearest = npc.currentWayPoint();
   if(nearest==nullptr || nearest->isFreePoint()) {
     nearest = findWayPoint(pos);
@@ -983,8 +984,7 @@ void World::detectItem(const Tempest::Vec3& p, const float r, const std::functio
   }
 
 WayPath World::wayTo(const Npc &npc, const WayPoint &end) const {
-  auto npcPos = npc.position();
-  npcPos.y += npc.translateY();
+  const auto npcPos = npc.centerPosition();
 
   auto begin = npc.currentWayPoint();
   if(begin==&end && MoveAlgo::isClose(npc,end)) {

@@ -139,6 +139,9 @@ class Gothic final {
     bool         doVobBox() const { return vobBox; }
     void         setVobBox(bool v) { vobBox = v; }
 
+    bool         doVobRays() const { return vobRays; }
+    void         setVobRays(bool v) { vobRays = v; }
+
     bool         isBenchmarkMode() const;
     bool         isBenchmarkModeCi() const;
     void         setBenchmarkMode(Benchmark b);
@@ -221,6 +224,7 @@ class Gothic final {
     bool                                    showFpsCounter = false;
     bool                                    showTime       = false;
     bool                                    vobBox         = false;
+    bool                                    vobRays        = false;
     Benchmark                               isBenchmark    = Benchmark::None;
 
     std::string                             wrldDef, plDef, gameDatDef, ouDef;

@@ -28,7 +28,7 @@ class WayPoint final {
     Tempest::Vec3 position () const;
     Tempest::Vec3 direction() const;
 
-    Tempest::Vec3 pos;
+    Tempest::Vec3 pos, groundPos;
     Tempest::Vec3 dir;
     bool          underWater = false;
     bool          freePoint  = false;
@@ -44,7 +44,7 @@ class WayPoint final {
     mutable int32_t  pathLen = std::numeric_limits<int32_t>::max();
     mutable uint16_t pathGen = 0;
 
-    float qDistTo(float x,float y,float z) const;
+    float qDistTo(const Tempest::Vec3& to) const;
 
     void connect(WayPoint& w);
     const std::vector<Conn>& connections() const { return conn; }

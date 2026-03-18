@@ -6,7 +6,6 @@
 #include <zenkit/vobs/MovableObject.hh>
 
 #include "game/serialize.h"
-#include "graphics/mesh/skeleton.h"
 #include "utils/string_frm.h"
 #include "world/triggers/abstracttrigger.h"
 #include "world/objects/npc.h"
@@ -178,6 +177,44 @@ void Interactive::postValidate() {
     animChanged = true;
   }
 
+void Interactive::drawVobBox(DbgPainter& p) const {
+  p.setPen(Tempest::Color(1,0,0));
+  //p.drawAabb(bbox[0], bbox[1]);
+  if(auto mesh = visual.protoMesh()) {
+    p.drawObb(transform(), mesh->bboxCol());
+    }
+
+  for(auto& i:attPos) {
+    p.setBrush(Tempest::Color(0,1,0));
+    p.drawPoint(nodePosition(nullptr, i));
+    }
+  }
+
+void Interactive::drawVobRay(DbgPainter& p, const Npc& npc) const {
+  auto head = npc.mapHeadBone();
+
+  if(auto mesh = visual.protoMesh()) {
+    auto  bbox   = mesh->bboxCol();
+    auto  boxMin = bbox[0];
+    auto  boxMax = bbox[1];
+    auto  at     = (boxMin+boxMax)*0.5f;
+    transform().project(at);
+
+    auto  tMax   = (at - head).length();
+    auto  dir    = Tempest::Vec3::normalize(at - head);
+    float tHit   = DynamicWorld::rayBox(head, dir, tMax, transform(), boxMin, boxMax, 0.1f);
+
+    bool accessable = true;
+    if(!npc.canRayHitPoint(head+dir*tHit, true))
+      accessable = false;
+    p.setPen(accessable ? Tempest::Color(0,1,0) : Tempest::Color(1,0,0));
+    p.drawLine(head, head+dir*tHit);
+
+    p.setPen(Tempest::Color(1,1,0));
+    p.drawLine(head+dir*tHit, at);
+    }
+  }
+
 void Interactive::resetPositionToTA(int32_t state) {
   for(auto& i:attPos)
     if(i.user!=nullptr && i.user->isPlayer())
@@ -199,9 +236,9 @@ void Interactive::setVisual(const zenkit::VirtualObject& vob) {
   if(auto mesh = visual.protoMesh()) {
     attPos.resize(mesh->pos.size());
     for(size_t i=0;i<attPos.size();++i){
-      attPos[i].name = mesh->pos[i].name;
-      attPos[i].pos  = mesh->pos[i].transform;
-      attPos[i].node = mesh->pos[i].node;
+      attPos[i].name   = mesh->pos[i].name;
+      attPos[i].pos    = mesh->pos[i].transform;
+      attPos[i].nodeId = mesh->pos[i].node;
       }
     }
   setAnim(Interactive::Active); // setup default anim
@@ -539,24 +576,37 @@ uint32_t Interactive::stateMask() const {
   }
 
 bool Interactive::canSeeNpc(const Npc& npc, bool freeLos) const {
+  auto head = npc.mapHeadBone();
+  if(auto mesh = visual.protoMesh()) {
+    auto  bbox   = mesh->bboxCol();
+    auto  at     = (bbox[0]+bbox[1])*0.5f;
+    transform().project(at);
+
+    auto  tMax   = (at - head).length();
+    auto  dir    = (at - head)/tMax;
+    float tHit   = DynamicWorld::rayBox(head, dir, tMax, transform(), bbox[0], bbox[1], 0.1f);
+
+    if(!npc.canRayHitPoint(head+dir*tHit, true))
+      return false;
+    }
+
   for(auto& i:attPos){
-    auto pos = nodePosition(npc,i);
-    if(npc.canSeeNpc(pos,freeLos))
+    auto pos = nodePosition(&npc,i);
+    if(npc.canRayHitPoint(pos,freeLos))
       return true;
     }
 
   // graves
-  if(attPos.size()==0){
-    auto pos = displayPosition();
-    if(npc.canSeeNpc(pos,freeLos))
-      return true;
+  if(attPos.size()==0) {
+    // ray-box test should be engough
+    return true;
     }
   return false;
   }
 
 Tempest::Vec3 Interactive::nearestPoint(const Npc& to) const {
   if(auto p = findNearest(to))
-    return worldPos(*p);
+    return nodePosition(&to, *p);
   return displayPosition();
   }
 
@@ -582,6 +632,11 @@ const Interactive::Pos* Interactive::findNearest(const Npc& to) const {
 
 Interactive::Pos* Interactive::findNearest(const Npc& to) {
   return findNearest<Interactive::Pos, Interactive>(*this,to);
+  }
+
+float Interactive::qDistTo(const Npc &npc, const Interactive::Pos &to) const {
+  auto p = nodePosition(&npc, to);
+  return npc.qDistTo(p);
   }
 
 void Interactive::implAddItem(std::string_view name) {
@@ -672,20 +727,6 @@ Interactive::Pos *Interactive::findFreePos() {
   return nullptr;
   }
 
-Tempest::Vec3 Interactive::worldPos(const Interactive::Pos &to) const {
-  auto mesh = visual.protoMesh();
-  if(mesh==nullptr)
-    return Tempest::Vec3();
-
-  auto mat  = transform();
-  auto pos  = mesh->mapToRoot(to.node);
-  mat.mul(pos);
-
-  Tempest::Vec3 ret = {};
-  mat.project(ret);
-  return ret;
-  }
-
 bool Interactive::isAvailable() const {
   for(auto& i:attPos)
     if(i.user!=nullptr)
@@ -731,13 +772,12 @@ bool Interactive::canQuitAtState(const Npc& npc, int32_t state) const {
 bool Interactive::attach(Npc& npc, Interactive::Pos& to) {
   assert(to.user==nullptr);
 
-  auto mat = nodeTranform(npc,to);
-  float x=0, y=0, z=0;
-  mat.project(x,y,z);
+  auto mat = nodeTranform(&npc,to);
 
-  const Tempest::Vec3 mv = {x,y-npc.translateY(),z};
+  Tempest::Vec3 mv = {};
+  mat.project(mv);
 
-  if((npc.position()-mv).quadLength()>MAX_AI_USE_DISTANCE*MAX_AI_USE_DISTANCE) {
+  if((npc.centerPosition()-mv).quadLength()>MAX_AI_USE_DISTANCE*MAX_AI_USE_DISTANCE) {
     if(npc.isPlayer()) {
       auto& sc = npc.world().script();
       sc.printMobTooFar(npc);
@@ -855,32 +895,47 @@ void Interactive::setDir(Npc &npc, const Tempest::Matrix4x4 &mat) {
   npc.setDirection(Tempest::Vec3(x1-x0, y1-y0, z1-z0));
   }
 
-float Interactive::qDistTo(const Npc &npc, const Interactive::Pos &to) const {
-  auto p = worldPos(to);
-  return npc.qDistTo(p);
+Tempest::Vec3 Interactive::nodePosition(const Npc* npc, const Interactive::Pos &to) const {
+  auto  p = nodeTranform(npc, to);
+  float x = p.at(3,0);
+  float y = p.at(3,1);
+  float z = p.at(3,2);
+  return Tempest::Vec3(x,y,z);
+  //NOTE: no need in 'ground rays' - distance to point check allows extra distance on Y
+#if 0
+  if(!groundPos)
+    return Tempest::Vec3(x,y,z);
+
+  auto pos = Tempest::Vec3(x,y,z);
+  auto ray = world.physic()->ray(pos, pos+Tempest::Vec3(0,MOBSI_SEARCH_DISTANCE,0));
+  if(ray.hasCol) {
+    // project position on landscape
+    pos = ray.v;
+    }
+  return pos;
+#endif
   }
 
-Tempest::Matrix4x4 Interactive::nodeTranform(const Npc &npc, const Pos& p) const {
+Tempest::Matrix4x4 Interactive::nodeTranform(const Npc* npc, const Pos& to) const {
   auto mesh = visual.protoMesh();
   if(mesh==nullptr)
-    return Tempest::Matrix4x4();
+    return transform();
 
-  auto nodeId = mesh->findNode(p.name);
-  if(p.isDistPos()) {
-    auto pos = position();
-    Tempest::Matrix4x4 npos;
-    if(nodeId!=size_t(-1)) {
-      npos = visual.bone(nodeId);
-      } else {
-      npos.identity();
-      }
+  const auto nodeId = to.nodeId; //mesh->findNode(p.name);
+  if(nodeId==size_t(-1))
+    return transform();
+
+  if(to.isDistPos() && npc!=nullptr) {
+    auto  pos   = position();
+    auto  npos  = visual.bone(nodeId);
+
     float nodeX = npos.at(3,0) - pos.x;
     float nodeY = npos.at(3,1) - pos.y;
     float nodeZ = npos.at(3,2) - pos.z;
     float dist  = std::sqrt(nodeX*nodeX + nodeZ*nodeZ);
 
-    float npcX  = npc.position().x - pos.x;
-    float npcZ  = npc.position().z - pos.z;
+    float npcX  = npc->position().x - pos.x;
+    float npcZ  = npc->position().z - pos.z;
     float npcA  = 180.f*std::atan2(npcZ,npcX)/float(M_PI);
 
     npos.identity();
@@ -897,30 +952,18 @@ Tempest::Matrix4x4 Interactive::nodeTranform(const Npc &npc, const Pos& p) const
     return npos;
     }
 
-  if(nodeId!=size_t(-1))
-    return visual.bone(nodeId);
-
-  return transform();
+  return visual.bone(nodeId);
   }
 
-Tempest::Vec3 Interactive::nodePosition(const Npc &npc, const Pos &p) const {
-  auto  mat = nodeTranform(npc,p);
-  float x   = mat.at(3,0);
-  float y   = mat.at(3,1);
-  float z   = mat.at(3,2);
-  return {x,y,z};
-  }
-
-Tempest::Matrix4x4 Interactive::nodeTranform(std::string_view nodeName) const {
+Tempest::Matrix4x4 Interactive::mapBone(std::string_view nodeName) const {
   auto mesh = visual.protoMesh();
-  if(mesh==nullptr || mesh->skeleton==nullptr)
-    return Tempest::Matrix4x4();
+  if(mesh==nullptr)
+    return transform();
 
-  auto id  = mesh->skeleton->findNode(nodeName);
-  auto ret = transform();
-  if(id!=size_t(-1))
-    ret = visual.bone(id);
-  return ret;
+  const auto nodeId = mesh->findNode(nodeName);
+  if(nodeId==size_t(-1))
+    return transform();
+  return visual.bone(nodeId);
   }
 
 const Animation::Sequence* Interactive::setAnim(Interactive::Anim t) {
@@ -1024,7 +1067,7 @@ void Interactive::marchInteractives(DbgPainter &p) const {
   p.setBrush(Tempest::Color(1.0,0,0,1));
 
   for(auto& m:attPos) {
-    auto pos = worldPos(m);
+    auto pos = nodePosition(nullptr, m);
 
     float x = pos.x;
     float y = pos.y;

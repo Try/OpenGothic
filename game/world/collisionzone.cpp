@@ -107,8 +107,8 @@ void CollisionZone::onIntersect(Npc& npc) {
 void CollisionZone::tick(uint64_t /*dt*/) {
   for(size_t i=0;i<intersect.size();) {
     Npc& npc = *intersect[i];
-    auto pos = npc.position();
-    if(!checkPos(pos+Tempest::Vec3(0,npc.translateY(),0))) {
+    auto pos = npc.centerPosition();
+    if(!checkPos(pos)) {
       intersect[i] = intersect.back();
       intersect.pop_back();
       } else {

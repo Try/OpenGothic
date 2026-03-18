@@ -8,6 +8,7 @@
 
 class DialogMenu;
 class InventoryMenu;
+class DbgPainter;
 class World;
 class Interactive;
 class Npc;
@@ -24,6 +25,8 @@ class PlayerControl final {
     void  onKeyReleased(KeyCodec::Action a, KeyCodec::Mapping mapping = KeyCodec::Mapping::Primary);
     bool  isPressed(KeyCodec::Action a) const;
     void  onRotateMouse(float dAngleX, float dAngleY);
+
+    void  drawVobRay(DbgPainter& p) const;
 
     void  changeZoom(int delta);
     void  tickFocus();
@@ -161,7 +164,7 @@ class PlayerControl final {
     void           toggleWalkMode();
     void           toggleSneakMode();
     void           moveFocus(FocusAction act);
-    Focus          findFocus(Focus *prev);
+    Focus          findFocus(const Focus* prev) const;
 
     void           clrDraw();
     void           implMove(uint64_t dt);

@@ -16,13 +16,13 @@ void FirePlace::load(Serialize& fin) {
 void FirePlace::moveEvent() {
   Interactive::moveEvent();
 
-  auto at = this->nodeTranform(fireSlot);
+  auto at = this->mapBone(fireSlot);
   fireVobtree.setObjMatrix(at);
   }
 
 void FirePlace::onStateChanged() {
   if(stateId()>0) {
-    auto at = this->nodeTranform(fireSlot);
+    auto at = this->mapBone(fireSlot);
     fireVobtree = VobBundle(world,fireVobtreeName,Vob::Startup);
     fireVobtree.setObjMatrix(at);
     } else {

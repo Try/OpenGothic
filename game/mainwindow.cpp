@@ -263,21 +263,24 @@ void MainWindow::paintEvent(PaintEvent& event) {
     fnt.drawText(p,5,fnt.pixelSize()+5,fpsT);
     }
 
-  if(Gothic::inst().doClock() && world!=nullptr) {
-    if (!Gothic::inst().isDesktop()) {
+  if(!Gothic::inst().isDesktop() && world!=nullptr) {
+    if(Gothic::inst().doClock()) {
       auto hour = world->time().hour();
       auto min  = world->time().minute();
       auto& fnt = Resources::font(scale);
       string_frm clockT(int(hour),":",int(min));
       fnt.drawText(p,w()-fnt.textSize(clockT).w-5,fnt.pixelSize()+5,clockT);
       }
-    }
 
-  if(Gothic::inst().doVobBox() && !Gothic::inst().isDesktop()) {
     auto c = Gothic::inst().camera();
-    if(world!=nullptr && c!=nullptr) {
+    if(Gothic::inst().doVobBox() && c!=nullptr) {
       DbgPainter dbg(p,c->viewProj(),w(),h());
       world->drawVobBoxNpcNear(dbg);
+      }
+
+    if(Gothic::inst().doVobRays() && c!=nullptr) {
+      DbgPainter dbg(p,c->viewProj(),w(),h());
+      player.drawVobRay(dbg);
       }
     }
 

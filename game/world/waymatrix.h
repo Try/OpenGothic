@@ -43,13 +43,13 @@ class WayMatrix final {
 
     World&                 world;
     // scripting doc says 20m, but number seems to be incorrect
-    // Vatras requires at least 8 meters
-    // Keroloth requires less than 8.25 meters
+    // Vatras requires at least 8.1 meters; Vatras is broken in vanilla
+    // Keroloth requires less than 8.18 meters
     // Abuyin requires less than 10 meters
-    // Harry(CoM) requires less(!) than 8 meters
+    // Harry(CoM) requires less(!) than 8 meters (~7.96)
     // Gothic 1 range is identical
     // Vanilla is buggy here as Vatras can't reach his praying spot from teaching location
-    float                  distanceThreshold = 820.f;
+    float                  distanceThreshold = 800.f;
 
     std::vector<WayEdge>   edges;
 
@@ -72,6 +72,6 @@ class WayMatrix final {
     void                   calculateLadderPoints();
 
     const FpIndex&         findFpIndex(std::string_view name) const;
-    const WayPoint*        findFreePoint(float x, float y, float z, const FpIndex &ind,
+    const WayPoint*        findFreePoint(const Tempest::Vec3& at, const FpIndex &ind,
                                          const std::function<bool(const WayPoint&)>& filter) const;
   };
