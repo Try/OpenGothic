@@ -981,6 +981,10 @@ void WorldObjects::resetPositionToTA() {
       npcRemoved.push_back(std::move(i));
   npcInvalid.clear();
 
+  for(auto& i : npcArr) {
+    i->attachToPoint(nullptr);
+    }
+
   for(size_t i=0;i<npcArr.size();) {
     auto& n = *npcArr[i];
     if(n.resetPositionToTA()){

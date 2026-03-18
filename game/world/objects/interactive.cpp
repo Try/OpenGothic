@@ -955,11 +955,15 @@ Tempest::Matrix4x4 Interactive::nodeTranform(const Npc* npc, const Pos& p) const
   return visual.bone(nodeId);
   }
 
-Tempest::Matrix4x4 Interactive::nodeTranform(std::string_view nodeName) const {
-  for(auto& i:attPos)
-    if(i.name==nodeName)
-      return nodeTranform(nullptr, i);
-  return transform();
+Tempest::Matrix4x4 Interactive::mapBone(std::string_view nodeName) const {
+  auto mesh = visual.protoMesh();
+  if(mesh==nullptr)
+    return transform();
+
+  const auto nodeId = mesh->findNode(nodeName);
+  if(nodeId==size_t(-1))
+    return transform();
+  return visual.bone(nodeId);
   }
 
 const Animation::Sequence* Interactive::setAnim(Interactive::Anim t) {

@@ -111,7 +111,7 @@ class Interactive : public Vob {
 
     auto                nodePosition(const Npc* npc, const Pos &to, bool groundPos) const -> Tempest::Vec3;
     Tempest::Matrix4x4  nodeTranform(const Npc* npc, const Pos &p) const;
-    Tempest::Matrix4x4  nodeTranform(std::string_view nodeName) const;
+    Tempest::Matrix4x4  mapBone(std::string_view nodeName) const;
 
     void                moveEvent() override;
     float               extendedSearchRadius() const override;

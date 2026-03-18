@@ -680,7 +680,8 @@ Bounds Npc::bounds() const {
 
 Vec3 Npc::centerPosition() const {
   auto p = position();
-  p.y = physic.centerY();
+  //p.y = physic.centerY();
+  p.y += visual.pose().translateY();
   return p;
   }
 
@@ -2326,8 +2327,6 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
         queue.pushFront(std::move(act));
         break;
         }
-      currentFp       = nullptr;
-      currentFpLock   = FpLock();
       go2.set(act.target);
       wayPath.clear();
       break;
@@ -2338,8 +2337,6 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
         }
       auto fp = owner.findNextFreePoint(*this,act.s0);
       if(fp!=nullptr) {
-        currentFp       = fp;
-        currentFpLock   = FpLock(*fp);
         go2.set(fp,GoToHint::GT_NextFp);
         wayPath.clear();
         }
