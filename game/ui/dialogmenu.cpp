@@ -59,7 +59,7 @@ void DialogMenu::setupSettings() {
   showSubtitles       = Gothic::settingsGetI("GAME","subTitles");
   showSubtitlesPlayer = Gothic::settingsGetI("GAME","subTitlesPlayer");
 
-  const float volume = Gothic::inst().settingsGetF("SOUND","soundVolume");
+  const float volume = Gothic::settingsSoundVolume();
   soundDevice.setGlobalVolume(volume);
   }
 

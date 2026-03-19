@@ -106,7 +106,7 @@ struct VideoWidget::Context {
       sndCtx[i].reset(new SoundContext(*this,sndDev,aud.sampleRate,aud.isMono));
       }
 
-    const float volume = Gothic::inst().settingsGetF("SOUND","soundVolume");
+    const float volume = Gothic::settingsSoundVolume();
     sndDev.setGlobalVolume(volume);
     for(size_t i=0; i<vid.audioCount(); ++i)
       sndCtx[i]->play();

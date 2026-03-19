@@ -151,6 +151,7 @@ Gothic::Gothic() {
 
   defaults->set("SOUND", "musicEnabled",  1);
   defaults->set("SOUND", "musicVolume",   0.5f);
+  defaults->set("SOUND", "soundEnabled",  1);
   defaults->set("SOUND", "soundVolume",   0.5f);
 
   //defaults->set("ENGINE", "zEnvMappingEnabled", 0);
@@ -855,6 +856,13 @@ void Gothic::settingsSetF(std::string_view sec, std::string_view name, float val
   instance->onSettingsChanged();
   }
 
+float Gothic::settingsSoundVolume() {
+  const bool  soundEnabled = settingsGetI("SOUND","soundEnabled")!=0;
+  const float soundVolume  = settingsGetF("SOUND","soundVolume");
+
+  return soundEnabled ? 0.f : soundVolume;
+  }
+
 void Gothic::flushSettings() {
   instance->iniFile->flush();
   }
@@ -902,7 +910,7 @@ void Gothic::setupSettings() {
   if(game!=nullptr)
     game->setupSettings();
 
-  const float soundVolume = settingsGetF("SOUND","soundVolume");
+  const float soundVolume = settingsSoundVolume();
   sndDev.setGlobalVolume(soundVolume);
 
   auto ord  = Gothic::settingsGetS("GAME","invCatOrder");

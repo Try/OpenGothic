@@ -211,6 +211,7 @@ class Gothic final {
     static void                           settingsSetS(std::string_view sec, std::string_view name, std::string_view val);
     static float                          settingsGetF(std::string_view sec, std::string_view name);
     static void                           settingsSetF(std::string_view sec, std::string_view name, float val);
+    static float                          settingsSoundVolume();
     static void                           flushSettings();
 
   private:
