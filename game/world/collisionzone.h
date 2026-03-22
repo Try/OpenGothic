@@ -8,6 +8,7 @@
 class World;
 class ParticleFx;
 class Serialize;
+class DbgPainter;
 class Npc;
 
 class CollisionZone final {
@@ -18,6 +19,8 @@ class CollisionZone final {
     CollisionZone(CollisionZone&& other);
     CollisionZone& operator = (CollisionZone&& other);
     ~CollisionZone();
+
+    void          drawVobBox(DbgPainter& p) const;
 
     void          save(Serialize& fout) const;
     void          load(Serialize &fin);

@@ -7,6 +7,8 @@
 #include "game/serialize.h"
 #include "graphics/pfx/particlefx.h"
 
+#include "utils/dbgpainter.h"
+
 CollisionZone::CollisionZone() {
   }
 
@@ -55,6 +57,18 @@ CollisionZone& CollisionZone::operator =(CollisionZone&& other) {
 CollisionZone::~CollisionZone() {
   if(owner!=nullptr)
     owner->disableCollizionZone(*this);
+  }
+
+void CollisionZone::drawVobBox(DbgPainter& p) const {
+  switch(type) {
+    case T_BBox:
+      p.setPen(Tempest::Color(1,0,1));
+      p.drawAabb(pos-size, pos+size);
+      break;
+    case T_Capsule:
+      break;
+    }
+
   }
 
 void CollisionZone::save(Serialize& fout) const {

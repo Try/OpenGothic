@@ -4408,12 +4408,29 @@ void Npc::stopWalking() {
 void Npc::drawVobBox(DbgPainter& p) const {
   physic.debugDraw(p);
 
+  p.setBrush(Tempest::Color(0,1,0));
+  p.drawPoint(position());
+
+  const auto cen = centerPosition();
+  p.setBrush(Tempest::Color(0,0,1));
+  p.drawPoint(cen);
+
+  p.setPen(Tempest::Color(1,1,1));
+  p.drawLine(cen, cen+Tempest::Vec3(0,25,0));
+  p.setPen(Tempest::Color(1,1,0));
+  p.drawLine(cen, cen+Tempest::Vec3(25,0,0));
+  p.setPen(Tempest::Color(1,0.5f,0));
+  p.drawLine(cen, cen+Tempest::Vec3(0,0,25));
+
   if(auto sk = visual.visualSkeleton()) {
+    auto bbox = sk->bboxCol;
+
     auto tr = transform();
     tr.translate(0,visual.pose().translateY(),0);
+    //tr.translate(0, -bbox[0].y, 0);
 
     p.setPen(Color(1,0,0));
-    p.drawObb(tr, sk->bboxCol);
+    p.drawObb(tr, bbox);
     }
   }
 
