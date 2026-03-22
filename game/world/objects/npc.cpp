@@ -2791,12 +2791,12 @@ bool Npc::startState(ScriptFn id, std::string_view wp, gtime endTime, bool noFin
     }
 
   auto& st = owner.script().aiState(id);
-  // allowed player states are hard-coded
-  // https://forum.worldofplayers.de/forum/threads/1533803-G1-AI_StartState-hardcoded-ZS-states-for-Player?p=26034737&viewfull=1#post26034737
   if(isPlayer() && !isPlayerEnabledState(st)) {
     // disable for now, as it causes infinite lock in freeze state
     // https://github.com/Try/OpenGothic/issues/906
-    //return false;
+    // extra 'aiStandup' to avoid issue with B_StopMagicFreeze
+    aiPush(AiQueue::aiStandup());
+    return false;
     }
 
   aiState.started      = false;
@@ -2822,6 +2822,9 @@ void Npc::clearState(bool noFinalize) {
   }
 
 bool Npc::isPlayerEnabledState(const ::AiState& st) const {
+  // allowed player states are hard-coded
+  // https://forum.worldofplayers.de/forum/threads/1533803-G1-AI_StartState-hardcoded-ZS-states-for-Player?p=26034737&viewfull=1#post26034737
+
   static const std::array playerEnabledStatesG1 = {
     "ZS_DEAD",   "ZS_UNCONSCIOUS", "ZS_MAGICFREEZE",
     "ZS_PYRO",   "ZS_ASSESSMAGIC", "ZS_ASSESSSTOPMAGIC",
