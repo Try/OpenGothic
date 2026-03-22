@@ -860,7 +860,7 @@ float Gothic::settingsSoundVolume() {
   const bool  soundEnabled = settingsGetI("SOUND","soundEnabled")!=0;
   const float soundVolume  = settingsGetF("SOUND","soundVolume");
 
-  return soundEnabled ? 0.f : soundVolume;
+  return soundEnabled ? soundVolume : 0.f;
   }
 
 void Gothic::flushSettings() {
