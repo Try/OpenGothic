@@ -23,7 +23,7 @@ Tempest::Vec3 Focus::displayPosition() const {
   if(npc)
     return npc->displayPosition();
   if(item)
-    return item->position();
+    return item->displayPosition();
   return {};
   }
 

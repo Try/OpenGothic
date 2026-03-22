@@ -210,6 +210,12 @@ std::string_view Item::description() const {
   return hitem->description;
   }
 
+Vec3 Item::displayPosition() const {
+  if(auto b = bBox())
+    return pos + Vec3(0, b[1].y - b[0].y, 0);
+  return pos;
+  }
+
 Tempest::Vec3 Item::position() const {
   return pos;
   }
