@@ -225,10 +225,8 @@ void GameSession::save(Serialize &fout, std::string_view name, const Pixmap& scr
   }
 
 void GameSession::setupSettings() {
-  constexpr const float soundScale = 2.f;
-
-  const float soundVolume = Gothic::inst().settingsGetF("SOUND","soundVolume");
-  sound.setGlobalVolume(soundVolume*soundScale);
+  const float soundVolume = Gothic::settingsSoundVolume();
+  sound.setGlobalVolume(soundVolume);
   }
 
 void GameSession::setWorld(std::unique_ptr<World> &&w) {
