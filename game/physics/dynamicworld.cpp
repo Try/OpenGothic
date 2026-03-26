@@ -16,20 +16,21 @@
 
 #include "utils/dbgpainter.h"
 
-const float DynamicWorld::ghostPadding=50-22.5f;
-const float DynamicWorld::ghostHeight =140;
-const float DynamicWorld::worldHeight =20000;
+//#include "BulletCollision/CollisionShapes/btCylinderShape.h"
+
+const float DynamicWorld::ghostPadding = 90;//55.f; //50-22.5f;
+const float DynamicWorld::worldHeight  = 20000;
 
 struct DynamicWorld::HumShape:btCapsuleShape {
-  HumShape(btScalar radius, btScalar height):btCapsuleShape(
-      CollisionWorld::toMeters(height<=0.f ? 0.f : radius),
-      CollisionWorld::toMeters(height)) {}
+  //NOTE: total height is height+2*radius
+  HumShape(btScalar radius, btScalar height):btCapsuleShape(CollisionWorld::toMeters(radius),
+                                                            CollisionWorld::toMeters(height)) {}
 
   // "human" object mush have identyty scale/rotation matrix. Only translation allowed.
   void getAabb(const btTransform& t, btVector3& aabbMin, btVector3& aabbMax) const override {
     const btScalar rad = getRadius();
     btVector3      extent(rad,rad,rad);
-    extent[m_upAxis]  = rad + getHalfHeight();
+    extent[m_upAxis]  = getHalfHeight() + rad;
     btVector3  center = t.getOrigin();
 
     aabbMin = center - extent;
@@ -43,22 +44,25 @@ struct DynamicWorld::NpcBody : btRigidBody {
     delete m_collisionShape;
     }
 
-  Tempest::Vec3 pos={};
-  float         r=0, h=0, rX=0, rZ=0;
-  bool          enable=true;
-  size_t        frozen=size_t(-1);
-  uint64_t      lastMove=0;
+  Tempest::Vec3 pos      = {};
+  float         r        = 0;
+  float         h        = 0;
+  float         gPadd    = 0.f;
+  bool          enable   = true;
+  size_t        frozen   = size_t(-1);
+  uint64_t      lastMove = 0;
 
   Npc* toNpc() {
     return reinterpret_cast<Npc*>(getUserPointer());
     }
 
   void setPosition(const Tempest::Vec3& p) {
-    auto m = CollisionWorld::toMeters(p+Tempest::Vec3(0,(h-r-ghostPadding)*0.5f+r+ghostPadding,0));
+    const float ghostPadding = gPadd;
+    auto m = p + Tempest::Vec3(0,(h+ghostPadding)*0.5f,0);
     pos = p;
     btTransform trans;
     trans.setIdentity();
-    trans.setOrigin(m);
+    trans.setOrigin(CollisionWorld::toMeters(m));
     setWorldTransform(trans);
     }
   };
@@ -75,17 +79,20 @@ struct DynamicWorld::NpcBodyList final {
     }
 
   NpcBody* create(const Tempest::Vec3 &min, const Tempest::Vec3 &max) {
-    static const float dimMax = 45.f;
+    //Tested: stonegolem in Xardas'es tower
+    static const float dimMax = 55.f;
 
-    float dx     = max.x-min.x;
-    float dz     = max.z-min.z;
-    float dim    = (dx+dz)*0.5f; // npc-to-landscape collision size
-    float height = max.y-min.y;
+    auto  size    = max - min;
+    float radius  = std::min(size.y*0.25f, std::min(size.x, size.z)*0.5f); // npc-to-landscape collision size
+    float height  = size.y;
 
-    if(dim>dimMax)
-      dim = dimMax;
+    radius = std::min(radius, dimMax);
+    float ghostPadding = std::max(radius*2.f, 55.f);
+    float cHeight      = std::max(height-2.f*radius-ghostPadding, 0.f);
 
-    btCollisionShape* shape = new HumShape(dim*0.5f, std::max(height-ghostPadding,0.f)*0.5f);
+    btCollisionShape* shape = new HumShape(radius, cHeight);
+    //btCollisionShape* shape = new btCylinderShape(CollisionWorld::toMeters(Tempest::Vec3(radius, height*0.5f, radius)));
+    //btCollisionShape* shape = new btCapsuleShape(CollisionWorld::toMeters(radius), CollisionWorld::toMeters(height));
     NpcBody*          obj   = new NpcBody(shape);
 
     btTransform trans;
@@ -94,8 +101,12 @@ struct DynamicWorld::NpcBodyList final {
     obj->setUserIndex(C_Ghost);
     obj->setCollisionFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
 
+    obj->r     = radius;
+    obj->h     = height;
+    obj->gPadd = ghostPadding;
+    maxR = std::max(maxR, radius);
+
     add(obj);
-    resize(*obj,height,dx,dz);
     return obj;
     }
 
@@ -140,17 +151,6 @@ struct DynamicWorld::NpcBodyList final {
       }
     }
 
-  void resize(NpcBody& n, float h, float dx, float dz){
-    n.rX = dx;
-    n.rZ = dz;
-
-    // n.r = (dx+dz)*0.25f;
-    n.r = std::max((dx+dz)*0.5f, dz)*0.5f;
-    n.h = h;
-
-    maxR = std::max(maxR,n.r);
-    }
-
   void onMove(NpcBody& n){
     if(n.frozen!=size_t(-1)) {
       if(delMisordered(&n,frozen)){
@@ -185,7 +185,7 @@ struct DynamicWorld::NpcBodyList final {
 
     auto  nr   = ln*proj + s;
     auto  dp   = nr      - pos;
-    float R    = 0.5f*(npc.rX + npc.rZ) + extR;
+    float R    = npc.r   + extR;
     if(dp.x*dp.x+dp.z*dp.z > R*R)
       return false;
     if(npc.h<abs(dp.y))
@@ -500,6 +500,7 @@ DynamicWorld::RayLandResult DynamicWorld::landRay(const Tempest::Vec3& from, flo
   world->updateAabbs();
   if(maxDy==0)
     maxDy = worldHeight;
+  float ghostPadding = 50.f;
   return ray(Tempest::Vec3(from.x,from.y+ghostPadding,from.z), Tempest::Vec3(from.x,from.y-maxDy,from.z));
   }
 
@@ -701,13 +702,11 @@ float DynamicWorld::soundOclusion(const Tempest::Vec3& from, const Tempest::Vec3
 DynamicWorld::NpcItem DynamicWorld::ghostObj(std::string_view visual) {
   Tempest::Vec3 min={0,0,0}, max={0,0,0};
   if(auto sk = Resources::loadSkeleton(visual)) {
-    // scale by 0.5, to be compatible with old behaviour for now
-    min = sk->bboxCol[0] * 0.5f;
-    max = sk->bboxCol[1] * 0.5f;
+    min = sk->bboxCol[0];
+    max = sk->bboxCol[1];
     }
-  auto  obj = npcList->create(min,max);
-  float dim = std::max(obj->rX,obj->rZ);
-  return NpcItem(this,obj,dim*0.5f);
+  auto obj = npcList->create(min,max);
+  return NpcItem(this,obj);
   }
 
 DynamicWorld::Item DynamicWorld::staticObj(const PhysicMeshShape *shape, const Tempest::Matrix4x4 &m) {
@@ -969,12 +968,19 @@ std::string_view DynamicWorld::validateSectorName(std::string_view name) const {
   }
 
 bool DynamicWorld::hasCollision(const NpcItem& it, CollisionTest& out) {
+  bool ret = false;
   if(npcList->hasCollision(it,out.normal,out.npc)){
-    out.normal /= out.normal.length();
-    out.npcCol = true;
-    return true;
+    ret = true;
     }
-  return world->hasCollision(*it.obj,out.normal,out.vob);
+  if(world->hasCollision(*it.obj,out.normal,out.vob)) {
+    out.landCol = true;
+    ret = true;
+    }
+
+  if(!ret)
+    return false;
+  out.normal /= out.normal.length();
+  return true;
   }
 
 DynamicWorld::NpcItem::~NpcItem() {
@@ -1031,20 +1037,6 @@ const Tempest::Vec3& DynamicWorld::NpcItem::position() const {
   }
 
 void DynamicWorld::NpcItem::debugDraw(DbgPainter& p) const {
-  p.setBrush(Tempest::Color(0,1,0));
-  p.drawPoint(obj->pos);
-
-  const auto cen = Tempest::Vec3(obj->pos.x, centerY(), obj->pos.z);
-  p.setBrush(Tempest::Color(0,0,1));
-  p.drawPoint(cen);
-
-  p.setPen(Tempest::Color(1,1,1));
-  p.drawLine(cen, cen+Tempest::Vec3(0,25,0));
-  p.setPen(Tempest::Color(1,1,0));
-  p.drawLine(cen, cen+Tempest::Vec3(25,0,0));
-  p.setPen(Tempest::Color(1,0.5f,0));
-  p.drawLine(cen, cen+Tempest::Vec3(0,0,25));
-
   btVector3 aabb0, aabb1;
   obj->getAabb(aabb0, aabb1);
 
@@ -1111,26 +1103,42 @@ DynamicWorld::MoveCode DynamicWorld::NpcItem::implTryMove(const Tempest::Vec3& t
     count = std::max(countXZ,countY);
     }
 
-  auto prev = initial;
+  bool skipNpc    = false;
+  bool skipLnd    = false;
+  bool secondPass = false;
   for(int i=1; i<=count; ++i) {
-    auto pos = initial+(dp*float(i))/float(count);
+    const auto pos = initial+(dp*float(i))/float(count);
     implSetPosition(pos);
-    if(owner->hasCollision(*this,out)) {
-      if(i>1) {
-        // moved a bit
-        out.partial = prev;
-        return MoveCode::MC_Partial;
-        }
-      implSetPosition(initial);
-      if(owner->hasCollision(*this,out)) {
-        // was in collision from the start
-        implSetPosition(to);
-        return MoveCode::MC_OK;
-        }
-      return MoveCode::MC_Fail;
-      }
-    }
 
+    if(!owner->hasCollision(*this,out))
+      continue;
+
+    if((out.npc==nullptr || skipNpc) && (!out.landCol || skipLnd))
+      continue;
+
+    if(i>1) {
+      // moved a bit
+      out.partial = initial+(dp*float(i-1))/float(count);
+      implSetPosition(out.partial);
+      return MoveCode::MC_Partial;
+      }
+
+    implSetPosition(initial);
+    if(i==1 && !secondPass) {
+      // maybe we were stuck into something(npc) from the start?
+      CollisionTest tmpOut = {};
+      if(!owner->hasCollision(*this,tmpOut)) {
+        return MoveCode::MC_Fail;
+        }
+      skipNpc    = tmpOut.npc!=nullptr;
+      skipLnd    = tmpOut.landCol;
+      secondPass = true;
+      i          = 0;
+      continue;
+      }
+
+    return MoveCode::MC_Fail;
+    }
   return MoveCode::MC_OK;
   }
 

@@ -673,9 +673,13 @@ float Npc::rotationYRad() const {
   }
 
 Bounds Npc::bounds() const {
-  auto b = visual.bounds();
-  b.setObjMatrix(transform());
-  return b;
+  return visual.bounds();
+  }
+
+auto Npc::bBox() const -> const Vec3* {
+  if(visual.visualSkeleton()==nullptr)
+    return nullptr;
+  return visual.visualSkeleton()->bboxCol;
   }
 
 Vec3 Npc::centerPosition() const {
@@ -4288,7 +4292,7 @@ Npc::JumpStatus Npc::tryJump() {
   if(!physic.testMove(pos1,pos0,info) ||
      !physic.testMove(pos2,pos1,info)) {
     // check approximate path of climb failed
-    ret.anim    = Anim::Jump;
+    ret.anim    = Anim::JumpUp;
     ret.noClimb = true;
     return ret;
     }
@@ -4514,7 +4518,7 @@ SensesBit Npc::canSenseNpc(const Npc &oth, bool freeLos, float extRange) const {
   // NOTE2: interacting with chest(lockpicking) or some MOBSI should not produce 'noise'
   // NOTE3: seem npc can't hear player in general case, and hearing relevant only for sendImmediatePerc cases
   const bool isNoisy = false;
-  const auto mid     = oth.bounds().midTr;
+  const auto mid     = oth.centerPosition();
   return canSenseNpc(mid,freeLos,isNoisy,extRange);
   }
 

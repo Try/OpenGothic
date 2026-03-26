@@ -64,16 +64,17 @@ class DynamicWorld final {
     struct CollisionTest {
       Tempest::Vec3 partial = {};
       Tempest::Vec3 normal  = {};
-      bool          npcCol  = false;
       bool          preFall = false;
+
       Interactive*  vob     = nullptr;
       Npc*          npc     = nullptr;
+      bool          landCol = false;
       };
 
     struct NpcItem {
       public:
         NpcItem()=default;
-        NpcItem(DynamicWorld* owner,NpcBody* obj,float r):owner(owner),obj(obj){}
+        NpcItem(DynamicWorld* owner, NpcBody* obj):owner(owner),obj(obj){}
         NpcItem(NpcItem&& it):owner(it.owner),obj(it.obj){it.obj=nullptr;}
         ~NpcItem();
 
@@ -299,6 +300,5 @@ class DynamicWorld final {
     std::unique_ptr<BulletsList>       bulletList;
     std::unique_ptr<BBoxList>          bboxList;
 
-    static const float                 ghostHeight;
     static const float                 worldHeight;
   };

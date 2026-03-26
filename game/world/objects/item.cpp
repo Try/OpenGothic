@@ -189,11 +189,11 @@ void Item::setPhysicsEnable(const MeshObjects::Mesh& view) {
   }
 
 void Item::setPhysicsEnable(const ProtoMesh* mesh) {
-  if(mesh==nullptr)
+  if(bBox()==nullptr)
     return;
   auto& p = *world.physic();
   Bounds b;
-  b.assign(mesh->bbox);
+  b.assign(bBox());
   physic = p.dynamicObj(transform(),b,zenkit::MaterialGroup(hitem->material));
   physic.setItem(this);
   }

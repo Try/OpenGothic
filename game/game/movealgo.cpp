@@ -252,7 +252,8 @@ void MoveAlgo::tickClimb(uint64_t dt) {
     p += climbPos0;
     p.y = climbHeight;
     if(!npc.tryTranslate(p)) {
-      npc.setPosition(Tempest::Vec3(climbPos0.x,climbHeight,climbPos0.z));
+      // npc.setPosition(Tempest::Vec3(climbPos0.x,climbHeight,climbPos0.z));
+      npc.tryTranslate(Tempest::Vec3(climbPos0.x,climbHeight,climbPos0.z));
       npc.tryTranslate(p);
       }
     clearSpeed();
@@ -981,7 +982,7 @@ void MoveAlgo::onMoveFailed(const Tempest::Vec3& dp, const DynamicWorld::Collisi
     case Npc::GT_EnemyG:
     case Npc::GT_Way:
     case Npc::GT_Point: {
-      if(info.npcCol || info.preFall) {
+      if(info.npc!=nullptr || info.preFall) {
         npc.setDirection(npc.rotation()+stp);
         } else {
         auto jc = npc.tryJump();
