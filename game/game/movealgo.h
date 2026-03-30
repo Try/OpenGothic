@@ -78,14 +78,18 @@ class MoveAlgo final {
   private:
     void    tickMobsi  (uint64_t dt);
     bool    tickSlide  (uint64_t dt);
-    void    tickGravity(uint64_t dt);
+    void    tickGravity(uint64_t dt, MvFlags moveFlg);
     void    tickSwim   (uint64_t dt);
     void    tickClimb  (uint64_t dt);
     void    tickJumpup (uint64_t dt);
     bool    tickRun(uint64_t dt, MvFlags moveFlg);
 
+    // deprecated
+    bool    _tickRun (uint64_t dt, MvFlags moveFlg);
+
     bool    tryMove    (float x, float y, float z);
     bool    tryMove    (float x, float y, float z, DynamicWorld::CollisionTest& out);
+    bool    tryMove    (const Tempest::Vec3& dp, DynamicWorld::CollisionTest& out);
 
     enum Flags : uint32_t {
       NoFlags = 0,
@@ -118,7 +122,8 @@ class MoveAlgo final {
     auto    npcMoveSpeed (uint64_t dt, MvFlags moveFlg) -> Tempest::Vec3;
     auto    go2NpcMoveSpeed (const Tempest::Vec3& dp, const Npc &tg) -> Tempest::Vec3;
     auto    go2WpMoveSpeed  (Tempest::Vec3 dp, const Tempest::Vec3& to) -> Tempest::Vec3;
-    void    implTick(uint64_t dt,MvFlags fai=NoFlag);
+    bool    implTick(uint64_t dt, MvFlags fai);
+    void    _implTick(uint64_t dt, MvFlags fai);
 
     void    onMoveFailed(const Tempest::Vec3& dp, const DynamicWorld::CollisionTest& info, uint64_t dt);
     void    onGravityFailed(const DynamicWorld::CollisionTest& info, uint64_t dt);

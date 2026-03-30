@@ -500,8 +500,7 @@ DynamicWorld::RayLandResult DynamicWorld::landRay(const Tempest::Vec3& from, flo
   world->updateAabbs();
   if(maxDy==0)
     maxDy = worldHeight;
-  float ghostPadding = 50.f;
-  return ray(Tempest::Vec3(from.x,from.y+ghostPadding,from.z), Tempest::Vec3(from.x,from.y-maxDy,from.z));
+  return ray(from, Tempest::Vec3(from.x,from.y-maxDy,from.z));
   }
 
 DynamicWorld::RayWaterResult DynamicWorld::waterRay(const Tempest::Vec3& from) const {
