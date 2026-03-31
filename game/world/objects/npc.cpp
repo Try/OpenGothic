@@ -1042,7 +1042,7 @@ bool Npc::isFalling() const {
   }
 
 bool Npc::isFallingDeep() const {
-  return mvAlgo.isInAir() && (visual.pose().isInAnim("S_FALL") || visual.pose().isInAnim("S_FALLB"));
+  return mvAlgo.isFalling() && (visual.pose().isInAnim("S_FALL") || visual.pose().isInAnim("S_FALLB"));
   }
 
 bool Npc::isSlide() const {
@@ -1055,6 +1055,10 @@ bool Npc::isInAir() const {
 
 bool Npc::isJump() const {
   return mvAlgo.isJump();
+  }
+
+bool Npc::isJumpUp() const {
+  return mvAlgo.isJumpUp();
   }
 
 void Npc::invalidateTalentOverlays() {
@@ -4271,7 +4275,7 @@ Npc::JumpStatus Npc::tryJump() {
 
   JumpStatus ret;
   DynamicWorld::CollisionTest info;
-  if(!isInAir() && physic.testMove(pos0+dp,info)) {
+  if(!mvAlgo.isJumpUp() && physic.testMove(pos0+dp,info)) {
     // jump forward
     ret.anim   = Anim::Jump;
     ret.noClimb = true;
@@ -4316,14 +4320,14 @@ Npc::JumpStatus Npc::tryJump() {
     return ret;
     }
 
-  if(isInAir() && dY<=jumpLow + visual.pose().translateY()) {
+  if(mvAlgo.isJumpUp() && dY<=jumpLow + visual.pose().translateY()) {
     // jumpup -> climb
     ret.anim   = Anim::JumpHang;
     ret.height = jumpY;
     return ret;
     }
 
-  if(isInAir()) {
+  if(mvAlgo.isJumpUp()) {
     ret.anim    = Anim::Idle;
     ret.noClimb = true;
     return ret;

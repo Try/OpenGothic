@@ -543,7 +543,7 @@ DynamicWorld::RayWaterResult DynamicWorld::implWaterRay(const Tempest::Vec3& fro
     float waterY = callback.m_hitPointWorld.y()*100.f;
     auto  cave   = ray(from,Tempest::Vec3(to.x,waterY,to.z));
     if(cave.hasCol && cave.v.y<waterY) {
-      ret.wdepth = from.y-worldHeight;
+      ret.wdepth = -std::numeric_limits<float>::infinity();
       ret.hasCol = false;
       } else {
       ret.wdepth = waterY;
@@ -552,7 +552,7 @@ DynamicWorld::RayWaterResult DynamicWorld::implWaterRay(const Tempest::Vec3& fro
     return ret;
     }
 
-  ret.wdepth = from.y-worldHeight;
+  ret.wdepth = -std::numeric_limits<float>::infinity();
   ret.hasCol = false;
   return ret;
   }
@@ -632,7 +632,10 @@ DynamicWorld::RayLandResult DynamicWorld::ray(const Tempest::Vec3& from, const T
       hitNorm.y = callback.m_hitNormalWorld.y();
       hitNorm.z = callback.m_hitNormalWorld.z();
       }
+    } else {
+    hitPos.y = -std::numeric_limits<float>::infinity();
     }
+
   RayLandResult ret;
   ret.v           = hitPos;
   ret.n           = hitNorm;

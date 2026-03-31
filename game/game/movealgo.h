@@ -56,7 +56,7 @@ class MoveAlgo final {
     bool    isFalling() const;
     bool    isSlide()   const;
     bool    isInAir()   const;
-    bool    isJumpup()  const;
+    bool    isJumpUp()  const;
     bool    isClimb()   const;
     bool    isInWater() const;
     bool    isSwim()    const;
@@ -74,6 +74,7 @@ class MoveAlgo final {
     float   waterDepthChest() const;
     float   falldownHeight()  const;
     bool    canFlyOverWater() const;
+    bool    canFallByGravity() const;
 
     bool    checkLastBounce() const;
 
@@ -84,10 +85,6 @@ class MoveAlgo final {
     void    tickSwim   (uint64_t dt);
     void    tickClimb  (uint64_t dt);
     void    tickJumpup (uint64_t dt);
-    bool    tickRun(uint64_t dt, MvFlags moveFlg);
-
-    // deprecated
-    bool    _tickRun (uint64_t dt, MvFlags moveFlg);
 
     bool    tryMove    (float x, float y, float z);
     bool    tryMove    (float x, float y, float z, DynamicWorld::CollisionTest& out);
@@ -127,7 +124,6 @@ class MoveAlgo final {
     auto    go2NpcMoveSpeed (const Tempest::Vec3& dp, const Npc &tg) -> Tempest::Vec3;
     auto    go2WpMoveSpeed  (Tempest::Vec3 dp, const Tempest::Vec3& to) -> Tempest::Vec3;
     bool    implTick(uint64_t dt, MvFlags fai);
-    void    _implTick(uint64_t dt, MvFlags fai);
 
     void    onMoveFailed(const Tempest::Vec3& dp, const DynamicWorld::CollisionTest& info, uint64_t dt);
     void    onGravityFailed(const DynamicWorld::CollisionTest& info, uint64_t dt);
