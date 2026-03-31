@@ -450,7 +450,7 @@ void Npc::setDirectionY(float rotation) {
   if(rotation<-90)
     rotation = -90;
   rotation = std::fmod(rotation,360.f);
-  if(!mvAlgo.isSwim() && !(interactive()!=nullptr && interactive()->isLadder()))
+  if(!mvAlgo.isDive() && !(interactive()!=nullptr && interactive()->isLadder()))
     return;
   angleY = rotation;
   durtyTranform |= TR_Rot;
@@ -1051,6 +1051,10 @@ bool Npc::isSlide() const {
 
 bool Npc::isInAir() const {
   return mvAlgo.isInAir();
+  }
+
+bool Npc::isJump() const {
+  return mvAlgo.isJump();
   }
 
 void Npc::invalidateTalentOverlays() {

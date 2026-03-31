@@ -700,7 +700,7 @@ void PlayerControl::implMove(uint64_t dt) {
     }
 
   pl.setDirectionY(rotY);
-  if(pl.isFalling() || pl.isSlide() || pl.isInAir()){
+  if(pl.isFalling() || pl.isSlide() || pl.isInAir() || pl.isJump()){
     pl.setDirection(rot);
     runAngleDest = 0;
     return;

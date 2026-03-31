@@ -61,6 +61,7 @@ class MoveAlgo final {
     bool    isInWater() const;
     bool    isSwim()    const;
     bool    isDive()    const;
+    bool    isJump()    const;
 
     zenkit::MaterialGroup groundMaterial() const;
     auto    groundNormal() const -> Tempest::Vec3;
@@ -71,6 +72,7 @@ class MoveAlgo final {
 
     float   waterDepthKnee()  const;
     float   waterDepthChest() const;
+    float   falldownHeight()  const;
     bool    canFlyOverWater() const;
 
     bool    checkLastBounce() const;
@@ -101,8 +103,10 @@ class MoveAlgo final {
       InWater = 1<<6,
       Swim    = 1<<7,
       Dive    = 1<<8,
+      Jump    = 1<<9,
       };
 
+    void    setState(Flags f);
     void    setInAir    (bool f);
     void    setAsJumpup (bool f);
     void    setAsClimb  (bool f);

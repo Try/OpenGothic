@@ -187,6 +187,7 @@ class Npc final {
     bool       isFallingDeep() const;
     bool       isSlide() const;
     bool       isInAir() const;
+    bool       isJump() const;
     bool       isStanding() const;
     bool       isSwim() const;
     bool       isInWater() const;
