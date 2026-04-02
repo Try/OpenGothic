@@ -79,16 +79,14 @@ class MoveAlgo final {
     bool    checkLastBounce() const;
 
   private:
-    void    tickMobsi  (uint64_t dt);
-    bool    tickSlide  (uint64_t dt);
-    void    tickGravity(uint64_t dt, MvFlags moveFlg);
-    void    tickSwim   (uint64_t dt);
-    void    tickClimb  (uint64_t dt);
-    void    tickJumpup (uint64_t dt);
+    void    tickMobsi (uint64_t dt);
+    void    tickClimb (uint64_t dt);
+    void    tickJumpup(uint64_t dt);
+    bool    implTick  (uint64_t dt, MvFlags fai);
 
-    bool    tryMove    (float x, float y, float z);
-    bool    tryMove    (float x, float y, float z, DynamicWorld::CollisionTest& out);
-    bool    tryMove    (const Tempest::Vec3& dp, DynamicWorld::CollisionTest& out);
+    bool    tryMove   (float x, float y, float z);
+    bool    tryMove   (float x, float y, float z, DynamicWorld::CollisionTest& out);
+    bool    tryMove   (const Tempest::Vec3& dp, DynamicWorld::CollisionTest& out);
 
     enum Flags : uint32_t {
       NoFlags = 0,
@@ -102,16 +100,7 @@ class MoveAlgo final {
       Dive    = 1<<8,
       Jump    = 1<<9,
       };
-
     void    setState(Flags f);
-    void    setInAir    (bool f);
-    void    setAsJumpup (bool f);
-    void    setAsClimb  (bool f);
-    void    setAsSlide  (bool f);
-    void    setInWater  (bool f);
-    void    setAsSwim   (bool f);
-    void    setAsDive   (bool f);
-    void    setAsFalling(bool f);
 
     bool    slideDir() const;
     bool    isForward(const Tempest::Vec3& dp) const;
@@ -121,9 +110,9 @@ class MoveAlgo final {
     void    applyRotation(Tempest::Vec3& out, const Tempest::Vec3& in, float radians) const;
     auto    animMoveSpeed(uint64_t dt) const -> Tempest::Vec3;
     auto    npcMoveSpeed (uint64_t dt, MvFlags moveFlg) -> Tempest::Vec3;
+    auto    npcFallSpeed (uint64_t dt) -> Tempest::Vec3;
     auto    go2NpcMoveSpeed (const Tempest::Vec3& dp, const Npc &tg) -> Tempest::Vec3;
     auto    go2WpMoveSpeed  (Tempest::Vec3 dp, const Tempest::Vec3& to) -> Tempest::Vec3;
-    bool    implTick(uint64_t dt, MvFlags fai);
 
     void    onMoveFailed(const Tempest::Vec3& dp, const DynamicWorld::CollisionTest& info, uint64_t dt);
     void    onGravityFailed(const DynamicWorld::CollisionTest& info, uint64_t dt);
