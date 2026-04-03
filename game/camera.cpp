@@ -753,7 +753,7 @@ void Camera::tick(uint64_t dt) {
     auto  pl     = isFree() ? nullptr : world->player();
     auto& physic = *world->physic();
 
-    if(pl!=nullptr && !(pl->isInWater() || pl->isSwim() || pl->isDive())) {
+    if(pl!=nullptr && (pl->isInAir() || pl->isJump())) {
       // NOTE: not quite correct
       inWater = physic.cameraRay(inter.target, origin).waterCol % 2;
       } else {
