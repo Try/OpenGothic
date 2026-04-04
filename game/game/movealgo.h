@@ -88,19 +88,19 @@ class MoveAlgo final {
     bool    tryMove   (float x, float y, float z, DynamicWorld::CollisionTest& out);
     bool    tryMove   (const Tempest::Vec3& dp, DynamicWorld::CollisionTest& out);
 
-    enum Flags : uint32_t {
-      NoFlags = 0,
-      InAir   = 1<<1,
-      Falling = 1<<2,
-      Slide   = 1<<3,
-      JumpUp  = 1<<4,
-      ClimbUp = 1<<5,
-      InWater = 1<<6,
-      Swim    = 1<<7,
-      Dive    = 1<<8,
-      Jump    = 1<<9,
+    enum State : uint32_t {
+      Run = 0,
+      InAir,
+      Falling,
+      Slide,
+      Jump,
+      JumpUp,
+      ClimbUp,
+      InWater,
+      Swim,
+      Dive,
       };
-    void    setState(Flags f);
+    void    setState(State f);
 
     bool    slideDir() const;
     bool    isForward(const Tempest::Vec3& dp) const;
@@ -141,7 +141,7 @@ class MoveAlgo final {
 
     std::string_view    portal;
     std::string_view    formerPortal;
-    Flags               flags = NoFlags;
+    State               flags = Run;
 
     float               mulSpeed  =1.f;
     Tempest::Vec3       fallSpeed ={};

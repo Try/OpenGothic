@@ -64,7 +64,7 @@ void MoveAlgo::tickMobsi(uint64_t dt) {
     auto pos = npc.position();
     npc.setPosition(pos+dp);
     }
-  setState(NoFlags);
+  setState(Run);
   }
 
 bool MoveAlgo::tryMove(float x, float y, float z) {
@@ -113,7 +113,7 @@ void MoveAlgo::tickJumpup(uint64_t dt) {
 
 void MoveAlgo::tickClimb(uint64_t dt) {
   if(npc.bodyStateMasked()!=BS_CLIMB) {
-    setState(NoFlags);
+    setState(Run);
 
     Tempest::Vec3 p={}, v={0,0,climbMove};
     applyRotation(p,v);
@@ -158,39 +158,6 @@ void MoveAlgo::tick(uint64_t dt, MvFlags moveFlg) {
   if(!implTick(dt,moveFlg))
     return;
 
-  /*
-  const auto  pos   = npc.position();
-  const float chest = waterDepthChest();
-  const float knee  = waterDepthKnee();
-
-  // from cache, but not ideal
-  bool  gValid  = false;
-  auto  ground  = dropRay (pos, gValid);
-  auto  water   = waterRay(pos);
-
-  if(!std::isfinite(water) && flags==Swim) {
-    setState(NoFlags);
-    }
-  else if(!canFlyOverWater() && !npc.isDead()) {
-    if(std::max(pos.y, ground) + 3.f*chest <= water) {
-      // underwater walk bug-like case: can switch to dive here
-      // setState(Dive);
-      }
-    else if(std::max(pos.y, ground) + chest <= water+0.01f) {
-      const bool splash = isInAir();
-      if(flags!=Dive)
-        setState(Swim);
-      if(splash)
-        emitWaterSplash(water);
-      if(!npc.hasSwimAnimations())
-        npc.takeDrownDamage();
-      }
-    else if(std::max(pos.y, ground) + knee <= water && flags!=InAir && flags!=Slide) {
-      setState(InWater);
-      }
-    }
-  */
-
   if(cache.sector!=nullptr && portal!=cache.sector) {
     formerPortal = portal;
     portal       = cache.sector;
@@ -228,10 +195,10 @@ bool MoveAlgo::implTick(uint64_t dt, MvFlags moveFlg) {
       onGravityFailed(info,dt);
       setState(InAir);
       }
-    else if(state==InAir) {
+    else if(grav) {
       onGravityFailed(info,dt);
       }
-    else if(state==Swim) {
+    else if(swim) {
       // Khorinis port hack
       for(int i=0; i<=50; i+=10) {
         if(tryMove(Tempest::Vec3(dp.x,dp.y+float(i),dp.z), info))
@@ -272,7 +239,7 @@ bool MoveAlgo::implTick(uint64_t dt, MvFlags moveFlg) {
     dY      = std::min((pos.y+chest)-water, stickThreshold);
     }
 
-  if(dp==Tempest::Vec3() && pos.y==ground && !grav)
+  if(dp==Tempest::Vec3() && pos.y==ground && !grav && state!=Jump)
     return false;
 
   // jump animation (lift off)
@@ -305,7 +272,7 @@ bool MoveAlgo::implTick(uint64_t dt, MvFlags moveFlg) {
 
   // blood-fly over water
   if(canFlyOverWater() && !npc.isDead() && ground<water) {
-    setState(NoFlags);
+    setState(Run);
     clearSpeed();
     npc.tryTranslate(Tempest::Vec3(pos.x, water, pos.z));
     return true;
@@ -313,21 +280,24 @@ bool MoveAlgo::implTick(uint64_t dt, MvFlags moveFlg) {
 
   // water interaction
   if(!canFlyOverWater() && !npc.isDead() && ground<water) {
-    if(std::max(pos.y, ground) + 3.f*chest <= water) {
+    const float gpos = std::max(pos.y, ground);
+    if(gpos + 3.f*chest <= water) {
       // underwater walk bug-like case: can switch to dive here
       // setState(Dive);
       }
-    else if(std::max(pos.y, ground) + chest <= water+0.01f) {
-      const bool splash = isInAir();
-      if(state!=Dive)
+    else if(gpos + chest <= water+0.01f) {
+      if(state!=Swim && state!=Dive) {
+        const bool splash = isInAir() || fallSpeed.quadLength() >= 1.f;
         setState(Swim);
-      if(splash)
-        emitWaterSplash(water);
-      if(!npc.hasSwimAnimations())
-        npc.takeDrownDamage();
-      return true;
+        if(splash)
+          emitWaterSplash(water);
+        if(!npc.hasSwimAnimations())
+          npc.takeDrownDamage();
+        clearSpeed();
+        return true;
+        }
       }
-    else if(std::max(pos.y, ground) + knee <= water && state!=InAir && state!=Slide) {
+    else if(gpos + knee <= water && state!=InAir && state!=Slide && state!=Dive) {
       // swimming toward cliff-slide
       if(swim && testSlide(pos,info)) {
         npc.setPosition(pos0);
@@ -339,7 +309,7 @@ bool MoveAlgo::implTick(uint64_t dt, MvFlags moveFlg) {
 
   if(swim) {
     if(dead || !std::isfinite(water)) {
-      setState(NoFlags);
+      setState(Run);
       } else {
       npc.tryTranslate(Tempest::Vec3(pos.x, water-chest, pos.z));
       }
@@ -396,7 +366,7 @@ bool MoveAlgo::implTick(uint64_t dt, MvFlags moveFlg) {
 
   if(state==Slide && !npc.isDown()) {
     if(!testSlide(pos,info)) {
-      setState(NoFlags);
+      setState(Run);
       return true;
       }
     const auto norm    = normalRay(pos);
@@ -422,7 +392,7 @@ bool MoveAlgo::implTick(uint64_t dt, MvFlags moveFlg) {
     // attach to ground
     npc.takeFallDamage(fallSpeed);
     clearSpeed();
-    setState(NoFlags);
+    setState(Run);
     }
 
   if(ground+chest < water && !npc.hasSwimAnimations()) {
@@ -462,7 +432,7 @@ bool MoveAlgo::implTick(uint64_t dt, MvFlags moveFlg) {
 
   const auto adjPos = npc.position() + Tempest::Vec3(0,-dY,0);
   if(gValid && dY <= stickThreshold && npc.testMove(adjPos)) {
-    setState(NoFlags);
+    setState(Run);
     if(ground==pos.y)
       return true;
     if(ground<=pos.y) {
@@ -756,46 +726,79 @@ void MoveAlgo::startDive() {
   }
 
 bool MoveAlgo::isFalling() const {
-  return flags&Falling;
+  return flags==Falling;
   }
 
 bool MoveAlgo::isSlide() const {
-  return flags&Slide;
+  return flags==Slide;
   }
 
 bool MoveAlgo::isInAir() const {
-  return flags&InAir;
+  return flags==InAir;
   }
 
 bool MoveAlgo::isJumpUp() const {
-  return flags&JumpUp;
+  return flags==JumpUp;
   }
 
 bool MoveAlgo::isClimb() const {
-  return flags&ClimbUp;
+  return flags==ClimbUp;
   }
 
 bool MoveAlgo::isInWater() const {
-  return flags&InWater;
+  return flags==InWater;
   }
 
 bool MoveAlgo::isSwim() const {
-  return flags&Swim;
+  return flags==Swim;
   }
 
 bool MoveAlgo::isDive() const {
-  return flags&Dive;
+  return flags==Dive;
   }
 
 bool MoveAlgo::isJump() const {
-  return flags&Jump;
+  return flags==Jump;
   }
 
-void MoveAlgo::setState(Flags f) {
+void MoveAlgo::setState(State f) {
   if(f==flags)
     return;
 
-  if((f&Swim) && !(flags&Swim)) {
+  // assert possible transitions
+  switch(flags) {
+    case Run:
+      assert(f!=Falling);
+      break;
+    case InAir:
+      assert(f==Run || f==InWater || f==Swim || f==Dive);
+      break;
+    case Falling:
+      assert(f==Run || f==InWater || f==Dive);
+      break;
+    case Slide:
+      break;
+    case Jump:
+      assert(f==Run || f==InAir || f==Falling || f==Swim || f==Dive);
+      break;
+    case JumpUp:
+      assert(f==Run || f==InAir || f==ClimbUp);
+      break;
+    case ClimbUp:
+      assert(f==Run);
+      break;
+    case InWater:
+      assert(f==Run || f==Slide || f==JumpUp || f==Swim || f==Dive);
+      break;
+    case Swim:
+      assert(f==Run || f==InWater || f==Dive);
+      break;
+    case Dive:
+      assert(f==Swim || f==InWater);
+      break;
+    }
+
+  if((f==Swim) && !(flags==Swim)) {
     auto ws = npc.weaponState();
     npc.setAnim(Npc::Anim::NoAnim);
     if(ws!=WeaponState::NoWeapon && ws!=WeaponState::Fist)
@@ -803,12 +806,14 @@ void MoveAlgo::setState(Flags f) {
     npc.dropTorch(true);
     }
 
-  if((f&Dive) && !(flags&Dive)) {
+  if((f==Dive) && !(flags==Dive)) {
     npc.setDirectionY(-40);
     }
-  if((f&Dive) != (flags&Dive)) {
+  if((f==Dive) != (flags==Dive)) {
     diveStart = npc.world().tickCount();
     }
+
+  // handle fly-speed here?
 
   flags = f;
   }
