@@ -271,7 +271,7 @@ bool MoveAlgo::implTick(uint64_t dt, MvFlags moveFlg) {
     }
 
   // blood-fly over water
-  if(canFlyOverWater() && !npc.isDead() && ground<water) {
+  if(canFlyOverWater() && !dead && ground<water) {
     setState(Run);
     clearSpeed();
     npc.tryTranslate(Tempest::Vec3(pos.x, water, pos.z));
@@ -279,8 +279,14 @@ bool MoveAlgo::implTick(uint64_t dt, MvFlags moveFlg) {
     }
 
   // water interaction
-  if(!canFlyOverWater() && !npc.isDead() && ground<water) {
-    const float gpos = std::max(pos.y, ground);
+  if(!canFlyOverWater() && !dead && ground<water) {
+    if(swim) {
+      // note need to be carefull about non-planar water patches, near waterfalls
+      const float wpos = std::max(water-chest, ground);
+      npc.tryTranslate(Tempest::Vec3(pos.x, wpos, pos.z));
+      }
+
+    const float gpos = std::max(npc.position().y, ground);
     if(gpos + 3.f*chest <= water) {
       // underwater walk bug-like case: can switch to dive here
       // setState(Dive);
@@ -303,15 +309,18 @@ bool MoveAlgo::implTick(uint64_t dt, MvFlags moveFlg) {
         npc.setPosition(pos0);
         return false;
         }
-      setState(InWater);
+      if(state==Swim) {
+        setState(Run);
+        }
+      }
+    else if(state==InWater || state==Swim) {
+      setState(Run);
       }
     }
 
   if(swim) {
     if(dead || !std::isfinite(water)) {
       setState(Run);
-      } else {
-      npc.tryTranslate(Tempest::Vec3(pos.x, water-chest, pos.z));
       }
     return true;
     }
@@ -432,7 +441,12 @@ bool MoveAlgo::implTick(uint64_t dt, MvFlags moveFlg) {
 
   const auto adjPos = npc.position() + Tempest::Vec3(0,-dY,0);
   if(gValid && dY <= stickThreshold && npc.testMove(adjPos)) {
-    setState(Run);
+    const float gpos = std::max(npc.position().y, ground);
+    if(gpos + knee <= water) {
+      setState(InWater);
+      } else {
+      setState(Run);
+      }
     if(ground==pos.y)
       return true;
     if(ground<=pos.y) {
@@ -771,7 +785,7 @@ void MoveAlgo::setState(State f) {
       assert(f!=Falling);
       break;
     case InAir:
-      assert(f==Run || f==InWater || f==Swim || f==Dive);
+      assert(f==Run || f==Falling || f==InWater || f==Swim || f==Dive);
       break;
     case Falling:
       assert(f==Run || f==InWater || f==Dive);

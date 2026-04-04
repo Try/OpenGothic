@@ -753,10 +753,14 @@ void Camera::tick(uint64_t dt) {
     auto  pl     = isFree() ? nullptr : world->player();
     auto& physic = *world->physic();
 
-    if(pl!=nullptr && (pl->isInAir() || pl->isJump())) {
+    if(pl!=nullptr && pl->isSwim()) {
+      inWater = (angles.x < 0);
+      }
+    else if(pl!=nullptr && (pl->isInAir() || pl->isJump())) {
       // NOTE: not quite correct
       inWater = physic.cameraRay(inter.target, origin).waterCol % 2;
-      } else {
+      }
+    else {
       // NOTE: find a way to avoid persistent tracking
       inWater = inWater ^ (physic.cameraRay(prev, origin).waterCol % 2);
       }
