@@ -101,6 +101,7 @@ class MoveAlgo final {
       Dive,
       };
     void    setState(State f);
+    void    assertStateChange(State f);
 
     bool    slideDir() const;
     bool    isForward(const Tempest::Vec3& dp) const;

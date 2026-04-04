@@ -754,7 +754,7 @@ void Camera::tick(uint64_t dt) {
     auto& physic = *world->physic();
 
     if(pl!=nullptr && pl->isSwim()) {
-      inWater = (angles.x < 0);
+      inWater = (angles.x < -8.f);
       }
     else if(pl!=nullptr && (pl->isInAir() || pl->isJump())) {
       // NOTE: not quite correct

@@ -779,6 +779,31 @@ void MoveAlgo::setState(State f) {
   if(f==flags)
     return;
 
+#ifndef NDEBUG
+  assertStateChange(f);
+#endif
+
+  if((f==Swim) && !(flags==Swim)) {
+    auto ws = npc.weaponState();
+    npc.setAnim(Npc::Anim::NoAnim);
+    if(ws!=WeaponState::NoWeapon && ws!=WeaponState::Fist)
+      npc.closeWeapon(true);
+    npc.dropTorch(true);
+    }
+
+  if((f==Dive) && !(flags==Dive)) {
+    npc.setDirectionY(-40);
+    }
+  if((f==Dive) != (flags==Dive)) {
+    diveStart = npc.world().tickCount();
+    }
+
+  // handle fly-speed here?
+
+  flags = f;
+  }
+
+void MoveAlgo::assertStateChange(State f) {
   // assert possible transitions
   switch(flags) {
     case Run:
@@ -788,7 +813,7 @@ void MoveAlgo::setState(State f) {
       assert(f==Run || f==Falling || f==InWater || f==Swim || f==Dive);
       break;
     case Falling:
-      assert(f==Run || f==InWater || f==Dive);
+      assert(f==Run || f==InAir || f==InWater || f==Swim || f==Dive);
       break;
     case Slide:
       break;
@@ -811,25 +836,6 @@ void MoveAlgo::setState(State f) {
       assert(f==Swim || f==InWater);
       break;
     }
-
-  if((f==Swim) && !(flags==Swim)) {
-    auto ws = npc.weaponState();
-    npc.setAnim(Npc::Anim::NoAnim);
-    if(ws!=WeaponState::NoWeapon && ws!=WeaponState::Fist)
-      npc.closeWeapon(true);
-    npc.dropTorch(true);
-    }
-
-  if((f==Dive) && !(flags==Dive)) {
-    npc.setDirectionY(-40);
-    }
-  if((f==Dive) != (flags==Dive)) {
-    diveStart = npc.world().tickCount();
-    }
-
-  // handle fly-speed here?
-
-  flags = f;
   }
 
 bool MoveAlgo::slideDir() const {
