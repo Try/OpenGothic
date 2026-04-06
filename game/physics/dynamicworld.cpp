@@ -57,8 +57,9 @@ struct DynamicWorld::NpcBody : btRigidBody {
     }
 
   void setPosition(const Tempest::Vec3& p) {
+    const float extPadding   = 10.f; // Khorinis port hack
     const float ghostPadding = gPadd;
-    auto m = p + Tempest::Vec3(0,(h+ghostPadding)*0.5f,0);
+    auto m = p + Tempest::Vec3(0,h*0.5f + ghostPadding*0.5f + extPadding,0);
     pos = p;
     btTransform trans;
     trans.setIdentity();
@@ -79,15 +80,11 @@ struct DynamicWorld::NpcBodyList final {
     }
 
   NpcBody* create(const Tempest::Vec3 &min, const Tempest::Vec3 &max) {
-    //Tested: stonegolem in Xardas'es tower
-    static const float dimMax = 55.f;
-
     auto  size    = max - min;
-    float radius  = std::min(size.y*0.25f, std::min(size.x, size.z)*0.5f); // npc-to-landscape collision size
+    float radius  = std::min(size.y*0.5f, std::min(size.x, size.z))*0.5f; // npc-to-landscape collision size
     float height  = size.y;
 
-    radius = std::min(radius, dimMax);
-    float ghostPadding = std::max(radius*2.f, 55.f);
+    float ghostPadding = height*0.5f;
     float cHeight      = std::max(height-2.f*radius-ghostPadding, 0.f);
 
     btCollisionShape* shape = new HumShape(radius, cHeight);

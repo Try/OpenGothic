@@ -11,13 +11,9 @@ Skeleton::Skeleton(const zenkit::ModelHierarchy& src, const Animation* anim, std
   bbox[0] = {src.bbox.min.x, src.bbox.min.y, src.bbox.min.z};
   bbox[1] = {src.bbox.max.x, src.bbox.max.y, src.bbox.max.z};
 
-#if 0
+#if 1
   bboxCol[0] = {src.collision_bbox.min.x, src.collision_bbox.min.y, src.collision_bbox.min.z};
   bboxCol[1] = {src.collision_bbox.max.x, src.collision_bbox.max.y, src.collision_bbox.max.z};
-
-  // bbox size apears to be halfed in source file
-  // bboxCol[0] *= 2.f;
-  // bboxCol[1] *= 2.f;
 #else
   //NOTE: 'collision_bbox' doesn't match marvin view
   bboxCol[0] = {src.bbox.min.x, src.bbox.min.y, src.bbox.min.z};
