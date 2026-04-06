@@ -200,6 +200,7 @@ bool MoveAlgo::implTick(uint64_t dt, MvFlags moveFlg) {
       }
     else if(swim) {
       // Khorinis port hack
+      /*
       for(int i=0; i<=50; i+=10) {
         if(tryMove(Tempest::Vec3(dp.x,dp.y+float(i),dp.z), info))
           break;
@@ -208,6 +209,9 @@ bool MoveAlgo::implTick(uint64_t dt, MvFlags moveFlg) {
           return false;
           }
         }
+      */
+      onMoveFailed(dp,info,dt);
+      return false;
       }
     else {
       onMoveFailed(dp,info,dt);
@@ -295,7 +299,7 @@ bool MoveAlgo::implTick(uint64_t dt, MvFlags moveFlg) {
       }
     else if(gpos + chest <= water+0.01f) {
       if(state!=Swim && state!=Dive) {
-        const bool splash = isInAir() || fallSpeed.quadLength() >= 1.f;
+        const bool splash = grav || fallSpeed.quadLength() >= 1.f;
         setState(Swim);
         if(splash)
           emitWaterSplash(water);
@@ -367,6 +371,10 @@ bool MoveAlgo::implTick(uint64_t dt, MvFlags moveFlg) {
         npc.setAnim(AnimationSolver::Fall);
         npc.setAnimRotate(0);
         setState(InAir);
+        }
+      else if(state==InWater) {
+        npc.setAnimRotate(0);
+        setState(Swim);
         }
       else {
         npc.setAnimRotate(0);
@@ -775,10 +783,6 @@ bool MoveAlgo::isDive() const {
   return flags==Dive;
   }
 
-bool MoveAlgo::isJump() const {
-  return flags==Jump;
-  }
-
 void MoveAlgo::setState(State f) {
   if(f==flags)
     return;
@@ -834,10 +838,10 @@ void MoveAlgo::assertStateChange(State f) {
       assert(f==Run || f==Slide || f==JumpUp || f==Swim || f==Dive);
       break;
     case Swim:
-      assert(f==Run || f==InWater || f==Dive);
+      assert(f==Run || f==InAir || f==InWater || f==Dive);
       break;
     case Dive:
-      assert(f==Swim || f==InWater);
+      assert(f==InAir || f==Swim || f==InWater);
       break;
     }
   }

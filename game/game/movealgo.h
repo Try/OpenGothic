@@ -34,6 +34,19 @@ class MoveAlgo final {
       WaitMove = 1<<1,
       };
 
+    enum State : uint32_t {
+      Run = 0,
+      InAir,
+      Falling,
+      Slide,
+      Jump,
+      JumpUp,
+      ClimbUp,
+      InWater,
+      Swim,
+      Dive,
+      };
+
     static bool isClose(const Npc& npc, const Npc& p, float dist);
     static bool isClose(const Npc& npc, const WayPoint& p);
     static bool isClose(const Npc& npc, const WayPoint& p, float dist);
@@ -61,7 +74,8 @@ class MoveAlgo final {
     bool    isInWater() const;
     bool    isSwim()    const;
     bool    isDive()    const;
-    bool    isJump()    const;
+
+    auto    state() const { return flags; }
 
     zenkit::MaterialGroup groundMaterial() const;
     auto    groundNormal() const -> Tempest::Vec3;
@@ -88,18 +102,6 @@ class MoveAlgo final {
     bool    tryMove   (float x, float y, float z, DynamicWorld::CollisionTest& out);
     bool    tryMove   (const Tempest::Vec3& dp, DynamicWorld::CollisionTest& out);
 
-    enum State : uint32_t {
-      Run = 0,
-      InAir,
-      Falling,
-      Slide,
-      Jump,
-      JumpUp,
-      ClimbUp,
-      InWater,
-      Swim,
-      Dive,
-      };
     void    setState(State f);
     void    assertStateChange(State f);
 

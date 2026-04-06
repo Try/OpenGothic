@@ -1038,7 +1038,7 @@ bool Npc::isFlyAnim() const {
   }
 
 bool Npc::isFalling() const {
-  return mvAlgo.isFalling();
+  return mvAlgo.state()==MoveAlgo::Falling;
   }
 
 bool Npc::isFallingDeep() const {
@@ -1046,19 +1046,19 @@ bool Npc::isFallingDeep() const {
   }
 
 bool Npc::isSlide() const {
-  return mvAlgo.isSlide();
+  return mvAlgo.state()==MoveAlgo::Slide;
   }
 
 bool Npc::isInAir() const {
-  return mvAlgo.isInAir();
+  return mvAlgo.state()==MoveAlgo::InAir;
   }
 
 bool Npc::isJump() const {
-  return mvAlgo.isJump();
+  return mvAlgo.state()==MoveAlgo::Jump;
   }
 
 bool Npc::isJumpUp() const {
-  return mvAlgo.isJumpUp();
+  return mvAlgo.state()==MoveAlgo::JumpUp;
   }
 
 void Npc::invalidateTalentOverlays() {
@@ -1516,7 +1516,7 @@ bool Npc::implAttack(uint64_t dt) {
   const auto act = fghAlgo.nextFromQueue(*this,*currentTarget,owner.script());
 
   // vanilla behavior, required for orcs in G1 orcgraveyard
-  if(ws==WeaponState::NoWeapon && isAiQueueEmpty()) {
+  if(ws==WeaponState::NoWeapon && isAiQueueEmpty() && mvAlgo.state()==MoveAlgo::Run) {
     drawWeaponMelee();
     return true;
     }
@@ -1960,7 +1960,7 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
     }
 
   if(hitResult.hasHit) {
-    if(bodyStateMasked()!=BS_UNCONSCIOUS && interactive()==nullptr && !isSwim() && !mvAlgo.isClimb()) {
+    if(bodyStateMasked()!=BS_UNCONSCIOUS && interactive()==nullptr && !mvAlgo.isSwim() && !mvAlgo.isClimb()) {
       const bool noInter = (hnpc->bodystate_interruptable_override!=0);
       if(!noInter) {
         //NOTE: kepp rotation animation: this results in more accurate fight with trolls
@@ -3616,7 +3616,7 @@ bool Npc::drawMage(uint8_t slot) {
   }
 
 bool Npc::drawSpell(int32_t spell) {
-  if(isFalling() || mvAlgo.isSwim() || bodyStateMasked()==BS_CASTING)
+  if(mvAlgo.isFalling() || mvAlgo.isSwim() || bodyStateMasked()==BS_CASTING)
     return false;
   auto weaponSt=weaponState();
   if(weaponSt!=WeaponState::NoWeapon && weaponSt!=WeaponState::Mage) {
