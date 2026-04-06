@@ -183,7 +183,7 @@ bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *s
         return false;
         }
       const Animation::Sequence* tr=nullptr;
-      if(i.seq->shortName!=nullptr && sq->shortName!=nullptr) {
+      if(i.seq->shortName!=nullptr && sq->shortName!=nullptr && i.sAnim!=tickCount) {
         string_frm tansition("T_",i.seq->shortName,"_2_",sq->shortName);
         tr = solver.solveFrm(tansition);
         }
