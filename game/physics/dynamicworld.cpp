@@ -48,6 +48,7 @@ struct DynamicWorld::NpcBody : btRigidBody {
   float         r        = 0;
   float         h        = 0;
   float         gPadd    = 0.f;
+  float         stepSz   = 0.f;
   bool          enable   = true;
   size_t        frozen   = size_t(-1);
   uint64_t      lastMove = 0;
@@ -87,6 +88,7 @@ struct DynamicWorld::NpcBodyList final {
     float ghostPadding = height*0.5f;
     float cHeight      = std::max(height-2.f*radius-ghostPadding, 0.f);
 
+    //NOTE: it seem vanilla uses elipsoids at some point, at least for npc-2-npc collisions
     btCollisionShape* shape = new HumShape(radius, cHeight);
     //btCollisionShape* shape = new btCylinderShape(CollisionWorld::toMeters(Tempest::Vec3(radius, height*0.5f, radius)));
     //btCollisionShape* shape = new btCapsuleShape(CollisionWorld::toMeters(radius), CollisionWorld::toMeters(height));
@@ -98,10 +100,13 @@ struct DynamicWorld::NpcBodyList final {
     obj->setUserIndex(C_Ghost);
     obj->setCollisionFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
 
-    obj->r     = radius;
-    obj->h     = height;
-    obj->gPadd = ghostPadding;
-    maxR = std::max(maxR, radius);
+    // obj->r      = radius * 2.f;
+    // obj->r      = std::max(size.x, size.z) * 0.5f;
+    obj->r      = std::min(size.x, size.z); // best so far
+    obj->h      = height;
+    obj->gPadd  = ghostPadding;
+    obj->stepSz = std::min(cHeight*0.5f, radius); // safe tunneling size
+    maxR = std::max(maxR, obj->r);
 
     add(obj);
     return obj;
@@ -190,7 +195,7 @@ struct DynamicWorld::NpcBodyList final {
     return true;
     }
 
-  NpcBody* rayTest(const Tempest::Vec3& s, const Tempest::Vec3& e, float extR, const Npc* except) {
+  auto rayTest(const Tempest::Vec3& s, const Tempest::Vec3& e, float extR, const Npc* except) {
     NpcBody* ret     = nullptr;
     float    minProj = 2;
 
@@ -1091,7 +1096,7 @@ DynamicWorld::MoveCode DynamicWorld::NpcItem::tryMove(const Tempest::Vec3& to, C
 
 DynamicWorld::MoveCode DynamicWorld::NpcItem::implTryMove(const Tempest::Vec3& to, const Tempest::Vec3& pos0, CollisionTest& out) {
   auto initial = pos0;
-  auto r       = obj->r;
+  auto r       = obj->stepSz;
   int  count   = 1;
   auto dp      = to-initial;
 
