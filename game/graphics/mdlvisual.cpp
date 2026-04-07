@@ -790,7 +790,7 @@ void MdlVisual::interrupt() {
 
 Tempest::Vec3 MdlVisual::displayPosition() const {
   if(skeleton!=nullptr)
-    return {0,skeleton->colisionHeight()*1.15f,0};
+    return {0,skeleton->colisionHeight()*1.5f,0};
   return {0.f,0.f,0.f};
   }
 

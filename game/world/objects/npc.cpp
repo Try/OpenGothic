@@ -596,7 +596,7 @@ void Npc::onNoHealth(bool death, HitSound sndMask) {
   // Note: clear perceptions for William in Jarkentar
   for(size_t i=0;i<PERC_Count;++i)
     setPerceptionDisable(PercType(i));
-  if(hnpc->voice>0 && sndMask!=HS_NoSound) {
+  if(hnpc->voice>0 && sndMask!=HS_NoSound && !isDive()) {
     emitSoundSVM(svm);
     }
 
@@ -2223,8 +2223,10 @@ void Npc::tick(uint64_t dt) {
       if(tickSz>0) {
         t-=v;
         int dmg = t/tickSz - (t-int(dt))/tickSz;
-        if(dmg>0)
+        if(dmg>0) {
+          lastHit = nullptr;
           changeAttribute(ATR_HITPOINTS,-dmg,false);
+          }
         }
       }
     }

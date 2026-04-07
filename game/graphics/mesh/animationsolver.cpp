@@ -357,6 +357,10 @@ const Animation::Sequence* AnimationSolver::implSolveAnim(AnimationSolver::Anim 
     return solveFrm("T_STUMBLE");
   if(a==Anim::StumbleB)
     return solveFrm("T_STUMBLEB");
+
+  if((a==Anim::DeadA || a==Anim::DeadB) && bool(wlkMode & WalkBit::WM_Dive)){
+    return solveFrm("S_DROWNED");
+    }
   if(a==Anim::DeadA) {
     if(pose.isInAnim("S_WOUNDED")  || pose.isInAnim("T_STAND_2_WOUNDED") ||
        pose.isInAnim("S_WOUNDEDB") || pose.isInAnim("T_STAND_2_WOUNDEDB"))

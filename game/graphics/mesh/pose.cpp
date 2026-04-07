@@ -396,7 +396,8 @@ bool Pose::updateFrame(const Animation::Sequence &s, BodyState bs, uint64_t sBle
         smp.position.y = trY;
       else if(bs==BS_SWIM || bs==BS_DIVE)
         smp.position.y = trY;
-      else if(s.isFly())
+      //else if(s.isFly())
+      else if(bs==BS_JUMP)
         smp.position.y = trY; //d.translate.y;
       }
 

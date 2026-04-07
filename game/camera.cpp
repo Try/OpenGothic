@@ -756,7 +756,7 @@ void Camera::tick(uint64_t dt) {
     if(pl!=nullptr && pl->isSwim()) {
       inWater = (angles.x < -8.f);
       }
-    else if(pl!=nullptr && (pl->isInAir() || pl->isJump())) {
+    else if(pl!=nullptr && (pl->isInAir() || pl->isJump()) && !pl->isDead()) {
       // NOTE: not quite correct
       inWater = physic.cameraRay(inter.target, origin).waterCol % 2;
       }

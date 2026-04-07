@@ -113,6 +113,8 @@ void MoveAlgo::tickJumpup(uint64_t dt) {
 
 void MoveAlgo::tickClimb(uint64_t dt) {
   if(npc.bodyStateMasked()!=BS_CLIMB) {
+    //NOTE: climb allows npc to violate collision detection, need to readjust
+    npc.owner.script().fixNpcPosition(npc, 0, 0);
     setState(Run);
 
     Tempest::Vec3 p={}, v={0,0,climbMove};
@@ -578,13 +580,10 @@ Tempest::Vec3 MoveAlgo::go2WpMoveSpeed(Tempest::Vec3 dp, const Tempest::Vec3& to
   return dp;
   }
 
-bool MoveAlgo::testSlide(const Tempest::Vec3& pos, DynamicWorld::CollisionTest& out, bool cont) const {
-  if(isInAir() || npc.bodyStateMasked()==BS_JUMP)
-    return false; //note: unused?
-
+bool MoveAlgo::testSlide(const Tempest::Vec3& pos, DynamicWorld::CollisionTest& out) const {
   // check ground
   const auto  norm       = normalRay(pos);
-  const float slideBegin = std::min(slideAngle() + (cont ? 0.1f : 0.f), 1.f);
+  const float slideBegin = std::min(slideAngle(), 1.f);
   const float slideEnd   = slideAngle2();
 
   out.normal = norm;
