@@ -57,10 +57,21 @@ struct DynamicWorld::NpcBody : btRigidBody {
     return reinterpret_cast<Npc*>(getUserPointer());
     }
 
+  auto centerPosition() const {
+    return Tempest::Vec3(pos.x, pos.y+h*0.5f, pos.z);
+    }
+
+  auto ellipsoidSize() const {
+    return Tempest::Vec3(r, h*0.5f, r);
+    }
+
+  auto groundOffset() const {
+    const float extPadding = 10.f; // Khorinis port hack
+    return h*0.5f + ghostPadding*0.5f + extPadding;
+    }
+
   void setPosition(const Tempest::Vec3& p) {
-    const float extPadding   = 10.f; // Khorinis port hack
-    const float ghostPadding = gPadd;
-    auto m = p + Tempest::Vec3(0,h*0.5f + ghostPadding*0.5f + extPadding,0);
+    auto m = p + Tempest::Vec3(0,groundOffset(),0);
     pos = p;
     btTransform trans;
     trans.setIdentity();
@@ -105,7 +116,7 @@ struct DynamicWorld::NpcBodyList final {
     obj->r      = std::min(size.x, size.z); // best so far
     obj->h      = height;
     obj->gPadd  = ghostPadding;
-    obj->stepSz = std::min(cHeight*0.5f, radius); // safe tunneling size
+    obj->stepSz = std::min(height*0.5f, radius); // safe tunneling size
     maxR = std::max(maxR, obj->r);
 
     add(obj);
@@ -129,7 +140,7 @@ struct DynamicWorld::NpcBodyList final {
     return false;
     }
 
-  bool del(void* b,std::vector<Record>& arr){
+  bool del(void* b, std::vector<Record>& arr){
     for(size_t i=0;i<arr.size();++i){
       if(arr[i].body!=b)
         continue;
@@ -1034,6 +1045,10 @@ float DynamicWorld::NpcItem::centerY() const {
     //return obj->h*0.5f;
     }
   return 0;
+  }
+
+float DynamicWorld::NpcItem::groundOffset() const {
+  return obj->groundOffset();
   }
 
 const Tempest::Vec3& DynamicWorld::NpcItem::position() const {

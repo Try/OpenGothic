@@ -984,7 +984,7 @@ void MoveAlgo::onGravityFailed(const DynamicWorld::CollisionTest& info, uint64_t
 
 float MoveAlgo::waterRay(const Tempest::Vec3& pos) const {
   if(std::fabs(cacheW.x-pos.x)>eps || std::fabs(cacheW.y-pos.y)>eps || std::fabs(cacheW.z-pos.z)>eps) {
-    const float threshold = -0.1f; //npc.visual.pose().translateY()+1.f;
+    const float threshold = -0.1f;
     const auto  spos      = Tempest::Vec3(pos.x, pos.y+threshold, pos.z);
     static_cast<DynamicWorld::RayWaterResult&>(cacheW) = npc.world().physic()->waterRay(spos);
     cacheW.x = pos.x;
@@ -996,7 +996,7 @@ float MoveAlgo::waterRay(const Tempest::Vec3& pos) const {
 
 void MoveAlgo::rayMain(const Tempest::Vec3& pos) const {
   if(std::fabs(cache.x-pos.x)>eps || std::fabs(cache.y-pos.y)>eps || std::fabs(cache.z-pos.z)>eps) {
-    float threshold = npc.visual.pose().translateY()+1.f;
+    float threshold = npc.physic.groundOffset() + 1.f;
     float dy        = threshold+100;  // 1 meter extra offset
     if(fallSpeed.y<0 || false)
       dy = 0; // whole world
