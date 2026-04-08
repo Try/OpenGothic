@@ -281,6 +281,28 @@ struct DynamicWorld::NpcBodyList final {
   bool hasCollision(const NpcBody& a, const NpcBody& b, Tempest::Vec3& normal){
     if(&a==&b)
       return false;
+#if 1
+    auto ellipsoidRadius = [](Tempest::Vec3 radius, Tempest::Vec3 direction) {
+      direction.x /= std::max(radius.x, 1.f);
+      direction.y /= std::max(radius.y, 1.f);
+      direction.z /= std::max(radius.z, 1.f);
+
+      direction = Tempest::Vec3::normalize(direction);
+      return (direction * radius).length();
+      };
+
+    auto  direction = a.centerPosition() - b.centerPosition();
+    float distance  = direction.length();
+
+    float radiusA = ellipsoidRadius(a.ellipsoidSize(), direction);
+    float radiusB = ellipsoidRadius(b.ellipsoidSize(), direction);
+
+    if(distance < radiusA + radiusB) {
+      normal += direction;
+      return true;
+      }
+    return false;
+#else
     auto dx = a.pos.x-b.pos.x, dy = a.pos.y-b.pos.y, dz = a.pos.z-b.pos.z;
     auto r  = a.r+b.r;
 
@@ -292,6 +314,7 @@ struct DynamicWorld::NpcBodyList final {
     normal.x += dx;
     normal.y += dy;
     normal.z += dz;
+#endif
     return true;
     }
 
