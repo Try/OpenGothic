@@ -28,6 +28,34 @@
 
 using namespace Tempest;
 
+namespace {
+  Pixmap downscaleSavePreviewPixmap(Pixmap src) {
+    if(src.isEmpty() || src.format()!=TextureFormat::RGBA8)
+      return src;
+    constexpr uint32_t kThumbW = 640, kThumbH = 480;
+    const uint32_t w = src.w(), h = src.h();
+    
+    if(w<=kThumbW || h<=kThumbH)
+      return src;
+
+    Pixmap out(kThumbW, kThumbH, TextureFormat::RGBA8);
+    const auto* s = static_cast<const uint32_t*>(src.data());
+    auto* d = static_cast<uint32_t*>(out.data());
+    
+    // Copy source pixel map to reduced pixel map using Nearest-Neighbor interpolation
+    for(uint32_t y=0; y<kThumbH; ++y) {
+      const uint32_t sy = std::min(h-1u, uint32_t((size_t(y)*h)/kThumbH));
+      const uint32_t rowOffset = sy * w;
+      
+      for(uint32_t x=0; x<kThumbW; ++x) {
+        const uint32_t sx = std::min(w-1u, uint32_t((size_t(x)*w)/kThumbW));
+        d[y * kThumbW + x] = s[rowOffset + sx];
+        }
+      }
+    return out;
+    }
+  }
+
 MainWindow::MainWindow(Device& device)
   : Window(Maximized),device(device),swapchain(device,hwnd()),
     atlas(device),renderer(swapchain),
@@ -1062,7 +1090,9 @@ void MainWindow::loadGame(std::string_view slot) {
 
 void MainWindow::saveGame(std::string_view slot, std::string_view name) {
   auto tex = renderer.screenshoot(cmdId);
-  auto pm  = device.readPixels(textureCast<const Texture2d&>(tex));
+
+  // reduce size of the save entry preview screenshot for faster save & load
+  auto pm  = downscaleSavePreviewPixmap(device.readPixels(textureCast<const Texture2d&>(tex)));
 
   if(dialogs.isActive())
     return;
