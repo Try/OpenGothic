@@ -30,26 +30,30 @@ using namespace Tempest;
 
 namespace {
   Pixmap downscaleSavePreviewPixmap(Pixmap src) {
-    if(src.isEmpty() || src.format()!=TextureFormat::RGBA8)
-      return src;
-    constexpr uint32_t kThumbW = 640, kThumbH = 480;
-    const uint32_t w = src.w(), h = src.h();
-    
-    if(w<=kThumbW || h<=kThumbH)
+    if(src.isEmpty())
       return src;
 
-    Pixmap out(kThumbW, kThumbH, TextureFormat::RGBA8);
-    const auto* s = static_cast<const uint32_t*>(src.data());
-    auto* d = static_cast<uint32_t*>(out.data());
+    constexpr uint32_t kThumbW = 1024;
+    const uint32_t w = src.w(), h = src.h();
+    if(w <= kThumbW)
+      return src;
+
+    const uint32_t nh = std::max(1u, uint32_t((size_t(h) * kThumbW) / w));
+    const size_t bpp = src.bpp();
+
+    Pixmap out(kThumbW, nh, src.format());
+    const uint8_t* s = static_cast<const uint8_t*>(src.data());
+    uint8_t* d = static_cast<uint8_t*>(out.data());
     
     // Copy source pixel map to reduced pixel map using Nearest-Neighbor interpolation
-    for(uint32_t y=0; y<kThumbH; ++y) {
-      const uint32_t sy = std::min(h-1u, uint32_t((size_t(y)*h)/kThumbH));
-      const uint32_t rowOffset = sy * w;
-      
+    for(uint32_t y=0; y<nh; ++y) {
+      const uint32_t sy = uint32_t((size_t(y)*h) / nh);
+      const uint8_t* srcRow = s + (size_t(sy) * w * bpp);
+      uint8_t* destRow = d + (size_t(y) * kThumbW * bpp);
+        
       for(uint32_t x=0; x<kThumbW; ++x) {
-        const uint32_t sx = std::min(w-1u, uint32_t((size_t(x)*w)/kThumbW));
-        d[y * kThumbW + x] = s[rowOffset + sx];
+        const uint32_t sx = uint32_t((size_t(x)*w) / kThumbW);
+        memcpy(destRow + x*bpp, srcRow + sx*bpp, bpp);
         }
       }
     return out;
