@@ -803,7 +803,7 @@ float MdlVisual::viewDirection() const {
     }
   float rx = p.at(2,0);
   float rz = p.at(2,2);
-  return float(std::atan2(rz,rx)) * 180.f / float(M_PI);
+  return float(std::atan2(rz,rx)) * 180.f / float(M_PI) - 90.f;
   }
 
 const Animation::Sequence* MdlVisual::continueCombo(Npc& npc, AnimationSolver::Anim a, BodyState bs,

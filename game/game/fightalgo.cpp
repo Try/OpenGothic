@@ -301,8 +301,22 @@ bool FightAlgo::isInGRange(const Npc &npc, const Npc &tg, GameScript &owner) con
 bool FightAlgo::isInFocusAngle(const Npc &npc, const Npc &tg) const {
   static const float maxAngle = std::cos(float(30.0*M_PI/180.0));
 
-  const auto  dpos  = npc.centerPosition()-tg.centerPosition();
-  const float plAng = npc.rotationRad()+float(M_PI/2);
+  const auto  dpos  = tg.centerPosition() - npc.centerPosition();
+  const float plAng = npc.rotationRad();
+
+  const float da = plAng-std::atan2(dpos.z,dpos.x);
+  const float c  = std::cos(da);
+
+  if(c<maxAngle)
+    return false;
+  return true;
+  }
+
+bool FightAlgo::isInJumpBackAngle(const Npc& npc, const Npc& tg) const {
+  static const float maxAngle = std::cos(float(90.0*M_PI/180.0));
+
+  const auto  dpos  = tg.centerPosition() - npc.centerPosition();
+  const float plAng = npc.rotationRad();
 
   const float da = plAng-std::atan2(dpos.z,dpos.x);
   const float c  = std::cos(da);

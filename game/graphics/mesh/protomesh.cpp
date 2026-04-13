@@ -37,8 +37,8 @@ ProtoMesh::ProtoMesh(PackedMesh&& pm, std::string_view fname)
   nodes.back().submeshIdE = submeshId.size();
   nodes.back().transform.identity();
 
-  bbox[0] = pm.bbox().first;
-  bbox[1] = pm.bbox().second;
+  bboxMesh[0] = pm.bbox().first;
+  bboxMesh[1] = pm.bbox().second;
   setupScheme(fname);
   }
 
@@ -324,10 +324,10 @@ size_t ProtoMesh::findNode(std::string_view name, size_t def) const {
   return skeleton->findNode(name,def);
   }
 
-const Vec3* ProtoMesh::bboxCol() const {
+const Vec3* ProtoMesh::bbox() const {
   if(skeleton==nullptr)
-    return bbox;
-  return skeleton->bboxCol;
+    return bboxMesh;
+  return skeleton->bbox;
   }
 
 void ProtoMesh::setupScheme(std::string_view s) {

@@ -108,7 +108,7 @@ void DocumentMenu::paintEvent(PaintEvent &e) {
 
       p.pushState();
       p.translate(cx,cy);
-      p.rotate(-pl->rotation());
+      p.rotate(-pl->rotation()-90);
       p.drawRect(-cursor->w()/2,-cursor->h()/2, cursor->w(),cursor->h());
       p.popState();
       }

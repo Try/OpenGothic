@@ -678,7 +678,7 @@ DynamicWorld::RayLandResult DynamicWorld::ray(const Tempest::Vec3& from, const T
   ret.mat         = callback.matId;
   ret.hasCol      = callback.hasHit();
   ret.hitFraction = callback.m_closestHitFraction;
-  ret.sector = callback.sector;
+  ret.sector      = callback.sector;
   return ret;
   }
 

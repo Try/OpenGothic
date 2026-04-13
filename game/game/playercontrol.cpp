@@ -452,7 +452,7 @@ void PlayerControl::marvinF8(uint64_t dt) {
   float rot = pl.rotationRad();
   float s   = std::sin(rot), c = std::cos(rot);
 
-  Tempest::Vec3 dp(s,0.8f,-c);
+  Tempest::Vec3 dp(c,0.8f,s);
   pos += dp*6000*float(dt)/1000.f;
 
   pl.changeAttribute(ATR_HITPOINTS,pl.attribute(ATR_HITPOINTSMAX),false);
@@ -478,7 +478,7 @@ void PlayerControl::marvinK(uint64_t dt) {
   float rot = pl.rotationRad();
   float s = std::sin(rot), c = std::cos(rot);
 
-  Tempest::Vec3 dp(s, 0.0f, -c);
+  Tempest::Vec3 dp(c, 0.0f, s);
   pos += dp * 6000 * float(dt) / 1000.f;
 
   pl.clearState(false);

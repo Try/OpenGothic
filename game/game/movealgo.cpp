@@ -512,7 +512,7 @@ void MoveAlgo::applyRotation(Tempest::Vec3& out, const Tempest::Vec3& dpos) cons
     } else {
     out.y = dpos.y;
     }
-  float rot = npc.rotationRad();
+  float rot = npc.rotationRad()+float(M_PI/2);
   applyRotation(out,dpos,rot);
   out.x *= -mul;
   out.z *= -mul;
@@ -858,7 +858,7 @@ void MoveAlgo::assertStateChange(State f) {
   }
 
 bool MoveAlgo::slideDir() const {
-  float a = std::atan2(fallSpeed.x,fallSpeed.z)+float(M_PI/2);
+  float a = std::atan2(fallSpeed.x,fallSpeed.z);
   float b = npc.rotationRad();
 
   auto s = std::sin(a-b);

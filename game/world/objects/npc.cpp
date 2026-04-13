@@ -264,6 +264,8 @@ void Npc::load(Serialize &fin, size_t id, std::string_view directory) {
   fin.read(x,y,z,angle,sz);
   fin.read(wlkMode,trGuild,talentsSk,talentsVl,refuseTalkMilis);
   durtyTranform = TR_Pos|TR_Rot|TR_Scale;
+  if(fin.version()<55)
+    angle -= 90;
 
   fin.read(permAttitude,tmpAttitude);
   fin.read(perceptionTime,perceptionNextTime);
@@ -462,9 +464,9 @@ void Npc::setRunAngle(float angle) {
   }
 
 float Npc::angleDir(float x, float z) {
-  float a=-90;
+  float a = 0;
   if(x!=0.f || z!=0.f)
-    a = 90+180.f*std::atan2(z,x)/float(M_PI);
+    a = 180.f*std::atan2(z,x)/float(M_PI);
   return a;
   }
 
@@ -688,6 +690,13 @@ Vec3 Npc::centerPosition() const {
   p.y += visual.pose().translateY();
   p.y += 15; // seem to be off by ~15 centimeters, according to comparations vanilla testing
   return p;
+  /*
+  // p.y += 15; // seem to be off by ~15 centimeters, according to comparations vanilla testing
+  if(auto sk = visual.visualSkeleton()) {
+      p.y += (sk->bboxCol[0].y + sk->bboxCol[1].y)*0.5f;
+    }
+  return p;
+  */
   }
 
 Vec3 Npc::collosionCenter() const {
@@ -1889,7 +1898,7 @@ void Npc::takeDamage(Npc &other, const Bullet* b) {
 
   assert(b==nullptr || !b->isSpell());
   const auto& pose    = visual.pose();
-  const bool  isJumpb = pose.isJumpBack(owner.tickCount());
+  const bool  isJumpb = pose.isJumpBack(owner.tickCount()) && fghAlgo.isInJumpBackAngle(*this,other);
   const bool  isBlock = (!other.isMonster() || other.inventory().activeWeapon()!=nullptr) &&
                          fghAlgo.isInFocusAngle(*this,other) &&
                          pose.isDefence(owner.tickCount());
@@ -4258,7 +4267,7 @@ Npc::JumpStatus Npc::tryJump() {
   float len = MoveAlgo::climbMove;
   float rot = rotationRad();
   float s   = std::sin(rot), c = std::cos(rot);
-  Vec3  dp  = Vec3{len*s, 0, -len*c};
+  Vec3  dp  = Vec3{len*c, 0, len*s};
 
   auto& g  = owner.script().guildVal();
   auto  gl = guild();
@@ -4613,7 +4622,7 @@ Matrix4x4 Npc::mkPositionMatrix() const {
   if(align) {
     float rot  = rotationRad();
     float s    = std::sin(rot), c = std::cos(rot);
-    auto  dir  = Vec3(s,0,-c);
+    auto  dir  = Vec3(c,0,s);
     auto  norm = Vec3::normalize(ground);
 
     float cx = Vec3::dotProduct(norm,dir);
@@ -4623,7 +4632,7 @@ Matrix4x4 Npc::mkPositionMatrix() const {
   Matrix4x4 mt = Matrix4x4();
   mt.identity();
   mt.translate(x,y,z);
-  mt.rotateOY(180-angle);
+  mt.rotateOY(90-angle);
   if(angY!=0)
     mt.rotateOX(-angY);
   if(isPlayer() && !align) {
