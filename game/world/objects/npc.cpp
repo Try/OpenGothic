@@ -1525,7 +1525,7 @@ bool Npc::implAttack(uint64_t dt) {
   const auto act = fghAlgo.nextFromQueue(*this,*currentTarget,owner.script());
 
   // vanilla behavior, required for orcs in G1 orcgraveyard
-  if(ws==WeaponState::NoWeapon && isAiQueueEmpty() && mvAlgo.state()==MoveAlgo::Run) {
+  if(ws==WeaponState::NoWeapon && isAiQueueEmpty() && canSwitchWeapon()) {
     drawWeaponMelee();
     return true;
     }
@@ -2556,26 +2556,26 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       }
       break;
     case AI_DrawWeapon:
-      if(!isDead()) {
+      if(canSwitchWeapon()) {
         if(!drawWeaponMelee() &&
            !drawWeaponBow())
           queue.pushFront(std::move(act));
         }
       break;
     case AI_DrawWeaponMelee:
-      if(!isDead()) {
+      if(canSwitchWeapon()) {
         if(!drawWeaponMelee())
           queue.pushFront(std::move(act));
         }
       break;
     case AI_DrawWeaponRange:
-      if(!isDead()) {
+      if(canSwitchWeapon()) {
         if(!drawWeaponBow())
           queue.pushFront(std::move(act));
         }
       break;
     case AI_DrawSpell: {
-      if(!isDead()) {
+      if(canSwitchWeapon()) {
         const int32_t spell = act.i0;
         if(drawSpell(spell))
           aiExpectedInvest = act.i1; else
@@ -3514,7 +3514,13 @@ void Npc::unequipItem(size_t item) {
   }
 
 bool Npc::canSwitchWeapon() const {
-  return !(mvAlgo.isFalling() || mvAlgo.isInAir() || mvAlgo.isSlide() || mvAlgo.isSwim());
+  if(isUnconscious())
+    return false;
+  auto bs = bodyStateMasked();
+  if(bs==BS_STAND || bs==BS_WALK || bs==BS_RUN || bs==BS_SNEAK || bs==BS_NONE)
+    return true;
+  return false;
+  // return !(mvAlgo.isFalling() || mvAlgo.isInAir() || mvAlgo.isSlide() || mvAlgo.isSwim());
   }
 
 bool Npc::closeWeapon(bool noAnim) {
