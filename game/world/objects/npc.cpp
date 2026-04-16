@@ -681,7 +681,7 @@ Bounds Npc::bounds() const {
 auto Npc::bBox() const -> const Vec3* {
   if(visual.visualSkeleton()==nullptr)
     return nullptr;
-  return visual.visualSkeleton()->bboxCol;
+  return visual.visualSkeleton()->bbox;
   }
 
 Vec3 Npc::centerPosition() const {

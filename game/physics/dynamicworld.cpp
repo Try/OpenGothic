@@ -18,8 +18,7 @@
 
 //#include "BulletCollision/CollisionShapes/btCylinderShape.h"
 
-const float DynamicWorld::ghostPadding = 90;//55.f; //50-22.5f;
-const float DynamicWorld::worldHeight  = 20000;
+const float DynamicWorld::worldHeight = 20000; //TODO: remove
 
 struct DynamicWorld::HumShape:btCapsuleShape {
   //NOTE: total height is height+2*radius
@@ -57,17 +56,18 @@ struct DynamicWorld::NpcBody : btRigidBody {
     return reinterpret_cast<Npc*>(getUserPointer());
     }
 
-  auto centerPosition() const {
-    return Tempest::Vec3(pos.x, pos.y+h*0.5f, pos.z);
-    }
-
   auto ellipsoidSize() const {
     return Tempest::Vec3(r, h*0.5f, r);
     }
 
   auto groundOffset() const {
     const float extPadding = 10.f; // Khorinis port hack
-    return h*0.5f + ghostPadding*0.5f + extPadding;
+    return h*0.5f + gPadd*0.5f + extPadding;
+    }
+
+  auto centerPosition() const {
+    float padd = groundOffset();
+    return Tempest::Vec3(pos.x, pos.y+padd, pos.z);
     }
 
   void setPosition(const Tempest::Vec3& p) {
@@ -96,6 +96,7 @@ struct DynamicWorld::NpcBodyList final {
     float radius  = std::min(size.y*0.5f, std::min(size.x, size.z))*0.5f; // npc-to-landscape collision size
     float height  = size.y;
 
+    // ghostPadding = 90;
     float ghostPadding = height*0.5f;
     float cHeight      = std::max(height-2.f*radius-ghostPadding, 0.f);
 
@@ -111,8 +112,6 @@ struct DynamicWorld::NpcBodyList final {
     obj->setUserIndex(C_Ghost);
     obj->setCollisionFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
 
-    // obj->r      = radius * 2.f;
-    // obj->r      = std::max(size.x, size.z) * 0.5f;
     obj->r      = std::min(size.x, size.z); // best so far
     obj->h      = height;
     obj->gPadd  = ghostPadding;
@@ -279,43 +278,28 @@ struct DynamicWorld::NpcBodyList final {
     }
 
   bool hasCollision(const NpcBody& a, const NpcBody& b, Tempest::Vec3& normal){
+    // fixme: asymetric npc-npc collision
     if(&a==&b)
       return false;
-#if 1
-    auto ellipsoidRadius = [](Tempest::Vec3 radius, Tempest::Vec3 direction) {
-      direction.x /= std::max(radius.x, 1.f);
-      direction.y /= std::max(radius.y, 1.f);
-      direction.z /= std::max(radius.z, 1.f);
 
+    auto direction = a.centerPosition() - b.centerPosition();
+    auto R         = a.r+b.r, H = a.h+b.h;
+    if(std::abs(direction.x)>R || std::abs(direction.z)>R || std::abs(direction.y)>H*0.5f)
+      return false;
+
+    auto ellipsoidQuadRadius = [](Tempest::Vec3 radius, Tempest::Vec3 direction) -> float {
       direction = Tempest::Vec3::normalize(direction);
       return (direction * radius).length();
       };
 
-    auto  direction = a.centerPosition() - b.centerPosition();
-    float distance  = direction.length();
-
-    float radiusA = ellipsoidRadius(a.ellipsoidSize(), direction);
-    float radiusB = ellipsoidRadius(b.ellipsoidSize(), direction);
-
-    if(distance < radiusA + radiusB) {
+    float qDistance = direction.length();
+    auto  radiusA   = ellipsoidQuadRadius(a.ellipsoidSize(), direction);
+    auto  radiusB   = ellipsoidQuadRadius(b.ellipsoidSize(), direction);
+    if(qDistance < std::pow(radiusA + radiusB, 2.0)) {
       normal += direction;
       return true;
       }
     return false;
-#else
-    auto dx = a.pos.x-b.pos.x, dy = a.pos.y-b.pos.y, dz = a.pos.z-b.pos.z;
-    auto r  = a.r+b.r;
-
-    if(dx*dx+dz*dz>r*r)
-      return false;
-    if(dy>b.h || dy<-a.h)
-      return false;
-
-    normal.x += dx;
-    normal.y += dy;
-    normal.z += dz;
-#endif
-    return true;
     }
 
   void adjustSort() {

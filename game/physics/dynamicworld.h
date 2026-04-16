@@ -39,7 +39,6 @@ class DynamicWorld final {
     static constexpr float gravity     = gravityMS*100.f/(1000.f*1000.f); // centimeters per milliseconds^2
     static constexpr float bulletSpeed = 3; // centimeters per milliseconds
     static constexpr float spellSpeed  = 1; // centimeters per milliseconds
-    static const     float ghostPadding;
 
     DynamicWorld(World &world, const zenkit::Mesh& mesh);
     DynamicWorld(const DynamicWorld&)=delete;
