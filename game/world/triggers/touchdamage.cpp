@@ -6,15 +6,15 @@
 
 TouchDamage::TouchDamage(Vob* parent, World &world, const zenkit::VTouchDamage& dmg, Flags flags)
   :AbstractTrigger(parent,world,dmg,flags) {
-  barrier = dmg.barrier;
-  blunt = dmg.blunt;
-  edge = dmg.edge;
-  fire = dmg.fire;
-  fly = dmg.fly;
-  magic = dmg.magic;
-  point = dmg.point;
-  fall = dmg.fall;
-  damage = dmg.damage;
+  barrier        = dmg.barrier;
+  blunt          = dmg.blunt;
+  edge           = dmg.edge;
+  fire           = dmg.fire;
+  fly            = dmg.fly;
+  magic          = dmg.magic;
+  point          = dmg.point;
+  fall           = dmg.fall;
+  damage         = dmg.damage;
   repeatDelaySec = dmg.repeat_delay_sec;
   }
 
