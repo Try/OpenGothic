@@ -1050,7 +1050,7 @@ bool Npc::isFalling() const {
   }
 
 bool Npc::isFallingDeep() const {
-  return mvAlgo.isFalling() && (visual.pose().isInAnim("S_FALL") || visual.pose().isInAnim("S_FALLB"));
+  return (mvAlgo.isInAir() || mvAlgo.isFalling()) && (visual.pose().isInAnim("S_FALL") || visual.pose().isInAnim("S_FALLB"));
   }
 
 bool Npc::isSlide() const {

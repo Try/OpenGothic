@@ -422,7 +422,7 @@ bool MoveAlgo::implTick(uint64_t dt, MvFlags moveFlg) {
     return false;
     }
 
-  if(testSlide(pos,normal,info)) {
+  if(!dead && testSlide(pos,normal,info)) {
     if(state==InWater || state==Swim) {
       npc.setPosition(pos0);
       return false;
@@ -823,6 +823,7 @@ void MoveAlgo::setState(State f) {
 
 void MoveAlgo::assertStateChange(State f) {
   // assert possible transitions
+  const bool dead = npc.isDead();
   switch(flags) {
     case Run:
       assert(f!=Falling);
@@ -834,14 +835,18 @@ void MoveAlgo::assertStateChange(State f) {
       assert(f==Run || f==InAir || f==InWater || f==Swim || f==Dive);
       break;
     case Slide:
+      assert(!dead);
       break;
     case Jump:
+      assert(!dead);
       assert(f==Run || f==InAir || f==Falling || f==Swim || f==Dive);
       break;
     case JumpUp:
+      assert(!dead);
       assert(f==Run || f==InAir || f==ClimbUp);
       break;
     case ClimbUp:
+      assert(!dead);
       assert(f==Run);
       break;
     case InWater:
@@ -851,6 +856,7 @@ void MoveAlgo::assertStateChange(State f) {
       assert(f==Run || f==InAir || f==InWater || f==Dive);
       break;
     case Dive:
+      assert(!dead);
       assert(f==InAir || f==Swim || f==InWater);
       break;
     }
@@ -974,18 +980,17 @@ void MoveAlgo::onGravityFailed(const DynamicWorld::CollisionTest& info, uint64_t
     norm.y = normXZ   *norm.y/normXZInv;
     }
 
-  if(Tempest::Vec3::dotProduct(fallSpeed,norm)<0.f || fallCount>0) {
-    float len  = fallSpeed.length()/std::max(1.f,fallCount);
-    if(isInAir() && Tempest::Vec2::dotProduct({fallSpeed.x, fallSpeed.z}, {norm.x, norm.z})<0.f) {
-      float lx = Tempest::Vec2({fallSpeed.x, fallSpeed.z}).length();
-      lx *= 0.5f;
-      fallSpeed.x = norm.x*lx;
-      fallSpeed.z = norm.z*lx;
-      //fallSpeed   = Tempest::Vec3::normalize(fallSpeed)*len;
+  auto reflect = [](const Tempest::Vec3& I, const Tempest::Vec3& N) {
+    return I - 2.f*Tempest::Vec3::dotProduct(N,I) * N;
+    };
+
+  assert(fallCount==0.f);
+  if(true || Tempest::Vec3::dotProduct(fallSpeed,norm)<0.f) {
+    //float len  = fallSpeed.length()/std::max(1.f,fallCount);
+    if(Tempest::Vec2::dotProduct({fallSpeed.x, fallSpeed.z}, {norm.x, norm.z})<0.f) {
+      fallSpeed = reflect(fallSpeed, norm)*0.75f;
       } else {
-      len *= 0.5f;
-      len = std::max(len, 0.1f);
-      fallSpeed   = Tempest::Vec3::normalize(fallSpeed+norm)*len;
+      fallSpeed = norm*fallSpeed.length();
       }
     fallCount  = 0;
     } else {
