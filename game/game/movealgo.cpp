@@ -126,7 +126,6 @@ void MoveAlgo::tickClimb(uint64_t dt) {
       npc.tryTranslate(Tempest::Vec3(climbPos0.x,climbHeight,climbPos0.z));
       npc.tryTranslate(p);
       }
-    //clearSpeed();
     return;
     }
 
@@ -172,7 +171,7 @@ void MoveAlgo::tick(uint64_t dt, MvFlags moveFlg) {
 
 bool MoveAlgo::implTick(uint64_t dt, MvFlags moveFlg) {
   if(flags==ClimbUp) {
-    tickClimb(dt); //fixup: collision
+    tickClimb(dt);
     return true;
     }
   if(flags==JumpUp) {
@@ -846,7 +845,7 @@ void MoveAlgo::assertStateChange(State f) {
       assert(f==Run);
       break;
     case InWater:
-      assert(f==Run || f==Slide || f==JumpUp || f==Swim || f==Dive);
+      assert(f==Run || f==Slide || f==Jump || f==JumpUp || f==Swim || f==Dive);
       break;
     case Swim:
       assert(f==Run || f==InAir || f==InWater || f==Dive);
@@ -979,12 +978,12 @@ void MoveAlgo::onGravityFailed(const DynamicWorld::CollisionTest& info, uint64_t
     float len  = fallSpeed.length()/std::max(1.f,fallCount);
     if(isInAir() && Tempest::Vec2::dotProduct({fallSpeed.x, fallSpeed.z}, {norm.x, norm.z})<0.f) {
       float lx = Tempest::Vec2({fallSpeed.x, fallSpeed.z}).length();
-      lx *= 0.25f;
+      lx *= 0.5f;
       fallSpeed.x = norm.x*lx;
       fallSpeed.z = norm.z*lx;
       //fallSpeed   = Tempest::Vec3::normalize(fallSpeed)*len;
       } else {
-      len *= 0.25f;
+      len *= 0.5f;
       len = std::max(len, 0.1f);
       fallSpeed   = Tempest::Vec3::normalize(fallSpeed+norm)*len;
       }

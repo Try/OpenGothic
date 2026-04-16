@@ -283,20 +283,23 @@ struct DynamicWorld::NpcBodyList final {
       return false;
 
     auto direction = a.centerPosition() - b.centerPosition();
+    if(direction.quadLength()<1.f)
+      direction.x += 5.f; // avoid zero based distance
+
     auto R         = a.r+b.r, H = a.h+b.h;
     if(std::abs(direction.x)>R || std::abs(direction.z)>R || std::abs(direction.y)>H*0.5f)
       return false;
 
     auto ellipsoidQuadRadius = [](Tempest::Vec3 radius, Tempest::Vec3 direction) -> float {
-      direction = Tempest::Vec3::normalize(direction);
       return (direction * radius).length();
       };
 
-    float qDistance = direction.length();
-    auto  radiusA   = ellipsoidQuadRadius(a.ellipsoidSize(), direction);
-    auto  radiusB   = ellipsoidQuadRadius(b.ellipsoidSize(), direction);
-    if(qDistance < std::pow(radiusA + radiusB, 2.0)) {
-      normal += direction;
+    float distance  = direction.length();
+    auto  normDir   = Tempest::Vec3::normalize(direction);
+    auto  radiusA   = ellipsoidQuadRadius(a.ellipsoidSize(), normDir);
+    auto  radiusB   = ellipsoidQuadRadius(b.ellipsoidSize(), normDir);
+    if(distance < radiusA + radiusB) {
+      normal += normDir;
       return true;
       }
     return false;

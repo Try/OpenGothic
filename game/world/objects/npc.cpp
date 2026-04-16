@@ -686,9 +686,8 @@ auto Npc::bBox() const -> const Vec3* {
 
 Vec3 Npc::centerPosition() const {
   auto p = position();
-  //p.y = physic.centerY();
+  p.y += 25; // seem to be off by ~25 centimeters, according to comparations vanilla testing
   p.y += visual.pose().translateY();
-  p.y += 15; // seem to be off by ~15 centimeters, according to comparations vanilla testing
   return p;
   /*
   // p.y += 15; // seem to be off by ~15 centimeters, according to comparations vanilla testing
