@@ -54,6 +54,7 @@ class FightAlgo final {
     bool   isInWRange             (const Npc &npc, const Npc &tg, GameScript &owner) const;
     bool   isInGRange             (const Npc &npc, const Npc &tg, GameScript &owner) const;
     bool   isInFocusAngle         (const Npc &npc, const Npc &tg) const;
+    bool   isInJumpBackAngle      (const Npc &npc, const Npc &tg) const;
 
   private:
     void   fillQueue(Npc &npc, Npc &tg, GameScript& owner);

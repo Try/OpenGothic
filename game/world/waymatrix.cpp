@@ -198,6 +198,9 @@ void WayMatrix::adjustWaypoints(std::vector<WayPoint> &wp) {
     if(ray.hasCol) {
       //NOTE: what about water?
       w.groundPos = ray.v;
+      } else {
+      // some way-point are underground
+      w.groundPos = w.pos;
       }
     indexPoints.push_back(&w);
     }

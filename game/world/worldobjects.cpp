@@ -1106,7 +1106,7 @@ template<class T>
 bool WorldObjects::testObj(T &src, const Npc &pl, const WorldObjects::SearchOpt &opt,float& rlen){
   const float qmax  = opt.rangeMax*opt.rangeMax;
   const float qmin  = opt.rangeMin*opt.rangeMin;
-  const float plAng = pl.rotationRad()+float(M_PI/2);
+  const float plAng = pl.rotationRad();
   const float ang   = float(std::cos(double(opt.azi)*M_PI/180.0));
 
   auto& npc=deref(src);
@@ -1123,7 +1123,7 @@ bool WorldObjects::testObj(T &src, const Npc &pl, const WorldObjects::SearchOpt 
     return false;
 
   auto pos   = npc.position();
-  auto dpos  = pl.position()-pos;
+  auto dpos  = pos - pl.position();
   auto angle = std::atan2(dpos.z,dpos.x);
 
   if(std::cos(plAng-angle)<ang && !bool(opt.flags&SearchFlg::NoAngle))
