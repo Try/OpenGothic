@@ -822,8 +822,11 @@ void MoveAlgo::setState(State f) {
   }
 
 void MoveAlgo::assertStateChange(State f) {
-  // assert possible transitions
   const bool dead = npc.isDead();
+  // release build quirks
+  (void)f;
+  (void)dead;
+  // assert possible transitions
   switch(flags) {
     case Run:
       assert(f!=Falling);
