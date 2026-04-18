@@ -28,38 +28,6 @@
 
 using namespace Tempest;
 
-namespace {
-  Pixmap downscaleSavePreviewPixmap(Pixmap src) {
-    if(src.isEmpty())
-      return src;
-
-    constexpr uint32_t kThumbW = 1024;
-    const uint32_t w = src.w(), h = src.h();
-    if(w <= kThumbW)
-      return src;
-
-    const uint32_t nh = std::max(1u, uint32_t((size_t(h) * kThumbW) / w));
-    const size_t bpp = src.bpp();
-
-    Pixmap out(kThumbW, nh, src.format());
-    const uint8_t* s = static_cast<const uint8_t*>(src.data());
-    uint8_t* d = static_cast<uint8_t*>(out.data());
-    
-    // Copy source pixel map to reduced pixel map using Nearest-Neighbor interpolation
-    for(uint32_t y=0; y<nh; ++y) {
-      const uint32_t sy = uint32_t((size_t(y)*h) / nh);
-      const uint8_t* srcRow = s + (size_t(sy) * w * bpp);
-      uint8_t* destRow = d + (size_t(y) * kThumbW * bpp);
-        
-      for(uint32_t x=0; x<kThumbW; ++x) {
-        const uint32_t sx = uint32_t((size_t(x)*w) / kThumbW);
-        memcpy(destRow + x*bpp, srcRow + sx*bpp, bpp);
-        }
-      }
-    return out;
-    }
-  }
-
 MainWindow::MainWindow(Device& device)
   : Window(Maximized),device(device),swapchain(device,hwnd()),
     atlas(device),renderer(swapchain),
@@ -1095,15 +1063,40 @@ void MainWindow::loadGame(std::string_view slot) {
   }
 
 void MainWindow::saveGame(std::string_view slot, std::string_view name) {
-  auto tex = renderer.screenshoot(cmdId);
-
-  // reduce size of the save entry preview screenshot for faster save & load
-  auto pm  = downscaleSavePreviewPixmap(device.readPixels(textureCast<const Texture2d&>(tex)));
-
   if(dialogs.isActive())
     return;
   if(auto w = Gothic::inst().world(); w!=nullptr && w->currentCs()!=nullptr)
     return;
+
+  auto tex  = renderer.screenshoot(cmdId);
+  auto lres = Attachment();
+
+  static int32_t kThumbW = 800;
+  const  int32_t kThumbH = tex.w()>0 ? int32_t((tex.h() * kThumbW) / tex.w()) : 0;
+  if(kThumbW>0 && kThumbH>0 && kThumbW<tex.w() && kThumbH<tex.h()) {
+    lres = device.attachment(Tempest::TextureFormat::RGBA8, uint32_t(kThumbW), uint32_t(kThumbH));
+    }
+
+  if(!lres.isEmpty()) {
+    // reduce size of the save entry preview screenshot for faster save & load
+    CommandBuffer cmd;
+    {
+    auto enc = cmd.startEncoding(device);
+    if(!lres.isEmpty()) {
+      enc.setDebugMarker("Downscale screenhoot");
+      enc.setFramebuffer({{lres, Vec4(), Tempest::Preserve}});
+      enc.setPushData(IVec2(lres.w(), lres.h()));
+      enc.setBinding(0, tex, Sampler::nearest());
+      enc.setPipeline(Shaders::inst().downscale);
+      enc.draw(nullptr, 0, 3);
+      }
+    }
+    auto sync = device.submit(cmd);
+    sync.wait();
+    }
+
+  auto& thumb = lres.isEmpty() ? tex : lres;
+  auto  pm    = device.readPixels(textureCast<const Texture2d&>(thumb));
 
   Gothic::inst().startSave(std::move(textureCast<Texture2d&>(tex)),[slot=std::string(slot),name=std::string(name),pm](std::unique_ptr<GameSession>&& game){
     if(!game)
