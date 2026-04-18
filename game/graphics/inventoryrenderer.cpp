@@ -52,9 +52,10 @@ void InventoryRenderer::reset(bool full) {
 void InventoryRenderer::drawItem(int x, int y, int w, int h, const ::Item& item) {
   auto& itData = item.handle();
   if(auto mesh = Resources::loadMesh(itData.visual)) {
-    float    sz  = (mesh->bbox[1]-mesh->bbox[0]).length();
-    auto     mv  = (mesh->bbox[1]+mesh->bbox[0])*0.5f;
-    ItmFlags flg = ItmFlags(item.mainFlag());
+    auto     bbox = mesh->bbox();
+    float    sz   = (bbox[1]-bbox[0]).length();
+    auto     mv   = (bbox[1]+bbox[0])*0.5f;
+    ItmFlags flg  = ItmFlags(item.mainFlag());
 
     mv = Vec3(mv.x,mv.y,mv.z);
 

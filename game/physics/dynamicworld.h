@@ -39,7 +39,6 @@ class DynamicWorld final {
     static constexpr float gravity     = gravityMS*100.f/(1000.f*1000.f); // centimeters per milliseconds^2
     static constexpr float bulletSpeed = 3; // centimeters per milliseconds
     static constexpr float spellSpeed  = 1; // centimeters per milliseconds
-    static const     float ghostPadding;
 
     DynamicWorld(World &world, const zenkit::Mesh& mesh);
     DynamicWorld(const DynamicWorld&)=delete;
@@ -64,16 +63,17 @@ class DynamicWorld final {
     struct CollisionTest {
       Tempest::Vec3 partial = {};
       Tempest::Vec3 normal  = {};
-      bool          npcCol  = false;
       bool          preFall = false;
+
       Interactive*  vob     = nullptr;
       Npc*          npc     = nullptr;
+      bool          landCol = false;
       };
 
     struct NpcItem {
       public:
         NpcItem()=default;
-        NpcItem(DynamicWorld* owner,NpcBody* obj,float r):owner(owner),obj(obj){}
+        NpcItem(DynamicWorld* owner, NpcBody* obj):owner(owner),obj(obj){}
         NpcItem(NpcItem&& it):owner(it.owner),obj(it.obj){it.obj=nullptr;}
         ~NpcItem();
 
@@ -93,6 +93,7 @@ class DynamicWorld final {
 
         auto  center()  const -> Tempest::Vec3;
         float centerY() const;
+        float groundOffset() const;
 
         bool  testMove(const Tempest::Vec3& to, CollisionTest& out);
         bool  testMove(const Tempest::Vec3& to, const Tempest::Vec3& from, CollisionTest& out);
@@ -235,8 +236,7 @@ class DynamicWorld final {
       };
 
     RayLandResult  landRay      (const Tempest::Vec3& from, float maxDy=0) const;
-    RayWaterResult waterRay     (const Tempest::Vec3& from) const;
-    RayWaterResult waterRay     (const Tempest::Vec3& from, const Tempest::Vec3& to) const;
+    RayWaterResult waterRay     (const Tempest::Vec3& from, float stepHeight) const;
     RayCamResult   cameraRay    (const Tempest::Vec3& from, const Tempest::Vec3& to) const;
 
     RayLandResult  ray          (const Tempest::Vec3& from, const Tempest::Vec3& to) const;
@@ -279,7 +279,7 @@ class DynamicWorld final {
 
 
     void           moveBullet(BulletBody& b, const Tempest::Vec3& dir, uint64_t dt);
-    RayWaterResult implWaterRay(const Tempest::Vec3& from, const Tempest::Vec3& to) const;
+    RayWaterResult implWaterRay(const Tempest::Vec3& from, const Tempest::Vec3& to, float stepHeight) const;
     bool           hasCollision(const NpcItem &it, CollisionTest& out);
 
     std::unique_ptr<CollisionWorld>    world;
@@ -299,6 +299,5 @@ class DynamicWorld final {
     std::unique_ptr<BulletsList>       bulletList;
     std::unique_ptr<BBoxList>          bboxList;
 
-    static const float                 ghostHeight;
     static const float                 worldHeight;
   };

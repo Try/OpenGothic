@@ -657,7 +657,7 @@ Bullet& World::shootSpell(const Item &itm, const Npc &npc, const Npc *target) {
       }
     dir = tgPos-pos;
     } else {
-    float a = npc.rotationRad()-float(M_PI/2);
+    float a = npc.rotationRad();
     dir.x = std::cos(a);
     dir.z = std::sin(a);
     pos  = npc.mapWeaponBone();
@@ -693,7 +693,7 @@ Bullet& World::shootBullet(const Item &itm, const Npc &npc, const Npc *target, c
     dir/=t;
     dir.y += 0.5f*DynamicWorld::gravity*t;
     } else {
-    float a = npc.rotationRad()-float(M_PI/2);
+    float a = npc.rotationRad();
     dir.x = std::cos(a);
     dir.z = std::sin(a);
     }

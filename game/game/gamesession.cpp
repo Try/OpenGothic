@@ -90,6 +90,7 @@ GameSession::GameSession(std::string file) {
   //std::string_view hero = "PC_HERO";
   //std::string_view hero = "FireGolem";
   //std::string_view hero = "Dragon_Undead";
+  //std::string_view hero = "Wolf";
   //std::string_view hero = "Sheep";
   //std::string_view hero = "Giant_Bug";
   //std::string_view hero = "OrcWarrior_Rest";
@@ -101,6 +102,7 @@ GameSession::GameSession(std::string file) {
   //std::string_view hero = "FireWaran";
   //std::string_view hero = "Bloodfly";
   //std::string_view hero = "Gobbo_Skeleton";
+  //std::string_view hero = "Swampshark";
   if(!Gothic::inst().isBenchmarkMode())
     wrld->createPlayer(hero);
   wrld->postInit();

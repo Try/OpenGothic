@@ -234,9 +234,9 @@ PointF CsCamera::spin(Tempest::Vec3& d) {
 
   float k     = 180.f/float(M_PI);
   float spinX = k * std::asin(d.y/d.length());
-  float spinY = -90;
+  float spinY = 0;
   if(d.x!=0.f || d.z!=0.f)
-    spinY = 90 + k * std::atan2(d.z,d.x);
+    spinY = k * std::atan2(d.z,d.x);
 
   return {-spinX, spinY};
   }
