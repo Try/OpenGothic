@@ -236,8 +236,7 @@ class DynamicWorld final {
       };
 
     RayLandResult  landRay      (const Tempest::Vec3& from, float maxDy=0) const;
-    RayWaterResult waterRay     (const Tempest::Vec3& from) const;
-    RayWaterResult waterRay     (const Tempest::Vec3& from, const Tempest::Vec3& to) const;
+    RayWaterResult waterRay     (const Tempest::Vec3& from, float stepHeight) const;
     RayCamResult   cameraRay    (const Tempest::Vec3& from, const Tempest::Vec3& to) const;
 
     RayLandResult  ray          (const Tempest::Vec3& from, const Tempest::Vec3& to) const;
@@ -280,7 +279,7 @@ class DynamicWorld final {
 
 
     void           moveBullet(BulletBody& b, const Tempest::Vec3& dir, uint64_t dt);
-    RayWaterResult implWaterRay(const Tempest::Vec3& from, const Tempest::Vec3& to) const;
+    RayWaterResult implWaterRay(const Tempest::Vec3& from, const Tempest::Vec3& to, float stepHeight) const;
     bool           hasCollision(const NpcItem &it, CollisionTest& out);
 
     std::unique_ptr<CollisionWorld>    world;

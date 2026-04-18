@@ -526,17 +526,12 @@ DynamicWorld::RayLandResult DynamicWorld::landRay(const Tempest::Vec3& from, flo
   return ray(from, Tempest::Vec3(from.x,from.y-maxDy,from.z));
   }
 
-DynamicWorld::RayWaterResult DynamicWorld::waterRay(const Tempest::Vec3& from) const {
+DynamicWorld::RayWaterResult DynamicWorld::waterRay(const Tempest::Vec3& from, float stepHeight) const {
   world->updateAabbs();
-  return implWaterRay(from, Tempest::Vec3(from.x,from.y+worldHeight,from.z));
+  return implWaterRay(from, Tempest::Vec3(from.x,from.y+worldHeight,from.z), stepHeight);
   }
 
-DynamicWorld::RayWaterResult DynamicWorld::waterRay(const Tempest::Vec3& from, const Tempest::Vec3& to) const {
-  world->updateAabbs();
-  return implWaterRay(from, to);
-  }
-
-DynamicWorld::RayWaterResult DynamicWorld::implWaterRay(const Tempest::Vec3& from, const Tempest::Vec3& to) const {
+DynamicWorld::RayWaterResult DynamicWorld::implWaterRay(const Tempest::Vec3& from, const Tempest::Vec3& to, float stepHeight) const {
   struct CallBack:btCollisionWorld::ClosestRayResultCallback {
     using ClosestRayResultCallback::ClosestRayResultCallback;
 
@@ -545,7 +540,8 @@ DynamicWorld::RayWaterResult DynamicWorld::implWaterRay(const Tempest::Vec3& fro
       }
     };
 
-  CallBack callback{CollisionWorld::toMeters(from), CollisionWorld::toMeters(to)};
+  const auto sFrom = from-Tempest::Vec3(0,stepHeight,0);
+  CallBack callback{CollisionWorld::toMeters(sFrom), CollisionWorld::toMeters(to)};
   callback.m_flags = btTriangleRaycastCallback::kF_KeepUnflippedNormal | btTriangleRaycastCallback::kF_FilterBackfaces;
 
   if(waterBody!=nullptr) {
@@ -563,8 +559,8 @@ DynamicWorld::RayWaterResult DynamicWorld::implWaterRay(const Tempest::Vec3& fro
 
   RayWaterResult ret;
   if(callback.hasHit()) {
-    float waterY = callback.m_hitPointWorld.y()*100.f;
-    auto  cave   = ray(from,Tempest::Vec3(to.x,waterY,to.z));
+    const float waterY = callback.m_hitPointWorld.y()*100.f;
+    const auto  cave   = ray(from,Tempest::Vec3(to.x,std::max(waterY,from.y),to.z));
     if(cave.hasCol && cave.v.y<waterY) {
       ret.wdepth = -std::numeric_limits<float>::infinity();
       ret.hasCol = false;
