@@ -1082,14 +1082,12 @@ void MainWindow::saveGame(std::string_view slot, std::string_view name) {
     CommandBuffer cmd;
     {
     auto enc = cmd.startEncoding(device);
-    if(!lres.isEmpty()) {
-      enc.setDebugMarker("Downscale screenhoot");
-      enc.setFramebuffer({{lres, Vec4(), Tempest::Preserve}});
-      enc.setPushData(IVec2(lres.w(), lres.h()));
-      enc.setBinding(0, tex, Sampler::nearest());
-      enc.setPipeline(Shaders::inst().downscale);
-      enc.draw(nullptr, 0, 3);
-      }
+    enc.setDebugMarker("Downscale screenhoot");
+    enc.setFramebuffer({{lres, Vec4(), Tempest::Preserve}});
+    enc.setPushData(IVec2(lres.w(), lres.h()));
+    enc.setBinding(0, tex, Sampler::nearest());
+    enc.setPipeline(Shaders::inst().downscale);
+    enc.draw(nullptr, 0, 3);
     }
     auto sync = device.submit(cmd);
     sync.wait();
