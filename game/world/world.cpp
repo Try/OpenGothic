@@ -903,7 +903,7 @@ const WayPoint* World::findWayPoint(const Tempest::Vec3& pos, std::string_view n
     });
   }
 
-const WayPoint *World::findFreePoint(const Npc &npc, std::string_view name) const {
+const WayPoint* World::findFreePoint(const Npc &npc, std::string_view name) const {
   if(auto p = npc.currentWayPoint()){
     if(p->isFreePoint() && p->checkName(name)) {
       return p;
@@ -920,7 +920,7 @@ const WayPoint *World::findFreePoint(const Npc &npc, std::string_view name) cons
     });
   }
 
-const WayPoint *World::findFreePoint(const Tempest::Vec3& pos, std::string_view name) const {
+const WayPoint* World::findFreePoint(const Tempest::Vec3& pos, std::string_view name) const {
   return wmatrix->findFreePoint(pos,name,[](const WayPoint& wp) -> bool {
     if(wp.isLocked())
       return false;
@@ -928,7 +928,7 @@ const WayPoint *World::findFreePoint(const Tempest::Vec3& pos, std::string_view 
     });
   }
 
-const WayPoint *World::findNextFreePoint(const Npc &npc, std::string_view name) const {
+const WayPoint* World::findNextFreePoint(const Npc &npc, std::string_view name) const {
   auto pos = npc.centerPosition();
   auto cur = npc.currentWayPoint();
   if(cur!=nullptr && !cur->checkName(name)) {
@@ -999,12 +999,15 @@ WayPath World::wayTo(const Npc &npc, const WayPoint &end) const {
     return wmatrix->wayTo(&begin,1,npcPos,end);
     }
   auto near = wmatrix->findWayPoint(npcPos, [&npc](const WayPoint &wp) {
-    if(!npc.canRayHitPoint(Tempest::Vec3(wp.pos.x,wp.pos.y+10,wp.pos.z),true))
+    if(!npc.canRayHitPoint(wp.pos,true))
       return false;
     return true;
     });
-  if(near==nullptr)
-    return WayPath();
+
+  if(near==nullptr) {
+    // fallback to any closest point
+    near = wmatrix->findWayPoint(npcPos, [](const WayPoint &wp) { return true; });
+    }
 
   if(MoveAlgo::isClose(npc,*near) && near==&end)
     return WayPath();
