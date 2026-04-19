@@ -1968,7 +1968,8 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
     }
 
   if(hitResult.hasHit) {
-    if(bodyStateMasked()!=BS_UNCONSCIOUS && interactive()==nullptr && !mvAlgo.isSwim() && !mvAlgo.isClimb()) {
+    auto state = bodyStateMasked();
+    if(interactive()==nullptr && (state&BS_FLAG_INTERRUPTABLE)!=BS_NONE) {
       const bool noInter = (hnpc->bodystate_interruptable_override!=0);
       if(!noInter) {
         //NOTE: kepp rotation animation: this results in more accurate fight with trolls
@@ -3275,8 +3276,7 @@ Item* Npc::takeItem(Item& item) {
     return nullptr;
 
   auto state = bodyStateMasked();
-  if(state!=BS_STAND && state!=BS_SNEAK) {
-    setAnim(Anim::Idle);
+  if(state!=BS_STAND && state!=BS_SNEAK && state!=BS_SWIM && state!=BS_DIVE) {
     return nullptr;
     }
 

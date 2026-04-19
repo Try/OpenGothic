@@ -358,7 +358,7 @@ const Animation::Sequence* AnimationSolver::implSolveAnim(AnimationSolver::Anim 
   if(a==Anim::StumbleB)
     return solveFrm("T_STUMBLEB");
 
-  if((a==Anim::DeadA || a==Anim::DeadB) && bool(wlkMode & WalkBit::WM_Dive)){
+  if((a==Anim::DeadA || a==Anim::DeadB) && bool(wlkMode & (WalkBit::WM_Swim | WalkBit::WM_Dive))){
     return solveFrm("S_DROWNED");
     }
   if(a==Anim::DeadA) {

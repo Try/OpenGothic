@@ -61,7 +61,7 @@ struct DynamicWorld::NpcBody : btRigidBody {
     }
 
   auto groundOffset() const {
-    const float extPadding = 10.f; // Khorinis port hack
+    const float extPadding = 15.f; // Khorinis port hack
     return h*0.5f + gPadd*0.5f + extPadding;
     }
 

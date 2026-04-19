@@ -339,18 +339,19 @@ bool PlayerControl::interact(Npc &other) {
   auto pl = w->player();
   if(pl->isDown())
     return true;
-  auto state = pl->bodyStateMasked();
-  if(state!=BS_STAND && state!=BS_SNEAK)
-    return false;
   if(!canInteract())
     return false;
-  if(w->script().isDead(other) || w->script().isUnconscious(other)) {
+  auto state = pl->bodyStateMasked();
+  if(other.isDown()) {
+    if(state!=BS_STAND && state!=BS_SNEAK && state!=BS_SWIM && state!=BS_DIVE)
+      return false;
     if(!inv.ransack(*w->player(),other))
       w->script().printNothingToGet();
+    } else {
+    if((state&BS_MAX)!=BS_NONE)
+      return false;
+    other.startDialog(*pl);
     }
-  if((pl->bodyStateMasked()&BS_MAX)!=BS_NONE)
-    return false;
-  other.startDialog(*pl);
   return true;
   }
 
