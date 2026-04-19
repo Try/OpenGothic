@@ -3,6 +3,7 @@
 #include "band.h"
 #include "info.h"
 #include "pattern.h"
+#include "reference.h"
 #include "riff.h"
 #include "structs.h"
 
@@ -29,8 +30,9 @@ class Style final {
     std::vector<Band>    band;
     std::vector<Part>    parts;
     std::vector<Pattern> patterns;
+    std::vector<Reference> chordMaps;
 
-    const Part *findPart(const GUID& guid) const;
+    const Part *findPart(const GUID& partGuid) const;
 
   private:
     void implRead(Riff &input);

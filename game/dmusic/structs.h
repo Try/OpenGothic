@@ -29,6 +29,15 @@ struct DMUS_IO_TRACK_HEADER final {
   char     fccType[4] = {};
   };
 
+struct DMUS_IO_SEGMENT_HEADER final {
+  uint32_t dwRepeats    = 0;
+  uint32_t mtLength     = 0;
+  uint32_t mtPlayStart  = 0;
+  uint32_t mtLoopStart  = 0;
+  uint32_t mtLoopEnd    = 0;
+  uint32_t dwResolution = 0;
+  };
+
 enum DMUS_CHORDKEYF_FLAGS : uint8_t {
   DMUS_CHORDKEYF_SILENT = 1
   };
@@ -50,6 +59,35 @@ struct DMUS_IO_SUBCHORD final {
   uint8_t  bScaleRoot        = 0;
   };
 
+struct DMUS_IO_CHORDMAP final {
+  char16_t wszLoadName[20]={};
+  uint32_t dwScalePattern=0;
+  uint32_t dwFlags=0;
+  };
+
+struct DMUS_IO_CHORDMAP_SUBCHORD final {
+  uint32_t dwChordPattern = 0;
+  uint32_t dwScalePattern = 0;
+  uint32_t dwInvertPattern= 0;
+  uint8_t  bChordRoot     = 0;
+  uint8_t  bScaleRoot     = 0;
+  uint16_t wCFlags        = 0;
+  uint32_t dwLevels       = 0;
+  };
+
+struct DMUS_IO_CHORDENTRY final {
+  uint32_t dwFlags       = 0;
+  uint16_t wConnectionID = 0;
+  };
+
+struct DMUS_IO_NEXTCHORD final {
+  uint32_t dwFlags       = 0;
+  uint16_t nWeight       = 0;
+  uint16_t wMinBeats     = 0;
+  uint16_t wMaxBeats     = 0;
+  uint16_t wConnectionID = 0;
+  };
+
 enum DMUS_COMMANDT_TYPES : uint8_t {
   DMUS_COMMANDT_GROOVE      = 0,
   DMUS_COMMANDT_FILL        = 1,
@@ -59,6 +97,15 @@ enum DMUS_COMMANDT_TYPES : uint8_t {
   DMUS_COMMANDT_ENDANDINTRO = 5
   };
 
+enum DMUS_PATTERNT_TYPES : uint8_t {
+  DMUS_PATTERNT_RANDOM       = 0,
+  DMUS_PATTERNT_REPEAT       = 1,
+  DMUS_PATTERNT_SEQUENTIAL   = 2,
+  DMUS_PATTERNT_RANDOM_START = 3,
+  DMUS_PATTERNT_NO_REPEAT    = 4,
+  DMUS_PATTERNT_RANDOM_ROW   = 5
+  };
+
 struct DMUS_IO_COMMAND final {
   uint32_t            mtTime       = 0;
   uint16_t            wMeasure     = 0;
@@ -66,7 +113,7 @@ struct DMUS_IO_COMMAND final {
   DMUS_COMMANDT_TYPES bCommand     = DMUS_COMMANDT_GROOVE;
   uint8_t             bGrooveLevel = 0;
   uint8_t             bGrooveRange = 0;
-  uint8_t             bRepeatMode  = 0;
+  DMUS_PATTERNT_TYPES bRepeatMode  = DMUS_PATTERNT_RANDOM;
   };
 
 struct DMUS_IO_REFERENCE final {
@@ -171,15 +218,29 @@ struct DMUS_IO_STYLEPART final {
   // uint32_t            dwFlags=0;
   };
 
+struct DMUS_IO_STYLERESOLUTION final {
+  uint32_t            dwVariation=0;
+  uint16_t            wMusicValue=0;
+  uint8_t             bInversionID=0;
+  DMUS_PLAYMODE_FLAGS bPlayModeFlags=DMUS_PLAYMODE_FLAGS(0);
+  };
+
+struct DMUS_IO_STYLE_ANTICIPATION final {
+  uint32_t mtGridStart = 0;
+  uint32_t dwVariation = 0;
+  int16_t  nTimeOffset = 0;
+  uint8_t  bTimeRange  = 0;
+  };
+
 struct DMUS_IO_PARTREF final {
-  GUID     guidPartID;
-  uint16_t wLogicalPartID=0;
-  //uint8_t  bVariationLockID=0;
-  //uint8_t  bSubChordLevel=0;
-  //uint8_t  bPriority=0;
-  //uint8_t  bRandomVariation=0;
-  //uint16_t wPad=0;
-  //uint32_t dwPChannel=0;
+  GUID     guidPartID         = {};
+  uint16_t wLogicalPartID     = 0;
+  uint8_t  bVariationLockID   = 0;
+  uint8_t  bSubChordLevel     = 0;
+  uint8_t  bPriority          = 0;
+  uint8_t  bRandomVariation   = 0;
+  uint16_t wPad               = 0;
+  uint32_t dwPChannel         = 0;
   };
 
 struct DMUS_IO_STYLENOTE final {

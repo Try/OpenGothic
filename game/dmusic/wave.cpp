@@ -1,5 +1,5 @@
-#include "soundfont.h"
 #include "wave.h"
+#include "soundfont.h"
 
 #include <Tempest/File>
 #include <Tempest/MemReader>
@@ -48,7 +48,7 @@ Wave::Wave(const int16_t *pcm, size_t count) {
   wfmt.wChannels        = 2;
   wfmt.dwSamplesPerSec  = SoundFont::SampleRate;
   wfmt.dwAvgBytesPerSec = wfmt.dwSamplesPerSec * uint32_t(wfmt.wChannels * sizeof(int16_t));
-  wfmt.wBlockAlign      = 2;
+  wfmt.wBlockAlign      = uint16_t(wfmt.wChannels * sizeof(int16_t));
   wfmt.wBitsPerSample   = 16;
   }
 
@@ -62,6 +62,7 @@ void Wave::implRead(Riff &input) {
     std::unique_ptr<int16_t[]> coeffTable;
     uint16_t                   nCoefs=0;
     int                        errct=0;
+    const uint16_t             decodedChannels = wfmt.wChannels;
 
     {
     static const int16_t msAdpcmIcoef[7][2] = {
@@ -105,10 +106,10 @@ void Wave::implRead(Riff &input) {
     decodeAdpcm(f,totalPCMFrameCount,wfmt.wBlockAlign,wfmt.wChannels,reinterpret_cast<int16_t*>(wavedata.data()));
 
     wfmt.wFormatTag       = Dx8::Wave::PCM;
-    wfmt.wChannels        = 2;
+    wfmt.wChannels        = decodedChannels;
     //wfmt.dwSamplesPerSec  = wavedata.size()/2;
     wfmt.dwAvgBytesPerSec = wfmt.dwSamplesPerSec * uint32_t(wfmt.wChannels * sizeof(int16_t));
-    wfmt.wBlockAlign      = 2;
+    wfmt.wBlockAlign      = uint16_t(wfmt.wChannels * sizeof(int16_t));
     wfmt.wBitsPerSample   = 16;
     }
   }
@@ -214,7 +215,7 @@ size_t Wave::decodeAdpcmBlock(Tempest::MemReader& rd, const size_t framesToRead,
     bytesRemaining = blockAlign-sizeof(header)-2;
 
     AdpcChannel& c0 = msadpcm.channel[0];
-    AdpcChannel& c1 = msadpcm.channel[0];
+    AdpcChannel& c1 = msadpcm.channel[1];
 
     c0.predictor     = predictor[0];
     c1.predictor     = predictor[1];
@@ -295,8 +296,8 @@ void Wave::save(const char *path) const {
   f.write(&sz,4);
   f.write(&wfmt,sizeof(wfmt));
   if(extra.size()>0){
-    uint16_t sz=uint16_t(extra.size());
-    f.write(&sz,2);
+    uint16_t extraSize = uint16_t(extra.size());
+    f.write(&extraSize,2);
     f.write(&extra[0],extra.size());
     }
 

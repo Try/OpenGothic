@@ -6,12 +6,13 @@
 #include "wave.h"
 
 #include <vector>
+#include <string>
 
 namespace Dx8 {
 
 class DlsCollection final {
   public:
-    DlsCollection(Riff &input);
+    DlsCollection(Riff &input, bool keepWaveData = false);
 
     struct RgnRange final {
       uint16_t usLow =0;
@@ -48,6 +49,14 @@ class DlsCollection final {
       uint32_t ulLoopLength=0;
       };
 
+    struct ConnectionBlock final {
+      uint16_t  usSource=0;
+      uint16_t  usControl=0;
+      uint16_t  usDestination=0;
+      uint16_t  usTransform=0;
+      int32_t   lScale=0;
+      };
+
     class  Region final {
       public:
         Region(Riff& c);
@@ -56,17 +65,10 @@ class DlsCollection final {
         WaveLink                    wlink;
         WaveSample                  waveSample;
         std::vector<WaveSampleLoop> loop;
+        std::vector<ConnectionBlock> articulationConnections;
 
       private:
         void implRead(Riff &input);
-      };
-
-    struct ConnectionBlock final {
-      uint16_t  usSource=0;
-      uint16_t  usControl=0;
-      uint16_t  usDestination=0;
-      uint16_t  usTransform=0;
-      int32_t   lScale=0;
       };
 
 
@@ -107,13 +109,23 @@ class DlsCollection final {
     SoundFont toSoundfont(uint32_t dwPatch) const;
     void      save(std::ostream& fout) const;
 
+    const Instrument* findInstrument(uint32_t dwPatch) const;
     const Wave* findWave(uint8_t note) const;
+    const Wave* waveByTableIndex(uint32_t tableIndex) const;
+    const std::string& waveNameByTableIndex(uint32_t tableIndex) const;
+    uint32_t waveSampleRateByTableIndex(uint32_t tableIndex) const;
 
   private:
     void implRead(Riff &input);
 
     std::vector<Wave>                        wave;
-    mutable std::shared_ptr<SoundFont::Data> shData; //FIXME: mutable
+    std::vector<std::string>                 waveNameByIndex;
+    std::vector<uint32_t>                    waveSampleRateByIndex;
+    bool                                     keepWaveData = false;
+    // Immutable after construction: assigned exactly once in the ctor,
+    // read-only in const toSoundfont(). Does NOT need `mutable`; an older
+    // comment suggested otherwise, but grep confirms a single write site.
+    std::shared_ptr<SoundFont::Data> shData;
   };
 
 }

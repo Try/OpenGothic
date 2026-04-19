@@ -3,7 +3,13 @@
 using namespace Dx8;
 
 Music::Internal::Internal(const Music::Internal& other)
-  :pptn(other.pptn), groove(other.groove) {
+  :pptn(other.pptn),
+   groove(other.groove),
+   tempo(other.tempo),
+   loopStart(other.loopStart),
+   loopEnd(other.loopEnd),
+   timeTotal(other.timeTotal),
+   baseTempo(other.baseTempo) {
   volume = other.volume.load();
   }
 
@@ -19,8 +25,11 @@ void Music::addPattern(const PatternList& list, size_t id) {
     }
   impl->pptn.push_back(ptr);
   impl->groove = list.intern->groove;
-
-  impl->timeTotal += ptr->timeTotal;
+  impl->tempo  = list.intern->tempo;
+  impl->loopStart = list.intern->segmentLoopStart;
+  impl->loopEnd   = list.intern->segmentLoopEnd;
+  impl->baseTempo = list.intern->baseTempo;
+  impl->timeTotal = list.intern->segmentTimeTotal;
   }
 
 void Music::setVolume(float v) {

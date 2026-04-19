@@ -61,6 +61,7 @@ class Marvin {
 
       C_Insert,
       C_PlayAni,
+      C_PlayTheme,
 
       // opengothic specific
       C_ToggleGI,
@@ -79,8 +80,15 @@ class Marvin {
       CmdVal(Cmd cmd):cmd(cmd) {};
 
       Cmd              cmd;
-      std::string_view complete = "";
-      bool             fullword = false;
+      std::string_view complete    = "";
+      bool             fullword    = false;
+      // Theme-slot state. `inThemeSlot` is true whenever the cursor is at or
+      // past the %t token for a "play theme %t" command, even if the typed
+      // prefix is empty (e.g. user typed "play theme " and hit Tab). The
+      // prefix itself may be empty; autoComplete uses inThemeSlot to decide
+      // whether to trigger theme cycling.
+      bool             inThemeSlot = false;
+      std::string_view themePrefix = "";
 
       std::string_view argv[4]  = {};
       };
@@ -88,6 +96,7 @@ class Marvin {
     CmdVal recognize(std::string_view v);
     CmdVal isMatch(std::string_view inp, const Cmd& cmd) const;
     auto   completeInstanceName(std::string_view inp, bool& fullword) const -> std::string_view;
+    auto   completeThemeName   (std::string_view inp, bool& fullword) const -> std::string_view;
 
     bool   addItemOrNpcBySymbolName(World* world, std::string_view name, const Tempest::Vec3& at);
     bool   printVariable           (World* world, std::string_view name);
@@ -96,5 +105,10 @@ class Marvin {
     bool   goToVob                 (World& world, Npc& player, Camera& c, std::string_view name, size_t n);
 
     std::vector<Cmd> cmd;
+
+    // Theme-name cycling state (Tab rotates through all matching theme names).
+    std::vector<std::string> cycleList;
+    size_t                   cycleIdx  = 0;
+    std::string              cycleBase; // prefix of the input line before the theme token
   };
 

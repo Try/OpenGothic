@@ -12,6 +12,8 @@ class Segment final {
     Segment(Riff& input);
 
     std::vector<Track> track;
+    bool               hasHeader=false;
+    DMUS_IO_SEGMENT_HEADER header={};
 
   private:
     void implReadList(Riff &ch);

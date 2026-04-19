@@ -153,6 +153,8 @@ Gothic::Gothic() {
   defaults->set("SOUND", "musicVolume",   0.5f);
   defaults->set("SOUND", "soundEnabled",  1);
   defaults->set("SOUND", "soundVolume",   0.5f);
+  // 0 = DXMusicProvider (NT5 dmsynth, default), 1 = OpenGothic (TinySoundFont), 2+ = GothicKit
+  defaults->set("INTERNAL", "soundProviderIndex", 0);
 
   //defaults->set("ENGINE", "zEnvMappingEnabled", 0);
   //defaults->set("ENGINE", "zCloudShadowScale",  0);

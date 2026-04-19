@@ -9,6 +9,8 @@
 #include "world/objects/item.h"
 #include "world/triggers/abstracttrigger.h"
 #include "camera.h"
+#include "game/definitions/musicdefinitions.h"
+#include "gamemusic.h"
 #include "gothic.h"
 
 static bool startsWith(std::string_view str, std::string_view needle) {
@@ -33,6 +35,39 @@ static bool compareNoCase(std::string_view sa, std::string_view sb) {
       return false;
     }
   return true;
+  }
+
+static bool containsNoCase(std::string_view str, std::string_view needle) {
+  if(needle.empty())
+    return true;
+  if(needle.size() > str.size())
+    return false;
+  for(size_t i = 0; i + needle.size() <= str.size(); ++i) {
+    bool matched = true;
+    for(size_t r = 0; r < needle.size(); ++r) {
+      const int a = std::tolower(str[i + r]);
+      const int b = std::tolower(needle[r]);
+      if(a != b) {
+        matched = false;
+        break;
+        }
+      }
+    if(matched)
+      return true;
+    }
+  return false;
+  }
+
+static GameMusic::Tags themeTagsFromName(std::string_view name) {
+  auto daytime = GameMusic::Day;
+  auto mode    = GameMusic::Std;
+  if(containsNoCase(name, "_NGT"))
+    daytime = GameMusic::Ngt;
+  if(containsNoCase(name, "_FGT"))
+    mode = GameMusic::Fgt;
+  else if(containsNoCase(name, "_THR"))
+    mode = GameMusic::Thr;
+  return GameMusic::mkTags(daytime, mode);
   }
 
 template<class T>
@@ -65,6 +100,7 @@ Marvin::Marvin() {
 
     // animation
     {"play ani %s",                C_PlayAni},
+    {"play theme %t",              C_PlayTheme},
     {"play faceani %s",            C_Invalid},
     {"remove overlaymds %s",       C_Invalid},
     {"toggle aniinfo",             C_Invalid},
@@ -173,6 +209,11 @@ Marvin::CmdVal Marvin::isMatch(std::string_view inp, const Cmd& cmd) const {
       wref = completeInstanceName(winp,fullword);
     else if(wref=="%v")
       wref = completeInstanceName(winp,fullword);
+    else if(wref=="%t") {
+      wref = completeThemeName(winp,fullword);
+      ret.themePrefix = winp;
+      ret.inThemeSlot = true;
+      }
     else if(wref=="%s")
       wref = winp;
     else if(wref=="%f" || wref=="%d")
@@ -199,8 +240,25 @@ Marvin::CmdVal Marvin::isMatch(std::string_view inp, const Cmd& cmd) const {
       break;
       }
 
-    if(inp.size()==wr)
-      return C_Incomplete;
+    if(inp.size()==wr) {
+      // Input ran out before we consumed all ref tokens. Look ahead to see
+      // if the *next* ref token is a %t theme slot — if so, signal
+      // inThemeSlot so autoComplete can offer theme cycling with an empty
+      // prefix (e.g. user typed "play theme " and hit Tab).
+      CmdVal incomplete = C_Incomplete;
+      if(wr + 1 < ref.size()) {
+        auto tail        = ref.substr(wr + 1);
+        const size_t sp  = tail.find(' ');
+        auto nextTok     = (sp == std::string_view::npos) ? tail : tail.substr(0, sp);
+        if(nextTok == "%t") {
+          incomplete.inThemeSlot = true;
+          incomplete.themePrefix = "";
+          incomplete.cmd         = cmd;
+          incomplete.cmd.type    = C_Incomplete;
+          }
+        }
+      return incomplete;
+      }
 
     ref = ref.substr(wr+1);
     inp = inp.substr(std::min(wi+1,inp.size()));
@@ -242,14 +300,101 @@ Marvin::CmdVal Marvin::recognize(std::string_view inp) {
   }
 
 bool Marvin::autoComplete(std::string& v) {
+  // ── 1. Continue existing theme cycle ──────────────────────────────────────
+  // If we're already cycling through theme matches and the user hasn't
+  // edited the line, rotate to the next entry.  Any edit (or switching away
+  // from the theme slot) resets the cycle.
+  if(!cycleList.empty()) {
+    const size_t prevIdx = (cycleIdx + cycleList.size() - 1) % cycleList.size();
+    const std::string expected = cycleBase + cycleList[prevIdx];
+    if(v == expected) {
+      v        = cycleBase + cycleList[cycleIdx];
+      cycleIdx = (cycleIdx + 1) % cycleList.size();
+      return true;
+      }
+    // User edited the line — drop cycle state and re-derive.
+    cycleList.clear();
+    cycleIdx = 0;
+    cycleBase.clear();
+    }
+
   auto ret = recognize(v);
-  if(ret.cmd.type==C_Incomplete && !ret.complete.empty()) {
-    for(auto& i:ret.complete)
+
+  // ── 2. Theme slot — contextual cycle through matching themes ──────────────
+  // Triggered whenever the cursor is at/past the %t token of "play theme %t".
+  // Shell-style two-step: first Tab expands to the longest common prefix of
+  // matches (gives the user a chance to type more letters and narrow the
+  // list); a second Tab at that point — when typed prefix already equals the
+  // LCP — enters cycling mode and walks through matches one by one.
+  if(ret.inThemeSlot) {
+    std::vector<std::string> matches;
+    Gothic::musicDef().listMatchingThemeNames(ret.themePrefix,
+        [&](std::string_view name){ matches.emplace_back(name); });
+
+    if(matches.empty())
+      return false;
+
+    // Everything in `v` up to (but not including) the typed theme prefix.
+    // When inThemeSlot is set with empty prefix the split point is v's end,
+    // minus any trailing whitespace the user typed (we preserve the
+    // user-typed separator character count so the cursor stays sensible).
+    std::string base;
+    if(!ret.themePrefix.empty()) {
+      base = v.substr(0, v.size() - ret.themePrefix.size());
+      }
+    else {
+      base = v;
+      // Ensure exactly one trailing space between "theme" and the completion.
+      while(!base.empty() && base.back() == ' ')
+        base.pop_back();
+      base.push_back(' ');
+      }
+
+    // Single match → complete in full and add a trailing space (not a cycle).
+    if(matches.size() == 1) {
+      v = base + matches[0] + ' ';
+      return true;
+      }
+
+    // Compute case-insensitive LCP of all matches.
+    auto lcp = matches[0];
+    for(size_t i = 1; i < matches.size(); ++i) {
+      const auto& m = matches[i];
+      size_t k = 0;
+      while(k < lcp.size() && k < m.size() &&
+            std::tolower(static_cast<unsigned char>(lcp[k])) ==
+            std::tolower(static_cast<unsigned char>(m[k])))
+        ++k;
+      lcp.resize(k);
+      }
+
+    // First Tab: if LCP is longer than what the user typed, expand to LCP
+    // without entering cycle mode. The user can now either continue typing
+    // to narrow further, or press Tab again to start cycling.
+    if(lcp.size() > ret.themePrefix.size()) {
+      v = base + lcp;
+      return true;
+      }
+
+    // LCP == typed prefix (nothing more to deterministically expand) —
+    // start cycling. First Tab after this point places matches[0]; each
+    // subsequent Tab rotates by one.
+    cycleList  = std::move(matches);
+    cycleBase  = std::move(base);
+    v          = cycleBase + cycleList[0];
+    cycleIdx   = 1 % cycleList.size();
+    return true;
+    }
+
+  // ── 3. Plain keyword completion (non-theme) ───────────────────────────────
+  if(ret.cmd.type == C_Incomplete && !ret.complete.empty()) {
+    for(auto& i : ret.complete)
       v.push_back(i);
     if(ret.fullword)
       v.push_back(' ');
     return true;
     }
+
   return false;
   }
 
@@ -463,6 +608,15 @@ bool Marvin::exec(std::string_view v) {
       return player->playAnimByName(ret.argv[0], BS_NONE) != nullptr;
       }
 
+    case C_PlayTheme: {
+      if(auto* theme = Gothic::musicDef()[ret.argv[0]]) {
+        GameMusic::inst().setEnabled(true);
+        GameMusic::inst().setMusic(*theme, themeTagsFromName(ret.argv[0]));
+        return true;
+        }
+      return false;
+      }
+
     case C_ToggleGI:
       Gothic::inst().toggleGi();
       return true;
@@ -603,6 +757,10 @@ bool Marvin::goToVob(World& world, Npc& player, Camera& c, std::string_view name
   player.updateTransform();
   c.reset();
   return true;
+  }
+
+std::string_view Marvin::completeThemeName(std::string_view inp, bool& fullword) const {
+  return Gothic::musicDef().completeThemeName(inp, fullword);
   }
 
 std::string_view Marvin::completeInstanceName(std::string_view inp, bool& fullword) const {

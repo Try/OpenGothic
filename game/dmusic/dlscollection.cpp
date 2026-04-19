@@ -13,7 +13,12 @@ using namespace Tempest;
 DlsCollection::Region::Region(Riff &input) {
   if(!input.is("LIST"))
     throw std::runtime_error("not a riff");
-  input.readListId("rgn ");
+  if(input.isListId("rgn "))
+    input.readListId("rgn ");
+  else if(input.isListId("rgn2"))
+    input.readListId("rgn2");
+  else
+    throw std::runtime_error("not a region");
   input.read([this](Riff& c){
     implRead(c);
     });
@@ -23,8 +28,13 @@ void DlsCollection::Region::implRead(Riff &input) {
   if(input.is("rgnh")){
     input.read(&head,sizeof(head));
     }
-  else if(input.is("LIST") && input.isListId("lart")){
-    // articulators
+  else if(input.is("LIST") && (input.isListId("lart") || input.isListId("lar2"))){
+    input.read([this](Riff& c){
+      Articulator art(c);
+      articulationConnections.insert(articulationConnections.end(),
+                                     art.connectionBlocks.begin(),
+                                     art.connectionBlocks.end());
+      });
     }
   else if(input.is("wlnk")){
     input.read(&wlink,sizeof(wlink));
@@ -41,7 +51,9 @@ void DlsCollection::Region::implRead(Riff &input) {
 
 
 DlsCollection::Articulator::Articulator(Riff &input) {
-  if(!input.is("art1"))
+  const bool isArt1 = input.is("art1");
+  const bool isArt2 = input.is("art2");
+  if(!isArt1 && !isArt2)
     throw std::runtime_error("not a riff");
 
   uint32_t cbSize=0;
@@ -72,7 +84,7 @@ void DlsCollection::Instrument::implRead(Riff &input) {
         regions.emplace_back(c);
         });
       }
-    else if(input.isListId("lart")){
+    else if(input.isListId("lart") || input.isListId("lar2")){
       input.read([this](Riff& c){
         articulators.emplace_back(c);
         });
@@ -86,7 +98,8 @@ void DlsCollection::Instrument::implRead(Riff &input) {
     }
   }
 
-DlsCollection::DlsCollection(Riff& input) {
+DlsCollection::DlsCollection(Riff& input, const bool inKeepWaveData) {
+  keepWaveData = inKeepWaveData;
   if(!input.is("RIFF"))
     throw std::runtime_error("not a riff");
   input.readListId("DLS ");
@@ -94,8 +107,16 @@ DlsCollection::DlsCollection(Riff& input) {
     implRead(c);
     });
 
+  waveNameByIndex.reserve(wave.size());
+  waveSampleRateByIndex.reserve(wave.size());
+  for(const auto& w : wave) {
+    waveNameByIndex.emplace_back(w.info.inam);
+    waveSampleRateByIndex.emplace_back(w.wfmt.dwSamplesPerSec);
+    }
+
   shData = SoundFont::shared(*this,wave);
-  wave.clear();
+  if(!keepWaveData)
+    wave.clear();
   }
 
 void DlsCollection::implRead(Riff &input) {
@@ -119,7 +140,10 @@ void DlsCollection::implRead(Riff &input) {
   }
 
 SoundFont DlsCollection::toSoundfont(uint32_t dwPatch) const {
-  return SoundFont(shData,dwPatch);
+  bool preferDrumKit = (dwPatch & 0x80000000u)!=0u;
+  if(const Instrument* ins = findInstrument(dwPatch))
+    preferDrumKit = preferDrumKit || ((ins->header.Locale.ulBank & 0x80000000u)!=0u);
+  return SoundFont(shData, dwPatch, preferDrumKit);
   }
 
 void DlsCollection::dbgDump() const {
@@ -146,4 +170,61 @@ const Wave* DlsCollection::findWave(uint8_t note) const {
       }
     }
   return nullptr;
+  }
+
+const Wave* DlsCollection::waveByTableIndex(const uint32_t tableIndex) const {
+  if(tableIndex>=wave.size())
+    return nullptr;
+  return &wave[tableIndex];
+  }
+
+const DlsCollection::Instrument* DlsCollection::findInstrument(uint32_t dwPatch) const {
+  const uint8_t bankHi = uint8_t((dwPatch & 0x00FF0000) >> 0x10);
+  const uint8_t bankLo = uint8_t((dwPatch & 0x0000FF00) >> 0x8);
+  const uint8_t patch  = uint8_t(dwPatch & 0x000000FF);
+  const uint32_t legacyBank = (uint32_t(bankHi) << 16) + uint32_t(bankLo);
+
+  // Prefer later instruments when duplicates exist, mirroring DirectMusic behavior.
+  for(size_t idx=instrument.size(); idx>0; --idx) {
+    const auto& i = instrument[idx-1];
+    const uint8_t instrPatch = uint8_t(i.header.Locale.ulInstrument & 0xFFu);
+    if(instrPatch!=patch)
+      continue;
+
+    const uint32_t instrBankRaw = i.header.Locale.ulBank;
+    const uint8_t instrBankHi = uint8_t((instrBankRaw >> 16) & 0xFFu);
+    const uint8_t instrBankLo = uint8_t(instrBankRaw & 0xFFu);
+    if(instrBankRaw==legacyBank || (instrBankHi==bankHi && instrBankLo==bankLo))
+      return &i;
+    }
+
+  // Fallback: many legacy files effectively use only one bank byte.
+  for(size_t idx=instrument.size(); idx>0; --idx) {
+    const auto& i = instrument[idx-1];
+    if(uint8_t(i.header.Locale.ulInstrument & 0xFFu)!=patch)
+      continue;
+    if(uint8_t(i.header.Locale.ulBank & 0x7Fu) == uint8_t(bankLo & 0x7Fu))
+      return &i;
+    }
+
+  // Last resort: by program only.
+  for(size_t idx=instrument.size(); idx>0; --idx) {
+    const auto& i = instrument[idx-1];
+    if(uint8_t(i.header.Locale.ulInstrument & 0xFFu) == patch)
+      return &i;
+    }
+  return nullptr;
+  }
+
+const std::string& DlsCollection::waveNameByTableIndex(uint32_t tableIndex) const {
+  static const std::string kEmpty;
+  if(tableIndex>=waveNameByIndex.size())
+    return kEmpty;
+  return waveNameByIndex[tableIndex];
+  }
+
+uint32_t DlsCollection::waveSampleRateByTableIndex(uint32_t tableIndex) const {
+  if(tableIndex>=waveSampleRateByIndex.size())
+    return 0;
+  return waveSampleRateByIndex[tableIndex];
   }

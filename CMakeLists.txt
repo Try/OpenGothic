@@ -76,6 +76,10 @@ endif()
 file(GLOB_RECURSE OPENGOTHIC_SOURCES
     "game/*.h"
     "game/*.cpp")
+# NT5 dmsynth source files (under game/dmusic/nt5/) are added conditionally
+# by the OPENGOTHIC_WITH_NT5_DMSYNTH block below; exclude them from the
+# default glob so they are not pulled into the build unintentionally.
+list(FILTER OPENGOTHIC_SOURCES EXCLUDE REGEX "/game/dmusic/nt5/")
 
 target_sources(${PROJECT_NAME} PRIVATE ${OPENGOTHIC_SOURCES} ${ObjCSOURCES} icon.rc)
 
@@ -118,6 +122,39 @@ target_link_libraries(${PROJECT_NAME} dmusic)
 # TinySoundFont
 add_definitions(-DTSF_NO_STDIO)
 include_directories(lib/TinySoundFont)
+
+# NT5 dmsynth direct sources (optional)
+# When ON: compiles NT5 dmsynth source files from game/dmusic/nt5/ if present.
+# Place the NT5 source files there (voice.cpp, mix.cpp, mixf.cpp, etc. from
+# tongzx/nt5src XPSP1/NT/multimedia/directx/dmusic/dmsynth/) and nt5compat.h
+# will make them compile cross-platform without _X86_ assembly or Windows SDK.
+option(OPENGOTHIC_WITH_NT5_DMSYNTH
+  "Use NT5 dmsynth sources directly (place NT5 files in game/dmusic/nt5/)" OFF)
+if(OPENGOTHIC_WITH_NT5_DMSYNTH)
+  message(STATUS "NT5 dmsynth: direct source mode enabled")
+  target_compile_definitions(${PROJECT_NAME} PRIVATE OPENGOTHIC_WITH_NT5_DMSYNTH=1)
+  # Add nt5/ to include path so NT5 files can #include "nt5compat.h"
+  target_include_directories(${PROJECT_NAME} PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/game/dmusic/nt5")
+  # Conditionally add NT5 source files if present
+  # Note: voice.cpp / mix.cpp / mixf.cpp still depend on unported NT5 headers
+  # (debug.h, misc.h, csynth.h, …) and will be re-enabled once those land.
+  # sverb.cpp is self-contained and is the only process-side NT5 module we
+  # need for our current reverb drop-in.
+  foreach(_nt5_file sverb.cpp)
+    set(_nt5_path "${CMAKE_CURRENT_SOURCE_DIR}/game/dmusic/nt5/${_nt5_file}")
+    if(EXISTS "${_nt5_path}")
+      target_sources(${PROJECT_NAME} PRIVATE "${_nt5_path}")
+      message(STATUS "  NT5 dmsynth: adding ${_nt5_file}")
+    else()
+      message(STATUS "  NT5 dmsynth: ${_nt5_file} not found (skipped)")
+    endif()
+  endforeach()
+  unset(_nt5_file)
+  unset(_nt5_path)
+else()
+  message(STATUS "NT5 dmsynth: using portable reimplementation (default)")
+endif()
 
 # Tempest
 if(WIN32)

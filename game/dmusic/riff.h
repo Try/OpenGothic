@@ -42,19 +42,19 @@ class Riff final {
 
     template<class T>
     void readAll(std::vector<T>& all){
-      uint32_t sz=0;
-      read(&sz,4);
-      size_t cnt = remaning()/sz;
-      if(sz>sizeof(T)) {
+      uint32_t elemSize=0;
+      read(&elemSize,4);
+      size_t cnt = remaning()/elemSize;
+      if(elemSize>sizeof(T)) {
         all.resize(cnt);
         for(size_t i=0;i<cnt;++i) {
           read(&all[i],sizeof(T));
-          skip(sz-sizeof(T));
+          skip(elemSize-sizeof(T));
           }
         } else {
         all.resize(cnt);
         for(size_t i=0;i<cnt;++i) {
-          read(&all[i],sz);
+          read(&all[i],elemSize);
           }
         }
       }

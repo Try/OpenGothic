@@ -18,6 +18,7 @@ class Pattern final {
 
     DMUS_IO_PATTERN      header;
     Unfo                 info;
+    std::vector<uint32_t> rhythm;
     std::vector<PartRef> partref;
 
     uint32_t             timeLength(double tempo) const;

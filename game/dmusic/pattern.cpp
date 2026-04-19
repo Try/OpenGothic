@@ -1,5 +1,6 @@
 #include "pattern.h"
 
+#include <algorithm>
 #include <stdexcept>
 
 using namespace Dx8;
@@ -8,8 +9,14 @@ Pattern::PartRef::PartRef(Riff &input) {
   if(!input.is("LIST") || !input.isListId("pref"))
     throw std::runtime_error("not a partref");
   input.read([this](Riff& input){
-    if(input.is("prfc"))
-      input.read(&io,sizeof(io));
+    if(input.is("prfc")) {
+      DMUS_IO_PARTREF tmp={};
+      const size_t sz = input.remaning();
+      input.read(&tmp,std::min(sz,sizeof(tmp)));
+      if(sz>sizeof(tmp))
+        input.skip(sz-sizeof(tmp));
+      io = tmp;
+      }
     else if(input.is("LIST") && input.isListId("UNFO"))
      unfo = Unfo(input);
     });
@@ -35,6 +42,12 @@ void Pattern::implRead(Riff &input) {
       partref.emplace_back(input);
     else if(input.isListId("UNFO"))
       info = Unfo(input);
+    }
+  else if(input.is("rhtm")) {
+    const size_t cnt = input.remaning()/sizeof(uint32_t);
+    rhythm.resize(cnt);
+    for(size_t i=0;i<cnt;++i)
+      input.read(&rhythm[i],sizeof(rhythm[i]));
     }
   }
 

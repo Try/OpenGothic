@@ -16,7 +16,15 @@ class Music final {
     void   addPattern(const PatternList& list);
     void   addPattern(const PatternList& list,size_t id);
 
-    void   clear() { impl->pptn.clear(); }
+    void   clear() {
+      impl->pptn.clear();
+      impl->groove.clear();
+      impl->tempo.clear();
+      impl->loopStart = 0;
+      impl->loopEnd   = 0;
+      impl->timeTotal = 0;
+      impl->baseTempo = 100.0;
+      }
     size_t size() const { return impl->pptn.size(); }
 
     void   setVolume(float v);
@@ -24,6 +32,7 @@ class Music final {
   private:
     using Pattern = std::shared_ptr<PatternList::PatternInternal>;
     using Groove  = PatternList::Groove;
+    using TempoEvent = PatternList::TempoEvent;
 
     struct Internal {
       Internal()=default;
@@ -31,9 +40,13 @@ class Music final {
 
       std::vector<Pattern> pptn;
       std::vector<Groove>  groove;
+      std::vector<TempoEvent> tempo;
 
       std::atomic<float>   volume{1.f};
+      uint64_t             loopStart=0;
+      uint64_t             loopEnd=0;
       uint64_t             timeTotal=0;
+      double               baseTempo=100.0;
       };
     std::shared_ptr<Internal> impl = std::make_shared<Internal>();
 
