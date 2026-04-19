@@ -849,7 +849,6 @@ void MoveAlgo::assertStateChange(State f) {
       assert(f==Run || f==InAir || f==ClimbUp);
       break;
     case ClimbUp:
-      assert(!dead);
       assert(f==Run);
       break;
     case InWater:
@@ -859,8 +858,23 @@ void MoveAlgo::assertStateChange(State f) {
       assert(f==Run || f==InAir || f==InWater || f==Dive);
       break;
     case Dive:
-      assert(!dead);
       assert(f==InAir || f==Swim || f==InWater);
+      break;
+    }
+
+  switch(f) {
+    case Slide:
+    case Jump:
+    case JumpUp:
+    case Swim:
+    case Dive:
+    case ClimbUp:
+    case Falling:
+      assert(!dead);
+      break;
+    case Run:
+    case InAir:
+    case InWater:
       break;
     }
   }
