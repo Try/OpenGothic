@@ -264,6 +264,8 @@ void Npc::load(Serialize &fin, size_t id, std::string_view directory) {
   fin.read(x,y,z,angle,sz);
   fin.read(wlkMode,trGuild,talentsSk,talentsVl,refuseTalkMilis);
   durtyTranform = TR_Pos|TR_Rot|TR_Scale;
+  if(fin.version()<55)
+    angle -= 90;
 
   fin.read(permAttitude,tmpAttitude);
   fin.read(perceptionTime,perceptionNextTime);
@@ -450,7 +452,7 @@ void Npc::setDirectionY(float rotation) {
   if(rotation<-90)
     rotation = -90;
   rotation = std::fmod(rotation,360.f);
-  if(!mvAlgo.isSwim() && !(interactive()!=nullptr && interactive()->isLadder()))
+  if(!mvAlgo.isDive() && !(interactive()!=nullptr && interactive()->isLadder()))
     return;
   angleY = rotation;
   durtyTranform |= TR_Rot;
@@ -462,9 +464,9 @@ void Npc::setRunAngle(float angle) {
   }
 
 float Npc::angleDir(float x, float z) {
-  float a=-90;
+  float a = 0;
   if(x!=0.f || z!=0.f)
-    a = 90+180.f*std::atan2(z,x)/float(M_PI);
+    a = 180.f*std::atan2(z,x)/float(M_PI);
   return a;
   }
 
@@ -596,7 +598,7 @@ void Npc::onNoHealth(bool death, HitSound sndMask) {
   // Note: clear perceptions for William in Jarkentar
   for(size_t i=0;i<PERC_Count;++i)
     setPerceptionDisable(PercType(i));
-  if(hnpc->voice>0 && sndMask!=HS_NoSound) {
+  if(hnpc->voice>0 && sndMask!=HS_NoSound && !isDive()) {
     emitSoundSVM(svm);
     }
 
@@ -673,17 +675,27 @@ float Npc::rotationYRad() const {
   }
 
 Bounds Npc::bounds() const {
-  auto b = visual.bounds();
-  b.setObjMatrix(transform());
-  return b;
+  return visual.bounds();
+  }
+
+auto Npc::bBox() const -> const Vec3* {
+  if(visual.visualSkeleton()==nullptr)
+    return nullptr;
+  return visual.visualSkeleton()->bbox;
   }
 
 Vec3 Npc::centerPosition() const {
   auto p = position();
-  //p.y = physic.centerY();
+  p.y += 25; // seem to be off by ~25 centimeters, according to comparations vanilla testing
   p.y += visual.pose().translateY();
-  p.y += 15; // seem to be off by ~15 centimeters, according to comparations vanilla testing
   return p;
+  /*
+  // p.y += 15; // seem to be off by ~15 centimeters, according to comparations vanilla testing
+  if(auto sk = visual.visualSkeleton()) {
+      p.y += (sk->bboxCol[0].y + sk->bboxCol[1].y)*0.5f;
+    }
+  return p;
+  */
   }
 
 Vec3 Npc::collosionCenter() const {
@@ -1034,19 +1046,27 @@ bool Npc::isFlyAnim() const {
   }
 
 bool Npc::isFalling() const {
-  return mvAlgo.isFalling();
+  return mvAlgo.state()==MoveAlgo::Falling;
   }
 
 bool Npc::isFallingDeep() const {
-  return mvAlgo.isInAir() && (visual.pose().isInAnim("S_FALL") || visual.pose().isInAnim("S_FALLB"));
+  return (mvAlgo.isInAir() || mvAlgo.isFalling()) && (visual.pose().isInAnim("S_FALL") || visual.pose().isInAnim("S_FALLB"));
   }
 
 bool Npc::isSlide() const {
-  return mvAlgo.isSlide();
+  return mvAlgo.state()==MoveAlgo::Slide;
   }
 
 bool Npc::isInAir() const {
-  return mvAlgo.isInAir();
+  return mvAlgo.state()==MoveAlgo::InAir;
+  }
+
+bool Npc::isJump() const {
+  return mvAlgo.state()==MoveAlgo::Jump;
+  }
+
+bool Npc::isJumpUp() const {
+  return mvAlgo.state()==MoveAlgo::JumpUp;
   }
 
 void Npc::invalidateTalentOverlays() {
@@ -1504,7 +1524,7 @@ bool Npc::implAttack(uint64_t dt) {
   const auto act = fghAlgo.nextFromQueue(*this,*currentTarget,owner.script());
 
   // vanilla behavior, required for orcs in G1 orcgraveyard
-  if(ws==WeaponState::NoWeapon && isAiQueueEmpty()) {
+  if(ws==WeaponState::NoWeapon && isAiQueueEmpty() && canSwitchWeapon()) {
     drawWeaponMelee();
     return true;
     }
@@ -1877,7 +1897,7 @@ void Npc::takeDamage(Npc &other, const Bullet* b) {
 
   assert(b==nullptr || !b->isSpell());
   const auto& pose    = visual.pose();
-  const bool  isJumpb = pose.isJumpBack(owner.tickCount());
+  const bool  isJumpb = pose.isJumpBack(owner.tickCount()) && fghAlgo.isInJumpBackAngle(*this,other);
   const bool  isBlock = (!other.isMonster() || other.inventory().activeWeapon()!=nullptr) &&
                          fghAlgo.isInFocusAngle(*this,other) &&
                          pose.isDefence(owner.tickCount());
@@ -1948,7 +1968,8 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
     }
 
   if(hitResult.hasHit) {
-    if(bodyStateMasked()!=BS_UNCONSCIOUS && interactive()==nullptr && !isSwim() && !mvAlgo.isClimb()) {
+    auto state = bodyStateMasked();
+    if(interactive()==nullptr && (state&BS_FLAG_INTERRUPTABLE)!=BS_NONE) {
       const bool noInter = (hnpc->bodystate_interruptable_override!=0);
       if(!noInter) {
         //NOTE: kepp rotation animation: this results in more accurate fight with trolls
@@ -2211,8 +2232,10 @@ void Npc::tick(uint64_t dt) {
       if(tickSz>0) {
         t-=v;
         int dmg = t/tickSz - (t-int(dt))/tickSz;
-        if(dmg>0)
+        if(dmg>0) {
+          lastHit = nullptr;
           changeAttribute(ATR_HITPOINTS,-dmg,false);
+          }
         }
       }
     }
@@ -2533,26 +2556,26 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       }
       break;
     case AI_DrawWeapon:
-      if(!isDead()) {
+      if(canSwitchWeapon()) {
         if(!drawWeaponMelee() &&
            !drawWeaponBow())
           queue.pushFront(std::move(act));
         }
       break;
     case AI_DrawWeaponMelee:
-      if(!isDead()) {
+      if(canSwitchWeapon()) {
         if(!drawWeaponMelee())
           queue.pushFront(std::move(act));
         }
       break;
     case AI_DrawWeaponRange:
-      if(!isDead()) {
+      if(canSwitchWeapon()) {
         if(!drawWeaponBow())
           queue.pushFront(std::move(act));
         }
       break;
     case AI_DrawSpell: {
-      if(!isDead()) {
+      if(canSwitchWeapon()) {
         const int32_t spell = act.i0;
         if(drawSpell(spell))
           aiExpectedInvest = act.i1; else
@@ -3253,8 +3276,7 @@ Item* Npc::takeItem(Item& item) {
     return nullptr;
 
   auto state = bodyStateMasked();
-  if(state!=BS_STAND && state!=BS_SNEAK) {
-    setAnim(Anim::Idle);
+  if(state!=BS_STAND && state!=BS_SNEAK && state!=BS_SWIM && state!=BS_DIVE) {
     return nullptr;
     }
 
@@ -3491,7 +3513,13 @@ void Npc::unequipItem(size_t item) {
   }
 
 bool Npc::canSwitchWeapon() const {
-  return !(mvAlgo.isFalling() || mvAlgo.isInAir() || mvAlgo.isSlide() || mvAlgo.isSwim());
+  if(isUnconscious())
+    return false;
+  auto bs = bodyStateMasked();
+  if(bs==BS_STAND || bs==BS_WALK || bs==BS_RUN || bs==BS_SNEAK || bs==BS_NONE)
+    return true;
+  return false;
+  // return !(mvAlgo.isFalling() || mvAlgo.isInAir() || mvAlgo.isSlide() || mvAlgo.isSwim());
   }
 
 bool Npc::closeWeapon(bool noAnim) {
@@ -3604,7 +3632,7 @@ bool Npc::drawMage(uint8_t slot) {
   }
 
 bool Npc::drawSpell(int32_t spell) {
-  if(isFalling() || mvAlgo.isSwim() || bodyStateMasked()==BS_CASTING)
+  if(mvAlgo.isFalling() || mvAlgo.isSwim() || bodyStateMasked()==BS_CASTING)
     return false;
   auto weaponSt=weaponState();
   if(weaponSt!=WeaponState::NoWeapon && weaponSt!=WeaponState::Mage) {
@@ -4244,7 +4272,7 @@ Npc::JumpStatus Npc::tryJump() {
   float len = MoveAlgo::climbMove;
   float rot = rotationRad();
   float s   = std::sin(rot), c = std::cos(rot);
-  Vec3  dp  = Vec3{len*s, 0, -len*c};
+  Vec3  dp  = Vec3{len*c, 0, len*s};
 
   auto& g  = owner.script().guildVal();
   auto  gl = guild();
@@ -4263,7 +4291,7 @@ Npc::JumpStatus Npc::tryJump() {
 
   JumpStatus ret;
   DynamicWorld::CollisionTest info;
-  if(!isInAir() && physic.testMove(pos0+dp,info)) {
+  if(!mvAlgo.isJumpUp() && physic.testMove(pos0+dp,info)) {
     // jump forward
     ret.anim   = Anim::Jump;
     ret.noClimb = true;
@@ -4288,7 +4316,7 @@ Npc::JumpStatus Npc::tryJump() {
   if(!physic.testMove(pos1,pos0,info) ||
      !physic.testMove(pos2,pos1,info)) {
     // check approximate path of climb failed
-    ret.anim    = Anim::Jump;
+    ret.anim    = Anim::JumpUp;
     ret.noClimb = true;
     return ret;
     }
@@ -4308,14 +4336,14 @@ Npc::JumpStatus Npc::tryJump() {
     return ret;
     }
 
-  if(isInAir() && dY<=jumpLow + visual.pose().translateY()) {
+  if(mvAlgo.isJumpUp() && dY<=jumpLow + visual.pose().translateY()) {
     // jumpup -> climb
     ret.anim   = Anim::JumpHang;
     ret.height = jumpY;
     return ret;
     }
 
-  if(isInAir()) {
+  if(mvAlgo.isJumpUp()) {
     ret.anim    = Anim::Idle;
     ret.noClimb = true;
     return ret;
@@ -4514,7 +4542,7 @@ SensesBit Npc::canSenseNpc(const Npc &oth, bool freeLos, float extRange) const {
   // NOTE2: interacting with chest(lockpicking) or some MOBSI should not produce 'noise'
   // NOTE3: seem npc can't hear player in general case, and hearing relevant only for sendImmediatePerc cases
   const bool isNoisy = false;
-  const auto mid     = oth.bounds().midTr;
+  const auto mid     = oth.centerPosition();
   return canSenseNpc(mid,freeLos,isNoisy,extRange);
   }
 
@@ -4599,7 +4627,7 @@ Matrix4x4 Npc::mkPositionMatrix() const {
   if(align) {
     float rot  = rotationRad();
     float s    = std::sin(rot), c = std::cos(rot);
-    auto  dir  = Vec3(s,0,-c);
+    auto  dir  = Vec3(c,0,s);
     auto  norm = Vec3::normalize(ground);
 
     float cx = Vec3::dotProduct(norm,dir);
@@ -4609,7 +4637,7 @@ Matrix4x4 Npc::mkPositionMatrix() const {
   Matrix4x4 mt = Matrix4x4();
   mt.identity();
   mt.translate(x,y,z);
-  mt.rotateOY(180-angle);
+  mt.rotateOY(90-angle);
   if(angY!=0)
     mt.rotateOX(-angY);
   if(isPlayer() && !align) {

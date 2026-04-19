@@ -1,5 +1,7 @@
 #include "movealgo.h"
 
+#include <Tempest/Log>
+
 #include "world/objects/npc.h"
 #include "world/objects/interactive.h"
 #include "world/world.h"
@@ -62,8 +64,7 @@ void MoveAlgo::tickMobsi(uint64_t dt) {
     auto pos = npc.position();
     npc.setPosition(pos+dp);
     }
-  setAsSlide(false);
-  setInAir  (false);
+  setState(Run);
   }
 
 bool MoveAlgo::tryMove(float x, float y, float z) {
@@ -75,147 +76,17 @@ bool MoveAlgo::tryMove(float x,float y,float z, DynamicWorld::CollisionTest& out
   return npc.tryMove({x,y,z},out);
   }
 
-bool MoveAlgo::tickSlide(uint64_t dt) {
-  float fallThreshold = stepHeight();
-  auto  pos           = npc.position();
-
-  auto  norm   = normalRay(pos+Tempest::Vec3(0,fallThreshold,0));
-  // check ground
-  float pY     = pos.y;
-  bool  valid  = false;
-  auto  ground = dropRay (pos+Tempest::Vec3(0,fallThreshold,0), valid);
-  auto  water  = waterRay(pos);
-  float dY     = pY-ground;
-
-  if(ground+waterDepthChest()<water) {
-    setInAir(true);
-    setAsSlide(false);
-    return true;
-    }
-  if(dY>fallThreshold*1.1) {
-    setInAir  (true);
-    setAsSlide(false);
-    return false;
-    }
-
-  DynamicWorld::CollisionTest info;
-  if(norm.y<=0 || norm.y>=0.99f || !testSlide(pos+Tempest::Vec3(0,fallThreshold,0),info,true)) {
-    setAsSlide(false);
-    return false;
-    }
-
-  const auto tangent = Tempest::Vec3::crossProduct(norm, Tempest::Vec3(0,1,0));
-  const auto slide   = Tempest::Vec3::crossProduct(norm, tangent);
-
-  auto dp = fallSpeed*float(dt);
-  if(tryMove(dp.x,dp.y,dp.z,info)) {
-    fallSpeed += slide*float(dt)*gravity;
-    fallCount  = 1;
-    }
-  else if(tryMove(dp.x,0.f,dp.z,info)) {
-    fallSpeed += Tempest::Vec3(slide.x, 0.f, slide.z)*float(dt)*gravity;
-    fallCount  = 1;
-    }
-  else {
-    onGravityFailed(info,dt);
-    }
-
-  /*
-  if(fallCount>0 && !tryMove(dp.x,dp.y,dp.z,info)) {
-    onGravityFailed(info,dt);
-    } else {
-    fallSpeed += slide*float(dt)*gravity;
-    fallCount  = 1;
-    }*/
-
-  npc.setAnimRotate(0);
-  if(!npc.isDown()) {
-    if(slideDir())
-      npc.setAnim(AnimationSolver::SlideA); else
-      npc.setAnim(AnimationSolver::SlideB);
-    }
-
-  setInAir  (false);
-  setAsSlide(true);
-  return true;
-  }
-
-void MoveAlgo::tickGravity(uint64_t dt) {
-  float fallThreshold = stepHeight();
-  // falling
-  if(0.f<fallCount) {
-    fallSpeed/=fallCount;
-    fallCount = 0.f;
-    }
-
-  // check ground
-  auto  pos      = npc.position();
-  float pY       = pos.y;
-  float chest    = canFlyOverWater() ? 0 : waterDepthChest();
-  bool  valid    = false;
-  auto  ground   = dropRay (pos+Tempest::Vec3(0,fallThreshold,0), valid);
-  auto  water    = waterRay(pos);
-  float fallStop = std::max(water-chest,ground);
-
-  const auto dp = fallSpeed*float(dt);
-
-  if(pY+dp.y>fallStop || dp.y>0) {
-    // continue falling
-    DynamicWorld::CollisionTest info;
-    if(!tryMove(dp.x,dp.y,dp.z,info)) {
-      if(!npc.isDead())
-        npc.setAnim(AnimationSolver::Fall);
-      onGravityFailed(info,dt);
-      fallSpeed.y = std::max(fallSpeed.y, 0.f);
-      } else {
-      fallSpeed.y -= gravity*float(dt);
-      }
-
-    auto  gl       = npc.guild();
-    auto  h0       = float(npc.world().script().guildVal().falldown_height[gl]);
-    float gravity  = DynamicWorld::gravity;
-    float fallTime = fallSpeed.y/gravity;
-    float height   = 0.5f*std::abs(gravity)*fallTime*fallTime;
-    auto  bs       = npc.bodyStateMasked();
-
-    if(height>h0 && !npc.isDead()) {
-      npc.setAnim(AnimationSolver::FallDeep);
-      npc.setAnimRotate(0);
-      setAsFalling(true);
-      } else
-    if(fallSpeed.y<-0.3f && !npc.isDead() && bs!=BS_JUMP && bs!=BS_FALL) {
-      npc.setAnim(AnimationSolver::Fall);
-      npc.setAnimRotate(0);
-      }
-    } else {
-    if(ground+chest<water && !npc.isDead()) {
-      const bool splash = isInAir();
-      clearSpeed();
-      setInAir(false);
-      if(!canFlyOverWater()) {
-        // attach to water
-        tryMove(0.f,water-chest-pY,0.f);
-        setInWater(true);
-        setAsSwim(true);
-        if(splash)
-          emitWaterSplash(water);
-        if(!npc.hasSwimAnimations())
-          npc.takeDrownDamage();
-        }
-      if(!npc.isDead())
-        npc.setAnim(AnimationSolver::Idle);
-      } else {
-      // attach to ground
-      tryMove(0.f,ground-pY,0.f);
-      npc.takeFallDamage(fallSpeed);
-      clearSpeed();
-      setInAir(false);
-      }
-    }
+bool MoveAlgo::tryMove(const Tempest::Vec3& dp, DynamicWorld::CollisionTest& out) {
+  return npc.tryMove(dp,out);
   }
 
 void MoveAlgo::tickJumpup(uint64_t dt) {
-  auto pos = npc.position();
+  auto pos   = npc.position();
+  auto climb = npc.tryJump();
+
+  if(climb.anim==Npc::Anim::JumpHang)
+    climbHeight = pos.y;
+
   if(pos.y<climbHeight) {
     pos.y       += fallSpeed.y*float(dt);
     fallSpeed.y -= gravity*float(dt);
@@ -232,30 +103,29 @@ void MoveAlgo::tickJumpup(uint64_t dt) {
   p.y = climbHeight;
   npc.tryTranslate(p);
 
-  auto climb = npc.tryJump();
   if(climb.anim==Npc::Anim::JumpHang) {
     startClimb(climb);
     } else {
-    setAsClimb(false);
-    setAsJumpup(false);
+    setState(InAir);
     clearSpeed();
     }
   }
 
 void MoveAlgo::tickClimb(uint64_t dt) {
   if(npc.bodyStateMasked()!=BS_CLIMB) {
-    setAsClimb(false);
-    setInAir  (false);
+    //NOTE: climb allows npc to violate collision detection, need to readjust
+    npc.owner.script().fixNpcPosition(npc, 0, 0);
+    setState(Run);
 
     Tempest::Vec3 p={}, v={0,0,climbMove};
     applyRotation(p,v);
     p += climbPos0;
     p.y = climbHeight;
     if(!npc.tryTranslate(p)) {
-      npc.setPosition(Tempest::Vec3(climbPos0.x,climbHeight,climbPos0.z));
+      // npc.setPosition(Tempest::Vec3(climbPos0.x,climbHeight,climbPos0.z));
+      npc.tryTranslate(Tempest::Vec3(climbPos0.x,climbHeight,climbPos0.z));
       npc.tryTranslate(p);
       }
-    clearSpeed();
     return;
     }
 
@@ -271,175 +141,23 @@ void MoveAlgo::tickClimb(uint64_t dt) {
 
   pos.x += dp.x;
   pos.z += dp.z;
- //  npc.tryTranslate(pos);
+  // npc.tryTranslate(pos);
   npc.setPosition(pos);
-
-  setAsSlide(false);
-  setInAir  (false);
-  }
-
-void MoveAlgo::tickSwim(uint64_t dt) {
-  auto  dp            = npcMoveSpeed(dt,MvFlags::NoFlag);
-  auto  pos           = npc.position();
-  float pY            = pos.y;
-  float fallThreshold = stepHeight();
-  auto  chest         = waterDepthChest();
-
-  bool  valid  = false;
-  bool  validW = false;
-  auto  ground = dropRay (pos+dp+Tempest::Vec3(0,fallThreshold,0), valid);
-  auto  water  = waterRay(pos+dp+Tempest::Vec3(0,fallThreshold,0), &validW);
-
-  if(npc.isDead()) {
-    setAsSwim(false);
-    setAsDive(false);
-    return;
-    }
-
-  if(chest==flyOverWaterHint) {
-    setAsSwim(false);
-    setAsDive(false);
-    tryMove(dp.x,ground-pY,dp.z);
-    return;
-    }
-
-  if(ground+chest>=water && !(!validW && isSwim())) {
-    DynamicWorld::CollisionTest info;
-    if(testSlide(pos+dp+Tempest::Vec3(0,fallThreshold,0),info))
-      return;
-    setAsSwim(false);
-    setAsDive(false);
-    tryMove(dp.x,ground-pY,dp.z);
-    return;
-    }
-
-  if(isDive() && pos.y+chest>water && validW) {
-    if(npc.world().tickCount()-diveStart>2000) {
-      setAsDive(false);
-      return;
-      }
-    }
-
-  // swim on top of water
-  if(!isDive() && validW) {
-    // Khorinis port hack
-    for(int i=0; i<=50; i+=10) {
-      if(tryMove(dp.x,water-chest-pY+float(i),dp.z))
-        break;
-      }
-    return;
-    }
-
-  if(!isDive() && !validW) {
-    setAsDive(false);
-    setAsSwim(false);
-    setInAir (ground<pos.y);
-    return;
-    }
-
-  tryMove(dp.x,dp.y,dp.z);
-  }
-
-bool MoveAlgo::tickRun(uint64_t dt, MvFlags moveFlg) {
-  const auto  dp            = npcMoveSpeed(dt,moveFlg);
-  const auto  pos           = npc.position();
-  const float fallThreshold = stepHeight();
-
-  // moving NPC, by animation
-  bool  valid   = false;
-  auto  ground  = dropRay (pos+dp+Tempest::Vec3(0,fallThreshold,0), valid);
-  auto  water   = waterRay(pos+dp);
-  float dY      = pos.y-ground;
-  bool  onGound = true;
-
-  if(canFlyOverWater() && ground<water) {
-    dY      = pos.y-water;
-    onGound = false;
-    }
-
-  if(pos+dp==pos && dY==0)
-    return false;
-
-  if(-fallThreshold<dY && npc.isFlyAnim()) {
-    // jump animation
-    tryMove(dp.x,dp.y,dp.z);
-    fallSpeed += dp;
-    fallCount += float(dt);
-    setInAir  (true);
-    setAsSlide(false);
-    }
-  else if(0.f<=dY && dY<fallThreshold) {
-    const bool walk = bool(npc.walkMode()&WalkBit::WM_Walk);
-    DynamicWorld::CollisionTest info;
-    if(onGound && testSlide(pos+dp+Tempest::Vec3(0,fallThreshold,0),info)) {
-      if(walk) {
-        DynamicWorld::CollisionTest info;
-        info.normal  = dp;
-        info.preFall = true;
-        onMoveFailed(dp,info,dt);
-        return true;
-        }
-      if(!tryMove(dp.x,-dY,dp.z,info))
-        onMoveFailed(dp,info,dt);
-      fallSpeed = Tempest::Vec3();
-      fallCount = 0;
-      setAsSlide(true);
-      return true;
-      }
-    // move down the ramp
-    if(!tryMove(dp.x,-dY,dp.z)) {
-      if(!tryMove(dp.x,dp.y,dp.z,info))
-        onMoveFailed(dp,info,dt);
-      return true;
-      }
-    setInAir  (false);
-    setAsSlide(false);
-    }
-  else if(-fallThreshold<dY && dY<0.f) {
-    DynamicWorld::CollisionTest info;
-    if(onGound && testSlide(pos+dp+Tempest::Vec3(0,fallThreshold,0),info)) {
-      onMoveFailed(dp,info,dt);
-      return true;
-      }
-    // move up the ramp
-    if(!tryMove(dp.x,-dY,dp.z,info)) {
-      onMoveFailed(dp,info,dt);
-      return true;
-      }
-    setInAir  (false);
-    setAsSlide(false);
-    }
-  else if(0.f<dY) {
-    const bool walk = bool(npc.walkMode()&WalkBit::WM_Walk);
-    if(((!walk || !npc.isPlayer()) && (dY<300.f)) || isSlide()) {
-      // start to fall of cliff
-      auto dpCliff = (dp==Tempest::Vec3()) ? Tempest::Vec3(cache.n.x,0,cache.n.z)*float(dt) : dp;
-      if(tryMove(dp.x,dp.y,dp.z)){
-        fallSpeed.x = 0.3f*dpCliff.x;
-        fallSpeed.y = 0.f;
-        fallSpeed.z = 0.3f*dpCliff.z;
-        fallCount    = float(dt);
-        //setInAir  (true);
-        setAsSlide(false);
-        if(npc.testMove(pos + Tempest::Vec3{0,-fallThreshold*0.1f,0})) {
-          setInAir(true);
-          }
-        } else {
-        tryMove(dpCliff.x,0,dpCliff.z);
-        }
-      } else {
-      DynamicWorld::CollisionTest info;
-      info.normal  = dp;
-      info.preFall = true;
-      onMoveFailed(dp,info,dt);
-      }
-    }
-
-  return true;
   }
 
 void MoveAlgo::tick(uint64_t dt, MvFlags moveFlg) {
-  implTick(dt,moveFlg);
+  if(npc.isDown() && (flags==Swim || flags==Dive)) {
+    // 'falling' to bottom of the lake
+    setState(InAir);
+    }
+
+  if(npc.interactive()!=nullptr) {
+    tickMobsi(dt);
+    return;
+    }
+
+  if(!implTick(dt,moveFlg))
+    return;
 
   if(cache.sector!=nullptr && portal!=cache.sector) {
     formerPortal = portal;
@@ -451,79 +169,316 @@ void MoveAlgo::tick(uint64_t dt, MvFlags moveFlg) {
     }
   }
 
-void MoveAlgo::implTick(uint64_t dt, MvFlags moveFlg) {
-  if(npc.interactive()!=nullptr)
-    return tickMobsi(dt);
+bool MoveAlgo::implTick(uint64_t dt, MvFlags moveFlg) {
+  if(flags==ClimbUp) {
+    tickClimb(dt);
+    return true;
+    }
+  if(flags==JumpUp) {
+    tickJumpup(dt);
+    return true;
+    }
 
-  if(isClimb())
-    return tickClimb(dt);
+  const auto state = flags;
+  const bool dead  = npc.isDead();
+  const bool swim  = (state==Swim);
+  const bool dive  = (state==Dive);
+  const bool grav  = (state==InAir || state==Falling || state==JumpUp);
+  const auto bs    = npc.bodyStateMasked();
+  const auto pos0  = npc.position();
+  const auto dp    = (!grav && state!=Slide) ? npcMoveSpeed(dt,moveFlg) : npcFallSpeed(dt);
+  const bool walk  = bool(npc.walkMode() & WalkBit::WM_Walk) && (state==Run);
 
-  if(isJumpup())
-    return tickJumpup(dt);
-
-  if(isSwim())
-    return tickSwim(dt);
-
-  if(isInAir()) {
-    if(npc.isJumpAnim()) {
-      auto dp = npcMoveSpeed(dt,moveFlg);
-      tryMove(dp.x,dp.y,dp.z);
-      fallSpeed += dp;
-      fallCount += float(dt);
-      return;
+  DynamicWorld::CollisionTest info;
+  if(!tryMove(dp,info)) {
+    info.preFall = false;
+    if(state==Slide) {
+      onGravityFailed(info,dt);
+      setState(InAir);
       }
-    return tickGravity(dt);
+    else if(grav) {
+      onGravityFailed(info,dt);
+      }
+    else if(swim) {
+      // Khorinis port hack
+      /*
+      for(int i=0; i<=50; i+=10) {
+        if(tryMove(Tempest::Vec3(dp.x,dp.y+float(i),dp.z), info))
+          break;
+        if(i==50) {
+          onMoveFailed(dp,info,dt);
+          return false;
+          }
+        }
+      */
+      onMoveFailed(dp,info,dt);
+      return false;
+      }
+    else {
+      onMoveFailed(dp,info,dt);
+      return false;
+      }
     }
 
-  if(isSlide()) {
-    if(tickSlide(dt))
-      return;
-    if(isInAir())
-      return;
+  if(grav) {
+    fallSpeed.y -= gravity*float(dt);
     }
 
-  const auto pos0 = npc.position();
-  if(!tickRun(dt,moveFlg))
-    return;
+  //if(dp==Tempest::Vec3() && !grav && state!=Jump && state!=Slide)
+  //  return false;
 
-  if(npc.isDead() || npc.bodyStateMasked()==BS_JUMP)
-    return;
+  auto        pos            = npc.position();
+  const float stickThreshold = grav ? 0.f : stepHeight();
+  const float chest          = waterDepthChest();
+  const float knee           = waterDepthKnee();
 
-  auto  pos1          = npc.position();
-  float fallThreshold = stepHeight();
-
-  bool  valid  = false;
-  auto  ground = dropRay (pos1+Tempest::Vec3(0,fallThreshold,0), valid);
-  auto  water  = waterRay(pos1);
+  bool  gValid  = false;
+  auto  ground  = dropRay  (pos, gValid);
+  auto  normal  = normalRay(pos);
+  auto  water   = waterRay (pos);
+  float dY      = pos.y-ground;
 
   if(canFlyOverWater() && ground<water) {
-    pos1.y = water;
-    npc.tryTranslate(pos1);
-    return;
+    dY      = pos.y-water;
+    // onGound = false;
+    //NOTE: should disable slide
+    }
+  else if(std::isfinite(water) && ground+chest<water && npc.hasSwimAnimations() && !dead) {
+    dY      = std::min((pos.y+chest)-water, stickThreshold);
     }
 
-  if(npc.isInAir())
-    return;
+  if(dp==Tempest::Vec3() && pos.y==ground && state!=Jump && state!=Slide)
+    return false;
 
-  const float chest = waterDepthChest();
-  if(ground+chest<water) {
-    if(!npc.hasSwimAnimations()) {
-      // no swim animations
-      npc.setPosition(pos0);
-      DynamicWorld::CollisionTest info;
-      info.preFall = true;
-      onMoveFailed(pos1-pos0,info,dt);
-      return;
+  // jump animation (lift off)
+  if(bs==BS_JUMP && state!=InAir && state!=Jump && state!=JumpUp) {
+    setState(Jump);
+    return true;
+    }
+
+  // jump animation
+  if(state==Jump) {
+    if(npc.isJumpAnim()) {
+      fallSpeed += dp;
+      fallCount += float(dt);
+      } else {
+      setState(InAir);
       }
-    setInAir(false);
-    setInWater(true);
-    setAsSwim(true);
-    return;
+    return true;
     }
 
-  if(pos1.y+waterDepthKnee()<water)
-    setInWater(true); else
-    setInWater(false);
+  if(state==JumpUp) {
+    const auto climb = npc.tryJump();
+    if(climb.anim==Npc::Anim::JumpHang) {
+      startClimb(climb);
+      return true;
+      }
+    }
+
+  // blood-fly over water
+  if(canFlyOverWater() && !dead && ground<water) {
+    setState(Run);
+    npc.tryTranslate(Tempest::Vec3(pos.x, water, pos.z));
+    return true;
+    }
+
+  // water interaction
+  if(!canFlyOverWater() && !dead && ground<water) {
+    if(swim) {
+      // note need to be carefull about non-planar water patches, near waterfalls
+      const float wpos = std::max(water-chest, ground);
+      npc.tryTranslate(Tempest::Vec3(pos.x, wpos, pos.z));
+      }
+
+    const float gpos = std::max(npc.position().y, ground);
+    if(gpos + 3.f*chest <= water) {
+      // underwater walk bug-like case: can switch to dive here
+      // setState(Dive);
+      }
+    else if(gpos + chest <= water+0.01f && npc.hasSwimAnimations()) {
+      if(state!=Swim && state!=Dive) {
+        const bool splash = grav || fallSpeed.quadLength() >= 1.f;
+        setState(Swim);
+        if(splash)
+          emitWaterSplash(water);
+        // if(!npc.hasSwimAnimations())
+        //   npc.takeDrownDamage();
+        return true;
+        }
+      }
+    else if(gpos + knee <= water && state!=InAir && state!=Slide && state!=Dive) {
+      // swimming toward cliff-slide
+      if(swim && testSlide(pos,normal,info)) {
+        npc.setPosition(pos0);
+        onMoveFailed(dp,info,dt);
+        return false;
+        }
+      if(state==Swim) {
+        setState(Run);
+        }
+      }
+    else if(state==InWater || state==Swim) {
+      setState(Run);
+      }
+    }
+
+  if(swim) {
+    if(dead || !std::isfinite(water)) {
+      setState(Run);
+      }
+    return true;
+    }
+
+  if(dive) {
+    if(pos.y+chest > water && std::isfinite(water)) {
+      npc.tryTranslate(Tempest::Vec3(pos.x, water-chest, pos.z));
+      if(npc.world().tickCount()-diveStart>2000) {
+        setState(Swim);
+        }
+      }
+    return true;
+    }
+
+  // above ground/void
+  if(!gValid || (pos.y>ground && dY >= stickThreshold && state!=InWater)) {
+    if(!gValid && swim) {
+      // sea monster condition?
+      }
+
+    const bool lowHeight = (dY < falldownHeight()*0.75f);
+    if((walk || swim) && !(lowHeight && !npc.isPlayer())) {
+      npc.setPosition(pos0);
+
+      info.normal  = dp;
+      info.preFall = true;
+      onMoveFailed(dp,info,dt);
+      return false;
+      }
+    if(!swim && !dive && !dead) {
+      // fall animations
+      const float h0 = falldownHeight();
+
+      float fallTime = fallSpeed.y/gravity;
+      float height   = 0.5f*std::abs(gravity)*fallTime*fallTime;
+
+      if(height>h0) {
+        npc.setAnim(AnimationSolver::FallDeep);
+        npc.setAnimRotate(0);
+        setState(Falling);
+        }
+      else if(fallSpeed.y<-0.3f && bs!=BS_JUMP && bs!=BS_FALL) {
+        npc.setAnim(AnimationSolver::Fall);
+        npc.setAnimRotate(0);
+        setState(InAir);
+        }
+      else if(state==InWater) {
+        npc.setAnimRotate(0);
+        setState(Swim);
+        }
+      else {
+        npc.setAnimRotate(0);
+        setState(InAir);
+        }
+      }
+    return true;
+    }
+
+  if(state==Slide && !npc.isDown()) {
+    const auto norm = normalRay(pos);
+    if(!testSlide(pos,norm,info)) {
+      setState(Run);
+      return true;
+      }
+    const auto tangent = Tempest::Vec3::crossProduct(norm, Tempest::Vec3(0,1,0));
+    const auto slide   = Tempest::Vec3::crossProduct(norm, tangent);
+
+    fallSpeed += slide*float(dt)*gravity;
+    //fallCount  = 1;
+    if(gValid && std::abs(dY)<stickThreshold) {
+      // step up
+      npc.tryMove(Tempest::Vec3(0,-dY,0));
+      }
+
+    npc.setAnimRotate(0);
+    if(slideDir())
+      npc.setAnim(AnimationSolver::SlideA); else
+      npc.setAnim(AnimationSolver::SlideB);
+    return true;
+    }
+
+  // no longer in air - ground code
+  if(state==InAir || state==Falling) {
+    // attach to ground
+    npc.takeFallDamage(fallSpeed);
+    setState(Run);
+    }
+
+  if(ground+chest < water && !npc.hasSwimAnimations()) {
+    // no swim animations
+    npc.setPosition(pos0);
+    DynamicWorld::CollisionTest info;
+    info.preFall = true;
+    onMoveFailed(dp,info,dt);
+    return false;
+    }
+
+  if(!dead && testSlide(pos,normal,info)) {
+    if(state==InWater || state==Swim) {
+      npc.setPosition(pos0);
+      return false;
+      }
+
+    if(state!=InAir && Tempest::Vec3::dotProduct(normal,dp)<0.45f) {
+      // same as wall
+      npc.setPosition(pos0);
+      info.preFall = false;
+      onMoveFailed(dp,info,dt);
+      return false;
+      }
+    if(state==InAir && ground>=pos.y) {
+      // rough landing
+      npc.tryMove(Tempest::Vec3(0,-dY,0));
+      //npc.setAnim(AnimationSolver::Idle);
+      npc.setAnim(AnimationSolver::SlideA);
+      }
+    if(walk) {
+      npc.setPosition(pos0);
+
+      info.normal  = dp;
+      info.preFall = true;
+      onMoveFailed(dp,info,dt);
+      return false;
+      }
+    setState(Slide);
+    return true;
+    }
+
+  if(gValid && dY <= stickThreshold) {
+    const float gpos = std::max(npc.position().y, ground);
+    if(gpos + knee <= water) {
+      setState(InWater);
+      } else {
+      setState(Run);
+      }
+    if(ground==pos.y)
+      return true;
+    if(ground<=pos.y) {
+      // step up
+      // npc.setPosition(adjPos);
+      npc.tryMove(Tempest::Vec3(0,-dY,0));
+      return true;
+      }
+    if(ground>=pos.y) {
+      // inside ground
+      // npc.setPosition(adjPos);
+      npc.tryMove(Tempest::Vec3(0,-dY,0));
+      return true;
+      }
+    }
+
+  // something went wrong - back to origin then
+  // npc.setPosition(pos0);
+  return true;
   }
 
 void MoveAlgo::clearSpeed() {
@@ -534,14 +489,14 @@ void MoveAlgo::clearSpeed() {
   }
 
 void MoveAlgo::accessDamFly(float dx, float dz) {
-  if(flags==0) {
+  if(flags==Run) {
     float len = std::sqrt(dx*dx+dz*dz);
     auto  vec = Tempest::Vec3(dx,len*0.5f,dz);
     vec = vec/vec.length();
 
     fallSpeed = vec*1.f;
     fallCount = 0;
-    setInAir(true);
+    setState(InAir);
     }
   }
 
@@ -556,7 +511,7 @@ void MoveAlgo::applyRotation(Tempest::Vec3& out, const Tempest::Vec3& dpos) cons
     } else {
     out.y = dpos.y;
     }
-  float rot = npc.rotationRad();
+  float rot = npc.rotationRad()+float(M_PI/2);
   applyRotation(out,dpos,rot);
   out.x *= -mul;
   out.z *= -mul;
@@ -600,6 +555,15 @@ Tempest::Vec3 MoveAlgo::npcMoveSpeed(uint64_t dt, MvFlags moveFlg) {
   return dp;
   }
 
+Tempest::Vec3 MoveAlgo::npcFallSpeed(uint64_t dt) {
+  // falling
+  if(0.f<fallCount) {
+    fallSpeed/=fallCount;
+    fallCount = 0.f;
+    }
+  return fallSpeed*float(dt);
+  }
+
 Tempest::Vec3 MoveAlgo::go2NpcMoveSpeed(const Tempest::Vec3& dp,const Npc& tg) {
   return go2WpMoveSpeed(dp,tg.position());
   }
@@ -617,13 +581,14 @@ Tempest::Vec3 MoveAlgo::go2WpMoveSpeed(Tempest::Vec3 dp, const Tempest::Vec3& to
   return dp;
   }
 
-bool MoveAlgo::testSlide(const Tempest::Vec3& pos, DynamicWorld::CollisionTest& out, bool cont) const {
-  if(isInAir() || npc.bodyStateMasked()==BS_JUMP)
-    return false;
-
+bool MoveAlgo::testSlide(const Tempest::Vec3& pos, DynamicWorld::CollisionTest& out) const {
   // check ground
-  const auto  norm       = normalRay(pos);
-  const float slideBegin = std::min(slideAngle() + (cont ? 0.1f : 0.f), 1.f);
+  const auto norm = normalRay(pos);
+  return testSlide(pos, norm, out);
+  }
+
+bool MoveAlgo::testSlide(const Tempest::Vec3& pos, const Tempest::Vec3& norm, DynamicWorld::CollisionTest& out) const {
+  const float slideBegin = std::min(slideAngle(), 1.f);
   const float slideEnd   = slideAngle2();
 
   out.normal = norm;
@@ -670,11 +635,20 @@ float MoveAlgo::waterDepthChest() const {
   return float(npc.world().script().guildVal().water_depth_chest[gl]);
   }
 
+float MoveAlgo::falldownHeight() const {
+  auto gl = npc.guild();
+  return float(npc.world().script().guildVal().falldown_height[gl]);
+  }
+
 bool MoveAlgo::canFlyOverWater() const {
   auto  gl = npc.guild();
   auto& g  = npc.world().script().guildVal();
   return g.water_depth_chest[gl]==flyOverWaterHint &&
          g.water_depth_knee [gl]==flyOverWaterHint;
+  }
+
+bool MoveAlgo::canFallByGravity() const {
+  return falldownHeight()!=9999;
   }
 
 bool MoveAlgo::checkLastBounce() const {
@@ -749,22 +723,16 @@ bool MoveAlgo::startClimb(JumpStatus jump) {
   fallCount   = 0.f;
 
   if(jump.anim==Npc::Anim::JumpUp && dHeight>0.f){
-    setAsJumpup(true);
-    setInAir(true);
-
+    setState(JumpUp);
     float t = std::sqrt(2.f*dHeight/gravity);
     fallSpeed.y = gravity*t;
     }
   else if(jump.anim==Npc::Anim::JumpUpMid ||
           jump.anim==Npc::Anim::JumpUpLow) {
-    setAsJumpup(false);
-    setAsClimb(true);
-    setInAir(true);
+    setState(ClimbUp);
     }
-  else if(isJumpup() && jump.anim==Npc::Anim::JumpHang) {
-    setAsJumpup(false);
-    setAsClimb(true);
-    setInAir(true);
+  else if(isJumpUp() && jump.anim==Npc::Anim::JumpHang) {
+    setState(ClimbUp);
     }
   else {
     return false;
@@ -773,126 +741,146 @@ bool MoveAlgo::startClimb(JumpStatus jump) {
   }
 
 void MoveAlgo::startDive() {
-  if(isSwim() && !isDive()) {
-    if(npc.world().tickCount()-diveStart>1000) {
-      setAsDive(true);
+  if(!isSwim())
+    return;
 
-      auto  pos   = npc.position();
-      float pY    = pos.y;
-      float chest = canFlyOverWater() ? 0 : waterDepthChest();
-      auto  water = waterRay(pos);
-      tryMove(0,water-chest-pY,0);
-      }
+  if(npc.world().tickCount()-diveStart>1000) {
+    setState(Dive);
+
+    auto  pos   = npc.position();
+    float pY    = pos.y;
+    float chest = canFlyOverWater() ? 0 : waterDepthChest();
+    auto  water = waterRay(pos);
+    tryMove(0,water-chest-pY,0);
     }
   }
 
 bool MoveAlgo::isFalling() const {
-  return flags&Falling;
+  return flags==Falling;
   }
 
 bool MoveAlgo::isSlide() const {
-  return flags&Slide;
+  return flags==Slide;
   }
 
 bool MoveAlgo::isInAir() const {
-  return flags&InAir;
+  return flags==InAir;
   }
 
-bool MoveAlgo::isJumpup() const {
-  return flags&JumpUp;
+bool MoveAlgo::isJumpUp() const {
+  return flags==JumpUp;
   }
 
 bool MoveAlgo::isClimb() const {
-  return flags&ClimbUp;
+  return flags==ClimbUp;
   }
 
 bool MoveAlgo::isInWater() const {
-  return flags&InWater;
+  return flags==InWater;
   }
 
 bool MoveAlgo::isSwim() const {
-  return flags&Swim;
+  return flags==Swim;
   }
 
 bool MoveAlgo::isDive() const {
-  return flags&Dive;
+  return flags==Dive;
   }
 
-void MoveAlgo::setInAir(bool f) {
-  if(f==isInAir())
-    return;
-  if(!f)
-    setAsFalling(false);
-  if(f)
-    flags=Flags(flags|InAir); else
-    flags=Flags(flags&(~InAir));
-  }
-
-void MoveAlgo::setAsJumpup(bool f) {
-  if(f)
-    flags=Flags(flags|JumpUp); else
-    flags=Flags(flags&(~JumpUp));
-  }
-
-void MoveAlgo::setAsClimb(bool f) {
-  if(f)
-    flags=Flags(flags|ClimbUp); else
-    flags=Flags(flags&(~ClimbUp));
-  }
-
-void MoveAlgo::setAsSlide(bool f) {
-  if(f)
-    flags=Flags(flags|Slide);  else
-    flags=Flags(flags&(~Slide));
-  }
-
-void MoveAlgo::setInWater(bool f) {
-  if(f)
-    flags=Flags(flags|InWater);  else
-    flags=Flags(flags&(~InWater));
-  }
-
-void MoveAlgo::setAsSwim(bool f) {
-  if(f==isSwim())
+void MoveAlgo::setState(State f) {
+  if(f==flags)
     return;
 
-  if(f)
-    flags=Flags(flags|Swim);  else
-    flags=Flags(flags&(~Swim));
+#ifndef NDEBUG
+  assertStateChange(f);
+#endif
 
-  if(f) {
+  auto isFlyLike = [](State f) {
+    return f==InAir || f==Falling || f==Slide || f==Jump || f==JumpUp || f==ClimbUp;
+    };
+
+  if(isFlyLike(flags) && !isFlyLike(f)) {
+    clearSpeed();
+    }
+
+  if((f==Swim) && !(flags==Swim)) {
     auto ws = npc.weaponState();
     npc.setAnim(Npc::Anim::NoAnim);
     if(ws!=WeaponState::NoWeapon && ws!=WeaponState::Fist)
       npc.closeWeapon(true);
     npc.dropTorch(true);
     }
-  }
 
-void MoveAlgo::setAsDive(bool f) {
-  if(f==isDive())
-    return;
-  if(f) {
+  if((f==Dive) && !(flags==Dive)) {
     npc.setDirectionY(-40);
-    diveStart = npc.world().tickCount();
-    npc.setWalkMode(npc.walkMode() | WalkBit::WM_Dive);
-    } else {
-    diveStart = npc.world().tickCount();
-    npc.setWalkMode(npc.walkMode() & (~WalkBit::WM_Dive));
     }
-  if(f)
-    flags=Flags(flags|Dive);  else
-    flags=Flags(flags&(~Dive));
+  if((f==Dive) != (flags==Dive)) {
+    diveStart = npc.world().tickCount();
+    }
+
+  flags = f;
   }
 
-void MoveAlgo::setAsFalling(bool f) {
-  if(f)
-    flags=Flags(flags|Falling);  else
-    flags=Flags(flags&(~Falling));
+void MoveAlgo::assertStateChange(State f) {
+  const bool dead = npc.isDead();
+  // release build quirks
+  (void)f;
+  (void)dead;
+  // assert possible transitions
+  switch(flags) {
+    case Run:
+      assert(f!=Falling);
+      break;
+    case InAir:
+      assert(f==Run || f==Falling || f==InWater || f==Swim || f==Dive);
+      break;
+    case Falling:
+      assert(f==Run || f==InAir || f==InWater || f==Swim || f==Dive);
+      break;
+    case Slide:
+      assert(!dead);
+      break;
+    case Jump:
+      assert(!dead);
+      assert(f==Run || f==InAir || f==Falling || f==Swim || f==Dive);
+      break;
+    case JumpUp:
+      assert(!dead);
+      assert(f==Run || f==InAir || f==ClimbUp);
+      break;
+    case ClimbUp:
+      assert(f==Run);
+      break;
+    case InWater:
+      assert(f==Run || f==Slide || f==Jump || f==JumpUp || f==Swim || f==Dive);
+      break;
+    case Swim:
+      assert(f==Run || f==InAir || f==InWater || f==Dive);
+      break;
+    case Dive:
+      assert(f==InAir || f==Swim || f==InWater);
+      break;
+    }
+
+  switch(f) {
+    case Slide:
+    case Jump:
+    case JumpUp:
+    case Swim:
+    case Dive:
+    case ClimbUp:
+    case Falling:
+      assert(!dead);
+      break;
+    case Run:
+    case InAir:
+    case InWater:
+      break;
+    }
   }
 
 bool MoveAlgo::slideDir() const {
-  float a = std::atan2(fallSpeed.x,fallSpeed.z)+float(M_PI/2);
+  float a = std::atan2(fallSpeed.x,fallSpeed.z);
   float b = npc.rotationRad();
 
   auto s = std::sin(a-b);
@@ -939,13 +927,13 @@ void MoveAlgo::onMoveFailed(const Tempest::Vec3& dp, const DynamicWorld::Collisi
   if(npc.processPolicy()!=NpcProcessPolicy::Player)
     lastBounce = npc.world().tickCount();
 
-  if(std::abs(val)>=threshold && !info.preFall) {
+  if(std::abs(val)>=threshold && !info.preFall && checkLastBounce()) {
     // emulate bouncing behaviour of original game
     Tempest::Vec3 corr;
     for(int i=5; i<=35; i+=5) {
       for(float angle:{float(i),-float(i)}) {
         applyRotation(corr,dp,float(angle*M_PI)/180.f);
-        if(npc.tryMove(corr)) {
+        if(npc.testMove(corr)) {
           if(forward)
             npc.setDirection(npc.rotation()+angle);
           return;
@@ -981,7 +969,7 @@ void MoveAlgo::onMoveFailed(const Tempest::Vec3& dp, const DynamicWorld::Collisi
     case Npc::GT_EnemyG:
     case Npc::GT_Way:
     case Npc::GT_Point: {
-      if(info.npcCol || info.preFall) {
+      if(info.npc!=nullptr || info.preFall) {
         npc.setDirection(npc.rotation()+stp);
         } else {
         auto jc = npc.tryJump();
@@ -1009,44 +997,44 @@ void MoveAlgo::onGravityFailed(const DynamicWorld::CollisionTest& info, uint64_t
     norm.y = normXZ   *norm.y/normXZInv;
     }
 
-  if(Tempest::Vec3::dotProduct(fallSpeed,norm)<0.f || fallCount>0) {
-    float len  = fallSpeed.length()/std::max(1.f,fallCount);
-    if(isInAir() && Tempest::Vec2::dotProduct({fallSpeed.x, fallSpeed.z}, {norm.x, norm.z})<0.f) {
-      float lx = Tempest::Vec2({fallSpeed.x, fallSpeed.z}).length();
-      lx *= 0.25f;
-      fallSpeed.x = norm.x*lx;
-      fallSpeed.z = norm.z*lx;
-      //fallSpeed   = Tempest::Vec3::normalize(fallSpeed)*len;
+  auto reflect = [](const Tempest::Vec3& I, const Tempest::Vec3& N) {
+    return I - 2.f*Tempest::Vec3::dotProduct(N,I) * N;
+    };
+
+  assert(fallCount==0.f);
+  if(true || Tempest::Vec3::dotProduct(fallSpeed,norm)<0.f) {
+    //float len  = fallSpeed.length()/std::max(1.f,fallCount);
+    if(Tempest::Vec2::dotProduct({fallSpeed.x, fallSpeed.z}, {norm.x, norm.z})<0.f) {
+      fallSpeed = reflect(fallSpeed, norm)*0.75f;
       } else {
-      len *= 0.25f;
-      len = std::max(len, 0.1f);
-      fallSpeed   = Tempest::Vec3::normalize(fallSpeed+norm)*len;
+      fallSpeed = norm*fallSpeed.length();
       }
     fallCount  = 0;
     } else {
-    fallSpeed += norm*gravity;
+    fallSpeed += 10.f*norm*gravity*float(dt);
     }
   }
 
-float MoveAlgo::waterRay(const Tempest::Vec3& p, bool* hasCol) const {
-  auto pos = p - Tempest::Vec3(0,waterPadd,0);
+float MoveAlgo::waterRay(const Tempest::Vec3& pos) const {
   if(std::fabs(cacheW.x-pos.x)>eps || std::fabs(cacheW.y-pos.y)>eps || std::fabs(cacheW.z-pos.z)>eps) {
-    static_cast<DynamicWorld::RayWaterResult&>(cacheW) = npc.world().physic()->waterRay(pos);
+    // const float threshold = canFlyOverWater() ? -stepHeight() : -0.1f;
+    const auto  spos      = pos; //Tempest::Vec3(pos.x, pos.y+threshold, pos.z);
+    static_cast<DynamicWorld::RayWaterResult&>(cacheW) = npc.world().physic()->waterRay(spos, stepHeight());
     cacheW.x = pos.x;
     cacheW.y = pos.y;
     cacheW.z = pos.z;
     }
-  if(hasCol!=nullptr)
-    *hasCol = cacheW.hasCol;
   return cacheW.wdepth;
   }
 
 void MoveAlgo::rayMain(const Tempest::Vec3& pos) const {
   if(std::fabs(cache.x-pos.x)>eps || std::fabs(cache.y-pos.y)>eps || std::fabs(cache.z-pos.z)>eps) {
-    float dy = waterDepthChest()+100;  // 1 meter extra offset
-    if(fallSpeed.y<0)
+    float threshold = npc.physic.groundOffset() + 1.f;
+    float dy        = threshold+100;  // 1 meter extra offset
+    if(fallSpeed.y<0 || false)
       dy = 0; // whole world
-    static_cast<DynamicWorld::RayLandResult&>(cache) = npc.world().physic()->landRay(pos,dy);
+    const auto spos = Tempest::Vec3(pos.x, pos.y+threshold, pos.z);
+    static_cast<DynamicWorld::RayLandResult&>(cache) = npc.world().physic()->landRay(spos,dy);
     cache.x = pos.x;
     cache.y = pos.y;
     cache.z = pos.z;

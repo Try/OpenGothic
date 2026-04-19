@@ -20,7 +20,7 @@ Pose::Pose() {
 uint8_t Pose::calcAniComb(const Vec3& dpos, float rotation) {
   float   l   = std::sqrt(dpos.x*dpos.x+dpos.z*dpos.z);
 
-  float   dir = 90+180.f*std::atan2(dpos.z,dpos.x)/float(M_PI);
+  float   dir = 180.f*std::atan2(dpos.z,dpos.x)/float(M_PI);
   float   aXZ = (rotation-dir);
   float   aY  = -std::atan2(dpos.y,l)*180.f/float(M_PI);
 
@@ -183,7 +183,7 @@ bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *s
         return false;
         }
       const Animation::Sequence* tr=nullptr;
-      if(i.seq->shortName!=nullptr && sq->shortName!=nullptr) {
+      if(i.seq->shortName!=nullptr && sq->shortName!=nullptr && i.sAnim!=tickCount) {
         string_frm tansition("T_",i.seq->shortName,"_2_",sq->shortName);
         tr = solver.solveFrm(tansition);
         }
@@ -396,8 +396,8 @@ bool Pose::updateFrame(const Animation::Sequence &s, BodyState bs, uint64_t sBle
         smp.position.y = trY;
       else if(bs==BS_SWIM || bs==BS_DIVE)
         smp.position.y = trY;
-      else if(s.isFly())
-        smp.position.y = trY; //d.translate.y;
+      else if(bs==BS_JUMP) //else if(s.isFly())
+        smp.position.y = trY;
       }
 
     switch(hasSamples[idx]) {

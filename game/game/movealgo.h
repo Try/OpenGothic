@@ -34,6 +34,19 @@ class MoveAlgo final {
       WaitMove = 1<<1,
       };
 
+    enum State : uint32_t {
+      Run = 0,
+      InAir,
+      Falling,
+      Slide,
+      Jump,
+      JumpUp,
+      ClimbUp,
+      InWater,
+      Swim,
+      Dive,
+      };
+
     static bool isClose(const Npc& npc, const Npc& p, float dist);
     static bool isClose(const Npc& npc, const WayPoint& p);
     static bool isClose(const Npc& npc, const WayPoint& p, float dist);
@@ -48,7 +61,8 @@ class MoveAlgo final {
     void    clearSpeed();
     void    accessDamFly(float dx,float dz);
 
-    bool    testSlide(const Tempest::Vec3& p, DynamicWorld::CollisionTest& out, bool cont = false) const;
+    bool    testSlide(const Tempest::Vec3& p, DynamicWorld::CollisionTest& out) const;
+    bool    testSlide(const Tempest::Vec3& pos, const Tempest::Vec3& norm, DynamicWorld::CollisionTest& out) const;
 
     bool    startClimb(JumpStatus ani);
     void    startDive();
@@ -56,11 +70,13 @@ class MoveAlgo final {
     bool    isFalling() const;
     bool    isSlide()   const;
     bool    isInAir()   const;
-    bool    isJumpup()  const;
+    bool    isJumpUp()  const;
     bool    isClimb()   const;
     bool    isInWater() const;
     bool    isSwim()    const;
     bool    isDive()    const;
+
+    auto    state() const { return flags; }
 
     zenkit::MaterialGroup groundMaterial() const;
     auto    groundNormal() const -> Tempest::Vec3;
@@ -71,42 +87,24 @@ class MoveAlgo final {
 
     float   waterDepthKnee()  const;
     float   waterDepthChest() const;
+    float   falldownHeight()  const;
     bool    canFlyOverWater() const;
+    bool    canFallByGravity() const;
 
     bool    checkLastBounce() const;
 
   private:
-    void    tickMobsi  (uint64_t dt);
-    bool    tickSlide  (uint64_t dt);
-    void    tickGravity(uint64_t dt);
-    void    tickSwim   (uint64_t dt);
-    void    tickClimb  (uint64_t dt);
-    void    tickJumpup (uint64_t dt);
-    bool    tickRun(uint64_t dt, MvFlags moveFlg);
+    void    tickMobsi (uint64_t dt);
+    void    tickClimb (uint64_t dt);
+    void    tickJumpup(uint64_t dt);
+    bool    implTick  (uint64_t dt, MvFlags fai);
 
-    bool    tryMove    (float x, float y, float z);
-    bool    tryMove    (float x, float y, float z, DynamicWorld::CollisionTest& out);
+    bool    tryMove   (float x, float y, float z);
+    bool    tryMove   (float x, float y, float z, DynamicWorld::CollisionTest& out);
+    bool    tryMove   (const Tempest::Vec3& dp, DynamicWorld::CollisionTest& out);
 
-    enum Flags : uint32_t {
-      NoFlags = 0,
-      InAir   = 1<<1,
-      Falling = 1<<2,
-      Slide   = 1<<3,
-      JumpUp  = 1<<4,
-      ClimbUp = 1<<5,
-      InWater = 1<<6,
-      Swim    = 1<<7,
-      Dive    = 1<<8,
-      };
-
-    void    setInAir    (bool f);
-    void    setAsJumpup (bool f);
-    void    setAsClimb  (bool f);
-    void    setAsSlide  (bool f);
-    void    setInWater  (bool f);
-    void    setAsSwim   (bool f);
-    void    setAsDive   (bool f);
-    void    setAsFalling(bool f);
+    void    setState(State f);
+    void    assertStateChange(State f);
 
     bool    slideDir() const;
     bool    isForward(const Tempest::Vec3& dp) const;
@@ -116,9 +114,9 @@ class MoveAlgo final {
     void    applyRotation(Tempest::Vec3& out, const Tempest::Vec3& in, float radians) const;
     auto    animMoveSpeed(uint64_t dt) const -> Tempest::Vec3;
     auto    npcMoveSpeed (uint64_t dt, MvFlags moveFlg) -> Tempest::Vec3;
+    auto    npcFallSpeed (uint64_t dt) -> Tempest::Vec3;
     auto    go2NpcMoveSpeed (const Tempest::Vec3& dp, const Npc &tg) -> Tempest::Vec3;
     auto    go2WpMoveSpeed  (Tempest::Vec3 dp, const Tempest::Vec3& to) -> Tempest::Vec3;
-    void    implTick(uint64_t dt,MvFlags fai=NoFlag);
 
     void    onMoveFailed(const Tempest::Vec3& dp, const DynamicWorld::CollisionTest& info, uint64_t dt);
     void    onGravityFailed(const DynamicWorld::CollisionTest& info, uint64_t dt);
@@ -131,7 +129,7 @@ class MoveAlgo final {
 
     void    rayMain  (const Tempest::Vec3& pos) const;
     float   dropRay  (const Tempest::Vec3& pos, bool& hasCol) const;
-    float   waterRay (const Tempest::Vec3& pos, bool* hasCol = nullptr) const;
+    float   waterRay (const Tempest::Vec3& pos) const;
     auto    normalRay(const Tempest::Vec3& pos) const -> Tempest::Vec3;
 
     struct CacheLand : DynamicWorld::RayLandResult {
@@ -147,7 +145,7 @@ class MoveAlgo final {
 
     std::string_view    portal;
     std::string_view    formerPortal;
-    Flags               flags = NoFlags;
+    State               flags = Run;
 
     float               mulSpeed  =1.f;
     Tempest::Vec3       fallSpeed ={};

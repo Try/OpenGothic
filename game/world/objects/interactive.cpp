@@ -181,7 +181,7 @@ void Interactive::drawVobBox(DbgPainter& p) const {
   p.setPen(Tempest::Color(1,0,0));
   //p.drawAabb(bbox[0], bbox[1]);
   if(auto mesh = visual.protoMesh()) {
-    p.drawObb(transform(), mesh->bboxCol());
+    p.drawObb(transform(), mesh->bbox());
     }
 
   for(auto& i:attPos) {
@@ -194,7 +194,7 @@ void Interactive::drawVobRay(DbgPainter& p, const Npc& npc) const {
   auto head = npc.mapHeadBone();
 
   if(auto mesh = visual.protoMesh()) {
-    auto  bbox   = mesh->bboxCol();
+    auto  bbox   = mesh->bbox();
     auto  boxMin = bbox[0];
     auto  boxMax = bbox[1];
     auto  at     = (boxMin+boxMax)*0.5f;
@@ -578,7 +578,7 @@ uint32_t Interactive::stateMask() const {
 bool Interactive::canSeeNpc(const Npc& npc, bool freeLos) const {
   auto head = npc.mapHeadBone();
   if(auto mesh = visual.protoMesh()) {
-    auto  bbox   = mesh->bboxCol();
+    auto  bbox   = mesh->bbox();
     auto  at     = (bbox[0]+bbox[1])*0.5f;
     transform().project(at);
 

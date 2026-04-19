@@ -63,15 +63,14 @@ const WayPoint *WayMatrix::findWayPoint(const Vec3& at, const std::function<bool
   const WayPoint* ret =nullptr;
   float           dist=std::numeric_limits<float>::max();
   for(auto& w:wayPoints) {
+    const float l = (w.pos - at).quadLength();
+    if(l>=dist)
+      continue;
     if(!filter(w))
       continue;
-    auto  dp0 = at-w.position();
-    float l0  = dp0.quadLength();
 
-    if(l0<dist){
-      ret  = &w;
-      dist = l0;
-      }
+    ret  = &w;
+    dist = l;
     }
   return ret;
   }
@@ -198,6 +197,9 @@ void WayMatrix::adjustWaypoints(std::vector<WayPoint> &wp) {
     if(ray.hasCol) {
       //NOTE: what about water?
       w.groundPos = ray.v;
+      } else {
+      // some way-point are underground
+      w.groundPos = w.pos;
       }
     indexPoints.push_back(&w);
     }
@@ -282,7 +284,7 @@ const WayPoint *WayMatrix::findFreePoint(const Vec3& at, const FpIndex& ind,
     if(!w.isFreePoint())
       continue;
     float l = (w.pos - at).quadLength();
-    if(l>dist)
+    if(l>=dist)
       continue;
     if(!filter(w))
       continue;

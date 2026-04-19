@@ -85,7 +85,7 @@ Item::~Item() {
 void Item::drawVobBox(DbgPainter& p) const {
   p.setPen(Tempest::Color(1,0,0));
   if(auto mesh = visual.protoMesh()) {
-    p.drawObb(transform(), mesh->bboxCol());
+    p.drawObb(transform(), mesh->bbox());
 
     auto v = midPosition();
     p.setPen(Tempest::Color(0,1,0));
@@ -189,11 +189,11 @@ void Item::setPhysicsEnable(const MeshObjects::Mesh& view) {
   }
 
 void Item::setPhysicsEnable(const ProtoMesh* mesh) {
-  if(mesh==nullptr)
+  if(bBox()==nullptr)
     return;
   auto& p = *world.physic();
   Bounds b;
-  b.assign(mesh->bbox);
+  b.assign(bBox());
   physic = p.dynamicObj(transform(),b,zenkit::MaterialGroup(hitem->material));
   physic.setItem(this);
   }
@@ -223,12 +223,12 @@ Tempest::Vec3 Item::position() const {
 const Vec3* Item::bBox() const {
   if(visual.protoMesh()==nullptr)
     return nullptr;
-  return visual.protoMesh()->bboxCol();
+  return visual.protoMesh()->bbox();
   }
 
 Vec3 Item::midPosition() const {
   if(auto mesh = visual.protoMesh())  {
-    auto bbox = mesh->bboxCol();
+    auto bbox = mesh->bbox();
     auto v    = (bbox[0] + bbox[1])*0.5;
     transform().project(v); // doesn't use to work for Karibik mod
     return v;

@@ -339,18 +339,19 @@ bool PlayerControl::interact(Npc &other) {
   auto pl = w->player();
   if(pl->isDown())
     return true;
-  auto state = pl->bodyStateMasked();
-  if(state!=BS_STAND && state!=BS_SNEAK)
-    return false;
   if(!canInteract())
     return false;
-  if(w->script().isDead(other) || w->script().isUnconscious(other)) {
+  auto state = pl->bodyStateMasked();
+  if(other.isDown()) {
+    if(state!=BS_STAND && state!=BS_SNEAK && state!=BS_SWIM && state!=BS_DIVE)
+      return false;
     if(!inv.ransack(*w->player(),other))
       w->script().printNothingToGet();
+    } else {
+    if((state&BS_MAX)!=BS_NONE)
+      return false;
+    other.startDialog(*pl);
     }
-  if((pl->bodyStateMasked()&BS_MAX)!=BS_NONE)
-    return false;
-  other.startDialog(*pl);
   return true;
   }
 
@@ -452,7 +453,7 @@ void PlayerControl::marvinF8(uint64_t dt) {
   float rot = pl.rotationRad();
   float s   = std::sin(rot), c = std::cos(rot);
 
-  Tempest::Vec3 dp(s,0.8f,-c);
+  Tempest::Vec3 dp(c,0.8f,s);
   pos += dp*6000*float(dt)/1000.f;
 
   pl.changeAttribute(ATR_HITPOINTS,pl.attribute(ATR_HITPOINTSMAX),false);
@@ -478,7 +479,7 @@ void PlayerControl::marvinK(uint64_t dt) {
   float rot = pl.rotationRad();
   float s = std::sin(rot), c = std::cos(rot);
 
-  Tempest::Vec3 dp(s, 0.0f, -c);
+  Tempest::Vec3 dp(c, 0.0f, s);
   pos += dp * 6000 * float(dt) / 1000.f;
 
   pl.clearState(false);
@@ -700,7 +701,7 @@ void PlayerControl::implMove(uint64_t dt) {
     }
 
   pl.setDirectionY(rotY);
-  if(pl.isFalling() || pl.isSlide() || pl.isInAir()){
+  if(pl.isFalling() || pl.isSlide() || pl.isInAir() || pl.isJump() || pl.isJumpUp()){
     pl.setDirection(rot);
     runAngleDest = 0;
     return;

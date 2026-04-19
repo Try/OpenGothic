@@ -607,16 +607,18 @@ void MainWindow::paintFocus(Painter& p, const Focus& focus, const Matrix4x4& vp)
     auto tr = vp;
     tr.mul(focus.npc->transform());
 
-    auto b    = focus.npc->bounds();
+    const auto b    = focus.npc->bounds();
+    const auto bbox = b.bbox; //focus.npc->bBox();
+
     Vec3 bx[] = {
-      {b.bbox[0].x,b.bbox[0].y,b.bbox[0].z},
-      {b.bbox[1].x,b.bbox[0].y,b.bbox[0].z},
-      {b.bbox[1].x,b.bbox[1].y,b.bbox[0].z},
-      {b.bbox[0].x,b.bbox[1].y,b.bbox[0].z},
-      {b.bbox[0].x,b.bbox[0].y,b.bbox[1].z},
-      {b.bbox[1].x,b.bbox[0].y,b.bbox[1].z},
-      {b.bbox[1].x,b.bbox[1].y,b.bbox[1].z},
-      {b.bbox[0].x,b.bbox[1].y,b.bbox[1].z},
+      {bbox[0].x, bbox[0].y, bbox[0].z},
+      {bbox[1].x, bbox[0].y, bbox[0].z},
+      {bbox[1].x, bbox[1].y, bbox[0].z},
+      {bbox[0].x, bbox[1].y, bbox[0].z},
+      {bbox[0].x, bbox[0].y, bbox[1].z},
+      {bbox[1].x, bbox[0].y, bbox[1].z},
+      {bbox[1].x, bbox[1].y, bbox[1].z},
+      {bbox[0].x, bbox[1].y, bbox[1].z},
       };
 
     int min[2]={ix,iy-20}, max[2]={ix,iy-20};

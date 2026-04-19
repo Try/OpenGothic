@@ -103,6 +103,7 @@ class Npc final {
     float      runAngle() const { return runAng; }
     float      fatness() const { return bdFatness; }
     Bounds     bounds() const;
+    auto       bBox() const -> const Tempest::Vec3*;
 
     void       stopDlgAnim();
     void       clearSpeed();
@@ -186,6 +187,8 @@ class Npc final {
     bool       isFallingDeep() const;
     bool       isSlide() const;
     bool       isInAir() const;
+    bool       isJump() const;
+    bool       isJumpUp() const;
     bool       isStanding() const;
     bool       isSwim() const;
     bool       isInWater() const;

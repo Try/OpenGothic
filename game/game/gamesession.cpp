@@ -90,6 +90,7 @@ GameSession::GameSession(std::string file) {
   //std::string_view hero = "PC_HERO";
   //std::string_view hero = "FireGolem";
   //std::string_view hero = "Dragon_Undead";
+  //std::string_view hero = "Wolf";
   //std::string_view hero = "Sheep";
   //std::string_view hero = "Giant_Bug";
   //std::string_view hero = "OrcWarrior_Rest";
@@ -101,6 +102,7 @@ GameSession::GameSession(std::string file) {
   //std::string_view hero = "FireWaran";
   //std::string_view hero = "Bloodfly";
   //std::string_view hero = "Gobbo_Skeleton";
+  //std::string_view hero = "Swampshark";
   if(!Gothic::inst().isBenchmarkMode())
     wrld->createPlayer(hero);
   wrld->postInit();
@@ -225,10 +227,8 @@ void GameSession::save(Serialize &fout, std::string_view name, const Pixmap& scr
   }
 
 void GameSession::setupSettings() {
-  constexpr const float soundScale = 2.f;
-
-  const float soundVolume = Gothic::inst().settingsGetF("SOUND","soundVolume");
-  sound.setGlobalVolume(soundVolume*soundScale);
+  const float soundVolume = Gothic::settingsSoundVolume();
+  sound.setGlobalVolume(soundVolume);
   }
 
 void GameSession::setWorld(std::unique_ptr<World> &&w) {
