@@ -692,16 +692,9 @@ auto Npc::bBox() const -> const Vec3* {
 
 Vec3 Npc::centerPosition() const {
   auto p = position();
-  // p.y += 25; // seem to be off by ~25 centimeters, according to comparations vanilla testing
+  // p.y += 15; // seem to be off by ~15 centimeters, according to comparations vanilla testing
   p.y += visual.pose().translateY();
   return p;
-  /*
-  // p.y += 15; // seem to be off by ~15 centimeters, according to comparations vanilla testing
-  if(auto sk = visual.visualSkeleton()) {
-      p.y += (sk->bboxCol[0].y + sk->bboxCol[1].y)*0.5f;
-    }
-  return p;
-  */
   }
 
 Vec3 Npc::collosionCenter() const {

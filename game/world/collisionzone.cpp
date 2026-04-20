@@ -117,11 +117,12 @@ bool CollisionZone::checkPos(const Tempest::Vec3& p, const Tempest::Vec3& npcSz)
       return true;
     }
   else if(type==T_Capsule) {
+    // spells (fire rain)
     static bool once = false;
     if(!once) {
-      assert(false);
       once = true;
       Tempest::Log::d("TODO: CollisionZone capsule collision");
+      // assert(false);
       }
     if(dp.x*dp.x+dp.z*dp.z<sz.x*sz.x &&
        std::fabs(dp.y)<std::fabs(sz.y))
