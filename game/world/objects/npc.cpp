@@ -678,6 +678,12 @@ Bounds Npc::bounds() const {
   return visual.bounds();
   }
 
+auto Npc::bBoxCol() const -> const Vec3* {
+  if(visual.visualSkeleton()==nullptr)
+    return nullptr;
+  return visual.visualSkeleton()->bboxCol;
+  }
+
 auto Npc::bBox() const -> const Vec3* {
   if(visual.visualSkeleton()==nullptr)
     return nullptr;
@@ -686,7 +692,7 @@ auto Npc::bBox() const -> const Vec3* {
 
 Vec3 Npc::centerPosition() const {
   auto p = position();
-  p.y += 25; // seem to be off by ~25 centimeters, according to comparations vanilla testing
+  // p.y += 25; // seem to be off by ~25 centimeters, according to comparations vanilla testing
   p.y += visual.pose().translateY();
   return p;
   /*

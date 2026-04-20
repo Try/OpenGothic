@@ -32,11 +32,14 @@ class CollisionZone final {
 
     const std::vector<Npc*>& intersections() const { return intersect; }
 
-    bool          checkPos(const Tempest::Vec3& pos) const;
+    bool          checkPos(const Npc& npc) const;
     void          onIntersect(Npc& npc);
     void          tick(uint64_t dt);
 
   private:
+    bool          checkPos(const Tempest::Vec3& pos, const Tempest::Vec3* bbox) const;
+    bool          checkPos(const Tempest::Vec3& pos, const Tempest::Vec3& size) const;
+
     World*                    owner = nullptr;
     std::function<void(Npc&)> cb;
 

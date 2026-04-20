@@ -104,6 +104,7 @@ class Npc final {
     float      fatness() const { return bdFatness; }
     Bounds     bounds() const;
     auto       bBox() const -> const Tempest::Vec3*;
+    auto       bBoxCol() const -> const Tempest::Vec3*;
 
     void       stopDlgAnim();
     void       clearSpeed();
