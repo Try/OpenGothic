@@ -28,7 +28,6 @@ enum {
 static constexpr uint32_t kDlsDrumKitFlag = 0x80000000u;
 static constexpr uint16_t kModSrcNone = 0;
 static constexpr uint16_t kModSrcNoteOnVelocity = 2;
-static constexpr uint16_t kModSrcNoteOnKey = 3;
 static constexpr uint16_t kModTransformLinear = 0;
 static std::atomic<int> gLoopModeOverride{Hydra::LoopModeAuto};
 
