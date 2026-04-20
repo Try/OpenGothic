@@ -1976,9 +1976,16 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
         visual.interrupt(); // TODO: put down in pipeline, at Pose and merge with setAnimAngGet
         }
 
-      if(damageType & (1<<zenkit::DamageType::FLY))
-        setAnimAngGet(lastHitType=='A' ? Anim::FallDeepA : Anim::FallDeepB); else
-        setAnimAngGet(lastHitType=='A' ? Anim::StumbleA : Anim::StumbleB);
+      if((damageType & (1<<zenkit::DamageType::FLY))==0)
+        setAnimAngGet(lastHitType=='A' ? Anim::StumbleA  : Anim::StumbleB);
+      }
+    }
+
+  // throw enemy
+  if(hitResult.hasHit && (damageType & (1<<zenkit::DamageType::FLY))) {
+    if(mvAlgo.accessDamFly(x-other.x,z-other.z)) {
+      setAnimRotate(0);
+      setAnimAngGet(lastHitType=='A' ? Anim::FallDeepA : Anim::FallDeepB);
       }
     }
 
@@ -2000,10 +2007,6 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
           }
         }
       }
-    }
-
-  if((damageType & (1<<zenkit::DamageType::FLY)) && !isLie()) {
-    mvAlgo.accessDamFly(x-other.x,z-other.z); // throw enemy
     }
   }
 

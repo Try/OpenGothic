@@ -488,16 +488,22 @@ void MoveAlgo::clearSpeed() {
   fallCount   = 0;
   }
 
-void MoveAlgo::accessDamFly(float dx, float dz) {
-  if(flags==Run) {
-    float len = std::sqrt(dx*dx+dz*dz);
-    auto  vec = Tempest::Vec3(dx,len*0.5f,dz);
-    vec = vec/vec.length();
+bool MoveAlgo::accessDamFly(float dx, float dz) {
+  if(flags!=Run)
+    return false;
 
-    fallSpeed = vec*1.f;
-    fallCount = 0;
-    setState(InAir);
-    }
+  const auto bs  = npc.bodyStateMasked();
+  if(bs==BS_LIE || npc.isDead())
+    return false;
+
+  float len = std::sqrt(dx*dx+dz*dz);
+  auto  vec = Tempest::Vec3(dx,len*0.5f,dz);
+  vec = Tempest::Vec3::normalize(vec);
+
+  fallSpeed = vec*0.75f;
+  fallCount = 0;
+  setState(Falling);
+  return true;
   }
 
 void MoveAlgo::applyRotation(Tempest::Vec3& out, const Tempest::Vec3& dpos) const {
@@ -819,7 +825,6 @@ void MoveAlgo::assertStateChange(State f) {
   // assert possible transitions
   switch(flags) {
     case Run:
-      assert(f!=Falling);
       break;
     case InAir:
       assert(f==Run || f==Falling || f==InWater || f==Swim || f==Dive);
