@@ -531,17 +531,8 @@ Tempest::Vec3 MoveAlgo::animMoveSpeed(uint64_t dt) const {
   }
 
 Tempest::Vec3 MoveAlgo::npcMoveSpeed(uint64_t dt, MvFlags moveFlg) {
-  Tempest::Vec3 dp = animMoveSpeed(dt);
-  if(!npc.isFlyAnim())
-    dp.y = 0.f;
-
-  if(moveFlg&FaiMove) {
-    if(npc.currentTarget!=nullptr && !npc.isPlayer() && !npc.currentTarget->isDown()) {
-      return go2NpcMoveSpeed(dp,*npc.currentTarget);
-      }
-    }
-
-  if(NoFlag==(moveFlg&WaitMove)) {
+  auto dp = animMoveSpeed(dt);
+  if(moveFlg!=WaitMove) {
     if(npc.go2.npc)
       return go2NpcMoveSpeed(dp,*npc.go2.npc);
 
@@ -551,7 +542,6 @@ Tempest::Vec3 MoveAlgo::npcMoveSpeed(uint64_t dt, MvFlags moveFlg) {
     if(npc.go2.flag!=Npc::GT_No)
       return go2WpMoveSpeed(dp,npc.go2.pos);
     }
-
   return dp;
   }
 
