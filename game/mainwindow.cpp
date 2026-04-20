@@ -1063,13 +1063,38 @@ void MainWindow::loadGame(std::string_view slot) {
   }
 
 void MainWindow::saveGame(std::string_view slot, std::string_view name) {
-  auto tex = renderer.screenshoot(cmdId);
-  auto pm  = device.readPixels(textureCast<const Texture2d&>(tex));
-
   if(dialogs.isActive())
     return;
   if(auto w = Gothic::inst().world(); w!=nullptr && w->currentCs()!=nullptr)
     return;
+
+  auto tex  = renderer.screenshoot(cmdId);
+  auto lres = Attachment();
+
+  static int32_t kThumbW = 800;
+  const  int32_t kThumbH = tex.w()>0 ? int32_t((tex.h() * kThumbW) / tex.w()) : 0;
+  if(kThumbW>0 && kThumbH>0 && kThumbW<tex.w() && kThumbH<tex.h()) {
+    lres = device.attachment(Tempest::TextureFormat::RGBA8, uint32_t(kThumbW), uint32_t(kThumbH));
+    }
+
+  if(!lres.isEmpty()) {
+    // reduce size of the save entry preview screenshot for faster save & load
+    CommandBuffer cmd;
+    {
+    auto enc = cmd.startEncoding(device);
+    enc.setDebugMarker("Downscale screenhoot");
+    enc.setFramebuffer({{lres, Vec4(), Tempest::Preserve}});
+    enc.setPushData(IVec2(lres.w(), lres.h()));
+    enc.setBinding(0, tex, Sampler::nearest());
+    enc.setPipeline(Shaders::inst().downscale);
+    enc.draw(nullptr, 0, 3);
+    }
+    auto sync = device.submit(cmd);
+    sync.wait();
+    }
+
+  auto& thumb = lres.isEmpty() ? tex : lres;
+  auto  pm    = device.readPixels(textureCast<const Texture2d&>(thumb));
 
   Gothic::inst().startSave(std::move(textureCast<Texture2d&>(tex)),[slot=std::string(slot),name=std::string(name),pm](std::unique_ptr<GameSession>&& game){
     if(!game)

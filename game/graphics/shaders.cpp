@@ -42,7 +42,8 @@ Shaders& Shaders::inst() {
   }
 
 void Shaders::compileKeyShaders() {
-  bink = postEffect("bink");
+  bink      = postEffect("bink");
+  downscale = postEffect("downscale");
   }
 
 void Shaders::compileShaders() {
@@ -50,13 +51,13 @@ void Shaders::compileShaders() {
 
   const bool meshlets = Gothic::options().doMeshShading;
 
-  copyBuf = computeShader("copy.comp.sprv");
-  copyImg = computeShader("copy_img.comp.sprv");
-  copy    = postEffect("copy");
+  copyBuf   = computeShader("copy.comp.sprv");
+  copyImg   = computeShader("copy_img.comp.sprv");
+  copy      = postEffect("copy");
 
-  patch   = computeShader("patch.comp.sprv");
+  patch     = computeShader("patch.comp.sprv");
 
-  stash   = postEffect("stash");
+  stash     = postEffect("stash");
 
   clusterInit         = computeShader("cluster_init.comp.sprv");
   clusterPatch        = computeShader("cluster_patch.comp.sprv");

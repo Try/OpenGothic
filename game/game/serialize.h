@@ -250,6 +250,9 @@ class Serialize {
     void implRead (SaveGameHeader&       p);
 
     void implWrite(const Tempest::Pixmap& p);
+    void implWrite(const Tempest::Pixmap& p, const char* ext);
+    template<class Ext>
+    void implWrite(std::tuple<const Tempest::Pixmap&, Ext> p) { implWrite(std::get<0>(p), std::get<1>(p)); }
     void implRead (Tempest::Pixmap&       p);
 
     void implWrite(const zenkit::INpc& h);

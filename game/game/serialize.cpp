@@ -273,10 +273,14 @@ void Serialize::implRead(SaveGameHeader& p) {
   }
 
 void Serialize::implWrite(const Tempest::Pixmap& p) {
+  implWrite(p, "png");
+  }
+
+void Serialize::implWrite(const Tempest::Pixmap& p, const char* ext) {
   std::vector<uint8_t> tmp;
   tmp.reserve(4*1024*1024);
   Tempest::MemWriter w{tmp};
-  p.save(w);
+  p.save(w, ext);
   writeBytes(tmp.data(),tmp.size());
   }
 

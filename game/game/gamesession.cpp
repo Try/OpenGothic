@@ -196,8 +196,8 @@ void GameSession::save(Serialize &fout, std::string_view name, const Pixmap& scr
     fout.write(i.name);
   }
 
-  fout.setEntry("preview.png");
-  fout.write(screen);
+  fout.setEntry("preview.jpg");
+  fout.write(std::tie(screen,"jpg"));
 
   fout.setEntry("game/session");
   fout.write(ticks,wrldTime,wrldTimePart,wrld->name());

@@ -1012,6 +1012,8 @@ void GameMenu::updateSavTitle(GameMenu::Item& sel) {
       reader.read(sel.savPriview); // legacy
     else if(reader.setEntry("preview.png"))
       reader.read(sel.savPriview);
+    else if(reader.setEntry("preview.jpg"))
+      reader.read(sel.savPriview);
     }
   catch(std::bad_alloc&) {
     return;
