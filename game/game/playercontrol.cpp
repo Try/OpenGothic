@@ -897,7 +897,7 @@ void PlayerControl::implMove(uint64_t dt) {
         }
       ani = Npc::Anim::Jump;
       }
-    else {
+    else if(!pl.isAttackAnim() && !pl.isCasting()) {
       ani = Npc::Anim::Jump;
       }
     }
