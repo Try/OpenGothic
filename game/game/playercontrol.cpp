@@ -764,8 +764,10 @@ void PlayerControl::implMove(uint64_t dt) {
         moveFocus(ActRight);
         actrl[ActRight]  = false;
         }
-      if(!actrl[ActForward])
+      if(!actrl[ActForward]) {
+        pl.setAnim(Npc::Anim::Idle);
         return;
+        }
       }
     }
 
