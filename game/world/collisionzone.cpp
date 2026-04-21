@@ -95,7 +95,9 @@ void CollisionZone::load(Serialize& fin) {
   }
 
 bool CollisionZone::checkPos(const Npc& npc) const {
-  auto bbox = npc.bBoxCol();
+  //NOTE: according to test-case in Karibik bbox seem to be visual one, not the collision box
+  // auto bbox = npc.bBoxCol();
+  auto bbox = npc.bBox();
   auto pos  = npc.centerPosition();
   return checkPos(pos, bbox);
   }
@@ -103,8 +105,9 @@ bool CollisionZone::checkPos(const Npc& npc) const {
 bool CollisionZone::checkPos(const Tempest::Vec3& pos, const Tempest::Vec3* bbox) const {
   if(bbox==nullptr)
     return checkPos(pos, Tempest::Vec3(0));
-  const auto sz = (bbox[1] - bbox[0])*0.5f;
-  return checkPos(pos, sz);
+  const auto sz  = (bbox[1] - bbox[0])*0.5f;
+  const auto off = (bbox[1] + bbox[0])*0.5f;
+  return checkPos(pos+off, sz);
   }
 
 bool CollisionZone::checkPos(const Tempest::Vec3& p, const Tempest::Vec3& npcSz) const {
@@ -143,10 +146,8 @@ void CollisionZone::onIntersect(Npc& npc) {
 
 void CollisionZone::tick(uint64_t /*dt*/) {
   for(size_t i=0;i<intersect.size();) {
-    Npc& npc  = *intersect[i];
-    auto bbox = npc.bBoxCol();
-    auto pos  = npc.centerPosition();
-    if(!checkPos(pos, bbox)) {
+    Npc& npc = *intersect[i];
+    if(!checkPos(npc)) {
       intersect[i] = intersect.back();
       intersect.pop_back();
       } else {
