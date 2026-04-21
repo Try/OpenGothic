@@ -576,17 +576,19 @@ uint32_t Interactive::stateMask() const {
   }
 
 bool Interactive::canSeeNpc(const Npc& npc, bool freeLos) const {
-  auto head = npc.mapHeadBone();
+  const auto* w    = world.physic();
+  const auto  head = npc.mapHeadBone();
   if(auto mesh = visual.protoMesh()) {
-    auto  bbox   = mesh->bbox();
-    auto  at     = (bbox[0]+bbox[1])*0.5f;
+    auto  bbox = mesh->bbox();
+    auto  at   = (bbox[0]+bbox[1])*0.5f;
     transform().project(at);
 
-    auto  tMax   = (at - head).length();
-    auto  dir    = (at - head)/tMax;
-    float tHit   = DynamicWorld::rayBox(head, dir, tMax, transform(), bbox[0], bbox[1], 0.1f);
+    auto  tMax = (at - head).length();
+    auto  dir  = (at - head)/tMax;
+    float tHit = DynamicWorld::rayBox(head, dir, tMax, transform(), bbox[0], bbox[1]);
 
-    if(!npc.canRayHitPoint(head+dir*tHit, true))
+    auto  ray  = w->ray(head, head+dir*tHit);
+    if(ray.hasCol && ray.vob!=this)
       return false;
     }
 

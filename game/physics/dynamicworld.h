@@ -144,6 +144,7 @@ class DynamicWorld final {
       float                   hitFraction = 0;
 
       const char*             sector = nullptr;
+      Interactive*            vob    = nullptr;
       };
 
     struct RayWaterResult {

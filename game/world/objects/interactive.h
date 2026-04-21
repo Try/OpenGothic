@@ -81,8 +81,8 @@ class Interactive : public Vob {
     bool                isStaticState() const;
     bool                isDetachState(const Npc& npc) const;
     bool                canQuitAtState(const Npc& npc, int32_t state) const;
-    bool                attach (Npc& npc);
-    bool                detach(Npc& npc,bool quick);
+    bool                attach(Npc& npc);
+    bool                detach(Npc& npc, bool quick);
     bool                isAttached(const Npc& to);
 
     auto                animNpc(const AnimationSolver &solver, Anim t) const -> const Animation::Sequence*;

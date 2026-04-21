@@ -615,6 +615,7 @@ DynamicWorld::RayLandResult DynamicWorld::ray(const Tempest::Vec3& from, const T
     zenkit::MaterialGroup matId  = zenkit::MaterialGroup::UNDEFINED;
     const char*           sector = nullptr;
     Category              colCat = C_Null;
+    Interactive*          vob    = nullptr;
 
     bool needsCollision(btBroadphaseProxy* proxy0) const override {
       auto obj=reinterpret_cast<btCollisionObject*>(proxy0->m_clientObject);
@@ -634,6 +635,9 @@ DynamicWorld::RayLandResult DynamicWorld::ray(const Tempest::Vec3& from, const T
         sector = mt->sectorName(id);
         }
       colCat = Category(rayResult.m_collisionObject->getUserIndex());
+      if(colCat==C_Object) {
+        vob = reinterpret_cast<Interactive*>(rayResult.m_collisionObject->getUserPointer());
+        }
       return ClosestRayResultCallback::addSingleResult(rayResult,normalInWorldSpace);
       }
     };
@@ -651,6 +655,9 @@ DynamicWorld::RayLandResult DynamicWorld::ray(const Tempest::Vec3& from, const T
       hitNorm.y = callback.m_hitNormalWorld.y();
       hitNorm.z = callback.m_hitNormalWorld.z();
       }
+    if(callback.colCat==DynamicWorld::C_Object) {
+      // ignore normal, for sake of sliding
+      }
     } else {
     hitPos.y = -std::numeric_limits<float>::infinity();
     }
@@ -662,6 +669,7 @@ DynamicWorld::RayLandResult DynamicWorld::ray(const Tempest::Vec3& from, const T
   ret.hasCol      = callback.hasHit();
   ret.hitFraction = callback.m_closestHitFraction;
   ret.sector      = callback.sector;
+  ret.vob         = callback.vob;
   return ret;
   }
 
