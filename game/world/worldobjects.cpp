@@ -300,7 +300,8 @@ Npc* WorldObjects::addNpc(size_t npcInstance, std::string_view at) {
     owner.script().invokeRefreshAtInsert(*npc);
     npcArr.emplace_back(npc);
     } else {
-    Log::e("addNpc: ", npcInstance, " has invalid spawnpoint");
+    const auto* sym = owner.script().findSymbol(npcInstance);
+    Log::e("addNpc: ", npcInstance, " (", (sym!=nullptr ? sym->name() : "nullptr" ), ") has invalid spawnpoint (", at, ")");
     auto& point = owner.deadPoint();
     npc->attachToPoint(nullptr);
     npc->setPosition(point.position());
