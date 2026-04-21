@@ -261,7 +261,8 @@ bool MoveAlgo::implTick(uint64_t dt, MvFlags moveFlg) {
     if(npc.isJumpAnim()) {
       fallSpeed += dp;
       fallCount += float(dt);
-      } else {
+      }
+    else if(!dead) {
       setState(InAir);
       }
     return true;
