@@ -39,6 +39,7 @@ class GlobalEffects {
       // world  time scaler
       uint64_t mul = 0;
       uint64_t div = 0;
+      uint64_t timeWrldRem = 0;
       // TODO: player time scaler
       };
 
@@ -78,8 +79,7 @@ class GlobalEffects {
     static Tempest::Color parseColor(std::string_view c);
     static Tempest::Vec3  parseVec3 (std::string_view c);
 
-    World&   owner;
-    uint64_t timeWrldRem = 0;
+    World& owner;
 
     std::vector<std::shared_ptr<SlowTime>>    timeEff;
     std::vector<std::shared_ptr<ScreenBlend>> scrEff;

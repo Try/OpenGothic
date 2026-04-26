@@ -40,8 +40,8 @@ void GlobalEffects::tick(uint64_t /*dt*/, std::vector<T>& eff) {
 void GlobalEffects::scaleTime(uint64_t& dt) {
   for(auto& pi:timeEff) {
     auto& i = *pi;
-    dt          = dt*i.mul + timeWrldRem;
-    timeWrldRem = dt%i.div;
+    dt            = dt*i.mul + i.timeWrldRem;
+    i.timeWrldRem = dt%i.div;
     dt /=i.div;
     }
   }
