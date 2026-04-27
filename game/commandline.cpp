@@ -3,6 +3,8 @@
 #include <Tempest/Log>
 #include <Tempest/TextCodec>
 #include <cstring>
+#include <cstdio>
+#include <cstdlib>
 #include <cassert>
 
 #if defined(__APPLE__)
@@ -48,7 +50,33 @@ CommandLine::CommandLine(int argc, const char** argv) {
   std::string_view mod;
   for(int i=1;i<argc;++i) {
     std::string_view arg = argv[i];
-    if(arg.find("-game:")==0) {
+    if(arg=="-h" || arg=="--help") {
+      std::printf(
+        "Usage: Gothic2Notr [options]\n"
+        "\n"
+        "Options:\n"
+        "  -g <path>            Path to Gothic game data\n"
+        "  -game:<mod.ini>      Load game modification\n"
+        "  -nomenu              Skip main menu\n"
+        "  -devmode             Enable marvin-mode\n"
+        "  -w <world.zen>       Startup world (default: newworld.zen)\n"
+        "  -save q|<number>     Load quick save or save slot\n"
+        "  -v, -validation      Enable graphics validation layers\n"
+        "  -dx12                Force DirectX 12 (Windows only)\n"
+        "  -g1, -g2c, -g2       Assume Gothic 1/2 Classic/2 NotR\n"
+        "  -rt <0|1>            Enable/disable ray-query\n"
+        "  -gi <0|1>            Enable/disable ray-traced GI\n"
+        "  -ms <0|1>            Enable/disable meshlets\n"
+        "  -aa <0-2>            Anti-aliasing level\n"
+        "  -window              Windowed mode\n"
+        "  -benchmark [ci]      Run benchmark (ci: exit after)\n"
+        "  -h, --help           Show this help\n"
+        "\n"
+        "See Gothic2Notr(6) man page for details.\n"
+      );
+      std::exit(0);
+      }
+    else if(arg.find("-game:")==0) {
       if(!mod.empty())
         Log::e("-game specified twice");
       mod = arg.substr(6);
