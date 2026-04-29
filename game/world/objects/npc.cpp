@@ -4591,7 +4591,7 @@ bool Npc::canSeeItem(const Item& it, bool freeLos) const {
     auto  at     = it.midPosition();
     auto  tMax   = (at - cen).length();
     auto  dir    = (at - cen)/tMax;
-    float tHit   = DynamicWorld::rayBox(cen, dir, tMax, transform(), bbox[0], bbox[1]);
+    float tHit   = DynamicWorld::rayBox(cen, dir, tMax, it.transform(), bbox[0], bbox[1]);
 
     const auto r = owner.physic()->ray(cen, cen+dir*tHit);
     if(r.hasCol)
