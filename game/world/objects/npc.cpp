@@ -442,8 +442,9 @@ void Npc::setDirection(const Tempest::Vec3& pos) {
   }
 
 void Npc::setDirection(float rotation) {
-  angle = rotation;
   durtyTranform |= TR_Rot;
+  angle = rotation;
+  physic.setRotation(angle);
   }
 
 void Npc::setDirectionY(float rotation) {
@@ -757,7 +758,7 @@ Tempest::Vec3 Npc::displayPosition() const {
 void Npc::setVisual(std::string_view visual) {
   auto skelet = Resources::loadSkeleton(visual);
   setVisual(skelet);
-  setPhysic(owner.physic()->ghostObj(visual));
+  setPhysic(owner.physic()->ghostObj(skelet));
   }
 
 bool Npc::hasOverlay(std::string_view sk) const {
@@ -934,6 +935,7 @@ void Npc::setPhysic(DynamicWorld::NpcItem &&item) {
   physic = std::move(item);
   physic.setUserPointer(this);
   physic.setPosition(Vec3{x,y,z});
+  physic.setRotation(angle);
   }
 
 void Npc::setFatness(float f) {
@@ -946,6 +948,7 @@ void Npc::setScale(float x, float y, float z) {
   sz[1]=y;
   sz[2]=z;
   durtyTranform |= TR_Scale;
+  physic.setScale(Vec3{x,y,z});
   }
 
 const Animation::Sequence* Npc::playAnimByName(std::string_view name, BodyState bs) {
@@ -4460,7 +4463,6 @@ void Npc::drawVobBox(DbgPainter& p) const {
 
     auto tr = transform();
     tr.translate(0,visual.pose().translateY(),0);
-    //tr.translate(0, -bbox[0].y, 0);
 
     p.setPen(Color(1,0,0));
     p.drawObb(tr, bbox);

@@ -15,6 +15,7 @@ class btVector3;
 class PhysicMeshShape;
 class PhysicVbo;
 class PackedMesh;
+class Skeleton;
 class Bounds;
 
 class World;
@@ -85,6 +86,10 @@ class DynamicWorld final {
 
         void  setPosition(const Tempest::Vec3& pos);
         const Tempest::Vec3& position() const;
+
+        void  setRotation(float a);
+
+        void  setScale(const Tempest::Vec3& sz);
 
         void  debugDraw(DbgPainter& p) const;
 
@@ -244,7 +249,7 @@ class DynamicWorld final {
     RayQueryResult rayNpc       (const Tempest::Vec3& from, const Tempest::Vec3& to, const Npc* except) const;
     float          soundOclusion(const Tempest::Vec3& from, const Tempest::Vec3& to) const;
 
-    NpcItem        ghostObj  (std::string_view visual);
+    NpcItem        ghostObj  (const Skeleton* src);
     Item           staticObj (const PhysicMeshShape *src, const Tempest::Matrix4x4& m);
     Item           movableObj(const PhysicMeshShape *src, const Tempest::Matrix4x4& m);
     Item           dynamicObj(const Tempest::Matrix4x4& pos, const Bounds& bbox, zenkit::MaterialGroup mat);

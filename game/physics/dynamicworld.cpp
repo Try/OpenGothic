@@ -52,6 +52,28 @@ struct DynamicWorld::NpcBody : btRigidBody {
   size_t        frozen   = size_t(-1);
   uint64_t      lastMove = 0;
 
+  // relevant for npc-to-npc collison
+  float         angle    = 0;
+  Tempest::Vec3 bbox[2]  = {};
+  Tempest::Vec3 dvec     = {};
+
+  Tempest::Vec3 offsetCenter(float c, float s) const{
+    auto off = (bbox[1]+bbox[0])*0.5f;
+    return Tempest::Vec3(off.x*c - off.z*s,
+                         off.y,
+                         off.x*s + off.z*c);
+    }
+
+  float ellipsoidRadius(Tempest::Vec3 dir, float c, float s) const {
+    s = -s; // need to cancel object rotation
+
+    Tempest::Vec3 radius = (bbox[1]-bbox[0])*0.5f;
+    dir = Tempest::Vec3(dir.x*c - dir.z*s,
+                        dir.y,
+                        dir.x*s + dir.z*c);
+    return (dir * radius).length();
+    }
+
   Npc* toNpc() {
     return reinterpret_cast<Npc*>(getUserPointer());
     }
@@ -117,6 +139,9 @@ struct DynamicWorld::NpcBodyList final {
     obj->gPadd  = ghostPadding;
     obj->stepSz = std::min(height*0.5f, radius); // safe tunneling size
     maxR = std::max(maxR, obj->r);
+
+    obj->bbox[0] = min; //NOTE: better to have offset/size
+    obj->bbox[1] = max;
 
     add(obj);
     return obj;
@@ -290,14 +315,14 @@ struct DynamicWorld::NpcBodyList final {
     if(std::abs(direction.x)>R || std::abs(direction.z)>R || std::abs(direction.y)>H*0.5f)
       return false;
 
-    auto ellipsoidQuadRadius = [](Tempest::Vec3 radius, Tempest::Vec3 direction) -> float {
+    auto ellipsoidRadius = [](Tempest::Vec3 radius, Tempest::Vec3 direction) -> float {
       return (direction * radius).length();
       };
 
     float distance  = direction.length();
     auto  normDir   = Tempest::Vec3::normalize(direction);
-    auto  radiusA   = ellipsoidQuadRadius(a.ellipsoidSize(), normDir);
-    auto  radiusB   = ellipsoidQuadRadius(b.ellipsoidSize(), normDir);
+    auto  radiusA   = ellipsoidRadius(a.ellipsoidSize(), normDir);
+    auto  radiusB   = ellipsoidRadius(b.ellipsoidSize(), normDir);
     if(distance < radiusA + radiusB) {
       normal += normDir;
       return true;
@@ -346,6 +371,56 @@ struct DynamicWorld::NpcBodyList final {
 
     adjustSort();
     tick++;
+    }
+
+  void tickBroadphase(uint64_t /*dt*/) {
+    static bool disabled = true;
+    if(disabled)
+      return;
+
+    for(size_t i=0; i<body.size(); ++i) {
+      body[i].body->dvec = Tempest::Vec3();
+      }
+    for(size_t i=0; i<frozen.size(); ++i) {
+      frozen[i].body->dvec = Tempest::Vec3();
+      }
+
+    for(size_t i=0; i<body.size(); ++i) {
+      tickBroadphase(*body[i].body);
+      }
+    for(size_t i=0; i<frozen.size(); ++i) {
+      tickBroadphase(*frozen[i].body);
+      }
+    }
+
+  void tickBroadphase(NpcBody& self) {
+    for(size_t i=0; i<body.size(); ++i) {
+      tickBroadphase(self, *body[i].body);
+      }
+    for(size_t i=0; i<frozen.size(); ++i) {
+      tickBroadphase(self, *frozen[i].body);
+      }
+    }
+
+  void tickBroadphase(NpcBody& a, NpcBody& b) {
+    if(&a==&b)
+      return;
+    const float acos = std::cos(a.angle), asin = std::sin(a.angle);
+    const float bcos = std::cos(b.angle), bsin = std::sin(b.angle);
+
+    const auto apos = a.pos + a.offsetCenter(acos, asin);
+    const auto bpos = b.pos + b.offsetCenter(bcos, bsin);
+
+    auto dir  = bpos - apos;
+    auto dlen = dir.length();
+    auto ndir = Tempest::Vec3::normalize(dir);
+    const float rA = a.ellipsoidRadius( ndir, acos, asin);
+    const float rB = b.ellipsoidRadius(-ndir, bcos, bsin);
+
+    if(dlen < rA + rB) {
+      a.dvec -= ndir;
+      b.dvec += ndir;
+      }
     }
 
   DynamicWorld&         wrld;
@@ -728,11 +803,14 @@ float DynamicWorld::soundOclusion(const Tempest::Vec3& from, const Tempest::Vec3
   return (tlen*fr)/1.5f;
   }
 
-DynamicWorld::NpcItem DynamicWorld::ghostObj(std::string_view visual) {
+DynamicWorld::NpcItem DynamicWorld::ghostObj(const Skeleton* src) {
   Tempest::Vec3 min={0,0,0}, max={0,0,0};
-  if(auto sk = Resources::loadSkeleton(visual)) {
-    min = sk->bboxCol[0];
-    max = sk->bboxCol[1];
+  if(src != nullptr) {
+    min = src->bboxCol[0];
+    max = src->bboxCol[1];
+
+    min.y += src->rootTr.y;
+    max.y += src->rootTr.y;
     }
   auto obj = npcList->create(min,max);
   return NpcItem(this,obj);
@@ -898,6 +976,7 @@ void DynamicWorld::moveBullet(BulletBody &b, const Tempest::Vec3& dir, uint64_t 
 
 void DynamicWorld::tick(uint64_t dt) {
   npcList   ->tickAabbs();
+  npcList   ->tickBroadphase(dt);
   bulletList->tick(dt);
   world     ->tick(dt);
   }
@@ -1067,6 +1146,14 @@ float DynamicWorld::NpcItem::groundOffset() const {
 
 const Tempest::Vec3& DynamicWorld::NpcItem::position() const {
   return obj->pos;
+  }
+
+void DynamicWorld::NpcItem::setRotation(float a) {
+  obj->angle = float(a*M_PI)/180.f - float(M_PI_2);
+  }
+
+void DynamicWorld::NpcItem::setScale(const Tempest::Vec3&) {
+  // NOP for now
   }
 
 void DynamicWorld::NpcItem::debugDraw(DbgPainter& p) const {
