@@ -1,0 +1,45 @@
+# Doxyfile for OpenGothic
+
+PROJECT_NAME           = "OpenGothic"
+PROJECT_BRIEF          = "Open source reimplementation of Gothic I and II"
+OUTPUT_DIRECTORY       = docs
+
+# Input
+INPUT                  = game docs/mainpage.md
+FILE_PATTERNS          = *.cpp *.h *.hpp *.md
+USE_MDFILE_AS_MAINPAGE = docs/mainpage.md
+RECURSIVE              = YES
+EXCLUDE_PATTERNS       = */lib/*
+
+# Output
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+GENERATE_TREEVIEW      = YES
+DISABLE_INDEX          = NO
+FULL_SIDEBAR           = NO
+HTML_COLORSTYLE        = LIGHT
+
+# doxygen-awesome-css
+HTML_EXTRA_STYLESHEET  = lib/doxygen-awesome-css/doxygen-awesome.css \
+                         lib/doxygen-awesome-css/doxygen-awesome-sidebar-only.css \
+                         lib/doxygen-awesome-css/doxygen-awesome-sidebar-only-darkmode-toggle.css
+HTML_EXTRA_FILES       = lib/doxygen-awesome-css/doxygen-awesome-darkmode-toggle.js \
+                         lib/doxygen-awesome-css/doxygen-awesome-fragment-copy-button.js \
+                         lib/doxygen-awesome-css/doxygen-awesome-paragraph-link.js
+
+# Extraction
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = NO
+EXTRACT_STATIC         = YES
+
+# Source browsing
+SOURCE_BROWSER         = YES
+INLINE_SOURCES         = NO
+
+# Graphs (requires graphviz)
+HAVE_DOT               = NO
+CLASS_DIAGRAMS         = YES
+
+# Warnings
+WARN_IF_UNDOCUMENTED   = NO
+WARN_IF_DOC_ERROR      = YES
