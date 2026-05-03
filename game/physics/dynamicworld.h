@@ -68,6 +68,7 @@ class DynamicWorld final {
 
       Interactive*  vob     = nullptr;
       Npc*          npc     = nullptr;
+      float         npcCol  = 0;
       bool          landCol = false;
       };
 
