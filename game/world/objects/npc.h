@@ -384,7 +384,7 @@ class Npc final {
     bool      canSeeNpc(const Npc& oth, bool freeLos) const;
     bool      canSeeItem(const Item& it, bool freeLos) const;
     bool      canSeeSource() const;
-    bool      canRayHitPoint(const Tempest::Vec3 pos, bool freeLos = true, float extRange=0.f) const;
+    bool      canRayHitPoint(const Tempest::Vec3 pos, bool freeLos = true, float extRange=0.f, float angOverride=-1.f) const;
 
     auto      canSenseNpc(const Npc& oth, bool freeLos, float extRange=0.f) const -> SensesBit;
     auto      canSenseNpc(const Tempest::Vec3 pos, bool freeLos, bool isNoisy, float extRange=0.f) const -> SensesBit;

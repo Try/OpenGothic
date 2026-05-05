@@ -742,7 +742,7 @@ float Npc::qDistTo(const Item& p) const {
 uint8_t Npc::calcAniComb() const {
   if(currentTarget==nullptr)
     return 0;
-  auto dpos = currentTarget->position()-position();
+  auto dpos = currentTarget->position() - position();
   return Pose::calcAniComb(dpos,angle);
   }
 

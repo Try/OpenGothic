@@ -78,10 +78,6 @@ struct DynamicWorld::NpcBody : btRigidBody {
     return reinterpret_cast<Npc*>(getUserPointer());
     }
 
-  auto ellipsoidSizeOld() const {
-    return Tempest::Vec3(r, h*0.5f, r);
-    }
-
   auto groundOffset() const {
     const float extPadding = 15.f; // Khorinis port hack
     return h*0.5f + gPadd*0.5f + extPadding;
@@ -138,11 +134,18 @@ struct DynamicWorld::NpcBodyList final {
     obj->r      = std::min(size.x, size.z); // best so far
     obj->h      = height;
     obj->gPadd  = ghostPadding;
-    obj->stepSz = std::min(height*0.5f, radius); // safe tunneling size
+    //obj->stepSz = std::min(height*0.5f, radius); // safe tunneling size
     //maxR = std::max(maxR, obj->r);
 
     obj->bboxCen  = (max+min)*0.5f;
     obj->bboxSize = (max-min)*0.5f;
+
+    // safe tunneling size
+    obj->stepSz   = radius;
+    obj->stepSz   = std::min(obj->stepSz, std::abs(max.x));
+    obj->stepSz   = std::min(obj->stepSz, std::abs(min.x));
+    obj->stepSz   = std::min(obj->stepSz, std::abs(max.z));
+    obj->stepSz   = std::min(obj->stepSz, std::abs(min.z));
 
     // searchable radius, where we use logica-position(obj->pos), instead of physical center
     obj->maxRXZ   = std::max(obj->maxRXZ, std::abs(max.x));
@@ -223,20 +226,17 @@ struct DynamicWorld::NpcBodyList final {
   bool rayTest(NpcBody& npc, const Tempest::Vec3& s, const Tempest::Vec3& e, float extR, float& proj) {
     if(!npc.enable)
       return false;
-    auto  ln   = e       - s;
-    auto  at   = npc.pos - s;
+    auto  pos  = npc.centerPosition();
+    auto  ln   = e   - s;
+    auto  at   = pos - s;
 
     float lenL = ln.length();
-
     float dot  = Tempest::Vec3::dotProduct(ln,at);
 
     proj = dot/(lenL<=0 ? 1.f : (lenL*lenL));
     proj = std::max(0.f,std::min(proj,1.f));
 
-    // TODO: ray-box intersection
-    auto& tr   = npc.getWorldTransform();
-    auto  pos  = CollisionWorld::toCentimeters(tr.getOrigin());
-
+    // TODO: ray-ellipse intersection
     auto  nr   = ln*proj + s;
     auto  dp   = nr      - pos;
     float R    = npc.r   + extR;
@@ -312,32 +312,6 @@ struct DynamicWorld::NpcBodyList final {
     return ret;
     }
 
-  bool hasCollisionSymmetric(const NpcBody& a, const NpcBody& b, Tempest::Vec3& normal) const {
-    if(&a==&b)
-      return false;
-
-    auto direction = a.centerPosition() - b.centerPosition();
-    auto R         = a.r+b.r, H = a.h+b.h;
-    if(std::abs(direction.x)>R || std::abs(direction.z)>R || std::abs(direction.y)>H*0.5f)
-      return false;
-
-    auto ellipsoidRadius = [](Tempest::Vec3 radius, Tempest::Vec3 direction) -> float {
-      return (direction * radius).length();
-      };
-
-    float distance  = direction.length();
-    auto  normDir   = Tempest::Vec3::normalize(direction);
-    auto  radiusA   = ellipsoidRadius(a.ellipsoidSizeOld(), normDir);
-    auto  radiusB   = ellipsoidRadius(b.ellipsoidSizeOld(), normDir);
-    if(distance < radiusA + radiusB) {
-      normal += normDir;
-      //a.dvec -= normDir * q;
-      //b.dvec += normDir * q;
-      return true;
-      }
-    return false;
-    }
-
   bool hasCollision(const NpcBody& a, const NpcBody& b, Tempest::Vec3& normal, float& colDepth) const {
     const float objMaxRXZ = a.maxRXZ + b.maxRXZ;
     const float objMaxRY  = a.maxRY  + b.maxRY;
@@ -366,7 +340,7 @@ struct DynamicWorld::NpcBodyList final {
     if(dlen < rA + rB) {
       float depth = (rA + rB - dlen)*0.5f;
       colDepth = std::max(colDepth, depth);
-      normal -= ndir;
+      normal -= ndir*depth;
       return true;
       }
     return false;
@@ -1068,6 +1042,8 @@ std::string_view DynamicWorld::validateSectorName(std::string_view name) const {
 
 bool DynamicWorld::hasCollision(const NpcItem& it, CollisionTest& out) {
   bool ret = false;
+
+  out.normal = Tempest::Vec3();
   if(npcList->hasCollision(it,out.normal,out.npc,out.npcCol)){
     ret = true;
     }
@@ -1078,7 +1054,7 @@ bool DynamicWorld::hasCollision(const NpcItem& it, CollisionTest& out) {
 
   if(!ret)
     return false;
-  out.normal /= out.normal.length();
+  out.normal = Tempest::Vec3::normalize(out.normal);
   return true;
   }
 
@@ -1155,6 +1131,19 @@ void DynamicWorld::NpcItem::debugDraw(DbgPainter& p) const {
   const auto max = Tempest::Vec3(aabb1.x()*100.f, aabb1.y()*100.f, aabb1.z()*100.f);
   p.setPen(Tempest::Color(1,0.5f,0));
   p.drawAabb(min, max);
+  /*
+  auto tr = Tempest::Matrix4x4::mkIdentity();
+  tr.translate(obj->pos);
+  tr.rotateOY(-float(obj->angle*180.f/M_PI));
+
+  p.setPen(Tempest::Color(1,0,1));
+  p.drawObb(tr, obj->bbox);
+
+  auto& a = *obj;
+  const float acos = std::cos(a.angle), asin = std::sin(a.angle);
+  const auto apos = a.pos + a.offsetCenter(acos, asin);
+  p.drawPoint(apos, 10);
+  */
   }
 
 bool DynamicWorld::NpcItem::testMove(const Tempest::Vec3& to, CollisionTest& out) {
