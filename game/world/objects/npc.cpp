@@ -50,6 +50,8 @@ Vec3 Npc::GoTo::target() const {
   }
 
 bool Npc::GoTo::isClose(const Npc& self, float dist) const {
+  if(flag==GT_EnemyA)
+    return self.fghAlgo.isInWRange(self, *npc, self.owner.script()); //need to be consistent with implAttack
   if(npc!=nullptr)
     return MoveAlgo::isClose(self, *npc, dist);
   if(wp!=nullptr)
@@ -699,7 +701,9 @@ Vec3 Npc::centerPosition() const {
   }
 
 Vec3 Npc::collosionCenter() const {
-  return physic.center();
+  auto p = position();
+  p += physic.centerAsym();
+  return p;
   }
 
 Npc* Npc::lookAtTarget() const {
@@ -1007,6 +1011,18 @@ bool Npc::stopItemStateAnim() {
 
 bool Npc::hasAnim(std::string_view scheme) const {
   return visual.hasAnim(scheme);
+  }
+
+bool Npc::hasAnim(Anim a) const {
+  auto st  = weaponState();
+  auto wlk = walkMode();
+  if(mvAlgo.isDive())
+    wlk = WalkBit::WM_Dive;
+  else if(mvAlgo.isSwim())
+    wlk = WalkBit::WM_Swim;
+  else if(mvAlgo.isInWater())
+    wlk = WalkBit::WM_Water;
+  return visual.hasAnim(a,st,wlk);
   }
 
 bool Npc::hasSwimAnimations() const {
@@ -1385,6 +1401,20 @@ bool Npc::implTurnAway(const Npc &oth, uint64_t dt) {
   return rotateTo(dx,dz,step,AnimationSolver::TurnType::Std,dt);
   }
 
+bool Npc::implTurnToFai(const Npc& oth, uint64_t dt) {
+  if(&oth==this || oth.isDown())
+    return false;
+  auto ws = weaponState();
+  if(ws==WeaponState::NoWeapon)
+    return false;
+  auto anim = !hasAutoroll() ? AnimationSolver::TurnType::None : AnimationSolver::TurnType::Std;
+  if(ws==WeaponState::Bow || ws==WeaponState::CBow || ws==WeaponState::Mage) {
+    anim = AnimationSolver::TurnType::None;
+    }
+  const auto dpos = currentTarget->collosionCenter() - collosionCenter();
+  return implTurnTo(dpos.x,dpos.z,anim,dt);
+  }
+
 bool Npc::implTurnTo(const Npc &oth, uint64_t dt) {
   if(&oth==this)
     return false;
@@ -1421,7 +1451,6 @@ bool Npc::implGoTo(uint64_t dt) {
   float dist = 0;
   if(go2.npc) {
     dist = fghAlgo.prefferedAttackDistance(*this,*go2.npc,owner.script());
-    // dist = fghAlgo.baseDistance(*this,*go2.npc,owner.script());
     } else {
     // use smaller threshold, to avoid edge-looping in script
     dist = MoveAlgo::closeToPointThreshold*0.5f;
@@ -1502,10 +1531,17 @@ bool Npc::implAttack(uint64_t dt) {
     return false;
     }
 
+  const auto bs = bodyStateMasked();
+  if(bs==BS_HIT) {
+    // NOTE: 'storm' attack has BS_RUN state and not meant to be auto-rotated
+    implTurnToFai(*currentTarget,dt);
+    mvAlgo.tick(dt,MoveAlgo::FaiMove);
+    return true;
+    }
+
   if(!fghAlgo.hasInstructions())
     return false;
 
-  const auto bs = bodyStateMasked();
   if(bs==BS_LIE) {
     setAnim(Npc::Anim::Idle);
     mvAlgo.tick(dt,MoveAlgo::FaiMove);
@@ -1517,13 +1553,18 @@ bool Npc::implAttack(uint64_t dt) {
     }
 
   if(faiWaitTime>=owner.tickCount() || waitTime>=owner.tickCount()) {
-    adjustAttackRotation(dt);
+    implTurnToFai(*currentTarget,dt);
     mvAlgo.tick(dt,MoveAlgo::FaiMove);
     return true;
     }
 
   const auto ws  = weaponState();
   const auto act = fghAlgo.nextFromQueue(*this,*currentTarget,owner.script());
+
+  // NOTE: in original-game, this behaviour seem to be hardcoded
+  // test case: wolf jump-back quite often when close, but programmed to jump only if attacked
+  // so far promoting wait to jump seem to work best
+  const bool jmp = act==FightAlgo::MV_WAIT && fghAlgo.isInBaseRange(*this,*currentTarget,owner.script());
 
   // vanilla behavior, required for orcs in G1 orcgraveyard
   if(ws==WeaponState::NoWeapon && isAiQueueEmpty() && canSwitchWeapon()) {
@@ -1558,12 +1599,13 @@ bool Npc::implAttack(uint64_t dt) {
 
   if(act==FightAlgo::MV_ATTACK || act==FightAlgo::MV_ATTACKL || act==FightAlgo::MV_ATTACKR) {
     //NOTE: FIGHT_DIST_CANCEL in scipts is often longer, than senses_range of npc
-    const auto tgPos = currentTarget->centerPosition();
-    const auto sense = canRayHitPoint(tgPos,true,MaxFightRange);
+    //const auto tgPos = currentTarget->centerPosition();
+    //const auto sense = canRayHitPoint(centerPosition(),tgPos,5.f,MaxFightRange);
+    const auto sense = fghAlgo.isInFocusAngle(*this,*currentTarget,5.f);
     if(!sense) {
       if(bs==BS_RUN)
         setAnim(Npc::Anim::Idle); else
-        adjustAttackRotation(dt);
+        implTurnToFai(*currentTarget,dt);
       mvAlgo.tick(dt,MoveAlgo::FaiMove);
       return true;
       }
@@ -1617,7 +1659,7 @@ bool Npc::implAttack(uint64_t dt) {
       if(shootBow()) {
         fghAlgo.consumeAction();
         } else {
-        if(!implTurnTo(*currentTarget,AnimationSolver::TurnType::None,dt)) {
+        if(!implTurnToFai(*currentTarget,dt)) {
           if(!aimBow())
             setAnim(Anim::Idle);
           }
@@ -1634,7 +1676,7 @@ bool Npc::implAttack(uint64_t dt) {
           implAniWait(aniTime);
         fghAlgo.consumeAction();
         } else {
-        adjustAttackRotation(dt);
+        implTurnToFai(*currentTarget,dt);
         }
       }
     else {
@@ -1656,6 +1698,11 @@ bool Npc::implAttack(uint64_t dt) {
       implFaiWait(visual.pose().animationTotalTime());
       fghAlgo.consumeAction();
       }
+    else if(!hasAnim(Npc::Anim::MoveL)) {
+      // avoid soft-locks
+      visual.setAnimRotate(*this,0);
+      fghAlgo.consumeAction();
+      }
     return true;
     }
 
@@ -1663,6 +1710,11 @@ bool Npc::implAttack(uint64_t dt) {
     if(setAnim(Npc::Anim::MoveR)) {
       visual.setAnimRotate(*this,0);
       implFaiWait(visual.pose().animationTotalTime());
+      fghAlgo.consumeAction();
+      }
+    else if(!hasAnim(Npc::Anim::MoveR)) {
+      // avoid soft-locks
+      visual.setAnimRotate(*this,0);
       fghAlgo.consumeAction();
       }
     return true;
@@ -1676,7 +1728,7 @@ bool Npc::implAttack(uint64_t dt) {
     return true;
     }
 
-  if(act==FightAlgo::MV_JUMPBACK) {
+  if(act==FightAlgo::MV_JUMPBACK || jmp) {
     if(isSwim()) {
       fghAlgo.consumeAction();
       return true;
@@ -1694,6 +1746,7 @@ bool Npc::implAttack(uint64_t dt) {
     if(setAnim(Npc::Anim::MoveBack)) {
       implFaiWait(visual.pose().animationTotalTime());
       fghAlgo.consumeAction();
+      aiState.loopNextTime = owner.tickCount(); // force ZS_MM_Attack_Loop call
       }
     return true;
     }
@@ -1703,8 +1756,7 @@ bool Npc::implAttack(uint64_t dt) {
     const bool prGRange = fghAlgo.isInGRange(*this, *currentTarget, owner.script());
 
     if(!(mvAlgo.checkLastBounce() && implTurnTo(*currentTarget,dt))) {
-      go2.set(currentTarget,(act==FightAlgo::MV_MOVEG || act==FightAlgo::MV_TURNG) ?
-                               GoToHint::GT_EnemyG : GoToHint::GT_EnemyA);
+      go2.set(currentTarget, GoToHint::GT_EnemyA);
       implGoTo(dt);
       go2.clear();
       }
@@ -1716,6 +1768,11 @@ bool Npc::implAttack(uint64_t dt) {
     if((isWRange || (isGRange!=prGRange)) && isFocus) {
       visual.setAnimRotate(*this, 0);
       fghAlgo.consumeAction();
+      aiState.loopNextTime = owner.tickCount(); // force ZS_MM_Attack_Loop call
+      implAiTick(dt);
+      return true;
+      }
+    if(isFocus ) {
       aiState.loopNextTime = owner.tickCount(); // force ZS_MM_Attack_Loop call
       implAiTick(dt);
       return true;
@@ -1746,18 +1803,6 @@ bool Npc::implAttack(uint64_t dt) {
     }
 
   return true;
-  }
-
-void Npc::adjustAttackRotation(uint64_t dt) {
-  if(currentTarget!=nullptr && !currentTarget->isDown()) {
-    auto ws = weaponState();
-    if(ws!=WeaponState::NoWeapon) {
-      enum AnimationSolver::TurnType anim = !hasAutoroll() ? AnimationSolver::TurnType::None : AnimationSolver::TurnType::Std;
-      if(ws==WeaponState::Bow || ws==WeaponState::CBow || ws==WeaponState::Mage)
-         anim = AnimationSolver::TurnType::None;
-      implTurnTo(*currentTarget,anim,dt);
-      }
-    }
   }
 
 bool Npc::implAiTick(uint64_t dt) {
@@ -2258,8 +2303,9 @@ void Npc::tick(uint64_t dt) {
     }
 
   if(waitTime>=owner.tickCount() || aniWaitTime>=owner.tickCount() || outWaitTime>owner.tickCount()) {
-    if(!isPlayer() && go2.flag!=GT_Flee && faiWaitTime<owner.tickCount())
-      adjustAttackRotation(dt);
+    if(!isPlayer() && go2.flag!=GT_Flee && faiWaitTime<owner.tickCount()) {
+      implTurnToFai(*currentTarget,dt);
+      }
     mvAlgo.tick(dt,MoveAlgo::WaitMove);
     return;
     }
@@ -2421,7 +2467,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       if(auto sq = playAnimByName(act.s0,BS_NONE)) {
         implAniWait(uint64_t(sq->totalTime()));
         } else {
-        if(visual.isAnimExist(act.s0))
+        if(visual.hasAnim(act.s0))
           queue.pushFront(std::move(act));
         }
       break;
@@ -2431,7 +2477,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       if(auto sq = playAnimByName(act.s0,bs)) {
         implAniWait(uint64_t(sq->totalTime()));
         } else {
-        if(visual.isAnimExist(act.s0)) {
+        if(visual.hasAnim(act.s0)) {
           queue.pushFront(std::move(act));
           } else {
           /* ZS_MM_Rtn_Sleep will set NPC_WALK mode and run T_STAND_2_SLEEP animation.
@@ -2906,7 +2952,7 @@ void Npc::tickRoutine() {
 
   const bool fastPath = (aiPolicy==NpcProcessPolicy::AiFar2 && routines.empty()); //HACK: don't process far away Npc
   if(aiState.loopNextTime<=owner.tickCount()) {
-    aiState.loopNextTime = owner.tickCount() + 1000; // one tick per second?
+    aiState.loopNextTime = owner.tickCount() + perceptionTimeClampt();
     int loop = LOOP_CONTINUE;
     if(aiState.funcLoop.isValid()) {
       static const float MAX_DIST = 300;
@@ -3832,7 +3878,7 @@ bool Npc::tickCast(uint64_t dt) {
     if(active!=nullptr) {
       auto ani = owner.script().spellCastAnim(*this,*active);
       bool g2  = owner.version().game==2;
-      if(g2 || visual.isAnimExist(string_frm("T_MAGRUN_2_",ani,"CAST")))
+      if(g2 || visual.hasAnim(string_frm("T_MAGRUN_2_",ani,"CAST")))
         if(!visual.startAnimSpell(*this,ani,false))
           return true;
       }
@@ -4519,23 +4565,36 @@ bool Npc::canSeeSource() const {
   }
 
 bool Npc::canRayHitPoint(const Tempest::Vec3 pos, bool freeLos, float extRange) const {
+  float ang = freeLos ? 180.f : -1;
+  return canRayHitPoint(pos, ang, extRange);
+  }
+
+bool Npc::canRayHitPoint(const Tempest::Vec3 pos, float angOverride, float extRange) const {
+  const float range = float(hnpc->senses_range) + extRange;
+  if(qDistTo(pos)>range*range)
+    return false;
+  // npc eyesight height by default
+  return canRayHitPoint(visual.mapHeadBone(), pos, angOverride, extRange);
+  }
+
+bool Npc::canRayHitPoint(const Tempest::Vec3 self, const Tempest::Vec3 pos, float angOverride, float extRange) const {
   const float range = float(hnpc->senses_range) + extRange;
   if(qDistTo(pos)>range*range)
     return false;
 
   static const double ref = std::cos(100*M_PI/180.0); // spec requires +-100 view angle range
   const DynamicWorld* w   = owner.physic();
-  // npc eyesight height
-  auto head = visual.mapHeadBone();
+  bool freeLos = angOverride>=180.f;
   if(freeLos) {
-    return !w->ray(head, pos).hasCol;
+    return !w->ray(self, pos).hasCol;
     }
 
-  float dx  = x-pos.x, dz=z-pos.z;
+  float dx  = self.x-pos.x, dz=self.z-pos.z;
   float dir = angleDir(dx,dz);
   float da  = float(M_PI)*(visual.viewDirection()-dir)/180.f;
-  if(double(std::cos(da))<=ref) {
-    if(!w->ray(head, pos).hasCol)
+  auto  ca  = angOverride > 0 ? std::cos(angOverride*M_PI/180.0) : ref;
+  if(double(std::cos(da))<=ca) {
+    if(!w->ray(self, pos).hasCol)
       return true;
     }
   return false;

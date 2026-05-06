@@ -226,7 +226,9 @@ struct DynamicWorld::NpcBodyList final {
   bool rayTest(NpcBody& npc, const Tempest::Vec3& s, const Tempest::Vec3& e, float extR, float& proj) {
     if(!npc.enable)
       return false;
-    auto  pos  = npc.centerPosition();
+    const float acos = std::cos(npc.angle), asin = std::sin(npc.angle);
+    const auto  pos  = npc.pos + npc.offsetCenter(acos, asin);
+
     auto  ln   = e   - s;
     auto  at   = pos - s;
 
@@ -1105,6 +1107,11 @@ float DynamicWorld::NpcItem::centerY() const {
     //return obj->h*0.5f;
     }
   return 0;
+  }
+
+auto DynamicWorld::NpcItem::centerAsym() const -> Tempest::Vec3 {
+  const float acos = std::cos(obj->angle), asin = std::sin(obj->angle);
+  return obj->offsetCenter(acos, asin);
   }
 
 float DynamicWorld::NpcItem::groundOffset() const {

@@ -205,7 +205,7 @@ void Interactive::drawVobRay(DbgPainter& p, const Npc& npc) const {
     float tHit   = DynamicWorld::rayBox(head, dir, tMax, transform(), boxMin, boxMax, 0.1f);
 
     bool accessable = true;
-    if(!npc.canRayHitPoint(head+dir*tHit, true))
+    if(!npc.canRayHitPoint(head+dir*tHit))
       accessable = false;
     p.setPen(accessable ? Tempest::Color(0,1,0) : Tempest::Color(1,0,0));
     p.drawLine(head, head+dir*tHit);
@@ -488,7 +488,7 @@ bool Interactive::setMobState(std::string_view scheme, int32_t st) {
     return ret;
 
   string_frm name("S_S",st);
-  if(visual.startAnimAndGet(name,world.tickCount())!=nullptr || !visual.isAnimExist(name)) {
+  if(visual.startAnimAndGet(name,world.tickCount())!=nullptr || !visual.hasAnim(name)) {
     setState(st);
     return ret;
     }

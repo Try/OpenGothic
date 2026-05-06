@@ -235,6 +235,14 @@ void FightAlgo::onTakeHit() {
     i = MV_NULL;
   }
 
+float FightAlgo::qDistTo(const Npc& npc, const Npc& tg) const {
+  return (npc.collosionCenter() - tg.collosionCenter()).quadLength();
+  }
+
+auto FightAlgo::distVec(const Npc& npc, const Npc& tg) const -> Tempest::Vec3 {
+  return npc.collosionCenter() - tg.collosionCenter();
+  }
+
 float FightAlgo::baseDistance(const Npc& npc, const Npc& tg,  GameScript &owner) const {
   auto&  gv      = owner.guildVal();
   float  baseTg  = float(gv.fight_range_base[tg .guild()]);
@@ -272,8 +280,8 @@ bool FightAlgo::isInAttackRange(const Npc &npc, const Npc &tg, GameScript &owner
   // tested in vanilla on Bloofly's:
   //  60 weapon range (Spiked club) is not enough to hit
   //  70 weapon range (Rusty Sword) is good to hit
-  auto  dist   = npc.qDistTo(tg);
-  auto  pd     = prefferedAttackDistance(npc,tg,owner);
+  auto  dist = qDistTo(npc, tg);
+  auto  pd   = prefferedAttackDistance(npc,tg,owner);
   static float padding = 0;
   if(npc.hasState(BS_RUN))
     pd += padding; // padding, for wolf
@@ -281,27 +289,47 @@ bool FightAlgo::isInAttackRange(const Npc &npc, const Npc &tg, GameScript &owner
   }
 
 bool FightAlgo::isInFinishRange(const Npc& npc, const Npc& tg, GameScript& owner) const {
-  auto  dist = npc.qDistTo(tg);
-  auto  pd   = attackFinishDistance(owner);
+  auto dist = qDistTo(npc, tg);
+  auto pd   = attackFinishDistance(owner);
+  return (dist<=pd*pd);
+  }
+
+bool FightAlgo::isInBaseRange(const Npc& npc, const Npc& tg, GameScript& owner) const {
+  auto dist = qDistTo(npc, tg);
+  auto pd   = baseDistance(npc,tg,owner);
   return (dist<=pd*pd);
   }
 
 bool FightAlgo::isInWRange(const Npc& npc, const Npc& tg, GameScript& owner) const {
-  auto dist = npc.qDistTo(tg);
+  auto dist = qDistTo(npc, tg);
   auto pd   = prefferedAttackDistance(npc,tg,owner);
   return (dist<=pd*pd);
   }
 
 bool FightAlgo::isInGRange(const Npc &npc, const Npc &tg, GameScript &owner) const {
-  auto  dist    = npc.qDistTo(tg);
-  auto  pd      = prefferedGDistance(npc,tg,owner);
+  auto dist = qDistTo(npc, tg);
+  auto pd   = prefferedGDistance(npc,tg,owner);
   return (dist<=pd*pd);
   }
 
 bool FightAlgo::isInFocusAngle(const Npc &npc, const Npc &tg) const {
   static const float maxAngle = std::cos(float(30.0*M_PI/180.0));
 
-  const auto  dpos  = tg.centerPosition() - npc.centerPosition();
+  const auto  dpos  = distVec(tg, npc);
+  const float plAng = npc.rotationRad();
+
+  const float da = plAng-std::atan2(dpos.z,dpos.x);
+  const float c  = std::cos(da);
+
+  if(c<maxAngle)
+    return false;
+  return true;
+  }
+
+bool FightAlgo::isInFocusAngle(const Npc& npc, const Npc& tg, float ang) const {
+  static const float maxAngle = std::cos(float(ang*M_PI/180.0));
+
+  const auto  dpos  = distVec(tg, npc);
   const float plAng = npc.rotationRad();
 
   const float da = plAng-std::atan2(dpos.z,dpos.x);
@@ -315,7 +343,7 @@ bool FightAlgo::isInFocusAngle(const Npc &npc, const Npc &tg) const {
 bool FightAlgo::isInJumpBackAngle(const Npc& npc, const Npc& tg) const {
   static const float maxAngle = std::cos(float(90.0*M_PI/180.0));
 
-  const auto  dpos  = tg.centerPosition() - npc.centerPosition();
+  const auto  dpos  = distVec(tg, npc);
   const float plAng = npc.rotationRad();
 
   const float da = plAng-std::atan2(dpos.z,dpos.x);

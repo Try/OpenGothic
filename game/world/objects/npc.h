@@ -33,7 +33,7 @@ class Npc final {
       GT_EnemyA,
       GT_Item,
       GT_Point,
-      GT_EnemyG,
+      GT_EnemyG, //deprecated
       GT_Flee,
       };
 
@@ -177,6 +177,7 @@ class Npc final {
     void       startFaceAnim(std::string_view anim, float intensity, uint64_t duration);
     bool       stopItemStateAnim();
     bool       hasAnim(std::string_view scheme) const;
+    bool       hasAnim(Anim a) const;
     bool       hasSwimAnimations() const;
     bool       isFinishingMove() const;
 
@@ -384,7 +385,9 @@ class Npc final {
     bool      canSeeNpc(const Npc& oth, bool freeLos) const;
     bool      canSeeItem(const Item& it, bool freeLos) const;
     bool      canSeeSource() const;
-    bool      canRayHitPoint(const Tempest::Vec3 pos, bool freeLos = true, float extRange=0.f, float angOverride=-1.f) const;
+    bool      canRayHitPoint(const Tempest::Vec3 pos, bool freeLos = true, float extRange=0.f) const;
+    bool      canRayHitPoint(const Tempest::Vec3 pos, float angOverride, float extRange=0.f) const;
+    bool      canRayHitPoint(const Tempest::Vec3 self, const Tempest::Vec3 pos, float angOverride, float extRange=0.f) const;
 
     auto      canSenseNpc(const Npc& oth, bool freeLos, float extRange=0.f) const -> SensesBit;
     auto      canSenseNpc(const Tempest::Vec3 pos, bool freeLos, bool isNoisy, float extRange=0.f) const -> SensesBit;
@@ -484,6 +487,7 @@ class Npc final {
     bool      implLookAtNpc(uint64_t dt);
     bool      implLookAt (float dx, float dy, float dz, uint64_t dt);
     bool      implTurnAway(const Npc& oth, uint64_t dt);
+    bool      implTurnToFai(const Npc& oth, uint64_t dt);
     bool      implTurnTo (const Npc& oth, uint64_t dt);
     bool      implTurnTo (const Npc& oth, AnimationSolver::TurnType anim, uint64_t dt);
     bool      implTurnTo (const WayPoint* wp, AnimationSolver::TurnType anim, uint64_t dt);
@@ -492,7 +496,6 @@ class Npc final {
     bool      implGoTo   (uint64_t dt);
     bool      implGoTo   (uint64_t dt, float destDist);
     bool      implAttack (uint64_t dt);
-    void      adjustAttackRotation(uint64_t dt);
     bool      implAiTick (uint64_t dt);
     void      implAiWait (uint64_t dt);
     void      implAniWait(uint64_t dt);

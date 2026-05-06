@@ -99,6 +99,7 @@ class DynamicWorld final {
 
         auto  center()  const -> Tempest::Vec3;
         float centerY() const;
+        auto  centerAsym()  const -> Tempest::Vec3;
         float groundOffset() const;
 
         bool  testMove(const Tempest::Vec3& to, CollisionTest& out);

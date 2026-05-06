@@ -914,7 +914,7 @@ const WayPoint* World::findFreePoint(const Npc &npc, std::string_view name) cons
   return wmatrix->findFreePoint(pos,name,[&npc](const WayPoint& wp) -> bool {
     if(wp.isLocked())
       return false;
-    if(!npc.canRayHitPoint(Tempest::Vec3(wp.pos.x,wp.pos.y+10,wp.pos.z),true))
+    if(!npc.canRayHitPoint(Tempest::Vec3(wp.pos.x,wp.pos.y+10,wp.pos.z)))
       return false;
     return true;
     });
@@ -937,7 +937,7 @@ const WayPoint* World::findNextFreePoint(const Npc &npc, std::string_view name) 
   auto filter = [&](const WayPoint& wp) {
     if(wp.isLocked() || &wp==cur)
       return false;
-    if(!npc.canRayHitPoint(Tempest::Vec3(wp.pos.x,wp.pos.y+10,wp.pos.z),true))
+    if(!npc.canRayHitPoint(Tempest::Vec3(wp.pos.x,wp.pos.y+10,wp.pos.z)))
       return false;
     return true;
     };
@@ -952,7 +952,7 @@ const WayPoint* World::findNextWayPoint(const Npc &npc) const {
     nearest = findWayPoint(pos);
     }
   auto filter  = [&](const WayPoint& wp) {
-    if(!npc.canRayHitPoint(Tempest::Vec3(wp.pos.x,wp.pos.y+10,wp.pos.z),true))
+    if(!npc.canRayHitPoint(Tempest::Vec3(wp.pos.x,wp.pos.y+10,wp.pos.z)))
       return false;
     return nearest != &wp;
     };
@@ -999,7 +999,7 @@ WayPath World::wayTo(const Npc &npc, const WayPoint &end) const {
     return wmatrix->wayTo(&begin,1,npcPos,end);
     }
   auto near = wmatrix->findWayPoint(npcPos, [&npc](const WayPoint &wp) {
-    if(!npc.canRayHitPoint(wp.pos,true))
+    if(!npc.canRayHitPoint(wp.pos))
       return false;
     return true;
     });
