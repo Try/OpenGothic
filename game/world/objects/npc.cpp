@@ -1754,6 +1754,7 @@ bool Npc::implAttack(uint64_t dt) {
   if(act==FightAlgo::MV_MOVEA || act==FightAlgo::MV_MOVEG ||
      act==FightAlgo::MV_TURNA || act==FightAlgo::MV_TURNG) {
     const bool prGRange = fghAlgo.isInGRange(*this, *currentTarget, owner.script());
+    const auto prBs     = bs;
 
     if(!(mvAlgo.checkLastBounce() && implTurnTo(*currentTarget,dt))) {
       go2.set(currentTarget, GoToHint::GT_EnemyA);
@@ -1765,14 +1766,9 @@ bool Npc::implAttack(uint64_t dt) {
     const bool isWRange = fghAlgo.isInWRange(*this, *currentTarget, owner.script());
     const bool isFocus  = fghAlgo.isInFocusAngle(*this, *currentTarget);
 
-    if((isWRange || (isGRange!=prGRange)) && isFocus) {
+    if((isWRange || (isGRange!=prGRange) || prBs!=bodyStateMasked()) && isFocus) {
       visual.setAnimRotate(*this, 0);
       fghAlgo.consumeAction();
-      aiState.loopNextTime = owner.tickCount(); // force ZS_MM_Attack_Loop call
-      implAiTick(dt);
-      return true;
-      }
-    if(isFocus ) {
       aiState.loopNextTime = owner.tickCount(); // force ZS_MM_Attack_Loop call
       implAiTick(dt);
       return true;
@@ -2303,7 +2299,7 @@ void Npc::tick(uint64_t dt) {
     }
 
   if(waitTime>=owner.tickCount() || aniWaitTime>=owner.tickCount() || outWaitTime>owner.tickCount()) {
-    if(!isPlayer() && go2.flag!=GT_Flee && faiWaitTime<owner.tickCount()) {
+    if(!isPlayer() && go2.flag!=GT_Flee && faiWaitTime<owner.tickCount() && currentTarget!=nullptr) {
       implTurnToFai(*currentTarget,dt);
       }
     mvAlgo.tick(dt,MoveAlgo::WaitMove);
