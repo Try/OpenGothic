@@ -57,6 +57,8 @@ struct DynamicWorld::NpcBody : btRigidBody {
   float         maxRXZ   = 0;
   float         maxRY    = 0;
 
+  float         maxR     = 0;
+
   Tempest::Vec3 offsetCenter(float c, float s) const{
     auto off = bboxCen;
     return Tempest::Vec3(off.x*c - off.z*s,
@@ -158,6 +160,8 @@ struct DynamicWorld::NpcBodyList final {
     maxRXZ = std::max(maxRXZ, obj->maxRXZ);
     maxRY  = std::max(maxRY,  obj->maxRY);
 
+    obj->maxR = std::max(obj->maxRXZ, obj->maxRY);
+
     add(obj);
     return obj;
     }
@@ -223,51 +227,88 @@ struct DynamicWorld::NpcBodyList final {
     n.frozen   = size_t(-1);
     }
 
-  bool rayTest(NpcBody& npc, const Tempest::Vec3& s, const Tempest::Vec3& e, float extR, float& proj) {
+  float raySphereTest(const Tempest::Vec3& origin, const Tempest::Vec3& dir, const Tempest::Vec3& sphere, float R) const {
+    auto oc = origin - sphere;
+
+    // Quadratic coefficients for (ray.origin + t*ray.direction - center)^2 = radius^2
+    float a = 1.f; // Always 1 if direction is normalized
+    float b = 2.0f * Tempest::Vec3::dotProduct(oc, dir);
+    float c = Tempest::Vec3::dotProduct(oc,oc) - R*R;
+
+    float discriminant = b * b - 4 * a * c;
+    if(discriminant < 0)
+      return -1;
+    // Find the nearest intersection point (smallest positive t)
+    float t0 = (-b - std::sqrt(discriminant)) / (2.0f * a);
+    float t1 = (-b + std::sqrt(discriminant)) / (2.0f * a);
+
+    if(t0 > 0)
+      return t0;
+    if(t1 > 0)
+      return t1;
+    return -1; // Intersection is behind the ray
+    }
+
+  float rayEllipseTest(const Tempest::Vec3& origin, const Tempest::Vec3& dir, const Tempest::Vec3& cen, const Tempest::Vec3& size) const {
+    if(size.x<=0.001f || size.y<=0.001f || size.z<=0.001f)
+      return -1.f;
+
+    auto  ori = origin - cen;
+    auto  oc  = Tempest::Vec3(ori.x/size.x, ori.y/size.y, ori.z/size.z);
+    auto  dx  = Tempest::Vec3(dir.x/size.x, dir.y/size.y, dir.z/size.z);
+    auto  ndx = Tempest::Vec3::normalize(dx);
+
+    float t   = raySphereTest(oc, ndx, Tempest::Vec3(0.f), 1.f);
+    if(t<=0)
+      return t;
+
+    auto hit = (ndx*t);
+    hit.x *= size.x;
+    hit.y *= size.y;
+    hit.z *= size.z;
+
+    return hit.length();
+    }
+
+  bool rayTest(NpcBody& npc, const Tempest::Vec3& s, const Tempest::Vec3& dir, float tMax, float extR, float& proj) {
     if(!npc.enable)
       return false;
+
+    if(raySphereTest(s, dir, npc.pos, npc.maxR+extR)<0.f)
+      return false;
+
     const float acos = std::cos(npc.angle), asin = std::sin(npc.angle);
     const auto  pos  = npc.pos + npc.offsetCenter(acos, asin);
 
-    auto  ln   = e   - s;
-    auto  at   = pos - s;
-
-    float lenL = ln.length();
-    float dot  = Tempest::Vec3::dotProduct(ln,at);
-
-    proj = dot/(lenL<=0 ? 1.f : (lenL*lenL));
-    proj = std::max(0.f,std::min(proj,1.f));
-
-    // TODO: ray-ellipse intersection
-    auto  nr   = ln*proj + s;
-    auto  dp   = nr      - pos;
-    float R    = npc.r   + extR;
-    if(dp.x*dp.x+dp.z*dp.z > R*R)
+    const float t = rayEllipseTest(s, dir, pos, npc.bboxSize+extR);
+    //const float t = raySphereTest(s, dir, pos, npc.r+extR);
+    if(t<0.f || t>=tMax)
       return false;
-    if(npc.h<abs(dp.y))
-      return false;
+    proj = t;
     return true;
     }
 
   auto rayTest(const Tempest::Vec3& s, const Tempest::Vec3& e, float extR, const Npc* except) {
     NpcBody* ret     = nullptr;
-    float    minProj = 2;
+    auto     dir     = Tempest::Vec3::normalize(e-s);
+    auto     tMax    = (e-s).length();
+    float    tHit    = tMax;
 
     for(auto i:body) {
       float proj = 0;
-      if(i.body->toNpc()!=except && rayTest(*i.body, s, e, extR, proj)) {
-        if(proj<minProj) {
-          ret     = i.body;
-          minProj = proj;
+      if(i.body->toNpc()!=except && rayTest(*i.body, s, dir, tMax, extR, proj)) {
+        if(proj<tHit) {
+          ret  = i.body;
+          tHit = proj;
           }
         }
       }
     for(auto i:frozen) {
       float proj = 0;
-      if(i.body!=nullptr && i.body->toNpc()!=except && rayTest(*i.body, s, e, extR, proj)) {
-        if(proj<minProj) {
-          ret     = i.body;
-          minProj = proj;
+      if(i.body!=nullptr && i.body->toNpc()!=except && rayTest(*i.body, s, dir, tMax, extR, proj)) {
+        if(proj<tHit) {
+          ret  = i.body;
+          tHit = proj;
           }
         }
       }
@@ -428,7 +469,7 @@ struct DynamicWorld::BulletsList final {
   void onMoveNpc(NpcBody& npc, NpcBodyList& list){
     for(auto& i:body) {
       float proj = 0;
-      if(i.cb!=nullptr && list.rayTest(npc,i.lastPos,i.pos,i.tgRange,proj)) {
+      if(i.cb!=nullptr && list.rayTest(npc, i.pos, Tempest::Vec3(0,1,0), 0.f, i.tgRange, proj)) {
         i.cb->onCollide(*npc.toNpc());
         }
       }

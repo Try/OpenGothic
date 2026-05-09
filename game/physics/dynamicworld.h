@@ -163,7 +163,7 @@ class DynamicWorld final {
       int                 waterCol = 0;
       };
 
-    struct RayQueryResult : RayLandResult{
+    struct RayQueryResult : RayLandResult {
       Npc* npcHit = nullptr;
       };
 
