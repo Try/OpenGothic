@@ -917,8 +917,12 @@ void MoveAlgo::onMoveFailed(const Tempest::Vec3& dp, const DynamicWorld::Collisi
       return;
     }
 
-  if(forward && !info.preFall && npc.currentTarget==info.npc && npc.bodyStateMasked()==BS_HIT)
+  if(forward && !info.preFall && npc.currentTarget==info.npc && npc.bodyStateMasked()==BS_HIT) {
+    // if charge attack run into npc, FAI should be reengaged
+    // makes ai behaviour more consistent with vanilla, when fighting field-raiders
+    npc.implFaiWait(0);
     return;
+    }
 
   if(npc.processPolicy()!=NpcProcessPolicy::Player)
     lastBounce = npc.world().tickCount();

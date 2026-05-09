@@ -260,9 +260,9 @@ const Animation::Sequence* ObjVisual::startAnimAndGet(std::string_view name, uin
   return nullptr;
   }
 
-bool ObjVisual::isAnimExist(std::string_view name) const {
+bool ObjVisual::hasAnim(std::string_view name) const {
   if(type==M_Mdl)
-    return mdl.view.isAnimExist(name);
+    return mdl.view.hasAnim(name);
   return false;
   }
 

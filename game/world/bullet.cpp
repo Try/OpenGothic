@@ -107,6 +107,10 @@ float Bullet::pathLength() const {
   return obj->pathLength();
   }
 
+bool Bullet::onEffectCollide(Npc& other) {
+  return onCollide(other);
+  }
+
 void Bullet::onStop() {
   flg = Flg(flg|Stopped);
   updateMatrix();

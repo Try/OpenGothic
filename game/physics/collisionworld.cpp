@@ -136,6 +136,7 @@ bool CollisionWorld::hasCollision(btRigidBody& it, Tempest::Vec3& normal, Intera
   struct rCallBack : public btCollisionWorld::ContactResultCallback {
     int                 count = 0;
     Tempest::Vec3       norm  = {};
+    float               dist  = 0; // collision depth
     btCollisionObject*  src   = nullptr;
     Interactive*        vob   = nullptr;
 
@@ -155,19 +156,16 @@ bool CollisionWorld::hasCollision(btRigidBody& it, Tempest::Vec3& normal, Intera
     btScalar addSingleResult(btManifoldPoint& p,
                              const btCollisionObjectWrapper* proxy0, int, int,
                              const btCollisionObjectWrapper* proxy1, int, int) override {
-      norm.x+=p.m_normalWorldOnB.x();
-      norm.y+=p.m_normalWorldOnB.y();
-      norm.z+=p.m_normalWorldOnB.z();
+      dist    = std::min(p.getDistance(), dist);
+      norm.x += p.m_normalWorldOnB.x();
+      norm.y += p.m_normalWorldOnB.y();
+      norm.z += p.m_normalWorldOnB.z();
       ++count;
       auto obj = proxy1->getCollisionObject();
       if(obj->getUserIndex()==DynamicWorld::C_Object) {
         vob = reinterpret_cast<Interactive*>(obj->getUserPointer());
         }
       return 0;
-      }
-
-    void normalize() {
-      norm /= norm.length();
       }
     };
 
@@ -177,8 +175,7 @@ bool CollisionWorld::hasCollision(btRigidBody& it, Tempest::Vec3& normal, Intera
   contactTest(&it, callback);
 
   if(callback.count>0){
-    callback.normalize();
-    normal = callback.norm;
+    normal = Tempest::Vec3::normalize(callback.norm);
     vob    = callback.vob;
     }
   return callback.count>0;

@@ -27,7 +27,7 @@ class ObjVisual {
     void setInteractive(Interactive* it);
 
     const Animation::Sequence* startAnimAndGet(std::string_view name, uint64_t tickCount, bool force = false);
-    bool isAnimExist(std::string_view name) const;
+    bool hasAnim(std::string_view name) const;
 
     bool updateAnimation(Npc* npc, Interactive* mobsi, World& world, uint64_t dt, bool force);
     void processLayers(World& world);

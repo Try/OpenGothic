@@ -68,6 +68,7 @@ class DynamicWorld final {
 
       Interactive*  vob     = nullptr;
       Npc*          npc     = nullptr;
+      float         npcCol  = 0;
       bool          landCol = false;
       };
 
@@ -98,6 +99,7 @@ class DynamicWorld final {
 
         auto  center()  const -> Tempest::Vec3;
         float centerY() const;
+        auto  centerAsym()  const -> Tempest::Vec3;
         float groundOffset() const;
 
         bool  testMove(const Tempest::Vec3& to, CollisionTest& out);
@@ -161,7 +163,7 @@ class DynamicWorld final {
       int                 waterCol = 0;
       };
 
-    struct RayQueryResult : RayLandResult{
+    struct RayQueryResult : RayLandResult {
       Npc* npcHit = nullptr;
       };
 

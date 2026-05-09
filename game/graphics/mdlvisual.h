@@ -3,7 +3,6 @@
 #include <Tempest/Matrix4x4>
 
 #include "graphics/mesh/animationsolver.h"
-#include "graphics/pfx/pfxobjects.h"
 #include "game/constants.h"
 #include "meshobjects.h"
 #include "effect.h"
@@ -84,7 +83,9 @@ class MdlVisual final {
 
     bool                           isStanding() const;
 
-    bool                           isAnimExist(std::string_view name) const;
+    bool                           hasAnim(AnimationSolver::Anim a, WeaponState st, WalkBit wlk) const;
+    bool                           hasAnim(std::string_view scheme) const;
+
     const Animation::Sequence*     startAnimAndGet(std::string_view name, uint64_t tickCount, bool forceAnim = false);
     const Animation::Sequence*     startAnimAndGet(Npc& npc, std::string_view      name, uint8_t comb, BodyState bs);
     const Animation::Sequence*     startAnimAndGet(Npc& npc, AnimationSolver::Anim    a, uint8_t comb, WeaponState st, WalkBit wlk);
@@ -98,7 +99,6 @@ class MdlVisual final {
     void                           stopDlgAnim    (Npc& npc);
     void                           stopAnim       (Npc& npc, std::string_view anim);
     bool                           stopItemStateAnim(Npc &npc);
-    bool                           hasAnim        (std::string_view scheme) const;
     void                           stopWalkAnim   (Npc &npc);
     void                           setAnimRotate  (Npc &npc, int dir);
     void                           setAnimWhirl   (Npc &npc, int dir);

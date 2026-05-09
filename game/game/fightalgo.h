@@ -1,8 +1,8 @@
 #pragma once
 
 #include <cstdint>
-
 #include <zenkit/addon/daedalus.hh>
+#include <Tempest/Vec>
 
 class Npc;
 class GameScript;
@@ -43,6 +43,8 @@ class FightAlgo final {
 
     bool   hasInstructions() const;
     bool   fetchInstructions(Npc &npc, Npc &tg, GameScript& owner);
+    float  qDistTo(const Npc& npc, const Npc& tg) const;
+    auto   distVec(const Npc& npc, const Npc& tg) const -> Tempest::Vec3;
 
     float  baseDistance           (const Npc &npc, const Npc &tg,  GameScript &owner) const;
     float  prefferedAttackDistance(const Npc &npc, const Npc &tg, GameScript &owner) const;
@@ -51,9 +53,11 @@ class FightAlgo final {
 
     bool   isInAttackRange        (const Npc &npc, const Npc &tg, GameScript &owner) const;
     bool   isInFinishRange        (const Npc &npc, const Npc &tg, GameScript &owner) const;
+    bool   isInBaseRange          (const Npc &npc, const Npc &tg, GameScript &owner) const;
     bool   isInWRange             (const Npc &npc, const Npc &tg, GameScript &owner) const;
     bool   isInGRange             (const Npc &npc, const Npc &tg, GameScript &owner) const;
     bool   isInFocusAngle         (const Npc &npc, const Npc &tg) const;
+    bool   isInFocusAngle         (const Npc &npc, const Npc &tg, float ang) const;
     bool   isInJumpBackAngle      (const Npc &npc, const Npc &tg) const;
 
   private:

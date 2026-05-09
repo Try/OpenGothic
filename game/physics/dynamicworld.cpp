@@ -39,12 +39,9 @@ struct DynamicWorld::HumShape:btCapsuleShape {
 
 struct DynamicWorld::NpcBody : btRigidBody {
   NpcBody(btCollisionShape* shape):btRigidBody(0,nullptr,shape){}
-  ~NpcBody() {
-    delete m_collisionShape;
-    }
+  ~NpcBody() { delete m_collisionShape; }
 
   Tempest::Vec3 pos      = {};
-  float         r        = 0;
   float         h        = 0;
   float         gPadd    = 0.f;
   float         stepSz   = 0.f;
@@ -54,11 +51,15 @@ struct DynamicWorld::NpcBody : btRigidBody {
 
   // relevant for npc-to-npc collison
   float         angle    = 0;
-  Tempest::Vec3 bbox[2]  = {};
-  Tempest::Vec3 dvec     = {};
+  Tempest::Vec3 bboxCen  = {};
+  Tempest::Vec3 bboxSize = {};
+  float         maxRXZ   = 0;
+  float         maxRY    = 0;
+
+  float         maxR     = 0;
 
   Tempest::Vec3 offsetCenter(float c, float s) const{
-    auto off = (bbox[1]+bbox[0])*0.5f;
+    auto off = bboxCen;
     return Tempest::Vec3(off.x*c - off.z*s,
                          off.y,
                          off.x*s + off.z*c);
@@ -67,7 +68,7 @@ struct DynamicWorld::NpcBody : btRigidBody {
   float ellipsoidRadius(Tempest::Vec3 dir, float c, float s) const {
     s = -s; // need to cancel object rotation
 
-    Tempest::Vec3 radius = (bbox[1]-bbox[0])*0.5f;
+    Tempest::Vec3 radius = bboxSize;
     dir = Tempest::Vec3(dir.x*c - dir.z*s,
                         dir.y,
                         dir.x*s + dir.z*c);
@@ -76,10 +77,6 @@ struct DynamicWorld::NpcBody : btRigidBody {
 
   Npc* toNpc() {
     return reinterpret_cast<Npc*>(getUserPointer());
-    }
-
-  auto ellipsoidSize() const {
-    return Tempest::Vec3(r, h*0.5f, r);
     }
 
   auto groundOffset() const {
@@ -93,8 +90,9 @@ struct DynamicWorld::NpcBody : btRigidBody {
     }
 
   void setPosition(const Tempest::Vec3& p) {
-    auto m = p + Tempest::Vec3(0,groundOffset(),0);
     pos = p;
+
+    auto m = p + Tempest::Vec3(0,groundOffset(),0);
     btTransform trans;
     trans.setIdentity();
     trans.setOrigin(CollisionWorld::toMeters(m));
@@ -134,14 +132,31 @@ struct DynamicWorld::NpcBodyList final {
     obj->setUserIndex(C_Ghost);
     obj->setCollisionFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
 
-    obj->r      = std::min(size.x, size.z); // best so far
     obj->h      = height;
     obj->gPadd  = ghostPadding;
-    obj->stepSz = std::min(height*0.5f, radius); // safe tunneling size
-    maxR = std::max(maxR, obj->r);
 
-    obj->bbox[0] = min; //NOTE: better to have offset/size
-    obj->bbox[1] = max;
+    obj->bboxCen  = (max+min)*0.5f;
+    obj->bboxSize = (max-min)*0.5f;
+
+    // safe tunneling size
+    obj->stepSz   = radius;
+    obj->stepSz   = std::min(obj->stepSz, std::abs(max.x));
+    obj->stepSz   = std::min(obj->stepSz, std::abs(min.x));
+    obj->stepSz   = std::min(obj->stepSz, std::abs(max.z));
+    obj->stepSz   = std::min(obj->stepSz, std::abs(min.z));
+
+    // searchable radius, where we use logica-position(obj->pos), instead of physical center
+    obj->maxRXZ   = std::max(obj->maxRXZ, std::abs(max.x));
+    obj->maxRXZ   = std::max(obj->maxRXZ, std::abs(min.x));
+    obj->maxRXZ   = std::max(obj->maxRXZ, std::abs(max.z));
+    obj->maxRXZ   = std::max(obj->maxRXZ, std::abs(min.z));
+    obj->maxRY    = std::max(obj->maxRY,  std::abs(max.y));
+    obj->maxRY    = std::max(obj->maxRY,  std::abs(min.y));
+
+    maxRXZ = std::max(maxRXZ, obj->maxRXZ);
+    maxRY  = std::max(maxRY,  obj->maxRY);
+
+    obj->maxR = std::max(obj->maxRXZ, obj->maxRY);
 
     add(obj);
     return obj;
@@ -154,108 +169,143 @@ struct DynamicWorld::NpcBodyList final {
     body.push_back(r);
     }
 
-  bool del(void* b){
-    if(del(b,body))
+  bool del(void* b) {
+    if(del(b,body,false))
       return true;
-    if(del(b,frozen)){
-      srt=false;
+    if(del(b,frozen,true))
       return true;
-      }
     return false;
     }
 
-  bool del(void* b, std::vector<Record>& arr){
+  bool del(void* b, std::vector<Record>& arr, bool preserveOrder) {
     for(size_t i=0;i<arr.size();++i){
       if(arr[i].body!=b)
         continue;
-      arr[i]=arr.back();
-      arr.pop_back();
+      if(preserveOrder) {
+        arr.erase(arr.begin()+ssize_t(i));
+        } else {
+        arr[i]=arr.back();
+        arr.pop_back();
+        }
       return true;
       }
     return false;
     }
 
-  bool delMisordered(NpcBody* b,std::vector<Record>& arr){
-    auto&       fr = arr[b->frozen];
-    const float x  = fr.x;
-    if((b->frozen==0 || arr[b->frozen-1].x<x) &&
-       (b->frozen+1==arr.size() || x<arr[b->frozen+1].x)) {
-      fr.x = fr.body->pos.x;
-      return false;
-      } else {
-      fr.body = nullptr;
-      return true;
-      }
-    }
-
   void onMove(NpcBody& n){
-    if(n.frozen!=size_t(-1)) {
-      if(delMisordered(&n,frozen)){
-        n.lastMove = tick;
-        n.frozen   = size_t(-1);
-
-        Record r;
-        r.body = &n;
-        body.push_back(r);
-        }
-      } else {
+    if(n.frozen==size_t(-1)) {
       n.lastMove = tick;
+      return;
       }
+
+    auto&       fr = frozen[n.frozen];
+    const float x  = fr.x;
+    if((n.frozen==0 || frozen[n.frozen-1].x<x) &&
+       (n.frozen+1==frozen.size() || x<frozen[n.frozen+1].x)) {
+      // still ordered
+      fr.x = fr.body->pos.x;
+      return;
+      }
+
+    fr.body = nullptr;
+
+    Record r;
+    r.body = &n;
+    body.push_back(r);
+
+    n.lastMove = tick;
+    n.frozen   = size_t(-1);
     }
 
-  bool rayTest(NpcBody& npc, const Tempest::Vec3& s, const Tempest::Vec3& e, float extR, float& proj) {
+  float raySphereTest(const Tempest::Vec3& origin, const Tempest::Vec3& dir, const Tempest::Vec3& sphere, float R) const {
+    auto oc = origin - sphere;
+
+    // Quadratic coefficients for (ray.origin + t*ray.direction - center)^2 = radius^2
+    float a = 1.f; // Always 1 if direction is normalized
+    float b = 2.0f * Tempest::Vec3::dotProduct(oc, dir);
+    float c = Tempest::Vec3::dotProduct(oc,oc) - R*R;
+
+    float discriminant = b * b - 4 * a * c;
+    if(discriminant < 0)
+      return -1;
+    // Find the nearest intersection point (smallest positive t)
+    float t0 = (-b - std::sqrt(discriminant)) / (2.0f * a);
+    float t1 = (-b + std::sqrt(discriminant)) / (2.0f * a);
+
+    if(t0 > 0)
+      return t0;
+    if(t1 > 0)
+      return t1;
+    return -1; // Intersection is behind the ray
+    }
+
+  float rayEllipseTest(const Tempest::Vec3& origin, const Tempest::Vec3& dir, const Tempest::Vec3& cen, const Tempest::Vec3& size) const {
+    if(size.x<=0.001f || size.y<=0.001f || size.z<=0.001f)
+      return -1.f;
+
+    auto  ori = origin - cen;
+    auto  oc  = Tempest::Vec3(ori.x/size.x, ori.y/size.y, ori.z/size.z);
+    auto  dx  = Tempest::Vec3(dir.x/size.x, dir.y/size.y, dir.z/size.z);
+    auto  ndx = Tempest::Vec3::normalize(dx);
+
+    float t   = raySphereTest(oc, ndx, Tempest::Vec3(0.f), 1.f);
+    if(t<=0)
+      return t;
+
+    auto hit = (ndx*t);
+    hit.x *= size.x;
+    hit.y *= size.y;
+    hit.z *= size.z;
+
+    return hit.length();
+    }
+
+  bool rayTest(NpcBody& npc, const Tempest::Vec3& s, const Tempest::Vec3& dir, float tMax, float extR, float& proj) {
     if(!npc.enable)
       return false;
-    auto  ln   = e       - s;
-    auto  at   = npc.pos - s;
 
-    float lenL = ln.length();
-
-    float dot  = Tempest::Vec3::dotProduct(ln,at);
-
-    proj = dot/(lenL<=0 ? 1.f : (lenL*lenL));
-    proj = std::max(0.f,std::min(proj,1.f));
-
-    // TODO: ray-box intersection
-    auto& tr   = npc.getWorldTransform();
-    auto  pos  = CollisionWorld::toCentimeters(tr.getOrigin());
-
-    auto  nr   = ln*proj + s;
-    auto  dp   = nr      - pos;
-    float R    = npc.r   + extR;
-    if(dp.x*dp.x+dp.z*dp.z > R*R)
+    if(raySphereTest(s, dir, npc.pos, npc.maxR+extR)<0.f)
       return false;
-    if(npc.h<abs(dp.y))
+
+    const float acos = std::cos(npc.angle), asin = std::sin(npc.angle);
+    const auto  pos  = npc.pos + npc.offsetCenter(acos, asin);
+
+    const float t = rayEllipseTest(s, dir, pos, npc.bboxSize+extR);
+    //const float t = raySphereTest(s, dir, pos, npc.r+extR);
+    if(t<0.f || t>=tMax)
       return false;
+    proj = t;
     return true;
     }
 
   auto rayTest(const Tempest::Vec3& s, const Tempest::Vec3& e, float extR, const Npc* except) {
     NpcBody* ret     = nullptr;
-    float    minProj = 2;
+    auto     dir     = Tempest::Vec3::normalize(e-s);
+    auto     tMax    = (e-s).length();
+    float    tHit    = tMax;
 
     for(auto i:body) {
       float proj = 0;
-      if(i.body->toNpc()!=except && rayTest(*i.body, s, e, extR, proj)) {
-        if(proj<minProj) {
-          ret     = i.body;
-          minProj = proj;
+      if(i.body->toNpc()!=except && rayTest(*i.body, s, dir, tMax, extR, proj)) {
+        if(proj<tHit) {
+          ret  = i.body;
+          tHit = proj;
           }
         }
       }
     for(auto i:frozen) {
       float proj = 0;
-      if(i.body!=nullptr && i.body->toNpc()!=except && rayTest(*i.body, s, e, extR, proj)) {
-        if(proj<minProj) {
-          ret     = i.body;
-          minProj = proj;
+      if(i.body!=nullptr && i.body->toNpc()!=except && rayTest(*i.body, s, dir, tMax, extR, proj)) {
+        if(proj<tHit) {
+          ret  = i.body;
+          tHit = proj;
           }
         }
       }
     return ret;
     }
 
-  bool hasCollision(const DynamicWorld::NpcItem& obj, Tempest::Vec3& normal, Npc*& npc) {
+  bool hasCollision(const DynamicWorld::NpcItem& obj, Tempest::Vec3& normal, Npc*& npc, float& colDepth) {
     static bool disable=false;
     if(disable)
       return false;
@@ -263,26 +313,19 @@ struct DynamicWorld::NpcBodyList final {
     const NpcBody* pn = dynamic_cast<const NpcBody*>(obj.obj);
     if(pn==nullptr)
       return false;
-    const NpcBody& n = *pn;
 
-    if(srt){
-      if(hasCollision(n,frozen,normal,npc,true))
-        return true;
-      return hasCollision(n,body,normal,npc,false);
-      } else {
-      if(hasCollision(n,body,normal,npc,false))
-        return true;
-      //adjustSort();
-      return hasCollision(n,frozen,normal,npc,false);
-      }
+    const NpcBody& n = *pn;
+    if(hasCollision(n,frozen,normal,npc,colDepth,true))
+      return true;
+    return hasCollision(n,body,normal,npc,colDepth,false);
     }
 
-  bool hasCollision(const NpcBody& n, const std::vector<Record>& arr, Tempest::Vec3& normal, Npc*& npc, bool sorted) {
+  bool hasCollision(const NpcBody& n, const std::vector<Record>& arr, Tempest::Vec3& normal, Npc*& npc, float& colDepth, bool sorted) const {
     auto l = arr.begin();
     auto r = arr.end();
 
     if(sorted) {
-      const float dX = maxR+n.r;
+      const float dX = maxRXZ + n.maxRXZ;
       l = std::lower_bound(arr.begin(),arr.end(),n.pos.x-dX,[](const Record& b,float x){ return b.x<x; });
       r = std::upper_bound(arr.begin(),arr.end(),n.pos.x+dX,[](float x,const Record& b){ return x<b.x; });
       }
@@ -294,7 +337,7 @@ struct DynamicWorld::NpcBodyList final {
     bool ret=false;
     for(;l!=r;++l){
       auto& v = (*l);
-      if(v.body!=nullptr && v.body->enable && hasCollision(n,*v.body,normal)) {
+      if(v.body!=nullptr && v.body->enable && hasCollision(n,*v.body,normal,colDepth)) {
         npc = v.body->toNpc();
         ret = true;
         }
@@ -302,36 +345,41 @@ struct DynamicWorld::NpcBodyList final {
     return ret;
     }
 
-  bool hasCollision(const NpcBody& a, const NpcBody& b, Tempest::Vec3& normal){
-    // fixme: asymetric npc-npc collision
+  bool hasCollision(const NpcBody& a, const NpcBody& b, Tempest::Vec3& normal, float& colDepth) const {
+    const float objMaxRXZ = a.maxRXZ + b.maxRXZ;
+    const float objMaxRY  = a.maxRY  + b.maxRY;
+
+    if((Tempest::Vec2(a.pos.x,a.pos.z)-Tempest::Vec2(b.pos.x,b.pos.z)).quadLength() > objMaxRXZ*objMaxRXZ)
+      return false;
+
+    if(std::abs(a.pos.y-b.pos.y) > objMaxRY)
+      return false;
+
     if(&a==&b)
       return false;
 
-    auto direction = a.centerPosition() - b.centerPosition();
-    if(direction.quadLength()<1.f)
-      direction.x += 5.f; // avoid zero based distance
+    const float acos = std::cos(a.angle), asin = std::sin(a.angle);
+    const float bcos = std::cos(b.angle), bsin = std::sin(b.angle);
 
-    auto R         = a.r+b.r, H = a.h+b.h;
-    if(std::abs(direction.x)>R || std::abs(direction.z)>R || std::abs(direction.y)>H*0.5f)
-      return false;
+    const auto  apos = a.pos + a.offsetCenter(acos, asin);
+    const auto  bpos = b.pos + b.offsetCenter(bcos, bsin);
+    const auto  dir  = bpos - apos;
 
-    auto ellipsoidRadius = [](Tempest::Vec3 radius, Tempest::Vec3 direction) -> float {
-      return (direction * radius).length();
-      };
+    auto dlen = dir.length();
+    auto ndir = Tempest::Vec3::normalize(dir);
+    const float rA = a.ellipsoidRadius( ndir, acos, asin);
+    const float rB = b.ellipsoidRadius(-ndir, bcos, bsin);
 
-    float distance  = direction.length();
-    auto  normDir   = Tempest::Vec3::normalize(direction);
-    auto  radiusA   = ellipsoidRadius(a.ellipsoidSize(), normDir);
-    auto  radiusB   = ellipsoidRadius(b.ellipsoidSize(), normDir);
-    if(distance < radiusA + radiusB) {
-      normal += normDir;
+    if(dlen < rA + rB) {
+      float depth = (rA + rB - dlen)*0.5f;
+      colDepth = std::max(colDepth, depth);
+      normal -= ndir*depth;
       return true;
       }
     return false;
     }
 
   void adjustSort() {
-    srt=true;
     std::sort(frozen.begin(),frozen.end(),[](Record& a,Record& b){
       return a.x < b.x;
       });
@@ -373,61 +421,12 @@ struct DynamicWorld::NpcBodyList final {
     tick++;
     }
 
-  void tickBroadphase(uint64_t /*dt*/) {
-    static bool disabled = true;
-    if(disabled)
-      return;
-
-    for(size_t i=0; i<body.size(); ++i) {
-      body[i].body->dvec = Tempest::Vec3();
-      }
-    for(size_t i=0; i<frozen.size(); ++i) {
-      frozen[i].body->dvec = Tempest::Vec3();
-      }
-
-    for(size_t i=0; i<body.size(); ++i) {
-      tickBroadphase(*body[i].body);
-      }
-    for(size_t i=0; i<frozen.size(); ++i) {
-      tickBroadphase(*frozen[i].body);
-      }
-    }
-
-  void tickBroadphase(NpcBody& self) {
-    for(size_t i=0; i<body.size(); ++i) {
-      tickBroadphase(self, *body[i].body);
-      }
-    for(size_t i=0; i<frozen.size(); ++i) {
-      tickBroadphase(self, *frozen[i].body);
-      }
-    }
-
-  void tickBroadphase(NpcBody& a, NpcBody& b) {
-    if(&a==&b)
-      return;
-    const float acos = std::cos(a.angle), asin = std::sin(a.angle);
-    const float bcos = std::cos(b.angle), bsin = std::sin(b.angle);
-
-    const auto apos = a.pos + a.offsetCenter(acos, asin);
-    const auto bpos = b.pos + b.offsetCenter(bcos, bsin);
-
-    auto dir  = bpos - apos;
-    auto dlen = dir.length();
-    auto ndir = Tempest::Vec3::normalize(dir);
-    const float rA = a.ellipsoidRadius( ndir, acos, asin);
-    const float rB = b.ellipsoidRadius(-ndir, bcos, bsin);
-
-    if(dlen < rA + rB) {
-      a.dvec -= ndir;
-      b.dvec += ndir;
-      }
-    }
-
   DynamicWorld&         wrld;
   std::vector<Record>   body, frozen;
-  bool                  srt=false;
-  uint64_t              tick=0;
-  float                 maxR=0;
+
+  uint64_t              tick   = 0;
+  float                 maxRXZ = 0;
+  float                 maxRY  = 0;
   };
 
 struct DynamicWorld::BulletsList final {
@@ -460,7 +459,7 @@ struct DynamicWorld::BulletsList final {
   void onMoveNpc(NpcBody& npc, NpcBodyList& list){
     for(auto& i:body) {
       float proj = 0;
-      if(i.cb!=nullptr && list.rayTest(npc,i.lastPos,i.pos,i.tgRange,proj)) {
+      if(i.cb!=nullptr && list.rayTest(npc, i.pos, Tempest::Vec3(0,1,0), 0.f, i.tgRange, proj)) {
         i.cb->onCollide(*npc.toNpc());
         }
       }
@@ -976,7 +975,6 @@ void DynamicWorld::moveBullet(BulletBody &b, const Tempest::Vec3& dir, uint64_t 
 
 void DynamicWorld::tick(uint64_t dt) {
   npcList   ->tickAabbs();
-  npcList   ->tickBroadphase(dt);
   bulletList->tick(dt);
   world     ->tick(dt);
   }
@@ -1077,7 +1075,9 @@ std::string_view DynamicWorld::validateSectorName(std::string_view name) const {
 
 bool DynamicWorld::hasCollision(const NpcItem& it, CollisionTest& out) {
   bool ret = false;
-  if(npcList->hasCollision(it,out.normal,out.npc)){
+
+  out.normal = Tempest::Vec3();
+  if(npcList->hasCollision(it,out.normal,out.npc,out.npcCol)){
     ret = true;
     }
   if(world->hasCollision(*it.obj,out.normal,out.vob)) {
@@ -1087,7 +1087,7 @@ bool DynamicWorld::hasCollision(const NpcItem& it, CollisionTest& out) {
 
   if(!ret)
     return false;
-  out.normal /= out.normal.length();
+  out.normal = Tempest::Vec3::normalize(out.normal);
   return true;
   }
 
@@ -1140,6 +1140,11 @@ float DynamicWorld::NpcItem::centerY() const {
   return 0;
   }
 
+auto DynamicWorld::NpcItem::centerAsym() const -> Tempest::Vec3 {
+  const float acos = std::cos(obj->angle), asin = std::sin(obj->angle);
+  return obj->offsetCenter(acos, asin);
+  }
+
 float DynamicWorld::NpcItem::groundOffset() const {
   return obj->groundOffset();
   }
@@ -1164,6 +1169,19 @@ void DynamicWorld::NpcItem::debugDraw(DbgPainter& p) const {
   const auto max = Tempest::Vec3(aabb1.x()*100.f, aabb1.y()*100.f, aabb1.z()*100.f);
   p.setPen(Tempest::Color(1,0.5f,0));
   p.drawAabb(min, max);
+  /*
+  auto tr = Tempest::Matrix4x4::mkIdentity();
+  tr.translate(obj->pos);
+  tr.rotateOY(-float(obj->angle*180.f/M_PI));
+
+  p.setPen(Tempest::Color(1,0,1));
+  p.drawObb(tr, obj->bbox);
+
+  auto& a = *obj;
+  const float acos = std::cos(a.angle), asin = std::sin(a.angle);
+  const auto apos = a.pos + a.offsetCenter(acos, asin);
+  p.drawPoint(apos, 10);
+  */
   }
 
 bool DynamicWorld::NpcItem::testMove(const Tempest::Vec3& to, CollisionTest& out) {
@@ -1211,7 +1229,8 @@ DynamicWorld::MoveCode DynamicWorld::NpcItem::tryMove(const Tempest::Vec3& to, C
   }
 
 DynamicWorld::MoveCode DynamicWorld::NpcItem::implTryMove(const Tempest::Vec3& to, const Tempest::Vec3& pos0, CollisionTest& out) {
-  auto initial = pos0;
+  const auto initial = pos0; // avoid self-reference
+
   auto r       = obj->stepSz;
   int  count   = 1;
   auto dp      = to-initial;
@@ -1223,22 +1242,22 @@ DynamicWorld::MoveCode DynamicWorld::NpcItem::implTryMove(const Tempest::Vec3& t
     count = std::max(countXZ,countY);
     }
 
-  bool skipNpc    = false;
-  bool skipLnd    = false;
-  bool secondPass = false;
+  float skipNpc    = 0;
+  bool  skipLnd    = false;
+  bool  secondPass = false;
   for(int i=1; i<=count; ++i) {
-    const auto pos = initial+(dp*float(i))/float(count);
+    const auto pos = initial + dp*(float(i)/float(count));
     implSetPosition(pos);
 
     if(!owner->hasCollision(*this,out))
       continue;
 
-    if((out.npc==nullptr || skipNpc) && (!out.landCol || skipLnd))
+    if((skipNpc>=out.npcCol) && (!out.landCol || skipLnd))
       continue;
 
     if(i>1) {
       // moved a bit
-      out.partial = initial+(dp*float(i-1))/float(count);
+      out.partial = initial + dp*(float(i-1)/float(count));
       implSetPosition(out.partial);
       return MoveCode::MC_Partial;
       }
@@ -1250,7 +1269,7 @@ DynamicWorld::MoveCode DynamicWorld::NpcItem::implTryMove(const Tempest::Vec3& t
       if(!owner->hasCollision(*this,tmpOut)) {
         return MoveCode::MC_Fail;
         }
-      skipNpc    = tmpOut.npc!=nullptr;
+      skipNpc    = tmpOut.npcCol;
       skipLnd    = tmpOut.landCol;
       secondPass = true;
       i          = 0;

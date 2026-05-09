@@ -2,7 +2,6 @@
 
 #include "graphics/mesh/skeleton.h"
 #include "game/serialize.h"
-#include "utils/string_frm.h"
 #include "world/objects/npc.h"
 #include "world/objects/interactive.h"
 #include "world/objects/item.h"
@@ -579,10 +578,6 @@ bool MdlVisual::stopItemStateAnim(Npc& npc) {
   return true;
   }
 
-bool MdlVisual::hasAnim(std::string_view scheme) const {
-  return solver.solveFrm(scheme)!=nullptr;
-  }
-
 void MdlVisual::stopWalkAnim(Npc &npc) {
   skInst->stopWalkAnim();
   if(!skInst->hasAnim())
@@ -593,9 +588,12 @@ bool MdlVisual::isStanding() const {
   return skInst->isStanding();
   }
 
-bool MdlVisual::isAnimExist(std::string_view name) const {
-  const Animation::Sequence *sq = solver.solveFrm(name);
-  return sq!=nullptr;
+bool MdlVisual::hasAnim(std::string_view scheme) const {
+  return solver.solveFrm(scheme)!=nullptr;
+  }
+
+bool MdlVisual::hasAnim(AnimationSolver::Anim a, WeaponState st, WalkBit wlk) const {
+  return solver.solveAnim(a,st,wlk,*skInst)!=nullptr;
   }
 
 const Animation::Sequence* MdlVisual::startAnimAndGet(std::string_view name, uint64_t tickCount, bool forceAnim) {
