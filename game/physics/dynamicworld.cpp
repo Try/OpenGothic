@@ -42,7 +42,6 @@ struct DynamicWorld::NpcBody : btRigidBody {
   ~NpcBody() { delete m_collisionShape; }
 
   Tempest::Vec3 pos      = {};
-  float         r        = 0;
   float         h        = 0;
   float         gPadd    = 0.f;
   float         stepSz   = 0.f;
@@ -133,11 +132,8 @@ struct DynamicWorld::NpcBodyList final {
     obj->setUserIndex(C_Ghost);
     obj->setCollisionFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
 
-    obj->r      = std::min(size.x, size.z); // best so far
     obj->h      = height;
     obj->gPadd  = ghostPadding;
-    //obj->stepSz = std::min(height*0.5f, radius); // safe tunneling size
-    //maxR = std::max(maxR, obj->r);
 
     obj->bboxCen  = (max+min)*0.5f;
     obj->bboxSize = (max-min)*0.5f;
@@ -173,30 +169,24 @@ struct DynamicWorld::NpcBodyList final {
     body.push_back(r);
     }
 
-  bool del(void* b){
-    if(del(b,body))
+  bool del(void* b) {
+    if(del(b,body,false))
       return true;
-    if(delOrd(b,frozen))
+    if(del(b,frozen,true))
       return true;
     return false;
     }
 
-  bool del(void* b, std::vector<Record>& arr) {
+  bool del(void* b, std::vector<Record>& arr, bool preserveOrder) {
     for(size_t i=0;i<arr.size();++i){
       if(arr[i].body!=b)
         continue;
-      arr[i]=arr.back();
-      arr.pop_back();
-      return true;
-      }
-    return false;
-    }
-
-  bool delOrd(void* b, std::vector<Record>& arr) {
-    for(size_t i=0;i<arr.size();++i) {
-      if(arr[i].body!=b)
-        continue;
-      arr.erase(arr.begin()+ssize_t(i));
+      if(preserveOrder) {
+        arr.erase(arr.begin()+ssize_t(i));
+        } else {
+        arr[i]=arr.back();
+        arr.pop_back();
+        }
       return true;
       }
     return false;
@@ -335,7 +325,7 @@ struct DynamicWorld::NpcBodyList final {
     auto r = arr.end();
 
     if(sorted) {
-      const float dX = maxRXZ + n.r;
+      const float dX = maxRXZ + n.maxRXZ;
       l = std::lower_bound(arr.begin(),arr.end(),n.pos.x-dX,[](const Record& b,float x){ return b.x<x; });
       r = std::upper_bound(arr.begin(),arr.end(),n.pos.x+dX,[](float x,const Record& b){ return x<b.x; });
       }
