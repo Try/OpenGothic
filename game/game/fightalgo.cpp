@@ -248,17 +248,17 @@ float FightAlgo::baseDistance(const Npc& npc, const Npc& tg,  GameScript &owner)
 
 float FightAlgo::prefferedAttackDistance(const Npc& npc, const Npc& tg,  GameScript &owner) const {
   auto&  gv      = owner.guildVal();
-  float  baseTg  = float(gv.fight_range_base[tg .guild()]);
-  float  baseNpc = float(gv.fight_range_base[npc.guild()]);
+  float  baseTg  = float(gv.fight_range_base[tg.guild()]);
+  float  baseNpc = 60; //float(gv.fight_range_base[npc.guild()]);
   return baseTg + baseNpc + weaponRange(owner,npc);
   }
 
 float FightAlgo::prefferedGDistance(const Npc& npc, const Npc& tg, GameScript &owner) const {
   auto   gl      = npc.guild();
   auto&  gv      = owner.guildVal();
-  float  baseTg  = float(gv.fight_range_base[tg .guild()]);
-  float  baseNpc = float(gv.fight_range_base[npc.guild()]);
-  return float(baseTg + baseNpc + float(gv.fight_range_g[gl])) + weaponRange(owner,npc);
+  float  baseTg  = float(gv.fight_range_base[tg.guild()]);
+  //float  baseNpc = float(gv.fight_range_base[npc.guild()]);
+  return float(baseTg + float(gv.fight_range_g[gl])) + weaponRange(owner,npc);
   }
 
 float FightAlgo::attackFinishDistance(GameScript &owner) const {
@@ -273,21 +273,20 @@ float FightAlgo::attackFinishDistance(GameScript &owner) const {
   }
 
 bool FightAlgo::isInAttackRange(const Npc &npc, const Npc &tg, GameScript &owner) const {
-  auto  dist = qDistTo(npc, tg);
-  auto  pd   = prefferedAttackDistance(npc,tg,owner);
-  static float padding = 0;
-  if(npc.hasState(BS_RUN))
-    pd += padding; // padding, for wolf
-  return (dist<=pd*pd);
+  //auto dist1 = std::sqrt(qDistTo(npc, tg)); (void)dist1;
+  auto dist = npc.fightDistanceTo(tg);
+  auto pd   = prefferedAttackDistance(npc,tg,owner);
+  return (dist<=pd);
   }
 
 bool FightAlgo::isInFinishRange(const Npc& npc, const Npc& tg, GameScript& owner) const {
-  auto dist = qDistTo(npc, tg);
+  auto dist = npc.fightDistanceTo(tg);
   auto pd   = attackFinishDistance(owner);
-  return (dist<=pd*pd);
+  return (dist<=pd);
   }
 
 bool FightAlgo::isInBaseRange(const Npc& npc, const Npc& tg, GameScript& owner) const {
+  // auto dist = npc.fightDistanceTo(tg);
   auto dist = qDistTo(npc, tg);
   auto pd   = baseDistance(npc,tg,owner);
   return (dist<=pd*pd);
@@ -297,16 +296,18 @@ bool FightAlgo::isInWRange(const Npc& npc, const Npc& tg, GameScript& owner) con
   // tested in vanilla on Bloofly's:
   //  60 weapon range (Spiked club) is not enough to hit
   //  70 weapon range (Rusty Sword) is good to hit
-  static float padding = 5; // padding, for bloodfly
-  auto dist = qDistTo(npc, tg);
+  static float padding = 10; // padding
+  //auto dist = qDistTo(npc, tg);
+  auto dist = npc.fightDistanceTo(tg);
   auto pd   = prefferedAttackDistance(npc,tg,owner) + padding;
-  return (dist<=pd*pd);
+  return (dist<=pd);
   }
 
 bool FightAlgo::isInGRange(const Npc &npc, const Npc &tg, GameScript &owner) const {
-  auto dist = qDistTo(npc, tg);
+  //auto dist = qDistTo(npc, tg);
+  auto dist = npc.fightDistanceTo(tg);
   auto pd   = prefferedGDistance(npc,tg,owner);
-  return (dist<=pd*pd);
+  return (dist<=pd);
   }
 
 bool FightAlgo::isInFocusAngle(const Npc &npc, const Npc &tg) const {

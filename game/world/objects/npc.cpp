@@ -743,6 +743,10 @@ float Npc::qDistTo(const Item& p) const {
   return qDistTo(pos);
   }
 
+float Npc::fightDistanceTo(const Npc& tg) const {
+  return DynamicWorld::npcDistance(physic, tg.physic);
+  }
+
 uint8_t Npc::calcAniComb() const {
   if(currentTarget==nullptr)
     return 0;
@@ -1402,17 +1406,25 @@ bool Npc::implTurnAway(const Npc &oth, uint64_t dt) {
   }
 
 bool Npc::implTurnToFai(const Npc& oth, uint64_t dt) {
+  auto ws   = weaponState();
+  auto anim = !hasAutoroll() ? AnimationSolver::TurnType::None : AnimationSolver::TurnType::Std;
+  if(ws==WeaponState::Bow || ws==WeaponState::CBow || ws==WeaponState::Mage) {
+    anim = AnimationSolver::TurnType::None;
+    }
+  return implTurnToFai(oth, anim, dt);
+  }
+
+bool Npc::implTurnToFai(const Npc& oth, AnimationSolver::TurnType anim, uint64_t dt) {
   if(&oth==this || oth.isDown())
     return false;
   auto ws = weaponState();
   if(ws==WeaponState::NoWeapon)
     return false;
-  auto anim = !hasAutoroll() ? AnimationSolver::TurnType::None : AnimationSolver::TurnType::Std;
-  if(ws==WeaponState::Bow || ws==WeaponState::CBow || ws==WeaponState::Mage) {
-    anim = AnimationSolver::TurnType::None;
-    }
   const auto dpos = currentTarget->collosionCenter() - collosionCenter();
-  return implTurnTo(dpos.x,dpos.z,anim,dt);
+  auto  gl   = guild();
+  float step = float(owner.script().guildVal().turn_speed[gl]);
+  step *= 2.f; // faster in combat
+  return rotateTo(dpos.x,dpos.z,step,anim,dt);
   }
 
 bool Npc::implTurnTo(const Npc &oth, uint64_t dt) {
@@ -1536,8 +1548,10 @@ bool Npc::implAttack(uint64_t dt) {
 
   if(bs==BS_HIT && (ws==WeaponState::Fist || ws==WeaponState::W1H || ws==WeaponState::W2H)) {
     // NOTE: 'storm' attack has BS_RUN state and not meant to be auto-rotated
-    implTurnToFai(*currentTarget,dt);
-    mvAlgo.tick(dt,MoveAlgo::FaiMove);
+    if(hasAutoroll()) {
+      implTurnToFai(*currentTarget,dt);
+      mvAlgo.tick(dt,MoveAlgo::FaiMove);
+      }
     return true;
     }
 
@@ -1565,7 +1579,7 @@ bool Npc::implAttack(uint64_t dt) {
   // NOTE: in original-game, this behaviour seem to be hardcoded
   // test case: wolf jump-back quite often when close, but programmed to jump only if attacked
   // so far promoting wait to jump seem to work best
-  const bool jmp = act==FightAlgo::MV_WAIT && fghAlgo.isInBaseRange(*this,*currentTarget,owner.script());
+  const bool jmp = hasAutoroll() && fghAlgo.isInBaseRange(*this,*currentTarget,owner.script());
 
   // vanilla behavior, required for orcs in G1 orcgraveyard
   if(ws==WeaponState::NoWeapon && isAiQueueEmpty() && canSwitchWeapon()) {
@@ -1604,9 +1618,7 @@ bool Npc::implAttack(uint64_t dt) {
     //const auto sense = canRayHitPoint(centerPosition(),tgPos,5.f,MaxFightRange);
     const auto sense = fghAlgo.isInFocusAngle(*this,*currentTarget,5.f);
     if(!sense) {
-      if(bs==BS_RUN)
-        setAnim(Npc::Anim::Idle); else
-        implTurnToFai(*currentTarget,dt);
+      implTurnToFai(*currentTarget,dt);
       mvAlgo.tick(dt,MoveAlgo::FaiMove);
       return true;
       }
@@ -1729,7 +1741,7 @@ bool Npc::implAttack(uint64_t dt) {
     return true;
     }
 
-  if(act==FightAlgo::MV_JUMPBACK || jmp) {
+  if(act==FightAlgo::MV_JUMPBACK || (act==FightAlgo::MV_WAIT && jmp) || (act==FightAlgo::MV_TURN && jmp)) {
     if(isSwim()) {
       fghAlgo.consumeAction();
       return true;
@@ -1738,7 +1750,7 @@ bool Npc::implAttack(uint64_t dt) {
       fghAlgo.consumeAction();
       return true;
       }
-    if(!fghAlgo.isInFocusAngle(*this, *currentTarget)) {
+    if(!fghAlgo.isInFocusAngle(*this, *currentTarget) && !jmp) {
       //NOTE: jump-back is ultimate defence, so better to use it only if npc face player directly
       fghAlgo.consumeAction();
       aiState.loopNextTime = owner.tickCount(); // force ZS_MM_Attack_Loop call
@@ -1760,11 +1772,20 @@ bool Npc::implAttack(uint64_t dt) {
     if(prWRange) {
       //NOTE: bloodfly and other monsters may run to close to player otherwise
       setAnim(Anim::Idle);
-      implTurnTo(*currentTarget,dt);
-      }
-    else if(!(mvAlgo.checkLastBounce() && implTurnTo(*currentTarget,dt))) {
-      go2.set(currentTarget, GoToHint::GT_Enemy);
-      implGoTo(dt);
+      implTurnToFai(*currentTarget,dt);
+      } else {
+      if(mvAlgo.checkLastBounce()) {
+        auto anim = AnimationSolver::TurnType::None;
+        if(prGRange) {
+          // note: scaveger stops before rotation
+          anim = AnimationSolver::TurnType::Std;
+          }
+        if(implTurnToFai(*currentTarget,anim,dt) && anim==AnimationSolver::TurnType::Std)
+          return true;
+        }
+      setAnim(AnimationSolver::Move);
+      go2.set(currentTarget, GT_Enemy);
+      mvAlgo.tick(dt, MoveAlgo::FaiMove);
       go2.clear();
       }
 
@@ -2264,7 +2285,7 @@ void Npc::tickAnimationTags() {
 
 void Npc::tick(uint64_t dt) {
   static bool dbg = false;
-  static int  kId = -1;
+  static int  kId = 432;
   if(dbg && !isPlayer() && hnpc->id!=kId)
     return;
 
@@ -3493,7 +3514,7 @@ bool Npc::rotateTo(float dx, float dz, float step, AnimationSolver::TurnType ani
   float da = a-angle;
 
   if(anim == AnimationSolver::TurnType::None || std::cos(double(da)*M_PI/180.0)>0) {
-    if(float(std::abs(int(da)%180))<=(step*2.f)) {
+    if(float(std::abs(int(da)%360))<=(step*2.f)) {
       setAnimRotate(0);
       setDirection(a);
       return false;

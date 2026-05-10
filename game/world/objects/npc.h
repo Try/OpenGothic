@@ -133,6 +133,7 @@ class Npc final {
     float      qDistTo(const Npc& p) const;
     float      qDistTo(const Interactive& p) const;
     float      qDistTo(const Item& p) const;
+    float      fightDistanceTo(const Npc& npc) const;
 
     void       updateAnimation(uint64_t dt, bool force = false);
     void       updateTransform();
@@ -488,6 +489,7 @@ class Npc final {
     bool      implLookAt (float dx, float dy, float dz, uint64_t dt);
     bool      implTurnAway(const Npc& oth, uint64_t dt);
     bool      implTurnToFai(const Npc& oth, uint64_t dt);
+    bool      implTurnToFai(const Npc& oth, AnimationSolver::TurnType anim, uint64_t dt);
     bool      implTurnTo (const Npc& oth, uint64_t dt);
     bool      implTurnTo (const Npc& oth, AnimationSolver::TurnType anim, uint64_t dt);
     bool      implTurnTo (const WayPoint* wp, AnimationSolver::TurnType anim, uint64_t dt);

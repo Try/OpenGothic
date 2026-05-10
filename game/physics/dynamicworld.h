@@ -267,6 +267,8 @@ class DynamicWorld final {
     static float   materialFriction(zenkit::MaterialGroup mat);
     static float   materialDensity (zenkit::MaterialGroup mat);
 
+    static float   npcDistance(const NpcItem& a, const NpcItem& b);
+
     static float   rayBox(const Tempest::Vec3& orig, const Tempest::Vec3& dir, const float TMax,
                           const Tempest::Matrix4x4& obj, const Tempest::Vec3& min, const Tempest::Vec3& max,
                           const float padd = 0.f);

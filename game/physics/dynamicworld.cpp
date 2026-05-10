@@ -1028,6 +1028,24 @@ float DynamicWorld::materialDensity(zenkit::MaterialGroup mat) {
   return 2000.f;
   }
 
+float DynamicWorld::npcDistance(const NpcItem& ia, const NpcItem& ib) {
+  auto& a = *ia.obj;
+  auto& b = *ib.obj;
+
+  const float acos = std::cos(a.angle), asin = std::sin(a.angle);
+  const float bcos = std::cos(b.angle), bsin = std::sin(b.angle);
+
+  const auto  apos = a.pos + a.offsetCenter(acos, asin);
+  const auto  bpos = b.pos + b.offsetCenter(bcos, bsin);
+  const auto  dir  = bpos - apos;
+
+  auto dlen = dir.length();
+  auto ndir = Tempest::Vec3::normalize(dir);
+  const float rA = a.ellipsoidRadius( ndir, acos, asin);
+  const float rB = b.ellipsoidRadius(-ndir, bcos, bsin);
+  return std::max(0.f, dlen - rA - rB);
+  }
+
 float DynamicWorld::rayBox(const Tempest::Vec3& orig, const Tempest::Vec3& dir, const float TMax,
                            const Tempest::Matrix4x4& obj, const Tempest::Vec3& min, const Tempest::Vec3& max,
                            const float padd) {

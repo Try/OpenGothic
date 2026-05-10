@@ -650,7 +650,7 @@ bool MoveAlgo::canFallByGravity() const {
 
 bool MoveAlgo::checkLastBounce() const {
   uint64_t ticks = npc.world().tickCount();
-  return lastBounce+1000<ticks;
+  return lastBounce<ticks;
   }
 
 void MoveAlgo::emitWaterSplash(float y) {
@@ -907,6 +907,7 @@ void MoveAlgo::onMoveFailed(const Tempest::Vec3& dp, const DynamicWorld::Collisi
   const float stp     = speed*float(dt)/1000.f;
   const float val     = Tempest::Vec3::dotProduct(ortho,info.normal);
   const bool  forward = isForward(dp);
+  const bool  bump    = checkLastBounce();
 
   if(info.vob!=nullptr && forward && npc.interactive()!=info.vob) {
     npc.setDetectedMob(info.vob);
@@ -922,10 +923,14 @@ void MoveAlgo::onMoveFailed(const Tempest::Vec3& dp, const DynamicWorld::Collisi
     return;
     }
 
-  if(npc.processPolicy()!=NpcProcessPolicy::Player)
+  if(npc.processPolicy()!=NpcProcessPolicy::Player && bump) {
     lastBounce = npc.world().tickCount();
+    if(info.npc!=nullptr)
+      lastBounce += 500; else
+      lastBounce += 750;
+    }
 
-  if(std::abs(val)>=threshold && !info.preFall && checkLastBounce()) {
+  if(std::abs(val)>=threshold && !info.preFall && bump) {
     // emulate bouncing behaviour of original game
     Tempest::Vec3 corr;
     for(int i=5; i<=35; i+=5) {
