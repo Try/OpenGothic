@@ -459,7 +459,8 @@ struct DynamicWorld::BulletsList final {
   void onMoveNpc(NpcBody& npc, NpcBodyList& list){
     for(auto& i:body) {
       float proj = 0;
-      if(i.cb!=nullptr && list.rayTest(npc, i.pos, Tempest::Vec3(0,1,0), 0.f, i.tgRange, proj)) {
+      auto  dp = i.pos - i.lastPos; // move is symetrical: move of npc and move of projectile is the same
+      if(i.cb!=nullptr && list.rayTest(npc, i.pos, Tempest::Vec3::normalize(dp), dp.length(), i.tgRange, proj)) {
         i.cb->onCollide(*npc.toNpc());
         }
       }

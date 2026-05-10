@@ -18,7 +18,7 @@ class FightAlgo final {
     enum Action : uint8_t {
       MV_NULL     = 0,
       MV_MOVEG    = 1,
-      MV_MOVEA    = 2,
+      MV_MOVE     = 2,
       MV_JUMPBACK = 3,
       MV_ATTACK   = 4,
       MV_ATTACKL  = 5,
@@ -29,7 +29,7 @@ class FightAlgo final {
       MV_WAIT     = 10,
       MV_WAITLONG = 11,
       MV_TURN2HIT = 12,
-      MV_TURNA    = 13,
+      MV_TURN     = 13,
       MV_TURNG    = 14,
       MV_STRAFE_E = 15,
 

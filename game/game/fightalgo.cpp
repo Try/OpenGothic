@@ -108,14 +108,10 @@ FightAlgo::Action FightAlgo::nextFromQueue(Npc& npc, Npc& tg, GameScript& owner)
   if(tr[0]==MV_NULL) {
     switch(queueId) {
       case FightAiMove::TURN:
-        if(!isInGRange(npc,tg,owner))
-          tr[0] = MV_TURNG; else
-          tr[0] = MV_TURNA;
+        tr[0] = MV_TURN;
         break;
       case FightAiMove::RUN:{
-        if(!isInGRange(npc,tg,owner))
-          tr[0] = MV_MOVEG; else
-          tr[0] = MV_MOVEA;
+        tr[0] = MV_MOVE;
         break;
         }
       case FightAiMove::RUN_BACK:{
@@ -277,9 +273,6 @@ float FightAlgo::attackFinishDistance(GameScript &owner) const {
   }
 
 bool FightAlgo::isInAttackRange(const Npc &npc, const Npc &tg, GameScript &owner) const {
-  // tested in vanilla on Bloofly's:
-  //  60 weapon range (Spiked club) is not enough to hit
-  //  70 weapon range (Rusty Sword) is good to hit
   auto  dist = qDistTo(npc, tg);
   auto  pd   = prefferedAttackDistance(npc,tg,owner);
   static float padding = 0;
@@ -301,8 +294,12 @@ bool FightAlgo::isInBaseRange(const Npc& npc, const Npc& tg, GameScript& owner) 
   }
 
 bool FightAlgo::isInWRange(const Npc& npc, const Npc& tg, GameScript& owner) const {
+  // tested in vanilla on Bloofly's:
+  //  60 weapon range (Spiked club) is not enough to hit
+  //  70 weapon range (Rusty Sword) is good to hit
+  static float padding = 5; // padding, for bloodfly
   auto dist = qDistTo(npc, tg);
-  auto pd   = prefferedAttackDistance(npc,tg,owner);
+  auto pd   = prefferedAttackDistance(npc,tg,owner) + padding;
   return (dist<=pd*pd);
   }
 

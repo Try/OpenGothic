@@ -30,7 +30,7 @@ class Npc final {
       GT_No,
       GT_Way,
       GT_NextFp,
-      GT_EnemyA,
+      GT_Enemy,
       GT_Item,
       GT_Point,
       GT_EnemyG, //deprecated

@@ -834,14 +834,11 @@ void MoveAlgo::assertStateChange(State f) {
       assert(f==Run || f==InAir || f==InWater || f==Swim || f==Dive);
       break;
     case Slide:
-      assert(!dead);
       break;
     case Jump:
-      assert(!dead);
       assert(f==Run || f==InAir || f==Falling || f==Swim || f==Dive);
       break;
     case JumpUp:
-      assert(!dead);
       assert(f==Run || f==InAir || f==ClimbUp);
       break;
     case ClimbUp:
@@ -858,6 +855,7 @@ void MoveAlgo::assertStateChange(State f) {
       break;
     }
 
+  // should be alive to transition into those states
   switch(f) {
     case Slide:
     case Jump:
@@ -965,7 +963,7 @@ void MoveAlgo::onMoveFailed(const Tempest::Vec3& dp, const DynamicWorld::Collisi
     case Npc::GT_Item:
       npc.setDirection(npc.rotation()+stp);
       break;
-    case Npc::GT_EnemyA:
+    case Npc::GT_Enemy:
     case Npc::GT_EnemyG:
     case Npc::GT_Way:
     case Npc::GT_Point: {

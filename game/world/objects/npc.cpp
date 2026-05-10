@@ -36,7 +36,7 @@ void Npc::GoTo::load(Serialize& fin) {
   fin.read(npc, reinterpret_cast<uint8_t&>(flag), wp, pos);
   //NOTE: no real need to version check
   //if(fin.version()<53) {
-    if(flag==GoToHint::GT_EnemyG || flag==GoToHint::GT_EnemyA)
+    if(flag==GoToHint::GT_Enemy || flag==GoToHint::GT_EnemyG)
       clear(); // not persistent flags, and should be cleared by FAI
   //  }
   }
@@ -50,7 +50,7 @@ Vec3 Npc::GoTo::target() const {
   }
 
 bool Npc::GoTo::isClose(const Npc& self, float dist) const {
-  if(flag==GT_EnemyA)
+  if(flag==GT_Enemy)
     return self.fghAlgo.isInWRange(self, *npc, self.owner.script()); //need to be consistent with implAttack
   if(npc!=nullptr)
     return MoveAlgo::isClose(self, *npc, dist);
@@ -1531,8 +1531,10 @@ bool Npc::implAttack(uint64_t dt) {
     return false;
     }
 
+  const auto ws = weaponState();
   const auto bs = bodyStateMasked();
-  if(bs==BS_HIT) {
+
+  if(bs==BS_HIT && (ws==WeaponState::Fist || ws==WeaponState::W1H || ws==WeaponState::W2H)) {
     // NOTE: 'storm' attack has BS_RUN state and not meant to be auto-rotated
     implTurnToFai(*currentTarget,dt);
     mvAlgo.tick(dt,MoveAlgo::FaiMove);
@@ -1558,7 +1560,6 @@ bool Npc::implAttack(uint64_t dt) {
     return true;
     }
 
-  const auto ws  = weaponState();
   const auto act = fghAlgo.nextFromQueue(*this,*currentTarget,owner.script());
 
   // NOTE: in original-game, this behaviour seem to be hardcoded
@@ -1751,13 +1752,18 @@ bool Npc::implAttack(uint64_t dt) {
     return true;
     }
 
-  if(act==FightAlgo::MV_MOVEA || act==FightAlgo::MV_MOVEG ||
-     act==FightAlgo::MV_TURNA || act==FightAlgo::MV_TURNG) {
+  if(act==FightAlgo::MV_MOVE || act==FightAlgo::MV_TURN) {
     const bool prGRange = fghAlgo.isInGRange(*this, *currentTarget, owner.script());
+    const bool prWRange = fghAlgo.isInWRange(*this, *currentTarget, owner.script());
     const auto prBs     = bs;
 
-    if(!(mvAlgo.checkLastBounce() && implTurnTo(*currentTarget,dt))) {
-      go2.set(currentTarget, GoToHint::GT_EnemyA);
+    if(prWRange) {
+      //NOTE: bloodfly and other monsters may run to close to player otherwise
+      setAnim(Anim::Idle);
+      implTurnTo(*currentTarget,dt);
+      }
+    else if(!(mvAlgo.checkLastBounce() && implTurnTo(*currentTarget,dt))) {
+      go2.set(currentTarget, GoToHint::GT_Enemy);
       implGoTo(dt);
       go2.clear();
       }
@@ -2262,7 +2268,7 @@ void Npc::tick(uint64_t dt) {
   if(dbg && !isPlayer() && hnpc->id!=kId)
     return;
 
-  assert(go2.flag!=GoToHint::GT_EnemyG && go2.flag!=GoToHint::GT_EnemyA);
+  assert(go2.flag!=GoToHint::GT_Enemy && go2.flag!=GoToHint::GT_EnemyG);
 
   tickAnimationTags();
 
