@@ -948,7 +948,7 @@ bool MdlVisual::startAnimDialog(Npc &npc) {
 void MdlVisual::startMMAnim(Npc&, std::string_view anim, std::string_view bone) {
   MdlVisual::MeshAttach* mesh[] = {&head,&sword,&shield,&bow,&ammunition,&stateItm};
   for(auto i:mesh) {
-    if(i->bone!=bone)
+    if(i->bone!=bone && !bone.empty())
       continue;
     i->view.startMMAnim(anim,1,uint64_t(-1));
     }
