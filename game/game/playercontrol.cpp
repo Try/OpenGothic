@@ -640,7 +640,8 @@ void PlayerControl::implMove(uint64_t dt) {
         ret = pl.drawWeaponFist();
       wctrl[WeaponMele] = !ret;
       wctrlLast         = WeaponMele;
-      return;
+      if(!wctrl[WeaponMele])
+        return;
       }
     if(wctrl[WeaponBow]) {
       if(pl.currentRangedWeapon()!=nullptr) {
@@ -649,7 +650,8 @@ void PlayerControl::implMove(uint64_t dt) {
         } else {
         wctrl[WeaponBow] = false;
         }
-      return;
+      if(!wctrl[WeaponBow])
+        return;
       }
     for(uint8_t i=0;i<8;++i) {
       if(wctrl[Weapon3+i]){
@@ -664,8 +666,8 @@ void PlayerControl::implMove(uint64_t dt) {
             }
           } else {
           wctrl[Weapon3+i] = false;
+          return;
           }
-        return;
         }
       }
     }
