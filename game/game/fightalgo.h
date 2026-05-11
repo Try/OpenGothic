@@ -46,14 +46,14 @@ class FightAlgo final {
     float  qDistTo(const Npc& npc, const Npc& tg) const;
     auto   distVec(const Npc& npc, const Npc& tg) const -> Tempest::Vec3;
 
-    float  baseDistance           (const Npc &npc, const Npc &tg,  GameScript &owner) const;
+    float  baseDistance           (const Npc &npc, const Npc &tg, GameScript &owner) const;
     float  prefferedAttackDistance(const Npc &npc, const Npc &tg, GameScript &owner) const;
     float  prefferedGDistance     (const Npc &npc, const Npc &tg, GameScript &owner) const;
     float  attackFinishDistance   (GameScript &owner) const;
 
     bool   isInAttackRange        (const Npc &npc, const Npc &tg, GameScript &owner) const;
     bool   isInFinishRange        (const Npc &npc, const Npc &tg, GameScript &owner) const;
-    bool   isInBaseRange          (const Npc &npc, const Npc &tg, GameScript &owner) const;
+    bool   isInCloseupRange       (const Npc &npc, const Npc &tg, GameScript &owner) const;
     bool   isInWRange             (const Npc &npc, const Npc &tg, GameScript &owner) const;
     bool   isInGRange             (const Npc &npc, const Npc &tg, GameScript &owner) const;
     bool   isInFocusAngle         (const Npc &npc, const Npc &tg) const;

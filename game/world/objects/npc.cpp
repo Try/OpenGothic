@@ -743,8 +743,22 @@ float Npc::qDistTo(const Item& p) const {
   return qDistTo(pos);
   }
 
-float Npc::fightDistanceTo(const Npc& tg) const {
-  return DynamicWorld::npcDistance(physic, tg.physic);
+Tempest::Vec3 Npc::fightDistanceTo(const Npc& tg) const {
+  //NOTE: game script decribe comabt distance as distance between BIP01
+  // however, in practice, it's easier and more relieble to use rootTr
+  Vec3 cen, tgCen;
+  if(auto sk = visual.visualSkeleton()) {
+    cen = sk->rootTr;
+    transform().project(cen);
+    }
+  cen += position();
+
+  if(auto sk = tg.visual.visualSkeleton()) {
+    tgCen = sk->rootTr;
+    transform().project(tgCen);
+    }
+  tgCen += tg.position();
+  return (cen-tgCen);
   }
 
 uint8_t Npc::calcAniComb() const {
@@ -1551,8 +1565,8 @@ bool Npc::implAttack(uint64_t dt) {
     if(hasAutoroll()) {
       implTurnToFai(*currentTarget,dt);
       mvAlgo.tick(dt,MoveAlgo::FaiMove);
+      return true;
       }
-    return true;
     }
 
   if(!fghAlgo.hasInstructions())
@@ -1579,7 +1593,8 @@ bool Npc::implAttack(uint64_t dt) {
   // NOTE: in original-game, this behaviour seem to be hardcoded
   // test case: wolf jump-back quite often when close, but programmed to jump only if attacked
   // so far promoting wait to jump seem to work best
-  const bool jmp = hasAutoroll() && fghAlgo.isInBaseRange(*this,*currentTarget,owner.script());
+  //const bool jmp = /*hasAutoroll() &&*/ ;
+  const bool jmp = fghAlgo.isInCloseupRange(*this,*currentTarget,owner.script()) && fghAlgo.isInFocusAngle(*this,*currentTarget);
 
   // vanilla behavior, required for orcs in G1 orcgraveyard
   if(ws==WeaponState::NoWeapon && isAiQueueEmpty() && canSwitchWeapon()) {
@@ -1614,8 +1629,6 @@ bool Npc::implAttack(uint64_t dt) {
 
   if(act==FightAlgo::MV_ATTACK || act==FightAlgo::MV_ATTACKL || act==FightAlgo::MV_ATTACKR) {
     //NOTE: FIGHT_DIST_CANCEL in scipts is often longer, than senses_range of npc
-    //const auto tgPos = currentTarget->centerPosition();
-    //const auto sense = canRayHitPoint(centerPosition(),tgPos,5.f,MaxFightRange);
     const auto sense = fghAlgo.isInFocusAngle(*this,*currentTarget,5.f);
     if(!sense) {
       implTurnToFai(*currentTarget,dt);
@@ -1759,7 +1772,6 @@ bool Npc::implAttack(uint64_t dt) {
     if(setAnim(Npc::Anim::MoveBack)) {
       implFaiWait(visual.pose().animationTotalTime());
       fghAlgo.consumeAction();
-      aiState.loopNextTime = owner.tickCount(); // force ZS_MM_Attack_Loop call
       }
     return true;
     }

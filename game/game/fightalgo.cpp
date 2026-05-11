@@ -232,11 +232,11 @@ void FightAlgo::onTakeHit() {
   }
 
 float FightAlgo::qDistTo(const Npc& npc, const Npc& tg) const {
-  return (npc.collosionCenter() - tg.collosionCenter()).quadLength();
+  return npc.fightDistanceTo(tg).quadLength();
   }
 
 auto FightAlgo::distVec(const Npc& npc, const Npc& tg) const -> Tempest::Vec3 {
-  return npc.collosionCenter() - tg.collosionCenter();
+  return npc.fightDistanceTo(tg);
   }
 
 float FightAlgo::baseDistance(const Npc& npc, const Npc& tg,  GameScript &owner) const {
@@ -249,7 +249,7 @@ float FightAlgo::baseDistance(const Npc& npc, const Npc& tg,  GameScript &owner)
 float FightAlgo::prefferedAttackDistance(const Npc& npc, const Npc& tg,  GameScript &owner) const {
   auto&  gv      = owner.guildVal();
   float  baseTg  = float(gv.fight_range_base[tg.guild()]);
-  float  baseNpc = 60; //float(gv.fight_range_base[npc.guild()]);
+  float  baseNpc = float(gv.fight_range_base[npc.guild()]);
   return baseTg + baseNpc + weaponRange(owner,npc);
   }
 
@@ -257,8 +257,8 @@ float FightAlgo::prefferedGDistance(const Npc& npc, const Npc& tg, GameScript &o
   auto   gl      = npc.guild();
   auto&  gv      = owner.guildVal();
   float  baseTg  = float(gv.fight_range_base[tg.guild()]);
-  //float  baseNpc = float(gv.fight_range_base[npc.guild()]);
-  return float(baseTg + float(gv.fight_range_g[gl])) + weaponRange(owner,npc);
+  float  baseNpc = float(gv.fight_range_base[npc.guild()]);
+  return float(baseTg + baseNpc + float(gv.fight_range_g[gl])) + weaponRange(owner,npc);
   }
 
 float FightAlgo::attackFinishDistance(GameScript &owner) const {
@@ -273,22 +273,21 @@ float FightAlgo::attackFinishDistance(GameScript &owner) const {
   }
 
 bool FightAlgo::isInAttackRange(const Npc &npc, const Npc &tg, GameScript &owner) const {
-  //auto dist1 = std::sqrt(qDistTo(npc, tg)); (void)dist1;
-  auto dist = npc.fightDistanceTo(tg);
+  auto dist = qDistTo(npc, tg);
   auto pd   = prefferedAttackDistance(npc,tg,owner);
-  return (dist<=pd);
+  return (dist<=pd*pd);
   }
 
 bool FightAlgo::isInFinishRange(const Npc& npc, const Npc& tg, GameScript& owner) const {
-  auto dist = npc.fightDistanceTo(tg);
+  auto dist = qDistTo(npc, tg);
   auto pd   = attackFinishDistance(owner);
-  return (dist<=pd);
+  return (dist<=pd*pd);
   }
 
-bool FightAlgo::isInBaseRange(const Npc& npc, const Npc& tg, GameScript& owner) const {
-  // auto dist = npc.fightDistanceTo(tg);
+bool FightAlgo::isInCloseupRange(const Npc& npc, const Npc& tg, GameScript& owner) const {
+  // script: automatic movement of the figure (if too close) to 0.75*FightRange
   auto dist = qDistTo(npc, tg);
-  auto pd   = baseDistance(npc,tg,owner);
+  auto pd   = baseDistance(npc,tg,owner) * 0.75f;
   return (dist<=pd*pd);
   }
 
@@ -296,18 +295,16 @@ bool FightAlgo::isInWRange(const Npc& npc, const Npc& tg, GameScript& owner) con
   // tested in vanilla on Bloofly's:
   //  60 weapon range (Spiked club) is not enough to hit
   //  70 weapon range (Rusty Sword) is good to hit
-  static float padding = 10; // padding
-  //auto dist = qDistTo(npc, tg);
-  auto dist = npc.fightDistanceTo(tg);
+  static float padding = 0; // padding
+  auto dist = qDistTo(npc, tg);
   auto pd   = prefferedAttackDistance(npc,tg,owner) + padding;
-  return (dist<=pd);
+  return (dist<=pd*pd);
   }
 
 bool FightAlgo::isInGRange(const Npc &npc, const Npc &tg, GameScript &owner) const {
-  //auto dist = qDistTo(npc, tg);
-  auto dist = npc.fightDistanceTo(tg);
+  auto dist = qDistTo(npc, tg);
   auto pd   = prefferedGDistance(npc,tg,owner);
-  return (dist<=pd);
+  return (dist<=pd*pd);
   }
 
 bool FightAlgo::isInFocusAngle(const Npc &npc, const Npc &tg) const {
@@ -353,6 +350,12 @@ bool FightAlgo::isInJumpBackAngle(const Npc& npc, const Npc& tg) const {
   }
 
 float FightAlgo::weaponRange(GameScript &owner, const Npc &npc) {
+  /*
+  NOTE: comments from G2 scripts:
+    Bip01 bis BBox
+    FAI_W = BASE + ItemRange (or Fist)
+    FAI_G = BASE + ItemRange (or Fist) + G
+  */
   auto  gl  = npc.guild();
   auto& gv  = owner.guildVal();
   auto  w   = npc.inventory().activeWeapon();

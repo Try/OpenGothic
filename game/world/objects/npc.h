@@ -133,7 +133,7 @@ class Npc final {
     float      qDistTo(const Npc& p) const;
     float      qDistTo(const Interactive& p) const;
     float      qDistTo(const Item& p) const;
-    float      fightDistanceTo(const Npc& npc) const;
+    auto       fightDistanceTo(const Npc& npc) const -> Tempest::Vec3;
 
     void       updateAnimation(uint64_t dt, bool force = false);
     void       updateTransform();
