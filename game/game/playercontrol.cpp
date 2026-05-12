@@ -750,7 +750,7 @@ void PlayerControl::implMove(uint64_t dt) {
   if(ws==WeaponState::Mage) {
     if(actrl[ActGeneric] || actrl[ActForward] || ctrl[KeyCodec::ActionGeneric]) {
       if(auto other = pl.target()) {
-        auto dp = other->position()-pl.position();
+        auto dp = other->centerPosition() - pl.centerPosition();
         pl.turnTo(dp.x,dp.z,true,dt);
         } else
       if(currentFocus.interactive!=nullptr) {
@@ -1087,7 +1087,7 @@ void PlayerControl::processAutoRotate(Npc& pl, float& rot, uint64_t dt) {
       pl.setTarget(nullptr);
       }
     else if(!pl.isAttack()) {
-      auto  dp   = other->position()-pl.position();
+      auto  dp   = other->centerPosition() - pl.centerPosition();
       auto  gl   = pl.guild();
       float step = float(pl.world().script().guildVal().turn_speed[gl]);
       if(actrl[ActGeneric])

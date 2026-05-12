@@ -489,7 +489,6 @@ class Npc final {
     bool      implLookAt (float dx, float dy, float dz, uint64_t dt);
     bool      implTurnAway(const Npc& oth, uint64_t dt);
     bool      implTurnToFai(const Npc& oth, uint64_t dt);
-    bool      implTurnToFai(const Npc& oth, AnimationSolver::TurnType anim, uint64_t dt);
     bool      implTurnTo (const Npc& oth, uint64_t dt);
     bool      implTurnTo (const Npc& oth, AnimationSolver::TurnType anim, uint64_t dt);
     bool      implTurnTo (const WayPoint* wp, AnimationSolver::TurnType anim, uint64_t dt);

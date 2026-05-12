@@ -926,7 +926,7 @@ void MoveAlgo::onMoveFailed(const Tempest::Vec3& dp, const DynamicWorld::Collisi
   if(npc.processPolicy()!=NpcProcessPolicy::Player && bump) {
     lastBounce = npc.world().tickCount();
     if(info.npc!=nullptr)
-      lastBounce += 500; else
+      lastBounce += 800; else
       lastBounce += 750;
     }
 

@@ -1420,25 +1420,33 @@ bool Npc::implTurnAway(const Npc &oth, uint64_t dt) {
   }
 
 bool Npc::implTurnToFai(const Npc& oth, uint64_t dt) {
-  auto ws   = weaponState();
-  auto anim = !hasAutoroll() ? AnimationSolver::TurnType::None : AnimationSolver::TurnType::Std;
-  if(ws==WeaponState::Bow || ws==WeaponState::CBow || ws==WeaponState::Mage) {
-    anim = AnimationSolver::TurnType::None;
-    }
-  return implTurnToFai(oth, anim, dt);
-  }
-
-bool Npc::implTurnToFai(const Npc& oth, AnimationSolver::TurnType anim, uint64_t dt) {
   if(&oth==this || oth.isDown())
     return false;
+
   auto ws = weaponState();
   if(ws==WeaponState::NoWeapon)
     return false;
-  const auto dpos = currentTarget->collosionCenter() - collosionCenter();
+
   auto  gl   = guild();
-  float step = float(owner.script().guildVal().turn_speed[gl]);
-  step *= 2.f; // faster in combat
-  return rotateTo(dpos.x,dpos.z,step,anim,dt);
+  auto& gv   = owner.script().guildVal();
+  float step = float(gv.turn_speed[gl]);
+  //auto  dpos = fghAlgo.distVec(*currentTarget, *this);
+  auto dpos = currentTarget->collosionCenter() - collosionCenter();
+
+  // vanilla has a bug(or quirk) apparently, for that
+  // also would need to fallthru in FAI code, if no animation is performed
+  bool skipAnim = gv.turn_speed[gl] >= 100;
+  auto anim = skipAnim ? AnimationSolver::TurnType::None : AnimationSolver::TurnType::Std;
+  if(ws==WeaponState::Bow || ws==WeaponState::CBow || ws==WeaponState::Mage) {
+    anim = AnimationSolver::TurnType::None;
+    }
+
+  auto bs = bodyStateMasked();
+  if(bs!=BS_HIT) {
+    //NOTE: Troll rotates during the hit, but not very fast - seem to be regulat speed
+    step *= 2.f; // faster in combat
+    }
+  return rotateTo(dpos.x,dpos.z,step,anim,dt) && !skipAnim;
   }
 
 bool Npc::implTurnTo(const Npc &oth, uint64_t dt) {
@@ -1561,12 +1569,10 @@ bool Npc::implAttack(uint64_t dt) {
   const auto bs = bodyStateMasked();
 
   if(bs==BS_HIT && (ws==WeaponState::Fist || ws==WeaponState::W1H || ws==WeaponState::W2H)) {
-    // NOTE: 'storm' attack has BS_RUN state and not meant to be auto-rotated
-    if(hasAutoroll()) {
-      implTurnToFai(*currentTarget,dt);
-      mvAlgo.tick(dt,MoveAlgo::FaiMove);
-      return true;
-      }
+    //NOTE: 'storm' attack has BS_RUN state and not meant to be auto-rotated
+    implTurnToFai(*currentTarget,dt);
+    mvAlgo.tick(dt,MoveAlgo::FaiMove);
+    return true;
     }
 
   if(!fghAlgo.hasInstructions())
@@ -1593,7 +1599,6 @@ bool Npc::implAttack(uint64_t dt) {
   // NOTE: in original-game, this behaviour seem to be hardcoded
   // test case: wolf jump-back quite often when close, but programmed to jump only if attacked
   // so far promoting wait to jump seem to work best
-  //const bool jmp = /*hasAutoroll() &&*/ ;
   const bool jmp = fghAlgo.isInCloseupRange(*this,*currentTarget,owner.script()) && fghAlgo.isInFocusAngle(*this,*currentTarget);
 
   // vanilla behavior, required for orcs in G1 orcgraveyard
@@ -1635,6 +1640,10 @@ bool Npc::implAttack(uint64_t dt) {
       mvAlgo.tick(dt,MoveAlgo::FaiMove);
       return true;
       }
+#if 0
+    fghAlgo.consumeAction(); //debug
+    return true;
+#endif
 
     static const Anim ani[4] = {Anim::Attack, Anim::AttackL, Anim::AttackR};
     if((act!=FightAlgo::MV_ATTACK && bodyState()!=BS_RUN) &&
@@ -1787,12 +1796,7 @@ bool Npc::implAttack(uint64_t dt) {
       implTurnToFai(*currentTarget,dt);
       } else {
       if(mvAlgo.checkLastBounce()) {
-        auto anim = AnimationSolver::TurnType::None;
-        if(prGRange) {
-          // note: scaveger stops before rotation
-          anim = AnimationSolver::TurnType::Std;
-          }
-        if(implTurnToFai(*currentTarget,anim,dt) && anim==AnimationSolver::TurnType::Std)
+        if(implTurnToFai(*currentTarget,dt))
           return true;
         }
       setAnim(AnimationSolver::Move);
@@ -1803,7 +1807,7 @@ bool Npc::implAttack(uint64_t dt) {
 
     const bool isGRange = fghAlgo.isInGRange(*this, *currentTarget, owner.script());
     const bool isWRange = fghAlgo.isInWRange(*this, *currentTarget, owner.script());
-    const bool isFocus  = fghAlgo.isInFocusAngle(*this, *currentTarget);
+    const bool isFocus  = fghAlgo.isInFocusAngle(*this, *currentTarget, 5.f);
 
     if((isWRange || (isGRange!=prGRange) || prBs!=bodyStateMasked()) && isFocus) {
       visual.setAnimRotate(*this, 0);
@@ -2002,7 +2006,7 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const VisualFx* vfx, int32_t s
     return;
 
   lastHitSpell = splId;
-  lastHit = &other;
+  lastHit      = &other;
   if(!isPlayer())
     setOther(&other);
 
@@ -2051,7 +2055,8 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
 
   if(hitResult.hasHit) {
     auto state = bodyStateMasked();
-    if(interactive()==nullptr && (state&BS_FLAG_INTERRUPTABLE)!=BS_NONE) {
+    if(interactive()==nullptr && ((state&BS_FLAG_INTERRUPTABLE)!=BS_NONE || state==BS_RUN || state==BS_NONE)) {
+      //NONE/RUN requires for monsters like waran
       const bool noInter = (hnpc->bodystate_interruptable_override!=0);
       if(!noInter) {
         //NOTE: kepp rotation animation: this results in more accurate fight with trolls
@@ -2501,6 +2506,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       owner.script().eventPlayAni(*this, act.s0);
       if(auto sq = playAnimByName(act.s0,BS_NONE)) {
         implAniWait(uint64_t(sq->totalTime()));
+        implFaiWait(uint64_t(sq->totalTime()));
         } else {
         if(visual.hasAnim(act.s0))
           queue.pushFront(std::move(act));
@@ -2511,6 +2517,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       BodyState bs = BodyState(act.i0);
       if(auto sq = playAnimByName(act.s0,bs)) {
         implAniWait(uint64_t(sq->totalTime()));
+        implFaiWait(uint64_t(sq->totalTime()));
         } else {
         if(visual.hasAnim(act.s0)) {
           queue.pushFront(std::move(act));

@@ -44,7 +44,6 @@ class FightAlgo final {
     bool   hasInstructions() const;
     bool   fetchInstructions(Npc &npc, Npc &tg, GameScript& owner);
     float  qDistTo(const Npc& npc, const Npc& tg) const;
-    auto   distVec(const Npc& npc, const Npc& tg) const -> Tempest::Vec3;
 
     float  baseDistance           (const Npc &npc, const Npc &tg, GameScript &owner) const;
     float  prefferedAttackDistance(const Npc &npc, const Npc &tg, GameScript &owner) const;
@@ -64,6 +63,7 @@ class FightAlgo final {
     void   fillQueue(Npc &npc, Npc &tg, GameScript& owner);
     bool   fillQueue(GameScript& owner, const zenkit::IFightAi& src);
 
+    static bool   angleTest(const Npc& npc, const Npc& tg, float cosMax);
     static float  weaponRange(GameScript &owner,const Npc &npc);
 
     zenkit::FightAiMove queueId = zenkit::FightAiMove::NOP;

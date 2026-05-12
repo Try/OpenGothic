@@ -10,7 +10,7 @@ class Bullet;
 class DamageCalculator {
   public:
     enum {
-      MinDamage = 5,
+      MinDamage = 5, //TODO: NPC_MINIMAL_DAMAGE?
       };
 
     struct Val final {

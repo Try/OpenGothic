@@ -25,6 +25,11 @@ DamageCalculator::Val DamageCalculator::damageValue(Npc& src, Npc& other, const 
     ret = swordDamage(src,other);
     }
 
+#if 0
+  // debug
+  ret.value = MinDamage;
+#endif
+
   if(ret.hasHit && !ret.invincible && Gothic::inst().version().game==2)
     ret.value = std::max<int32_t>(ret.value,MinDamage);
   return ret;

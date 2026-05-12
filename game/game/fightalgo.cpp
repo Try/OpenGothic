@@ -229,14 +229,11 @@ void FightAlgo::onTakeHit() {
   hitFlg = true;
   for(auto& i:tr)
     i = MV_NULL;
+  queueId = zenkit::FightAiMove::NOP;
   }
 
 float FightAlgo::qDistTo(const Npc& npc, const Npc& tg) const {
   return npc.fightDistanceTo(tg).quadLength();
-  }
-
-auto FightAlgo::distVec(const Npc& npc, const Npc& tg) const -> Tempest::Vec3 {
-  return npc.fightDistanceTo(tg);
   }
 
 float FightAlgo::baseDistance(const Npc& npc, const Npc& tg,  GameScript &owner) const {
@@ -309,42 +306,28 @@ bool FightAlgo::isInGRange(const Npc &npc, const Npc &tg, GameScript &owner) con
 
 bool FightAlgo::isInFocusAngle(const Npc &npc, const Npc &tg) const {
   static const float maxAngle = std::cos(float(30.0*M_PI/180.0));
-
-  const auto  dpos  = distVec(tg, npc);
-  const float plAng = npc.rotationRad();
-
-  const float da = plAng-std::atan2(dpos.z,dpos.x);
-  const float c  = std::cos(da);
-
-  if(c<maxAngle)
-    return false;
-  return true;
+  return angleTest(npc, tg, maxAngle);
   }
 
 bool FightAlgo::isInFocusAngle(const Npc& npc, const Npc& tg, float ang) const {
-  static const float maxAngle = std::cos(float(ang*M_PI/180.0));
-
-  const auto  dpos  = distVec(tg, npc);
-  const float plAng = npc.rotationRad();
-
-  const float da = plAng-std::atan2(dpos.z,dpos.x);
-  const float c  = std::cos(da);
-
-  if(c<maxAngle)
-    return false;
-  return true;
+  const float maxAngle = std::cos(float(ang*M_PI/180.0));
+  return angleTest(npc, tg, maxAngle);
   }
 
 bool FightAlgo::isInJumpBackAngle(const Npc& npc, const Npc& tg) const {
   static const float maxAngle = std::cos(float(90.0*M_PI/180.0));
+  return angleTest(npc, tg, maxAngle);
+  }
 
-  const auto  dpos  = distVec(tg, npc);
+bool FightAlgo::angleTest(const Npc& npc, const Npc& tg, float cosMax) {
+  // must be consistent with collisions
+  const auto  dpos = tg.collosionCenter() - npc.collosionCenter();
   const float plAng = npc.rotationRad();
 
   const float da = plAng-std::atan2(dpos.z,dpos.x);
   const float c  = std::cos(da);
 
-  if(c<maxAngle)
+  if(c<cosMax)
     return false;
   return true;
   }
