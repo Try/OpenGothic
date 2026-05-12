@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cassert>
+#include <cstddef>
 
 #include "graphics/mesh/submesh/packedmesh.h"
 #include "world/objects/item.h"
@@ -182,7 +183,7 @@ struct DynamicWorld::NpcBodyList final {
       if(arr[i].body!=b)
         continue;
       if(preserveOrder) {
-        arr.erase(arr.begin()+ssize_t(i));
+        arr.erase(arr.begin()+ptrdiff_t(i));
         } else {
         arr[i]=arr.back();
         arr.pop_back();
