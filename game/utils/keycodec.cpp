@@ -136,6 +136,10 @@ KeyCodec::Mapping KeyCodec::mapping(Tempest::KeyEvent const& e) const {
   return implTr(keyToCode(e.key)).mapping;
   }
 
+KeyCodec::Mapping KeyCodec::mapping(const Tempest::MouseEvent& e) const {
+  return implTr(keyToCode(e.button)).mapping;
+  }
+
 void KeyCodec::set(std::string_view sec, std::string_view opt, int32_t code) {
   for(auto i:allKeys) {
     const bool chg = i->is(code);

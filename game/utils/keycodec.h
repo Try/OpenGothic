@@ -87,6 +87,7 @@ class KeyCodec final {
     /// @param e The key event.
     /// @return Requested mapping of an action.
     Mapping       mapping(Tempest::KeyEvent const& e) const;
+    Mapping       mapping(Tempest::MouseEvent const& e) const;
 
     void          set(std::string_view section, std::string_view key, int32_t code);
     void          clear(std::string_view section, std::string_view key);

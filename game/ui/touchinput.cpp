@@ -24,7 +24,7 @@ void TouchInput::mouseDownEvent(Tempest::MouseEvent& e) {
     }
 
   mpos = e.pos();
-  ctrl.onKeyPressed(KeyCodec::Forward, KeyEvent::K_NoKey);
+  ctrl.onKeyPressed(KeyCodec::Forward, KeyEvent::K_NoKey, KeyCodec::Mapping::Primary);
   }
 
 void TouchInput::mouseDragEvent(Tempest::MouseEvent& e) {
@@ -37,5 +37,5 @@ void TouchInput::mouseDragEvent(Tempest::MouseEvent& e) {
   }
 
 void TouchInput::mouseUpEvent(Tempest::MouseEvent& e) {
-  ctrl.onKeyReleased(KeyCodec::Forward);
+  ctrl.onKeyReleased(KeyCodec::Forward, KeyCodec::Mapping::Primary);
   }

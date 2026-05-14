@@ -307,11 +307,15 @@ void MainWindow::resizeEvent(SizeEvent&) {
 void MainWindow::mouseDownEvent(MouseEvent &event) {
   if(event.button<sizeof(mouseP))
     mouseP[event.button]=true;
-  player.onKeyPressed(keycodec.tr(event),KeyEvent::K_NoKey);
+  auto act     = keycodec.tr(event);
+  auto mapping = keycodec.mapping(event);
+  player.onKeyPressed(act,KeyEvent::K_NoKey,mapping);
   }
 
 void MainWindow::mouseUpEvent(MouseEvent &event) {
-  player.onKeyReleased(keycodec.tr(event));
+  auto act     = keycodec.tr(event);
+  auto mapping = keycodec.mapping(event);
+  player.onKeyReleased(act,mapping);
   if(event.button<sizeof(mouseP))
     mouseP[event.button]=false;
   }
@@ -450,7 +454,7 @@ void MainWindow::keyDownEvent(KeyEvent &event) {
     }
   uiKeyUp=nullptr;
 
-  auto act = keycodec.tr(event);
+  auto act     = keycodec.tr(event);
   auto mapping = keycodec.mapping(event);
   player.onKeyPressed(act,event.key,mapping);
 
