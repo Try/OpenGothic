@@ -182,8 +182,10 @@ bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *s
         stopItemStateAnim(solver,tickCount);
         return false;
         }
+      //WA: Emulate behaviour of vanilla: lurker skips transition animations when entering the water
+      const bool swimFix = (i.sAnim==tickCount && i.bs==BS_SWIM && bs==BS_SWIM);
       const Animation::Sequence* tr=nullptr;
-      if(i.seq->shortName!=nullptr && sq->shortName!=nullptr && i.sAnim!=tickCount) {
+      if(i.seq->shortName!=nullptr && sq->shortName!=nullptr && !swimFix) {
         string_frm tansition("T_",i.seq->shortName,"_2_",sq->shortName);
         tr = solver.solveFrm(tansition);
         }

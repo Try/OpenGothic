@@ -159,7 +159,6 @@ const Animation::Sequence* AnimationSolver::implSolveAnim(AnimationSolver::Anim 
         return solveFrm("T_%sRELOAD",st);
       if(bs==BS_AIMNEAR || bs==BS_AIMFAR || pose.isStanding())
         return solveFrm("S_%sAIM",st);
-      return solveFrm("S_%sRUN",st);
       }
     if(a==Attack) {
       auto bs = pose.bodyState();

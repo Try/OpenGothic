@@ -1680,11 +1680,6 @@ bool Npc::implAttack(uint64_t dt) {
       }
 
     if(ws==WeaponState::Mage) {
-      if(bs==BS_RUN) {
-        setAnim(Npc::Anim::Idle);
-        return false;
-        }
-      setAnimRotate(0);
       const auto cast = beginCastSpell();
       if(cast==BeginCastResult::BC_No)
         return false;
@@ -1693,11 +1688,9 @@ bool Npc::implAttack(uint64_t dt) {
     else if(ws==WeaponState::Bow || ws==WeaponState::CBow) {
       if(shootBow()) {
         fghAlgo.consumeAction();
-        } else {
-        if(!implTurnToFai(*currentTarget,dt)) {
-          if(!aimBow())
-            setAnim(Anim::Idle);
-          }
+        }
+      else if(!implTurnToFai(*currentTarget,dt)) {
+        aimBow();
         }
       }
     else if(ws==WeaponState::Fist || ws==WeaponState::W1H || ws==WeaponState::W2H) {
@@ -3845,13 +3838,15 @@ Npc::BeginCastResult Npc::beginCastSpell() {
   if(castLevel!=CS_NoCast)
     return BeginCastResult::BC_No;
 
-  if(!isStanding())
+  auto bs = bodyStateMasked();
+  if(bs!=BS_STAND)
     return BeginCastResult::BC_No;
 
   auto active=invent.activeWeapon();
   if(active==nullptr)
     return BeginCastResult::BC_No;
 
+  setAnimRotate(0);
   if(attribute(ATR_MANA)<=0) {
     setAnim(Anim::MagNoMana);
     return BeginCastResult::BC_NoMana;
@@ -4024,6 +4019,11 @@ bool Npc::aimBow() {
   auto active=invent.activeWeapon();
   if(active==nullptr)
     return false;
+  auto bs = bodyStateMasked();
+  if(bs!=BS_STAND && bs!=BS_AIMNEAR && bs!=BS_AIMFAR && bs!=BS_HIT) {
+    setAnim(Anim::Idle);
+    return false;
+    }
   if(!setAnim(Anim::AimBow))
     return false;
   visual.setAnimRotate(*this,0);
@@ -4036,7 +4036,7 @@ bool Npc::shootBow(Interactive* focOverride) {
     return false;
 
   auto bs = bodyStateMasked();
-  if(bs==BS_RUN) {
+  if(bs!=BS_STAND && bs!=BS_AIMNEAR && bs!=BS_AIMFAR && bs!=BS_HIT) {
     setAnim(Anim::Idle);
     return true;
     }

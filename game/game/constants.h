@@ -150,6 +150,7 @@ enum BodyState:uint32_t {
   BS_FLAG_INTERRUPTABLE    = 1 << 15,
   BS_FLAG_FREEHANDS        = 1 << 16,
 
+  BS_STAND                 = BS_FLAG_INTERRUPTABLE | BS_FLAG_FREEHANDS,
   BS_MOD_MASK              = BS_MOD_HIDDEN | BS_MOD_DRUNK | BS_MOD_NUTS | BS_MOD_BURNING | BS_MOD_CONTROLLED,
   BS_FLAG_MASK             = BS_FLAG_INTERRUPTABLE | BS_FLAG_FREEHANDS,
 
@@ -184,7 +185,6 @@ enum BodyState:uint32_t {
   BS_PETRIFIED             = 29,
   BS_CONTROLLING           = 30 | BS_FLAG_INTERRUPTABLE,
   BS_MAX                   = 31,
-  BS_STAND                 = BS_FLAG_INTERRUPTABLE | BS_FLAG_FREEHANDS,
 
   BS_MAX_FLAGS             = BS_MAX | BS_MOD_MASK | BS_FLAG_MASK,
   };

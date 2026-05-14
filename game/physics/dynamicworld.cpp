@@ -271,8 +271,8 @@ struct DynamicWorld::NpcBodyList final {
     const float acos = std::cos(npc.angle), asin = std::sin(npc.angle);
     const auto  pos  = npc.pos + npc.offsetCenter(acos, asin);
 
-    const float t = rayEllipseTest(s, dir, pos, npc.bboxSize+extR);
-    //const float t = raySphereTest(s, dir, pos, npc.r+extR);
+    static float multiplyer = 2; // to address overly small bboxes
+    const float t = rayEllipseTest(s, dir, pos, npc.bboxSize*multiplyer+extR);
     if(t<0.f || t>=tMax)
       return false;
     proj = t;

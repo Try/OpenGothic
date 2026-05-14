@@ -728,12 +728,16 @@ void PlayerControl::implMove(uint64_t dt) {
         auto dp = other->position()-pl.position();
         pl.turnTo(dp.x,dp.z,true,dt);
         pl.aimBow();
-        } else
-      if(currentFocus.interactive!=nullptr) {
+        }
+      else if(currentFocus.interactive!=nullptr) {
         auto dp = currentFocus.interactive->position()-pl.position();
         pl.turnTo(dp.x,dp.z,false,dt);
+        pl.aimBow();
         }
-      pl.aimBow();
+      else {
+        pl.aimBow();
+        }
+
       if(actrl[ActLeft]) {
         moveFocus(ActLeft);
         actrl[ActLeft]  = false;

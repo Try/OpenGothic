@@ -767,7 +767,7 @@ bool MdlVisual::startAnim(Npc &npc, WeaponState st) {
   const Animation::Sequence *sq = solver.solveAnim(st,fgtMode,run);
   if(sq==nullptr)
     return false;
-  if(skInst->startAnim(solver,sq,0,run ? BS_RUN : BS_NONE,Pose::NoHint,npc.world().tickCount()))
+  if(skInst->startAnim(solver,sq,0,run ? BS_RUN : BS_STAND,Pose::NoHint,npc.world().tickCount()))
     return true;
   return false;
   }
