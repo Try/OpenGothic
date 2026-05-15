@@ -1785,7 +1785,9 @@ bool Npc::implAttack(uint64_t dt) {
 
     if(prWRange) {
       //NOTE: bloodfly and other monsters may run to close to player otherwise
-      setAnim(Anim::Idle);
+      //NOTE2: also for bloodfly we have to use 'hard-stop', to avoid trailing flight
+      visual.stopWalkAnim(*this);
+      //setAnim(Anim::Idle);
       implTurnToFai(*currentTarget,dt);
       } else {
       if(mvAlgo.checkLastBounce()) {
