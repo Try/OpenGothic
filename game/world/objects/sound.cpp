@@ -64,8 +64,8 @@ Sound& Sound::operator =(Sound&& other) {
 Sound::~Sound() {
   }
 
-Sound::Sound(const std::shared_ptr<WorldSound::Effect>& val)
-  :val(val) {
+Sound::Sound(const std::shared_ptr<WorldSound::Effect>& val, const Tempest::Vec3& pos)
+  :val(val), pos(pos) {
   }
 
 Tempest::Vec3 Sound::position() const {

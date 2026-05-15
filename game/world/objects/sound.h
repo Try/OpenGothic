@@ -34,7 +34,7 @@ class Sound final {
     uint64_t      effectPrefferedTime() const;
 
   private:
-    Sound(const std::shared_ptr<WorldSound::Effect>& val);
+    Sound(const std::shared_ptr<WorldSound::Effect>& val, const Tempest::Vec3& pos);
 
     std::shared_ptr<WorldSound::Effect> val;
     Tempest::Vec3                       pos;

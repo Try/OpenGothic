@@ -363,7 +363,6 @@ SoundFx *Gothic::loadSoundFx(std::string_view name) {
   }
 
 SoundFx *Gothic::loadSoundWavFx(std::string_view name) {
-  auto snd   = Resources::loadSoundBuffer(name);
   auto cname = std::string(name);
 
   std::lock_guard<std::mutex> guard(syncSnd);
@@ -372,6 +371,7 @@ SoundFx *Gothic::loadSoundWavFx(std::string_view name) {
     return &it->second;
 
   try {
+    auto snd = Resources::loadSoundBuffer(name);
     auto ret = sndWavCache.emplace(name,SoundFx(std::move(snd)));
     return &ret.first->second;
     }

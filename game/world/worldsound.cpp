@@ -119,7 +119,7 @@ Sound WorldSound::addDlgSound(std::string_view s, const Tempest::Vec3& pos, floa
   if(snd.isEmpty())
     return Sound();
 
-  auto ret = implAddSound(game.loadSound(snd), pos,range);
+  auto ret = implAddSound(game.loadSound(snd), pos, range);
   if(ret.isEmpty())
     return Sound();
 
@@ -150,7 +150,7 @@ Sound WorldSound::implAddSound(Tempest::SoundEffect&& eff, const Tempest::Vec3& 
   ex->maxDist = rangeMax;
   ex->setOcclusion(0);
 
-  return Sound(ex);
+  return Sound(ex, pos);
   }
 
 void WorldSound::tick(Npc& player) {
