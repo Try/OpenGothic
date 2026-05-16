@@ -131,6 +131,7 @@ target_link_libraries(${PROJECT_NAME} Tempest)
 
 # zip
 include_directories(lib/miniz)
+add_definitions(-DMINIZ_NO_STDIO)
 add_library(miniz STATIC "lib/miniz/miniz.h" "lib/miniz/miniz.c")
 target_link_libraries(${PROJECT_NAME} miniz)
 
