@@ -934,7 +934,7 @@ void WorldObjects::sendImmediatePerc(Npc& self, Npc& other, Npc& victim, Item* i
   }
 
 void WorldObjects::passivePerceptionProcess(PerceptionMsg& msg, Npc& npc, Npc& pl) {
-  if(npc.isPlayer() || npc.isDead())
+  if(npc.isPlayer() || npc.isDown())
     return;
 
   if(npc.processPolicy()!=NpcProcessPolicy::AiNormal)
@@ -949,28 +949,13 @@ void WorldObjects::passivePerceptionProcess(PerceptionMsg& msg, Npc& npc, Npc& p
   if(distance > range*range)
     return;
 
-  if(npc.isDown() || npc.isPlayer())
-    return;
-
   if(msg.other==nullptr)
     return;
 
-  /*
-  // active only
-  const bool active = isActivePerception(PercType(msg.what));
-  if(active && npc.canSenseNpc(*msg.other, true)==SensesBit::SENSE_NONE) {
-    return;
-    }
-
-  // approximation of behavior of original G2
-  if(active && msg.victim!=nullptr && npc.canSenseNpc(*msg.victim,true,float(msg.other->handle().senses_range))==SensesBit::SENSE_NONE) {
-    return;
-    }
-  */
-
+  //NOTE: in vanilla "passive perceptions" are ignoring INpc::senses
   if((msg.what==PERC_ASSESSENTERROOM || msg.what==PERC_ASSESSQUIETSOUND) &&
      ((SensesBit(npc.handle().senses) & SensesBit::SENSE_HEAR)==SensesBit::SENSE_NONE)) {
-    return;
+    //return;
     }
 
   if(msg.item!=size_t(-1) && msg.other!=nullptr)
