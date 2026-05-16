@@ -202,8 +202,14 @@ float PfxBucket::randf(float base, float var) {
 void PfxBucket::init(PfxBucket::Block& block, ImplEmitter& emitter, size_t particle) {
   auto& p   = particles[particle];
 
-  p.life    = uint16_t(randf(decl.lspPartAvg,decl.lspPartVar));
-  p.maxLife = p.life;
+  if(decl.ppsValue<0) {
+    // decal
+    p.life    = uint16_t(-1)/2;
+    p.maxLife = uint16_t(-1);
+    } else {
+    p.life    = uint16_t(randf(decl.lspPartAvg,decl.lspPartVar));
+    p.maxLife = p.life;
+    }
 
   // TODO: pfx.shpDistribType, pfx.shpDistribWalkSpeed;
   switch(decl.shpType) {
@@ -221,13 +227,13 @@ void PfxBucket::init(PfxBucket::Block& block, ImplEmitter& emitter, size_t parti
         p.pos = Vec3(randf()*2.f-1.f,
                      randf()*2.f-1.f,
                      randf()*2.f-1.f);
-        p.pos*=0.5;
+        //p.pos*=0.5;
         } else {
         // TODO
         p.pos = Vec3(randf()*2.f-1.f,
                      randf()*2.f-1.f,
                      randf()*2.f-1.f);
-        p.pos*=0.5;
+        //p.pos*=0.5;
         }
       break;
       }
@@ -555,7 +561,9 @@ void PfxBucket::buildSsbo() {
 
       const float a     = ps.lifeTime();
       const Vec3  cl    = colorS*(1.f-a)        + colorE*a;
-      const float clA   = visAlphaStart*(1.f-a) + visAlphaEnd*a;
+      //const float clA   = visAlphaStart*(1.f-a) + visAlphaEnd*a;
+      //NOTE: particles even with harsh transition, appear to have some fade in/out anyway in bvanilla game
+      const float clA   = (std::min(a, 0.1f)/0.1f)*visAlphaStart*(1.f-a) + (std::min(1.f-a, 0.1f)/0.1f)*visAlphaEnd*a;
 
       const float scale = 1.f*(1.f-a) + a*visSizeEndScale;
       const float szX   = visSizeStart.x*scale;

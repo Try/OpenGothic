@@ -157,9 +157,7 @@ void main() {
   const vec3  start   = start4.xyz/start4.w;
 
   const vec4  scr     = vec4(fragCoord.x, fragCoord.y, depth, 1.0);
-
-  const vec4  camPos4 = scene.viewProjectInv*vec4(0,0,0,1.0);
-  const vec3  camPos  = camPos4.xyz/camPos4.w;
+  const vec3  camPos  = scene.camPos;
 
   const vec3  view    = normalize(start - camPos);
         vec3  refl    = reflect(view, normal);

@@ -87,7 +87,8 @@ vec4 processVertex(out Varyings shOut, in Vertex v, uint instanceId, uint vboOff
     const bool  isTrail          = bitfieldExtract(v.bits0, 3, 1)!=0;
     const uint  visOrientation   = bitfieldExtract(v.bits0, 4, 2);
 
-    const mat4  m      = scene.viewProject;
+    //const mat4  m      = scene.viewProject;
+    const mat4  m      = scene.view;
     vec3        left   = scene.pfxLeft;
     vec3        top    = scene.pfxTop;
     vec3        depth  = scene.pfxDepth;

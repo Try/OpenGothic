@@ -104,9 +104,21 @@ float lambert(const vec3 normal) {
   return clamp(dot(scene.sunDir,normal), 0.0, 1.0);
   }
 
-vec3 diffuseLight() {
+float henyeyGreenstein(float cosTheta, float g) {
+  //g = clamp(g, -0.99, 0.99);
+  float g2 = g * g;
+  float denom = 1.0 + g2 - 2.0 * g * cosTheta;
+  return (1.0 - g2) / (4.0 * M_PI * pow(denom, 1.5));
+  }
+
+vec3 diffuseLight(float a) {
   vec3  norm   = normalize(shInp.normal);
+#if (MESH_TYPE==T_PFX)
+  vec3  view   = normalize(shInp.pos - scene.camPos);
+  float light  = henyeyGreenstein(-dot(view,scene.sunDir), a*0.63);
+#else
   float light  = lambert(norm);
+#endif
   float shadow = calcShadow(vec4(shInp.pos,1), 0, scene, textureSm0, textureSm1);
 
   vec3  lcolor  = scene.sunColor * light * shadow;
@@ -190,7 +202,7 @@ void mainForward(vec4 t) {
 #endif
 
   color = textureAlbedo(color.rgb);
-  color *= diffuseLight();
+  color *= diffuseLight(alpha);
   color *= scene.exposure;
 
   outColor = vec4(color,alpha);
@@ -226,10 +238,8 @@ vec4 underWaterColorDepth(vec3 normal) {
   const float ior       = IorWater;
   //return vec4(0);
 
-  vec4  camPos = scene.viewProjectInv*vec4(0,0,0.0,1.0);
-  camPos.xyz /= camPos.w;
-
-  const vec3  view   = normalize(shInp.pos - camPos.xyz);
+  const vec3  camPos = scene.camPos;
+  const vec3  view   = normalize(shInp.pos - camPos);
   const vec3  refr   = refract(view, normal, ior);
 
   vec3        back   = texelFetch(sceneColor,   ivec2(gl_FragCoord.xy), 0).rgb;
