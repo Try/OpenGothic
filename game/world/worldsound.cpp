@@ -123,8 +123,12 @@ Sound WorldSound::addDlgSound(std::string_view s, const Tempest::Vec3& pos, floa
   if(ret.isEmpty())
     return Sound();
 
+  //WA for https://github.com/Try/OpenGothic/issues/922
+  static float fixupMultiplyer = 2.f;
+
   std::lock_guard<std::mutex> guard(sync);
   initSlot(*ret.val);
+  ret.setVolume(fixupMultiplyer);
   timeLen = snd.timeLength();
   effect.emplace_back(ret.val);
   return ret;
