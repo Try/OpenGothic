@@ -112,7 +112,7 @@ class Camera final {
     Tempest::Matrix4x4 viewShadowVsmLwc(const Tempest::Vec3& ldir) const;
 
     ListenerPos        listenerPosition() const;
-    Tempest::Vec3      originLwc() const { return origin; };
+    Tempest::Vec3      originLwc() const { return origin+shake; };
 
     float              zNear() const;
     float              zFar()  const;

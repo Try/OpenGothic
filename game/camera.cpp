@@ -331,7 +331,7 @@ Matrix4x4 Camera::viewShadowVsm(const Tempest::Vec3& ldir) const {
   }
 
 Matrix4x4 Camera::viewShadowVsmLwc(const Tempest::Vec3& ldir) const {
-  return mkViewShadowVsm(inter.target-origin,ldir);
+  return mkViewShadowVsm(inter.target-(origin+shake),ldir);
   }
 
 Matrix4x4 Camera::mkViewShadowVsm(const Vec3& cameraPos, const Vec3& ldir) const {
