@@ -462,7 +462,8 @@ struct DynamicWorld::BulletsList final {
       float proj = 0;
       auto  dp = i.pos - i.lastPos; // move is symetrical: move of npc and move of projectile is the same
       if(i.cb!=nullptr && list.rayTest(npc, i.pos, Tempest::Vec3::normalize(dp), dp.length(), i.tgRange, proj)) {
-        i.cb->onCollide(*npc.toNpc());
+        if(i.cb->onCollide(*npc.toNpc()))
+          i.cb->onStop();
         }
       }
     }
@@ -1104,7 +1105,8 @@ void DynamicWorld::NpcItem::setPosition(const Tempest::Vec3& pos) {
   if(obj) {
     implSetPosition(pos);
     owner->npcList->onMove(*obj);
-    owner->bulletList->onMoveNpc(*obj,*owner->npcList);
+    //NOTE: not very usefull, but can create non-trivial cases, for spells
+    // owner->bulletList->onMoveNpc(*obj,*owner->npcList);
     }
   }
 

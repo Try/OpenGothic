@@ -108,7 +108,10 @@ float Bullet::pathLength() const {
   }
 
 bool Bullet::onEffectCollide(Npc& other) {
-  return onCollide(other);
+  const bool ret = onCollide(other);
+  if(ret)
+    onStop();
+  return ret;
   }
 
 void Bullet::onStop() {
@@ -138,7 +141,6 @@ void Bullet::onCollide(zenkit::MaterialGroup matId) {
 bool Bullet::onCollide(Npc& npc) {
   if(&npc==origin() || isFinished())
     return false;
-  onStop();
 
   if(ow!=nullptr) {
     // no damage between ally npc's, only emit pfx effect

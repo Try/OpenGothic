@@ -645,14 +645,16 @@ size_t World::hasItems(std::string_view tag, size_t itemCls) {
 
 Bullet& World::shootSpell(const Item &itm, const Npc &npc, const Npc *target) {
   Tempest::Vec3   dir     = {1.f,0.f,0.f};
-  auto            pos     = npc.position();
+  auto            pos     = npc.collosionCenter();
   const VisualFx* vfx     = script().spellVfx(itm.spellId());
   float           tgRange = vfx==nullptr ? 0 : vfx->emTrjTargetRange;
 
   if(target!=nullptr) {
     auto tgPos = target->collosionCenter();
-    if(vfx!=nullptr) {
-      pos   = npc.mapBone(vfx->emTrjOriginNode);
+    if(vfx!=nullptr && !vfx->emTrjOriginNode.empty()) {
+      pos = npc.mapBone(vfx->emTrjOriginNode);
+      }
+    if(vfx!=nullptr && !vfx->emTrjTargetNode.empty()) {
       tgPos = target->mapBone(vfx->emTrjTargetNode);
       }
     dir = tgPos-pos;

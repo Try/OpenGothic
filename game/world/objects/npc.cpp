@@ -1583,7 +1583,7 @@ bool Npc::implAttack(uint64_t dt) {
     mvAlgo.tick(dt,MoveAlgo::FaiMove);
     return true;
     }
-  if(bs==BS_STUMBLE || isInAir()) {
+  if(bs==BS_STUMBLE || bs==BS_FALL || isInAir()) {
     mvAlgo.tick(dt,MoveAlgo::FaiMove);
     return true;
     }
@@ -2066,10 +2066,7 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
 
   // throw enemy
   if(hitResult.hasHit && (damageType & (1<<zenkit::DamageType::FLY))) {
-    if(mvAlgo.accessDamFly(x-other.x,z-other.z)) {
-      setAnimRotate(0);
-      setAnimAngGet(lastHitType=='A' ? Anim::FallDeepA : Anim::FallDeepB);
-      }
+    mvAlgo.accessDamFly(x-other.x, z-other.z, lastHitType);
     }
 
   if(hitResult.value>0) {

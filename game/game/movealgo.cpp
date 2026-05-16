@@ -454,7 +454,7 @@ bool MoveAlgo::implTick(uint64_t dt, MvFlags moveFlg) {
     return true;
     }
 
-  if(gValid && dY <= stickThreshold) {
+  if(gValid && dY <= stickThreshold && fallSpeed.y<=0.f) {
     const float gpos = std::max(npc.position().y, ground);
     if(gpos + knee <= water) {
       setState(InWater);
@@ -489,13 +489,21 @@ void MoveAlgo::clearSpeed() {
   fallCount   = 0;
   }
 
-bool MoveAlgo::accessDamFly(float dx, float dz) {
-  if(flags!=Run)
+bool MoveAlgo::accessDamFly(float dx, float dz, char hitType) {
+  if(flags!=Run && flags!=Falling && flags!=InAir)
     return false;
 
   const auto bs  = npc.bodyStateMasked();
   if(bs==BS_LIE || npc.isDead())
     return false;
+
+  if(!npc.setInteraction(nullptr,true))
+    return false;
+
+  if(!npc.setAnimAngGet(hitType=='A' ? Npc::Anim::FallDeepA : Npc::Anim::FallDeepB))
+    return false;
+
+  npc.setAnimRotate(0);
 
   float len = std::sqrt(dx*dx+dz*dz);
   auto  vec = Tempest::Vec3(dx,len*0.5f,dz);
@@ -503,7 +511,7 @@ bool MoveAlgo::accessDamFly(float dx, float dz) {
 
   fallSpeed = vec*0.75f;
   fallCount = 0;
-  setState(Falling);
+  setState(InAir);
   return true;
   }
 
