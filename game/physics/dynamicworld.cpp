@@ -793,15 +793,14 @@ float DynamicWorld::soundOclusion(const Tempest::Vec3& from, const Tempest::Vec3
   if(callback.cnt>=CallBack::FRAC_MAX)
     return 1;
 
-  float fr=0;
+  float tlen = (callback.m_rayFromWorld-callback.m_rayToWorld).length();
+  float tr   = 1.f;
   std::sort(callback.frac,callback.frac+callback.cnt);
   for(size_t i=1;i<callback.cnt;i+=2) {
-    fr += (callback.frac[i]-callback.frac[i-1]);
+    auto t = std::exp(-(callback.frac[i]-callback.frac[i-1])*tlen/3.5f);
+    tr *= t;
     }
-
-  float tlen = (callback.m_rayFromWorld-callback.m_rayToWorld).length();
-  // let's say: 1.5 meter wall blocks sound completely :)
-  return (tlen*fr)/1.5f;
+  return std::clamp(1.f-tr, 0.f, 1.f);
   }
 
 DynamicWorld::NpcItem DynamicWorld::ghostObj(const Skeleton* src) {
