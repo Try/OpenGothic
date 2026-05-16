@@ -138,6 +138,7 @@ void Bullet::onCollide(zenkit::MaterialGroup matId) {
 bool Bullet::onCollide(Npc& npc) {
   if(&npc==origin() || isFinished())
     return false;
+  onStop();
 
   if(ow!=nullptr) {
     // no damage between ally npc's, only emit pfx effect
