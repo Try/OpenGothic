@@ -1694,6 +1694,12 @@ bool Npc::implAttack(uint64_t dt) {
         }
       }
     else if(ws==WeaponState::Fist || ws==WeaponState::W1H || ws==WeaponState::W2H) {
+      const auto hit = owner.physic()->ray(this->collosionCenter(),currentTarget->collosionCenter());
+      if(hit.hasCol) {
+        // blocked by wall
+        fghAlgo.consumeAction();
+        return true;
+        }
       const auto atkType = (ws==WeaponState::Fist) ? Anim::Attack : ani[act-FightAlgo::MV_ATTACK];
       const bool atk     = doAttack(atkType, BS_HIT);
 
@@ -1779,9 +1785,36 @@ bool Npc::implAttack(uint64_t dt) {
     }
 
   if(act==FightAlgo::MV_MOVE || act==FightAlgo::MV_TURN) {
+    if(currentTarget->isDown()) {
+      if(setAnim(Anim::Idle))
+        fghAlgo.consumeAction();
+      return true;
+      }
+
     const bool prGRange = fghAlgo.isInGRange(*this, *currentTarget, owner.script());
     const bool prWRange = fghAlgo.isInWRange(*this, *currentTarget, owner.script());
     const auto prBs     = bs;
+
+    const float distance = qDistTo(*currentTarget);
+    const float range    = float(handle().senses_range);
+
+    if(!prGRange && distance<range*range) {
+      // if npc is reasonably far, we can switch to propper pathfinding
+      const auto hit = owner.physic()->ray(this->collosionCenter(), currentTarget->collosionCenter());
+      if(hit.hasCol) {
+        auto near = owner.findWayPoint(currentTarget->position(), [this](const WayPoint &wp) {
+          if(!currentTarget->canRayHitPoint(wp.pos))
+            return false;
+          return true;
+          });
+        if(near!=nullptr && near!=wayPath.last()) {
+          wayPath     = owner.wayTo(*this,*near);
+          auto wpoint = wayPath.pop();
+          go2.set(wpoint);
+          }
+        return false;
+        }
+      }
 
     if(prWRange) {
       //NOTE: bloodfly and other monsters may run to close to player otherwise
