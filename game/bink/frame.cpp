@@ -8,7 +8,7 @@ void Frame::Plane::setSize(uint32_t iw, uint32_t ih) {
   uint32_t w16 = ((iw+15)/16)*16; // align to largest block size
   uint32_t h16 = ((ih+15)/16)*16;
 
-  dat.resize(w16*h16);
+  dat.resize(size_t(w16)*h16);
   w = iw;
   h = ih;
   strd = w16;
