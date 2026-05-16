@@ -1807,12 +1807,13 @@ bool Npc::implAttack(uint64_t dt) {
             return false;
           return true;
           });
-        if(near!=nullptr && near!=wayPath.last()) {
-          wayPath     = owner.wayTo(*this,*near);
-          auto wpoint = wayPath.pop();
-          go2.set(wpoint);
+        if(near!=nullptr) {
+          if(near!=wayPath.last()) {
+            wayPath = owner.wayTo(*this,*near);
+            go2.set(wayPath.first(), GT_Way);
+            }
+          return false;
           }
-        return false;
         }
       }
 
@@ -1831,6 +1832,7 @@ bool Npc::implAttack(uint64_t dt) {
       go2.set(currentTarget, GT_Enemy);
       mvAlgo.tick(dt, MoveAlgo::FaiMove);
       go2.clear();
+      wayPath.clear();
       }
 
     const bool isGRange = fghAlgo.isInGRange(*this, *currentTarget, owner.script());
@@ -1984,6 +1986,8 @@ bool Npc::setGoToLadder() {
   if(go2.wp==nullptr || go2.wp!=wayPath.first())
     return false;
   auto inter = go2.wp->ladder;
+  if(inter==nullptr)
+    return false;
   auto pos   = inter->nearestPoint(*this);
   if(MoveAlgo::isClose(*this,pos,MAX_AI_USE_DISTANCE)) {
     if(!inter->isAvailable())
