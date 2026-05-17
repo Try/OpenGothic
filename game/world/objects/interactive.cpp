@@ -588,7 +588,7 @@ bool Interactive::canSeeNpc(const Npc& npc, bool freeLos) const {
     float tHit = DynamicWorld::rayBox(head, dir, tMax, transform(), bbox[0], bbox[1]);
 
     auto  ray  = w->ray(head, head+dir*tHit);
-    if(ray.hasCol && ray.vob!=this)
+    if(ray.hasCol && ray.vob!=this && !isLadder()) // maybe need to trace to closes point of bbox instead?
       return false;
     }
 

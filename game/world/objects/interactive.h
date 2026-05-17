@@ -3,7 +3,6 @@
 #include <Tempest/Matrix4x4>
 #include <zenkit/vobs/MovableObject.hh>
 
-#include "physics/physicmesh.h"
 #include "graphics/mesh/animationsolver.h"
 #include "graphics/objvisual.h"
 #include "world/triggers/abstracttrigger.h"
