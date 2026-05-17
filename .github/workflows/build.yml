@@ -41,6 +41,7 @@ jobs:
         run: |
           echo '#pragma once' > game/build.h
           echo "static const char* appBuild = \"${{ needs.setup.outputs.version }}\";" >> game/build.h
+          echo 'gothic-linux-v${{ needs.setup.outputs.version }}' >> build/opengothic/VERSION
 
       - name: Configure
         run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
@@ -112,6 +113,7 @@ jobs:
         run: |
           echo '#pragma once' > game/build.h
           echo "static const char* appBuild = `"${{ needs.setup.outputs.version }}`";" >> game/build.h
+          echo 'gothic-win64-v${{ needs.setup.outputs.version }}' >> build/opengothic/VERSION
 
       - name: Configure
         run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
@@ -149,6 +151,7 @@ jobs:
         run: |
           echo '#pragma once' > game/build.h
           echo "static const char* appBuild = \"${{ needs.setup.outputs.version }}\";" >> game/build.h
+          echo 'gothic-osx-arm64-v${{ needs.setup.outputs.version }}' >> build/opengothic/VERSION
 
       - name: Configure
         run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
@@ -178,6 +181,7 @@ jobs:
         run: |
           echo '#pragma once' > game/build.h
           echo "static const char* appBuild = \"${{ needs.setup.outputs.version }}\";" >> game/build.h
+          echo 'gothic-osx-x64-v${{ needs.setup.outputs.version }}' >> build/opengothic/VERSION
 
       - name: Configure
         run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
