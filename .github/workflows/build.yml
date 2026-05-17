@@ -89,7 +89,7 @@ jobs:
 
   windows:
     needs: setup
-    runs-on: windows-2025
+    runs-on: windows-latest
     defaults:
       run:
         shell: msys2 {0}
@@ -147,7 +147,7 @@ jobs:
           submodules: recursive
 
       - name: Install dependencies
-        run: brew install glslang molten-vk
+        run: brew install glslang
 
       - name: Generate build version
         run: |
