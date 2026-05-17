@@ -149,7 +149,7 @@ void Resources::loadVdfs(const std::vector<std::u16string>& modvdfs, bool modFil
   std::stable_sort(archives.begin(),archives.end(),[](const Archive& a,const Archive& b){
     int aIsMod = a.isMod ? 1 : -1;
     int bIsMod = b.isMod ? 1 : -1;
-    return std::make_tuple(aIsMod,a.time,int(a.ord)) >=
+    return std::make_tuple(aIsMod,a.time,int(a.ord)) >
            std::make_tuple(bIsMod,b.time,int(b.ord));
     });
 
