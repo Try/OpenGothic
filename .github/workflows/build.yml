@@ -28,7 +28,7 @@ jobs:
     needs: setup
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
 
@@ -51,7 +51,7 @@ jobs:
         run: cmake --build build --target Gothic2Notr -j $(nproc)
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: opengothic_${{ needs.setup.outputs.semver }}_linux_x64
           path: build/opengothic/Gothic2Notr
@@ -60,7 +60,7 @@ jobs:
     needs: setup
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
 
@@ -82,7 +82,7 @@ jobs:
           cp ../opengothic_*.deb opengothic_${{ needs.setup.outputs.semver }}_linux_x64.deb
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: opengothic_${{ needs.setup.outputs.semver }}_linux_x64.deb
           path: opengothic_${{ needs.setup.outputs.semver }}_linux_x64.deb
@@ -94,7 +94,7 @@ jobs:
       run:
         shell: msys2 {0}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
 
@@ -130,7 +130,7 @@ jobs:
           cp "$MINGW_PREFIX/bin/libwinpthread-1.dll" build/opengothic/
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: opengothic_${{ needs.setup.outputs.semver }}_win_x64
           path: |
@@ -142,7 +142,7 @@ jobs:
     needs: setup
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
 
@@ -163,7 +163,7 @@ jobs:
         run: cmake --build build --target Gothic2Notr -j $(sysctl -n hw.ncpu)
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: opengothic_${{ needs.setup.outputs.semver }}_osx_arm64
           path: |
@@ -173,7 +173,7 @@ jobs:
     needs: setup
     runs-on: macos-15-intel
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
 
@@ -194,7 +194,7 @@ jobs:
         run: cmake --build build --target Gothic2Notr -j $(sysctl -n hw.ncpu)
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: opengothic_${{ needs.setup.outputs.semver }}_osx_x64
           path: |
