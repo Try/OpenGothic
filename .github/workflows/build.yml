@@ -161,7 +161,7 @@ jobs:
         with:
           name: opengothic_${{ needs.setup.outputs.semver }}_osx_arm64
           path: |
-            build/opengothic/Gothic2Notr
+            build/opengothic/*
 
   macos-x64:
     needs: setup
@@ -190,7 +190,7 @@ jobs:
         with:
           name: opengothic_${{ needs.setup.outputs.semver }}_osx_x64
           path: |
-            build/opengothic/Gothic2Notr
+            build/opengothic/*
 
   release:
     if: startsWith(github.ref, 'refs/tags/')
