@@ -1153,6 +1153,9 @@ void MainWindow::onWorldLoaded() {
   renderer.onWorldChanged();
 
   if(auto pl = Gothic::inst().player())
+    rootMenu.setPlayer(*pl);
+
+  if(auto pl = Gothic::inst().player())
     pl->multSpeed(1.f);
   lastTick = Application::tickCount();
   player.clearFocus();
