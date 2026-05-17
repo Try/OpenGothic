@@ -149,7 +149,6 @@ struct GameMusic::OpenGothicMusicProvider : GameMusic::MusicProvider {
 
   void stopTheme() override {
     GameMusic::MusicProvider::stopTheme();
-    mix.setMusic(Dx8::Music());
     }
 
   static Dx8::DMUS_EMBELLISHT_TYPES computeEmbellishment(zenkit::MusicTransitionEffect ef) {
@@ -390,7 +389,7 @@ void GameMusic::setupSettings() {
   const float musicVolume   = Gothic::settingsGetF("SOUND",    "musicVolume");
   const int   providerIndex = Gothic::settingsGetI("INTERNAL", "soundProviderIndex");
 
-  if(providerIndex != provider) {
+  if(providerIndex != provider || musicEnabled!=isEnabled()) {
     Log::i("Switching music provider to ", providerIndex == PROVIDER_OPENGOTHIC ? "'OpenGothic'" : "'GothicKit'");
     sound = SoundEffect();
 
