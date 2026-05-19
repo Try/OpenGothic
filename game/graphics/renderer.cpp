@@ -86,6 +86,8 @@ Renderer::Renderer(Tempest::Swapchain& swapchain)
   Gothic::inst().toggleVsm .bind(this, &Renderer::toggleVsm);
   Gothic::inst().toggleRtsm.bind(this, &Renderer::toggleRtsm);
 
+  Gothic::inst().togglePathtrace.bind(this, &Renderer::togglePathtrace);
+
   settings.giEnabled   = Gothic::options().doRtGi;
   settings.vsmEnabled  = Gothic::options().doVirtualShadow;
   settings.rtsmEnabled = Gothic::options().doSoftwareShadow;
@@ -277,6 +279,21 @@ void Renderer::toggleRtsm() {
     }
   }
 
+void Renderer::togglePathtrace() {
+  settings.pathTraceEnabled = !settings.pathTraceEnabled;
+
+  pt.numFrames = 0;
+
+  auto& device = Resources::device();
+  device.waitIdle();
+
+  setupSettings();
+  resetSwapchain();
+  if(auto wview  = Gothic::inst().worldView()) {
+    wview->resetRendering();
+    }
+  }
+
 void Renderer::onWorldChanged() {
   sky.lutIsInitialized = false;
   shaders.waitCompiler();
@@ -308,7 +325,7 @@ bool Renderer::requiresTlas() const {
   if(!Gothic::options().doRayQuery)
     return false;
 
-  if(settings.giEnabled)
+  if(settings.giEnabled || settings.pathTraceEnabled)
     return true;
   if(!(settings.rtsmEnabled || settings.vsmEnabled))
     return true;
@@ -387,11 +404,14 @@ void Renderer::resetShadowmap() {
   for(int i=0; i<Resources::ShadowLayers; ++i)
     Resources::recycle(std::move(shadowMap[i]));
 
+  const bool forceSm1 = (settings.giEnabled || settings.pathTraceEnabled || sky.quality==PathTrace);
   for(int i=0; i<Resources::ShadowLayers; ++i) {
-    if(settings.vsmEnabled && !(settings.giEnabled && i==1) && !(sky.quality==PathTrace && i==1) && !(settings.rtsmEnabled && i==1))
-      continue; //TODO: support vsm in gi code
-    if(settings.rtsmEnabled && !(settings.giEnabled && i==1) && !(sky.quality!=None && i==1))
-      continue; //TODO: support vsm in gi code
+    if(!(i==1 && forceSm1)) {
+      if(settings.vsmEnabled && !(settings.rtsmEnabled && i==1))
+        continue; //TODO: support vsm in gi code
+      if(settings.rtsmEnabled && !(sky.quality!=None && i==1))
+        continue; //TODO: support vsm in gi code
+      }
     shadowMap[i] = device.zbuffer(shadowFormat, settings.shadowResolution, settings.shadowResolution);
     }
   }
@@ -601,6 +621,14 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
   wview->preFrameUpdate(*camera,Gothic::inst().world()->tickCount(),fId);
   wview->prepareGlobals(cmd,fId);
 
+  if(settings.pathTraceEnabled) {
+    drawPathtrace(cmd, *wview, fId);
+    cmd.setDebugMarker("Tonemapping");
+    drawTonemapping(result, cmd, *wview);
+    wview->postFrameupdate();
+    return;
+    }
+
   wview->visibilityPass(cmd, 0);
   prepareSky(cmd,*wview);
 
@@ -647,6 +675,7 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
   drawVsmDbg(cmd, *wview);
   drawSwrDbg(cmd, *wview);
   drawRtsmDbg(cmd, *wview);
+  drawRayQueryDbg(cmd, *wview);
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}});
   drawReflections(cmd, *wview);
@@ -665,6 +694,8 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
     cmd.setDebugMarker("Tonemapping");
     drawTonemapping(result, cmd, *wview);
     }
+
+  //drawRayQueryDbg(cmd, *wview);
 
   wview->postFrameupdate();
   }
@@ -1783,7 +1814,7 @@ void Renderer::prepareFog(Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview
     cmd.dispatchThreads(uint32_t(sky.fogLut3D.w()), uint32_t(sky.fogLut3D.h()));
     }
 
-  if(settings.vsmEnabled && (sky.quality==VolumetricHQ || sky.quality==Epipolar)) {
+  if(settings.vsmEnabled && !settings.pathTraceEnabled && (sky.quality==VolumetricHQ || sky.quality==Epipolar)) {
     cmd.setFramebuffer({});
     cmd.setDebugMarker("VSM-epipolar-fog");
     cmd.setBinding(0, epipolar.epTrace);
@@ -1800,7 +1831,7 @@ void Renderer::prepareFog(Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview
     case VolumetricLQ:
       break;
     case VolumetricHQ: {
-      if(settings.vsmEnabled && !settings.rtsmEnabled) {
+      if(settings.vsmEnabled && !settings.rtsmEnabled && !settings.pathTraceEnabled) {
         cmd.setFramebuffer({});
         cmd.setBinding(0, sky.occlusionLut);
         cmd.setBinding(1, epipolar.epTrace);
@@ -2031,6 +2062,115 @@ void Renderer::prepareExposure(Encoder<CommandBuffer>& cmd, WorldView& wview) {
   cmd.setPushData(&push, sizeof(push));
   cmd.setPipeline(shaders.skyExposure);
   cmd.dispatch(1);
+  }
+
+void Renderer::drawPathtrace(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview, uint8_t fId) {
+  if(wview.sceneGlobals().rtScene.tlas.isEmpty())
+    return;
+
+  static bool enable = true;
+  if(!enable)
+    return;
+
+  if(!settings.pathTraceEnabled)
+    return;
+
+  if(pt.frame.size()!=sceneLinear.size()) {
+    Resources::recycle(std::move(pt.frame));
+    pt.frame = Resources::device().attachment(Tempest::R11G11B10UF, sceneLinear.size());
+    }
+
+  cmd.setFramebuffer({});
+  prepareSky(cmd, wview);
+  prepareIrradiance(cmd,wview);
+  prepareExposure(cmd,wview);
+
+  drawShadowMap(cmd,fId,wview);
+
+  static float eps = 2.f;
+  for(int i=0; i<16; ++i) {
+    float a = viewProj.data()[i];
+    float b = pt.mvpLast.data()[i];
+    if(std::abs(a-b)>eps) {
+      pt.numFrames = 0;
+      break;
+      }
+    }
+
+  if(pt.numFrames==0)
+    pt.mvpLast = viewProj;
+
+  struct Push {
+    uint32_t numFrames;
+    };
+  Push push;
+  push.numFrames = pt.numFrames; ++pt.numFrames;
+
+  if(push.numFrames==0)
+    cmd.setFramebuffer({{pt.frame, Vec4(0), Tempest::Preserve}}, {zbuffer, 1, Tempest::Preserve}); else
+    cmd.setFramebuffer({{pt.frame, Tempest::Preserve, Tempest::Preserve}}, {zbuffer, 1, Tempest::Preserve});
+  auto& scene = wview.sceneGlobals();
+  cmd.setDebugMarker("Pathtrace");
+  cmd.setPushData(push);
+  cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
+  //cmd.setBinding(1, zbuffer);
+  cmd.setBinding(2, sky.irradianceLut);
+  cmd.setBinding(3, sky.viewCldLut);
+  //cmd.setBinding(4, shadowMap[1], Sampler::bilinear());
+  cmd.setBinding(4, Resources::fallbackBlack(), Sampler::bilinear());
+  //
+  cmd.setBinding(6, scene.rtScene.tlas);
+  cmd.setBinding(7, Sampler::trillinear());
+  cmd.setBinding(8, scene.rtScene.tex);
+  cmd.setBinding(9, scene.rtScene.vbo);
+  cmd.setBinding(10,scene.rtScene.ibo);
+  cmd.setBinding(11,scene.rtScene.rtDesc);
+
+  cmd.setPipeline(shaders.rtPathtrace);
+  cmd.draw(nullptr, 0, 3);
+
+  prepareFog(cmd,wview);
+
+  cmd.setFramebuffer({{sceneLinear, Tempest::Discard, Tempest::Preserve}});
+  cmd.setDebugMarker("Blit");
+  cmd.setBinding(0, pt.frame, Sampler::nearest());
+  cmd.setPipeline(shaders.copy);
+  cmd.draw(nullptr, 0, 3);
+
+  cmd.setFramebuffer({{sceneLinear, Tempest::Discard, Tempest::Preserve}}, {zbuffer, Tempest::Readonly});
+  cmd.setDebugMarker("Sky");
+  drawSky(cmd,wview);
+  drawSunMoon(cmd,wview);
+
+  cmd.setDebugMarker("Fog");
+  drawFog(cmd, wview);
+  }
+
+void Renderer::drawRayQueryDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview) {
+  if(wview.sceneGlobals().rtScene.tlas.isEmpty() || shadowMap[1].isEmpty())
+    return;
+
+  static bool enable = false;
+  if(!enable)
+    return;
+
+  auto& scene = wview.sceneGlobals();
+  cmd.setDebugMarker("RQ-dbg");
+  cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
+  cmd.setBinding(1, zbuffer);
+  cmd.setBinding(2, sky.irradianceLut);
+  cmd.setBinding(3, shadowMap[1], Sampler::bilinear());
+  //
+  cmd.setBinding(6, scene.rtScene.tlas);
+  cmd.setBinding(7, Sampler::trillinear());
+  cmd.setBinding(8, scene.rtScene.tex);
+  cmd.setBinding(9, scene.rtScene.vbo);
+  cmd.setBinding(10,scene.rtScene.ibo);
+  cmd.setBinding(11,scene.rtScene.rtDesc);
+
+  cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}}, {zbuffer, Tempest::Readonly});
+  cmd.setPipeline(shaders.rtDbg);
+  cmd.draw(nullptr, 0, 3);
   }
 
 void Renderer::drawProbesDbg(Encoder<CommandBuffer>& cmd, const WorldView& wview) {

@@ -87,9 +87,11 @@ class Renderer final {
     void drawSunMoon      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview, bool isSun);
 
     void drawSwRT         (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
+    void drawPathtrace    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview, uint8_t fId);
 
     void stashSceneAux    (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
 
+    void drawRayQueryDbg  (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
     void drawProbesDbg    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
     void drawProbesHitDbg (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
     void drawVsmDbg       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
@@ -100,6 +102,7 @@ class Renderer final {
     void toggleGi();
     void toggleVsm();
     void toggleRtsm();
+    void togglePathtrace();
 
     struct Settings {
       const uint32_t shadowResolution   = 2048;
@@ -107,6 +110,7 @@ class Renderer final {
       bool           rtsmEnabled        = false;
       bool           swrEnabled         = false;
       bool           swrtEnabled        = false;
+      bool           pathTraceEnabled   = false;
 
       bool           zEnvMappingEnabled = false;
       bool           zCloudShadowScale  = false;
@@ -200,6 +204,12 @@ class Renderer final {
       Tempest::StorageImage     probesLighting;
       Tempest::StorageImage     probesLightingPrev;
       } gi;
+
+    struct {
+      Tempest::Attachment       frame;
+      uint32_t                  numFrames = 0;
+      Tempest::Matrix4x4        mvpLast;
+      } pt;
 
     struct {
       Tempest::StorageBuffer    epipoles;

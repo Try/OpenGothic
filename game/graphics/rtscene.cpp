@@ -6,14 +6,20 @@
 
 using namespace Tempest;
 
+static bool isSupported(Material::AlphaFunc alpha, RtScene::Category cat) {
+  if(cat!=RtScene::Landscape && cat!=RtScene::Static)
+    return false; // not supported
+  if(alpha!=Material::Solid && alpha!=Material::AlphaTest && alpha!=Material::Water)
+    return false; // not supported
+  return true;
+  }
+
 RtScene::RtScene() {
   }
 
 void RtScene::notifyTlas(const Material& mat, Category cat) const {
-  if(cat!=Landscape && cat!=Static)
-    return; // not supported
-  if(mat.alpha!=Material::Solid && mat.alpha!=Material::AlphaTest)
-    return; // not supported
+  if(!isSupported(mat.alpha, cat))
+    return;
   needToUpdate = true;
   }
 
@@ -37,10 +43,8 @@ uint32_t RtScene::aquireBucketId(const Material& mat, const StaticMesh& mesh) {
 void RtScene::addInstance(const Matrix4x4& pos, const AccelerationStructure& blas,
                           const Material& mat, const StaticMesh& mesh, size_t firstIndex, size_t iboLength,
                           Category cat) {
-  if(cat!=Landscape && cat!=Static)
-    return; // not supported
-  if(mat.alpha!=Material::Solid && mat.alpha!=Material::AlphaTest && mat.alpha!=Material::Water)
-    return; // not supported
+  if(!isSupported(mat.alpha, cat))
+    return;
 
   const uint32_t bucketId       = aquireBucketId(mat,mesh);
   const uint32_t firstPrimitive = uint32_t(firstIndex/3);
@@ -66,6 +70,9 @@ void RtScene::addInstance(const Matrix4x4& pos, const AccelerationStructure& bla
   ix.flags = ix.flags | RtInstanceFlags::CullFlip;
 
   if(mat.alpha==Material::Solid)
+    ix.flags = ix.flags | RtInstanceFlags::CullDisable;
+
+  if(mat.alpha==Material::Solid)
     ix.mask = CullMask::CM_Opaque;
   else if(mat.alpha==Material::AlphaTest)
     ix.mask = CullMask::CM_Transparent;
@@ -74,12 +81,12 @@ void RtScene::addInstance(const Matrix4x4& pos, const AccelerationStructure& bla
   else
     ix.mask = CullMask::CM_Unknown;
 
-  if(mat.alpha==Material::Solid && (cat==Landscape /*|| cat==Static*/)) {
+  if(mat.alpha==Material::Solid && cat==Landscape) {
     build.staticOpaque.geom  .push_back({mesh.vbo, mesh.ibo, firstIndex, iboLength});
     build.staticOpaque.rtDesc.push_back(desc);
     return;
     }
-  if(mat.alpha==Material::AlphaTest && (cat==Landscape /*|| cat==Static*/)) {
+  if(mat.alpha==Material::AlphaTest && cat==Landscape) {
     build.staticAt.geom  .push_back({mesh.vbo, mesh.ibo, firstIndex, iboLength});
     build.staticAt.rtDesc.push_back(desc);
     return;
@@ -96,7 +103,8 @@ void RtScene::addInstance(const BuildBlas& ctx, Tempest::AccelerationStructure& 
   Tempest::RtInstance ix;
   ix.mat   = Matrix4x4::mkIdentity();
   ix.id    = uint32_t(build.rtDesc.size());
-  ix.flags = flags | RtInstanceFlags::CullFlip;
+  ix.flags = ix.flags | flags;
+  ix.flags = ix.flags | RtInstanceFlags::CullFlip;
   ix.blas  = &blas;
   build.inst.push_back(ix);
 
@@ -106,7 +114,7 @@ void RtScene::addInstance(const BuildBlas& ctx, Tempest::AccelerationStructure& 
 void RtScene::buildTlas() {
   needToUpdate = false;
 
-  addInstance(build.staticOpaque, blasStaticOpaque, Tempest::RtInstanceFlags::Opaque);
+  addInstance(build.staticOpaque, blasStaticOpaque, Tempest::RtInstanceFlags::Opaque | RtInstanceFlags::CullDisable);
   addInstance(build.staticAt, blasStaticAt, Tempest::RtInstanceFlags::NonOpaque);
 
   Resources::recycle(std::move(tex));

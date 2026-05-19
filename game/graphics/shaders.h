@@ -72,6 +72,10 @@ class Shaders {
     Tempest::ComputePipeline clusterInit, clusterPatch;
     Tempest::ComputePipeline visibilityPassSh, visibilityPassHiZ, visibilityPassHiZCr;
 
+    // RT/RQ
+    Tempest::RenderPipeline  rtDbg;
+    Tempest::RenderPipeline  rtPathtrace;
+
     // GI
     Tempest::RenderPipeline  probeDbg, probeHitDbg;
     Tempest::ComputePipeline probeInit, probeClear, probeClearHash, probeMakeHash;

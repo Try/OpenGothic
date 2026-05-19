@@ -179,6 +179,25 @@ void Shaders::compileShaders() {
   hiZMip = computeShader("hiz_mip.comp.sprv");
 
   if(Gothic::options().doRayQuery) {
+    rtDbg       = postEffect("triangle_uv", "rt_dbg", RenderState::ZTestMode::NoEqual);
+    }
+
+  if(Gothic::options().doRayQuery) {
+    RenderState state;
+    state.setZTestMode    (RenderState::ZTestMode::Always);
+    state.setZWriteEnabled(true);
+    state.setBlendSource  (RenderState::BlendMode::SrcAlpha);
+    state.setBlendDest    (RenderState::BlendMode::OneMinusSrcAlpha);
+
+    auto sh = GothicShader::get(string_frm("triangle_uv",".vert.sprv"));
+    auto vs = device.shader(sh.data,sh.len);
+
+    sh      = GothicShader::get(string_frm("pathtrace",".frag.sprv"));
+    auto fs = device.shader(sh.data,sh.len);
+    rtPathtrace = device.pipeline(Triangles,state,vs,fs);
+    }
+
+  if(Gothic::options().doRayQuery) {
     RenderState state;
     state.setCullFaceMode(RenderState::CullMode::NoCull);
     state.setZTestMode   (RenderState::ZTestMode::Less);
