@@ -119,6 +119,7 @@ sudo dnf install git cmake gcc-c++ glslang vulkan-loader-devel alsa-lib-devel li
 * NixOS
 ```bash
 # use the dev flake
+cd linux/flake   
 nix develop
 ```
 
