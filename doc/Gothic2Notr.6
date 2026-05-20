@@ -1,0 +1,145 @@
+.\" Man page for Gothic2Notr (OpenGothic)
+.TH GOTHIC2NOTR 6 "January 2026" "OpenGothic" "Games"
+.SH NAME
+Gothic2Notr \- open source re-implementation of Gothic 2: Night of the Raven
+.SH SYNOPSIS
+.B Gothic2Notr
+.RB [ \-g
+.IR path ]
+.RB [ \-game:\fImodfile.ini\fR ]
+.RB [ options ]
+.SH DESCRIPTION
+.B OpenGothic
+is a feature-complete Gothic game client, compatible with the original
+game data and mods. It makes the original Gothic 1 and Gothic 2 work on
+modern systems using Vulkan graphics (or Metal on macOS, DirectX 12 on Windows).
+.PP
+Gothic 2: Night of the Raven is required as OpenGothic does not provide
+any built-in game assets or scripts.
+.SH OPTIONS
+.TP
+.BI \-g " path"
+Specify the path containing Gothic game data. If not provided, OpenGothic
+attempts to auto-detect common installation paths.
+.TP
+.BI \-game: modfile.ini
+Specify a game modification manifest file (GothicStarter compatibility).
+.TP
+.B \-nomenu
+Skip the main menu and start the game directly.
+.TP
+.B \-devmode
+Enable marvin-mode (developer/debug mode) at the start of the game.
+.TP
+.BI \-w " worldname.zen"
+Specify the startup world. Default is newworld.zen.
+.TP
+.B \-save q
+Load the quick save on start.
+.TP
+.BI \-save " number"
+Load a specified save-game slot on start.
+.TP
+.BR \-v ", " \-validation
+Enable validation layers for the graphics API (useful for debugging).
+.TP
+.B \-dx12
+Force DirectX 12 renderer instead of Vulkan (Windows only).
+.TP
+.B \-g1
+Assume a Gothic 1 installation.
+.TP
+.B \-g2c
+Assume a Gothic 2 classic installation (without Night of the Raven).
+.TP
+.B \-g2
+Assume a Gothic 2: Night of the Raven installation.
+.TP
+.BI \-rt " boolean"
+Explicitly enable or disable ray-query. Affects only capable hardware.
+Off by default for integrated GPUs.
+.TP
+.BI \-gi " boolean"
+Explicitly enable or disable ray-traced global illumination.
+.TP
+.BI \-ms " boolean"
+Explicitly enable or disable meshlets (mesh shaders).
+.TP
+.BI \-aa " number"
+Enable anti-aliasing. Number can be 0-2, where 2 is the most expensive AA.
+.TP
+.B \-window
+Windowed debugging mode (not recommended for normal play).
+.TP
+.BI \-benchmark " [ci]"
+Run an automated benchmark without user input. Reports average FPS and
+1% low FPS to the console, log.txt, and standard output. Typically used
+with
+.B \-devmode \-nomenu
+for automated testing. If
+.B ci
+is specified, the program exits automatically after completion (useful
+for regression testing). The benchmark can be restarted in-game with
+.B ztoggle timedemo
+or cancelled by loading a save game.
+.TP
+.BR \-h ", " \-\-help
+Print a brief help message and exit.
+.SH GRAPHICS OPTIONS
+The in-game menu provides additional graphics settings:
+.TP
+.B Cloud Shadows
+Mapped to SSAO (Screen Space Ambient Occlusion).
+.TP
+.B Radial Fog
+Mapped to volumetric fog.
+.TP
+.B Reflections
+Screen space reflections.
+.TP
+.B Video settings
+Internal 3D rendering resolution can be altered here. UI and text
+are always rendered at full resolution.
+.SH MODIFICATIONS
+Mods can be installed as usual. Provide the modfile.ini to OpenGothic via
+the
+.B \-game:
+parameter to play.
+.PP
+.B Supported:
+Content mods (retexture/reworld/animations) that only rely on regular
+scripting and do not use memory hacking.
+.PP
+.B Not supported:
+Ikarus/LeGo (partial support in progress), Union, DX11 Renderer,
+AST SDK, Ninja.
+.SH FILES
+.TP
+.I save_slot_0.sav
+Quick save file, stored in the current working directory.
+.TP
+.I save_slot_1.sav " ... " save_slot_15.sav
+Regular save files, stored in the current working directory.
+.TP
+.I log.txt
+Log file created in the current working directory.
+.PP
+On macOS, if Gothic data is located in
+.IR ~/Library/Application\ Support/OpenGothic/ ,
+the working directory is changed there automatically, so saves and logs
+are stored alongside the game data.
+.SH EXIT STATUS
+.TP
+.B 0
+Successful program execution.
+.TP
+.B non-zero
+An error occurred, check log.txt for details.
+.SH BUGS
+Report bugs at https://github.com/Try/OpenGothic/issues
+.SH SEE ALSO
+Project homepage: https://github.com/Try/OpenGothic
+.PP
+Discord community: https://discord.gg/G9XvcFQnn6
+.SH AUTHORS
+OpenGothic is developed by Try and contributors.
