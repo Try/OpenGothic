@@ -12,7 +12,8 @@
 #include "common.glsl"
 
 //const float probeRayDistance = 200*100; // Lumen rt-probe uses 200-meters range
-const float TMax       = 1e30f;
+const float TMax         = 1e30f;
+const vec3  groundAlbedo = vec3(0.3f); // testing
 
 layout(location = 0) in  vec2 inUV;
 layout(location = 0) out vec4 outColor;
@@ -84,11 +85,6 @@ vec3 skyIrradiance(vec3 n) {
   return ret;
   }
 
-vec3 nightAmbient(vec3 norm) {
-  // HACK: avoid pitch black areas atnight
-  return (norm.y*0.25+0.75) * NightAmbient * Fd_Lambert * 0.1;
-  }
-
 float shadowSample(in sampler2D shadowMap, vec2 shPos) {
   shPos.xy = shPos.xy*vec2(0.5,0.5)+vec2(0.5);
   return textureLod(shadowMap,shPos,0).r;
@@ -107,7 +103,20 @@ float shadowFactor(vec3 pos) {
   return calcShadow(shPos.xyz/shPos.w);
   }
 
-float rayQueryProceedShadow(const vec3 rayOrigin, const vec3 rayDirection) {
+void rayQueryProceedAlphaTest(in rayQueryEXT rayQuery, inout uint rngState) {
+  while(rayQueryProceedEXT(rayQuery)) {
+    const uint type = rayQueryGetIntersectionTypeEXT(rayQuery,false);
+    if(type==gl_RayQueryCandidateIntersectionTriangleEXT) {
+      const vec4 d = resolveHit(rayQuery);
+      // const bool opaqueHit = (d.a>0.5);
+      const bool opaqueHit = (d.a > randf(rngState));
+      if(opaqueHit)
+        rayQueryConfirmIntersectionEXT(rayQuery);
+      }
+    }
+  }
+
+float rayQueryProceedShadow(const vec3 rayOrigin, const vec3 rayDirection, inout uint rngState) {
   // CullBack due to vegetation
   uint  flags = gl_RayFlagsSkipAABBEXT | gl_RayFlagsCullBackFacingTrianglesEXT;
   float tMin  = 1;
@@ -116,6 +125,7 @@ float rayQueryProceedShadow(const vec3 rayOrigin, const vec3 rayDirection) {
   rayQueryInitializeEXT(rayQuery, topLevelAS, flags, CM_ShadowCaster,
                         rayOrigin, tMin, rayDirection, 500*100);
   rayQueryProceedAlphaTest(rayQuery);
+  // rayQueryProceedAlphaTest(rayQuery, rngState);
   if(rayQueryGetIntersectionTypeEXT(rayQuery, true) == gl_RayQueryCommittedIntersectionNoneEXT)
     return 1;
   return 0;
@@ -217,7 +227,7 @@ vec3 randomizeRay(vec3 ray, float angle, inout uint rngState) {
   return vec3( r.x*uu + r.y*vv + r.z*ray );
   }
 
-HitResolve rayQueryProceedPrimary(const vec3 rayOrigin, const vec3 rayDirection, float mipOverride) {
+HitResolve rayQueryProceedPrimary(const vec3 rayOrigin, const vec3 rayDirection, float mipOverride, inout uint rngState) {
   // CullBack due to vegetation
   uint  flags = gl_RayFlagsSkipAABBEXT | gl_RayFlagsCullBackFacingTrianglesEXT;
   float tMin  = 2;
@@ -226,6 +236,7 @@ HitResolve rayQueryProceedPrimary(const vec3 rayOrigin, const vec3 rayDirection,
   rayQueryInitializeEXT(rayQuery, topLevelAS, flags, 0xFF,
                         rayOrigin, tMin, rayDirection, 500*100);
   rayQueryProceedAlphaTest(rayQuery);
+  // rayQueryProceedAlphaTest(rayQuery, rngState);
   if(rayQueryGetIntersectionTypeEXT(rayQuery, true) == gl_RayQueryCommittedIntersectionNoneEXT) {
     HitResolve ret;
     ret.rayT = TMax;
@@ -266,17 +277,45 @@ HitResolve rayQueryProceedPrimary(const vec3 rayOrigin, const vec3 rayDirection,
   return ret;
   }
 
+float sampleDirectLight(vec3 norm, vec3 rayOrigin, vec3 rayDirection, bool shadowed, float softAngle, inout uint rngState) {
+#if defined(SOFT_SHADOW)
+  vec3  shRay  = randomizeRay(rayDirection, 0.5*M_PI/180.0, rngState);
+#else
+  vec3  shRay  = rayDirection;
+#endif
+
+  float lamb   = max(dot(norm, rayDirection), 0);
+  if(!shadowed || lamb==0)
+    return lamb;
+
+  float shadow = rayQueryProceedShadow(rayOrigin, shRay, rngState);
+  // float shadow = shadowFactor(rayOrigin);
+  return (lamb * shadow);
+  }
+
 vec4 pathtrace(vec3 rayOrigin, vec3 rayDirection) {
   const int numBounces = 5;
 
   uint  rngState   = srand(uvec2(gl_FragCoord.xy), scene.tickCount32);
-  vec3  throwput   = vec3(1);
+  vec3  thruput    = vec3(1);
   vec3  color      = vec3(0);
   bool  underWater = (scene.underWater!=0);
   float depth      = 0;
 
-  for(int bounce=0; bounce<numBounces; ++bounce) {
-    HitResolve hit = rayQueryProceedPrimary(rayOrigin, rayDirection, (bounce==0 ? 0 : -1));
+  for(int bounce=0;; ++bounce) {
+    if(dot(thruput*scene.GSunIntensity*scene.exposure, vec3(0.2126, 0.7152, 0.0722)) < 0.01)
+      break;
+
+    if(bounce>=numBounces) {
+      // return 0.5*vec4(1,0,1,depth)*scene.GSunIntensity;
+      // rescale to 100% thruput
+      vec3 scale = 1.0-thruput;
+      if(scale.r>0.01 && scale.g>0.01 && scale.b>0.01)
+        return vec4(color/scale, depth);
+      return vec4(color, depth);
+      }
+
+    HitResolve hit = rayQueryProceedPrimary(rayOrigin, rayDirection, (bounce==0 ? 0 : -1), rngState);
     if(bounce==0)
       depth = abs(hit.rayT);
 
@@ -286,15 +325,16 @@ vec4 pathtrace(vec3 rayOrigin, vec3 rayDirection) {
       }
 
     if(hit.rayT==TMax) {
-      vec3 sky = textureSkyLUT(skyLUT, vec3(0,RPlanet,0), rayDirection, scene.sunDir) * scene.GSunIntensity;
-      color += throwput*sky;
+      vec3 sky = textureSkyLUT(skyLUT, vec3(0,RPlanet+max(rayOrigin.y*0.01,0),0), rayDirection, scene.sunDir) * scene.GSunIntensity;
+      color += thruput*sky;
+      color += thruput*(vec3(0.3, 0.26, 1)*0.15); //HACK for the night sky
       break;
       }
 
     if(underWater) {
       const float depth         = hit.rayT / 5000.0; // 50 meters
       const vec3  transmittance = exp(-depth * vec3(4,2,1) * 1.25);
-      throwput *= transmittance;
+      thruput *= transmittance;
       }
 
     if(hit.water) {
@@ -306,28 +346,29 @@ vec4 pathtrace(vec3 rayOrigin, vec3 rayDirection) {
       rayOrigin    = (rayOrigin + rayDirection * hit.rayT);
       rayDirection = path ? refl : refract(rayDirection, hit.norm, ior);
       underWater   = path ? underWater : !underWater;
-      throwput    *= WaterAlbedo;
+      thruput    *= WaterAlbedo;
       continue;
       }
 
     rayOrigin    = (rayOrigin + rayDirection * hit.rayT);
     rayDirection = randCosWeightedHemisphereDirection(hit.norm, rngState);
-    throwput    *= textureAlbedo(hit.diff.rgb);
-    //throwput    *= vec3(0.85); //snow
+    thruput    *= textureAlbedo(hit.diff.rgb);
+    //thruput    *= vec3(0.85); //snow
+    //thruput    *= vec3(0.04); // asphalt
     //if(bounce>0)
-    //  throwput    *= textureAlbedo(hit.diff.rgb);
+    //  thruput *= groundAlbedo;
+    //if(bounce>0)
+    //  thruput    *= textureAlbedo(hit.diff.rgb);
 
-#if defined(SOFT_SHADOW)
-    vec3  shRay  = randomizeRay(scene.sunDir, 0.5*M_PI/180.0, rngState);
-#else
-    vec3  shRay  = scene.sunDir;
-#endif
-    float lamb   = max(dot(hit.norm, shRay), 0);
-    // float shadow = shadowFactor(rayOrigin);
-    float shadow = lamb>0 ? rayQueryProceedShadow(rayOrigin, shRay) : 0;
-    float light  = lamb * shadow;
+    vec3  direct = vec3(0);
+    direct += sampleDirectLight(hit.norm, rayOrigin, scene.sunDir, true, 0.54*M_PI/180.0, rngState) * scene.sunColor;
+    //direct += sampleDirectLight(hit.norm, rayOrigin, normalize(vec3(-1,1,0)), false, 0.56*M_PI/180.0, rngState) * (vec3(0.3, 0.26, 1)*GMoonIntensity);
 
-    color += throwput*scene.sunColor*light*Fd_Lambert;
+    //if(bounce==0)
+      color += thruput*direct*Fd_Lambert;
+
+    if(bounce==0)
+      ;//color += thruput*(hit.norm.y*0.25+0.75) * NightAmbient;
     }
 
   return vec4(color, depth);
@@ -335,8 +376,11 @@ vec4 pathtrace(vec3 rayOrigin, vec3 rayDirection) {
 
 float nonLinearDepth(float d, vec3 clipInfo) {
   float near = 10.f;
-  return clipInfo[0]/(d*clipInfo[1]) - clipInfo[2]/clipInfo[1];
-  return (d - near)/(-clipInfo[1]);
+  float far  = 100000.f;
+  // return clipInfo[0]/(d*clipInfo[1]) - clipInfo[2]/clipInfo[1];
+  if(d <= near)
+    return 0.0;
+  return (far / (far - near)) * (1.0 - (near / d));
   }
 
 // halton low discrepancy sequence, from https://www.shadertoy.com/view/wdXSW8

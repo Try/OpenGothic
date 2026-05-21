@@ -26,6 +26,8 @@ void storeSample(vec3 dir, vec3 val) {
   }
 
 vec3 resolveMiss(const vec3 rayOrigin, const vec3 rayDirection) {
+  //if(rayDirection.y<0)
+  //  return scene.ambient;//vec3(0.3) * scene.GSunIntensity * scene.isNight * ;
   // PERF: need to preload sky lut early in shader
   return textureSkyLUT(skyLUT, vec3(0,RPlanet,0), rayDirection, scene.sunDir) * scene.GSunIntensity;
   }
@@ -71,13 +73,11 @@ void main() {
     vec4 a = samples[0][laneId][0];
     vec4 b = samples[0][laneId][1];
 
-    if(a.w>0)
-      a.rgb /= a.w;
-    if(b.w>0)
-      b.rgb /= b.w;
+    float cA = 2.0/max(a.w, 1.0);
+    float cB = 2.0/max(b.w, 1.0);
 
-    imageStore(result, ivec2(laneId,0), vec4(a.rgb*2.0, 1.0));
-    imageStore(result, ivec2(laneId,1), vec4(b.rgb*2.0, 1.0));
+    imageStore(result, ivec2(laneId,0), vec4(a.rgb*cA, 1.0));
+    imageStore(result, ivec2(laneId,1), vec4(b.rgb*cB, 1.0));
     }
   }
 

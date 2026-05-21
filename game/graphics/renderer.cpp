@@ -2068,6 +2068,9 @@ void Renderer::drawPathtrace(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Worl
   if(wview.sceneGlobals().rtScene.tlas.isEmpty())
     return;
 
+  if(!Resources::device().properties().hasAttachFormat(Tempest::RGBA16F))
+    return;
+
   static bool enable = true;
   if(!enable)
     return;
@@ -2077,8 +2080,11 @@ void Renderer::drawPathtrace(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Worl
 
   if(pt.frame.size()!=sceneLinear.size()) {
     Resources::recycle(std::move(pt.frame));
-    pt.frame = Resources::device().attachment(Tempest::R11G11B10UF, sceneLinear.size());
+    pt.frame = Resources::device().attachment(Tempest::RGBA16F, sceneLinear.size());
     }
+
+  wview.visibilityPass(cmd, 0);
+  wview.visibilityPass(cmd, 1);
 
   cmd.setFramebuffer({});
   prepareSky(cmd, wview);
@@ -2129,13 +2135,13 @@ void Renderer::drawPathtrace(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Worl
   cmd.setPipeline(shaders.rtPathtrace);
   cmd.draw(nullptr, 0, 3);
 
-  prepareFog(cmd,wview);
-
   cmd.setFramebuffer({{sceneLinear, Tempest::Discard, Tempest::Preserve}});
   cmd.setDebugMarker("Blit");
   cmd.setBinding(0, pt.frame, Sampler::nearest());
   cmd.setPipeline(shaders.copy);
   cmd.draw(nullptr, 0, 3);
+
+  prepareFog(cmd,wview);
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Discard, Tempest::Preserve}}, {zbuffer, Tempest::Readonly});
   cmd.setDebugMarker("Sky");

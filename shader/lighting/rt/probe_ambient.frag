@@ -181,10 +181,13 @@ void main() {
   // const vec3  linear = vec3(1);
   const vec3  linear  = textureAlbedo(diff);
   const float ao      = textureSsao();
-  const vec3  ambient = colorSum.rgb + (norm.y*0.25+0.75) * NightAmbient * Fd_Lambert;
 
-  vec3 color = ambient;
-  color *= linear;
+  vec3 luminance  = vec3(0);
+  luminance += colorSum.rgb;
+  luminance += (norm.y*0.25+0.75) * NightAmbient * Fd_Lambert;
+
+  vec3 color = linear;
+  color *= luminance;
   color *= ao;
   color *= scene.exposure;
   outColor = vec4(color, 1);

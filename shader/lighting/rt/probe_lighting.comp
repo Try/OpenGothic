@@ -78,9 +78,9 @@ vec3 resolveHit(const vec3 rayOrigin, const vec3 rayDirection, float rayT, vec3 
 
   const float lambert     = max(0, dt); //max(opaque ? 0 : 0.2, dt);
   const float shadow      = max(0, shMap);
-  const vec3  illuminance = scene.sunColor * lambert * shadow;
+  const vec3  lluminance = scene.sunColor * lambert * shadow * Fd_Lambert;
 
-  return illuminance;
+  return lluminance;
   }
 
 vec3 resolveMiss(const vec3 rayOrigin, const vec3 rayDirection) {
@@ -92,44 +92,13 @@ vec3 resolveSecondBounce(vec3 pos, vec3 norm, float rayT, uint selfProbeId) {
 #if 0
   return scene.ambient;
 #elif 1
-  float k       = smoothstep(0.0, 25.0, rayT);
-  vec3  ambient = scene.ambient;
-  vec3  sky     = probeReadAmbient(probesLightingPrev, 0, norm, vec3(0,1,0));
-  return (ambient + sky)*0.5*k;
-#elif 0
-  vec3 ambient = scene.ambient;
-  // vec3 sky     = skyIrradiance();
-  // vec3 sky     = resolveMiss(pos, -norm);
-  vec3 sky     = probeReadAmbient(probesLightingPrev, 0, norm, vec3(0,1,0));
-  return mix(ambient, sky, max(0, norm.y*0.8));
-#elif 0
-  return resolveMiss(pos, -norm);
-#else
-  // doesn't look coherent yet - need to keep offscreen data for long term
-  const ivec3 gridPos = ivec3(round(pos/(probeGridStep*1)));
-  const uint  h       = probeGridPosHash(gridPos) % hashTable.length();
-  uint        probeId = hashTable[h];
+  vec3 ambient   = scene.ambient;
+  vec3 sky       = probeReadAmbient(probesLightingPrev, 0, norm, vec3(0,1,0));
+  vec3 luminance = vec3(0);
 
-  [[loop]]
-  for(int i=0; i<8; ++i) {
-    if(probeId>=probeHeader.count) {
-      break;
-      }
-    const Probe p = probe[probeId];
-    if((p.bits & TRACED_BIT)==0) {
-      probeId = p.pNext;
-      continue;
-      }
-
-    //return vec3(1000, 0,0);
-    return probeReadAmbient(probesLightingPrev, probeId, norm, p.normal);
-    }
-
-  // probeId = selfProbeId;
-  // return vec3(0.01,0,0)*scene.GSunIntensity;
-  // return scene.ambient;
-  return resolveMiss(pos, -norm);
-  // return vec3(0);
+  luminance += ambient;
+  luminance += sky*0.8;
+  return luminance;
 #endif
   }
 
@@ -169,12 +138,12 @@ vec4 processSample(const vec3 rayOrigin, const vec3 rayDirection, uint probeId, 
   float shadow  = shadowFactor(shCoord);
 
   vec3 hit = vec3(0);
-  hit += albedo * Fd_Lambert * resolveHit(rayOrigin, rayDirection, rayT, norm, opaque, shadow);
-  hit += albedo * resolveSecondBounce(pos, norm, rayT, probeId); // Fd_Lambert is accounted in probe
+  hit += albedo * resolveHit(rayOrigin, rayDirection, rayT, norm, opaque, shadow);
+  hit += albedo * resolveSecondBounce(pos, norm, rayT, probeId);
 
   if(semiSky) {
     // avoid pitch-black lighting in forrest
-    hit = (hit*0.25 + resolveMiss(rayOrigin, rayDirection)*0.75);
+    //hit = (hit*0.25 + resolveMiss(rayOrigin, rayDirection)*0.75);
     //hit = vec3(1,0,0)*scene.GSunIntensity;
     }
 

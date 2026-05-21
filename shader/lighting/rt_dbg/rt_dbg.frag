@@ -111,7 +111,7 @@ vec4 raySampleScene(const vec3 rayOrigin, const vec3 rayDirection) {
   float light  = lamb * shadow;
 
   const vec3 linear      = textureAlbedo(diff.rgb);
-  const vec3 ambient     = scene.ambient + (norm.y*0.25+0.75) * NightAmbient;
+  const vec3 ambient     = scene.ambient + (norm.y*0.25+0.75) * NightAmbient * Fd_Lambert;
   const vec3 sky         = skyIrradiance(norm);
 
   const vec3 illuminance = scene.sunColor*light + ambient;

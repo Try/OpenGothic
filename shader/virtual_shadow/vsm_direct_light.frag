@@ -171,9 +171,11 @@ void main() {
   const float light  = (isFlat   ? 0 : lambert(normal));
   const float shadow = (light<=0 ? 0 : shadowTest(z, normal, page, mip));
 
-  const vec3  illuminance = scene.sunColor * light * shadow;
-  const vec3  linear      = textureAlbedo(diff.rgb);
-  const vec3  luminance   = linear * Fd_Lambert * illuminance;
+  // const vec3 linear      = vec3(1);
+  const vec3 linear      = textureAlbedo(diff.rgb);
+
+  const vec3 illuminance = scene.sunColor * light * shadow;
+  const vec3 luminance   = linear * illuminance * Fd_Lambert;
 
   outColor = vec4(luminance * scene.exposure, 1);
 

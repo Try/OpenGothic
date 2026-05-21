@@ -143,9 +143,7 @@ void Sky::updateLight(const int64_t now) {
   ambient *= 2.0*float(M_PI); // 2*pi (hermisphere integral)
   ambient *= float(1.0/M_PI); // predivide by lambertian lobe
 
-  ambient *= 0.5f;            // tuneup
-
-  //ambient += Vec3(0.001f);     // should avoid zeros
+  ambient *= 0.3f;            // tuneup
 
   sun.setColor(direct*sunMul);
   ambient = ambient*ambMul;

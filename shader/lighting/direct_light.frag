@@ -146,10 +146,11 @@ void main(void) {
   */
 #endif
 
-  const vec3 illuminance = scene.sunColor * light;
+  // const vec3 linear      = vec3(1);
   const vec3 linear      = textureAlbedo(diff.rgb);
 
-  const vec3 luminance   = linear * Fd_Lambert * illuminance;
+  const vec3 illuminance = scene.sunColor * light;
+  const vec3 luminance   = linear * illuminance * Fd_Lambert;
 
   outColor = vec4(luminance * scene.exposure, 0.0);
 
