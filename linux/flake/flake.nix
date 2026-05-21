@@ -23,7 +23,6 @@
             alsa-lib
             libX11
             libXcursor
-            libglvnd
             vulkan-headers
             vulkan-loader
             vulkan-validation-layers
