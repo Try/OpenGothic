@@ -116,6 +116,13 @@ sudo pacman -S git cmake gcc glslang vulkan-devel alsa-lib libx11 libxcursor vul
 sudo dnf install git cmake gcc-c++ glslang vulkan-loader-devel alsa-lib-devel libX11-devel libXcursor-devel vulkan-validation-layers-devel libglvnd-devel
 ```
 
+* NixOS
+```bash
+# use the dev flake
+cd linux/flake   
+nix develop
+```
+
 #### Compilation
 ```bash
 # 1st time build:
