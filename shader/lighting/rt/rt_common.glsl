@@ -29,6 +29,7 @@ struct HitDesc {
   uint primitiveId;
   vec3 baryCoord;
   bool opaque;
+  bool water;
   };
 
 #if defined(RAY_QUERY_AT)
@@ -83,6 +84,7 @@ HitDesc pullHitDesc(in rayQueryEXT rayQuery) {
   d.baryCoord.x  = (1-d.baryCoord.y-d.baryCoord.z);
 
   d.opaque       = (desc.firstPrimitive & 0x01000000)!=0;
+  d.water        = (desc.firstPrimitive & 0x02000000)!=0;
 
   return d;
   }
@@ -105,6 +107,7 @@ HitDesc pullCommitedHitDesc(in rayQueryEXT rayQuery) {
   d.baryCoord.x  = (1-d.baryCoord.y-d.baryCoord.z);
 
   d.opaque       = (desc.firstPrimitive & 0x01000000)!=0;
+  d.water        = (desc.firstPrimitive & 0x02000000)!=0;
 
   return d;
   }
@@ -140,7 +143,7 @@ bool isOpaqueHit(in rayQueryEXT rayQuery) {
 #endif
 
 #if defined(RAY_QUERY_AT)
-void rayQueryProceedShadow(in rayQueryEXT rayQuery) {
+void rayQueryProceedAlphaTest(in rayQueryEXT rayQuery) {
   while(rayQueryProceedEXT(rayQuery)) {
     const uint type = rayQueryGetIntersectionTypeEXT(rayQuery,false);
     if(type==gl_RayQueryCandidateIntersectionTriangleEXT) {
@@ -151,8 +154,14 @@ void rayQueryProceedShadow(in rayQueryEXT rayQuery) {
     }
   }
 #elif defined(RAY_QUERY)
-void rayQueryProceedShadow(in rayQueryEXT rayQuery) {
+void rayQueryProceedAlphaTest(in rayQueryEXT rayQuery) {
   rayQueryProceedEXT(rayQuery);
+  }
+#endif
+
+#if defined(RAY_QUERY)
+void rayQueryProceedShadow(in rayQueryEXT rayQuery) {
+  rayQueryProceedAlphaTest(rayQuery);
   }
 #endif
 
