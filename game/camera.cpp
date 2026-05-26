@@ -755,16 +755,15 @@ void Camera::tick(uint64_t dt) {
     auto  pl     = isFree() ? nullptr : world->player();
     auto& physic = *world->physic();
 
-    if(pl!=nullptr && pl->isSwim()) {
-      inWater = (angles.x < -8.f);
+    if(pl!=nullptr && (pl->isSwim() || pl->isDive())) {
+      inWater = pl->isDive();
       }
     else if(pl!=nullptr && (pl->isInAir() || pl->isJump()) && !pl->isDead()) {
       // NOTE: not quite correct
       inWater = physic.cameraRay(inter.target, origin).waterCol % 2;
       }
     else {
-      // NOTE: find a way to avoid persistent tracking
-      inWater = inWater ^ (physic.cameraRay(prev, origin).waterCol % 2);
+      inWater = physic.cameraRay(inter.target, origin).waterCol % 2;
       }
     }
   }

@@ -819,6 +819,9 @@ void MoveAlgo::setState(State f) {
   if((f==Dive) && !(flags==Dive)) {
     npc.setDirectionY(-40);
     }
+  else if(flags==Dive && f!=Dive) {
+    npc.setDirectionY(0);
+    }
   if((f==Dive) != (flags==Dive)) {
     diveStart = npc.world().tickCount();
     }
@@ -1081,4 +1084,3 @@ std::string_view MoveAlgo::portalName() {
 std::string_view MoveAlgo::formerPortalName() {
   return formerPortal;
   }
-

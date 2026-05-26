@@ -969,7 +969,7 @@ void MainWindow::tickCamera(uint64_t dt) {
       auto spin = camera.spin();
       if(pl->interactive()==nullptr && !pl->isDown())
         spin.y = pl->rotation();
-      if(pl->isDive() && !camera.isMarvin())
+      if(Gothic::inst().version().game!=1 && pl->isDive() && !camera.isMarvin())
         spin.x = -pl->rotationY();
       camera.setSpin(spin);
       camera.setTarget(pos);
@@ -1007,7 +1007,7 @@ Camera::Mode MainWindow::solveCameraMode() const {
     if(pl->isDead())
       return Camera::Death;
     if(pl->isDive())
-      return Camera::Dive;
+      return Gothic::inst().version().game==1 ? Camera::Swim : Camera::Dive;
     if(pl->isSwim())
       return Camera::Swim;
     if(pl->isFallingDeep())

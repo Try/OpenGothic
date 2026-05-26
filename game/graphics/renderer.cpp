@@ -1591,6 +1591,10 @@ void Renderer::drawGWater(Encoder<CommandBuffer>& cmd, WorldView& view) {
   static bool water = true;
   if(!water)
     return;
+  if(auto camera = Gothic::inst().camera()) {
+    if(camera->isInWater())
+      return;
+    }
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve},
                       {gbufDiffuse, Vec4(0,0,0,0),     Tempest::Preserve},
@@ -1622,8 +1626,16 @@ void Renderer::drawReflections(Encoder<CommandBuffer>& cmd, const WorldView& wvi
   }
 
 void Renderer::drawUnderwater(Encoder<CommandBuffer>& cmd, const WorldView& wview) {
+  static const auto underwaterFrames = Resources::loadTextureAnim("UNDERWATER_A0.TGA");
+  const auto* underwater = &Resources::fallbackBlack();
+  if(!underwaterFrames.empty()) {
+    const auto now = Gothic::inst().world()!=nullptr ? Gothic::inst().world()->tickCount() : 0;
+    underwater = underwaterFrames[(now/120)%underwaterFrames.size()];
+    }
+
   cmd.setBinding(0, wview.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
   cmd.setBinding(1, zbuffer);
+  cmd.setBinding(2, *underwater, Sampler::bilinear(ClampMode::MirroredRepeat));
 
   cmd.setPipeline(shaders.underwaterT);
   cmd.draw(nullptr, 0, 3);
@@ -2309,4 +2321,3 @@ Size Renderer::internalResolution() const {
     return Size(int(3*swapchain.w()/4), int(3*swapchain.h()/4));
   return Size(int(swapchain.w()/2), int(swapchain.h()/2));
   }
-
