@@ -75,6 +75,7 @@ class Shaders {
     // RT/RQ
     Tempest::RenderPipeline  rtDbg;
     Tempest::RenderPipeline  rtPathtrace;
+    Tempest::RenderPipeline  hashDbg;
 
     // GI
     Tempest::RenderPipeline  probeDbg, probeHitDbg;
@@ -82,6 +83,10 @@ class Shaders {
     Tempest::ComputePipeline probeVote, probePrune, probeAlocation;
     Tempest::ComputePipeline probeTrace, probeLighting;
     Tempest::RenderPipeline  probeAmbient;
+
+    // GI-Surf
+    Tempest::RenderPipeline  surfDbg;
+    Tempest::ComputePipeline surfInit, surfAlloc, surfAlloc2;
 
     // Epipolar
     Tempest::ComputePipeline fogEpipolarVsm;

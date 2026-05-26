@@ -285,6 +285,7 @@ add_shader(hiz_pot.comp              hiz/hiz_pot.comp)
 
 # RayQuery
 add_shader(rt_dbg.frag               lighting/rt_dbg/rt_dbg.frag -DRAY_QUERY -DRAY_QUERY_AT)
+add_shader(hash_dbg.frag             lighting/rt_dbg/hash_dbg.frag)
 
 # Global illumination
 add_shader(probe_dbg.vert            lighting/rt/probe_dbg.vert)
@@ -305,6 +306,14 @@ add_shader(probe_lighting.comp       lighting/rt/probe_lighting.comp)
 
 add_shader(probe_ambient.vert        triangle.vert)
 add_shader(probe_ambient.frag        lighting/rt/probe_ambient.frag)
+
+# Surfels
+add_shader(surf_dbg.vert             lighting/surfels/surf_dbg.vert)
+add_shader(surf_dbg.frag             lighting/surfels/surf_dbg.frag)
+
+add_shader(surf_init.comp            lighting/surfels/surf_init.comp)
+add_shader(surf_alloc.comp           lighting/surfels/surf_alloc.comp)
+add_shader(surf_alloc2.comp          lighting/surfels/surf_alloc2.comp)
 
 # Pathtracing
 add_shader(pathtrace.frag            lighting/pt/pathtrace.frag -DRAY_QUERY -DRAY_QUERY_AT)

@@ -181,6 +181,7 @@ void Shaders::compileShaders() {
   if(Gothic::options().doRayQuery) {
     rtDbg       = postEffect("triangle_uv", "rt_dbg", RenderState::ZTestMode::NoEqual);
     }
+  hashDbg = postEffect("triangle_uv", "hash_dbg");
 
   if(Gothic::options().doRayQuery) {
     RenderState state;
@@ -233,6 +234,23 @@ void Shaders::compileShaders() {
     sh = GothicShader::get("probe_ambient.frag.sprv");
     fs = device.shader(sh.data,sh.len);
     probeAmbient = device.pipeline(Triangles,state,vs,fs);
+    }
+
+  if(true) {
+    RenderState state;
+    state.setCullFaceMode(RenderState::CullMode::NoCull);
+    state.setZTestMode   (RenderState::ZTestMode::Less);
+    state.setZWriteEnabled(false);
+
+    auto sh = GothicShader::get("surf_dbg.vert.sprv");
+    auto vs = device.shader(sh.data,sh.len);
+    sh = GothicShader::get("surf_dbg.frag.sprv");
+    auto fs = device.shader(sh.data,sh.len);
+    surfDbg = device.pipeline(Triangles,state,vs,fs);
+
+    surfInit   = computeShader("surf_init.comp.sprv");
+    surfAlloc  = computeShader("surf_alloc.comp.sprv");
+    surfAlloc2 = computeShader("surf_alloc2.comp.sprv");
     }
 
   if(Shaders::isVsmSupported()) {

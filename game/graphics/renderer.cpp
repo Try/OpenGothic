@@ -372,6 +372,14 @@ StorageBuffer& Renderer::usesSsbo(Tempest::StorageBuffer& ret, size_t size) {
   return ret;
   }
 
+StorageBuffer& Renderer::usesSsboInit(Tempest::StorageBuffer& ret, size_t size) {
+  if(ret.byteSize()==size)
+    return ret;
+  Resources::recycle(std::move(ret));
+  ret = Resources::device().ssbo(nullptr, size);
+  return ret;
+  }
+
 StorageBuffer& Renderer::usesScratch(Tempest::StorageBuffer& ret, size_t size) {
   if(ret.byteSize()>=size)
     return ret;
@@ -653,6 +661,7 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
   prepareSSAO(cmd,*wview);
   prepareFog (cmd,*wview);
   prepareGi  (cmd,*wview);
+  prepareSurfels(cmd,*wview);
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Discard, Tempest::Preserve}}, {zbuffer, Tempest::Readonly});
   drawShadowResolve(cmd,*wview);
@@ -670,8 +679,10 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
   cmd.setDebugMarker("Translucent");
   wview->drawTranslucent(cmd, fId);
 
+  //drawHashDbg(sceneLinear, cmd, *wview);
   drawProbesDbg(cmd, *wview);
   drawProbesHitDbg(cmd);
+  drawSurfelsDbg(cmd, *wview);
   drawVsmDbg(cmd, *wview);
   drawSwrDbg(cmd, *wview);
   drawRtsmDbg(cmd, *wview);
@@ -696,6 +707,7 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
     }
 
   //drawRayQueryDbg(cmd, *wview);
+  //drawHashDbg(result, cmd, *wview);
 
   wview->postFrameupdate();
   }
@@ -986,6 +998,28 @@ void Renderer::drawRtsmDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const 
   cmd.setBinding(2, rtsm.pages);
 #endif
   cmd.setPipeline(shaders.rtsmDbg);
+  cmd.draw(nullptr, 0, 3);
+  }
+
+void Renderer::drawHashDbg(Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview) {
+  static bool enable = true;
+  if(!enable)
+    return;
+
+  auto& scene = wview.sceneGlobals();
+
+  struct Push {
+    Vec3 originLwc;
+    } push;
+  push.originLwc = scene.originLwc;
+
+  cmd.setDebugMarker("Hash-dbg");
+  cmd.setPushData(push);
+  cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
+  cmd.setBinding(1, zbuffer);
+
+  cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}});
+  cmd.setPipeline(shaders.hashDbg);
   cmd.draw(nullptr, 0, 3);
   }
 
@@ -1899,6 +1933,45 @@ void Renderer::prepareEpipolar(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wo
   cmd.dispatch(uint32_t(epTrace.h()));
   }
 
+void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview) {
+  static bool alloc = true;
+
+  const uint32_t hashGridSize = 4'194'304; // SHaRC docimentation recommends 2^22
+  cmd.setDebugMarker("Surfels");
+
+  auto& scene    = wview.sceneGlobals();
+  auto& surfels  = usesSsboInit(surf.surfels,  shaders.surfAlloc.sizeofBuffer(4, surf.maxSurfels));
+  auto& dbgImage = usesImage2d (surf.dbgImage, TextureFormat::RGBA8, zbuffer.size());
+  auto& hashGrid = usesSsboInit(surf.hashGrid, hashGridSize);
+
+  if(alloc) {
+    struct Push {
+      Vec3 originLwc;
+      } push;
+    push.originLwc = scene.originLwc;
+
+    cmd.setPushData(push);
+    cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
+    cmd.setBinding(1, gbufDiffuse, Sampler::nearest());
+    cmd.setBinding(2, gbufNormal,  Sampler::nearest());
+    cmd.setBinding(3, zbuffer,     Sampler::nearest());
+    cmd.setBinding(4, surfels);
+    cmd.setBinding(5, hashGrid);
+    //
+    cmd.setBinding(11, dbgImage);
+
+    cmd.setPipeline(shaders.surfInit);
+    cmd.dispatchThreads(hashGridSize);
+
+    cmd.setPipeline(shaders.surfAlloc);
+    cmd.dispatchThreads(sceneDepth.size());
+
+    cmd.setPipeline(shaders.surfAlloc2);
+    cmd.dispatchThreads(hashGridSize);
+    //alloc = false;
+    }
+  }
+
 void Renderer::prepareIrradiance(Encoder<CommandBuffer>& cmd, WorldView& wview) {
   auto& scene = wview.sceneGlobals();
 
@@ -2177,6 +2250,20 @@ void Renderer::drawRayQueryDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, co
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}}, {zbuffer, Tempest::Readonly});
   cmd.setPipeline(shaders.rtDbg);
   cmd.draw(nullptr, 0, 3);
+  }
+
+void Renderer::drawSurfelsDbg(Encoder<CommandBuffer>& cmd, const WorldView& wview) {
+  static bool enable = true;
+  if(!enable)
+    return;
+
+  cmd.setDebugMarker("GI-dbg");
+  cmd.setBinding(0, wview.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+  cmd.setBinding(1, surf.surfels);
+  cmd.setBinding(2, gbufNormal,  Sampler::nearest());
+  cmd.setBinding(3, sceneDepth,  Sampler::nearest());
+  cmd.setPipeline(shaders.surfDbg);
+  cmd.draw(nullptr, 0, 36, 0, surf.maxSurfels);
   }
 
 void Renderer::drawProbesDbg(Encoder<CommandBuffer>& cmd, const WorldView& wview) {

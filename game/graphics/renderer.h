@@ -41,8 +41,8 @@ class Renderer final {
       };
     Tempest::Size internalResolution() const;
     float         internalResolutionScale() const;
-    void updateCamera(const Camera &camera);
 
+    void updateCamera(const Camera &camera);
     bool requiresTlas() const;
 
     Tempest::StorageImage&  usesImage2d(Tempest::StorageImage& ret, Tempest::TextureFormat frm, uint32_t w, uint32_t h, bool mips = false);
@@ -50,6 +50,7 @@ class Renderer final {
     Tempest::StorageImage&  usesImage3d(Tempest::StorageImage& ret, Tempest::TextureFormat frm, uint32_t w, uint32_t h, uint32_t d, bool mips = false);
     Tempest::ZBuffer&       usesZBuffer(Tempest::ZBuffer&      ret, Tempest::TextureFormat frm, uint32_t w, uint32_t h);
     Tempest::StorageBuffer& usesSsbo(Tempest::StorageBuffer& ret, size_t size);
+    Tempest::StorageBuffer& usesSsboInit(Tempest::StorageBuffer& ret, size_t size);
     Tempest::StorageBuffer& usesScratch(Tempest::StorageBuffer& ret, size_t size);
 
     void prepareUniforms();
@@ -63,6 +64,7 @@ class Renderer final {
     void prepareGi        (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview);
     void prepareExposure  (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview);
     void prepareEpipolar  (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview);
+    void prepareSurfels   (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview);
 
     void drawHiZ          (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& view);
     void buildHiZ         (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
@@ -93,10 +95,12 @@ class Renderer final {
 
     void drawRayQueryDbg  (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
     void drawProbesDbg    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
+    void drawSurfelsDbg   (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
     void drawProbesHitDbg (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
     void drawVsmDbg       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
     void drawSwrDbg       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
     void drawRtsmDbg      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
+    void drawHashDbg      (Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
 
     void setupSettings();
     void toggleGi();
@@ -204,6 +208,14 @@ class Renderer final {
       Tempest::StorageImage     probesLighting;
       Tempest::StorageImage     probesLightingPrev;
       } gi;
+
+    struct {
+      const uint32_t            maxSurfels = 16*1024;
+      Tempest::StorageBuffer    surfels;
+      Tempest::StorageBuffer    hashGrid;
+
+      Tempest::StorageImage     dbgImage;
+      } surf;
 
     struct {
       Tempest::Attachment       frame;
