@@ -13,6 +13,7 @@
 #include "graphics/meshobjects.h"
 #include "game/gamescript.h"
 #include "physics/dynamicworld.h"
+#include "physics/physicmesh.h"
 #include "worldobjects.h"
 #include "worldsound.h"
 #include "waypoint.h"
@@ -222,7 +223,20 @@ class World final {
     auto         roomAt(const zenkit::BspNode &node) -> std::string_view;
     auto         portalAt(std::string_view tag) -> BspSector*;
 
+    void         initG1Barrier();
+    void         tickG1Barrier();
+
     void         initScripts(bool firstTime);
 
     Sound        addHitEffect(std::string_view src, std::string_view reciver, std::string_view scheme, const Tempest::Matrix4x4& pos);
+
+    struct G1Barrier final {
+      MeshObjects::Mesh visual;
+      PhysicMesh        physic;
+      Tempest::Vec3     center;
+      Tempest::Vec3     radius;
+      uint64_t          damageTimeout = 0;
+    };
+
+    std::unique_ptr<G1Barrier>              g1Barrier;
   };

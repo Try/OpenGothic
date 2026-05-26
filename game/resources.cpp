@@ -12,6 +12,7 @@
 #include <Tempest/Color>
 
 #include <zenkit/MultiResolutionMesh.hh>
+#include <zenkit/Mesh.hh>
 #include <zenkit/ModelHierarchy.hh>
 #include <zenkit/Model.hh>
 #include <zenkit/ModelScript.hh>
@@ -441,6 +442,25 @@ ProtoMesh* Resources::implLoadMesh(std::string_view name) {
   }
 
 std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
+  if(FileExt::hasExt(name,"MSH")) {
+    const auto* entry = Resources::vdfsIndex().find(name);
+    if(entry == nullptr)
+      return nullptr;
+
+    zenkit::Mesh zmsh;
+    auto reader = entry->open_read();
+    zmsh.load(reader.get(),false);
+
+    if(zmsh.polygons.vertex_indices.empty())
+      return nullptr;
+
+    PackedMesh packed(zmsh,PackedMesh::PK_Visual);
+    if(packed.indices.empty() || packed.subMeshes.empty())
+      return nullptr;
+
+    return std::unique_ptr<ProtoMesh>{new ProtoMesh(std::move(packed),name)};
+    }
+
   if(FileExt::hasExt(name,"3DS")) {
     FileExt::exchangeExt(name,"3DS","MRM");
 
