@@ -679,7 +679,7 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
   cmd.setDebugMarker("Translucent");
   wview->drawTranslucent(cmd, fId);
 
-  //drawHashDbg(sceneLinear, cmd, *wview);
+  drawHashDbg(sceneLinear, cmd, *wview);
   drawProbesDbg(cmd, *wview);
   drawProbesHitDbg(cmd);
   drawSurfelsDbg(cmd, *wview);
@@ -1940,7 +1940,7 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
   cmd.setDebugMarker("Surfels");
 
   auto& scene    = wview.sceneGlobals();
-  auto& surfels  = usesSsboInit(surf.surfels,  shaders.surfAlloc.sizeofBuffer(4, surf.maxSurfels));
+  auto& surfels  = usesSsboInit(surf.surfels,  shaders.surfVote.sizeofBuffer(4, surf.maxSurfels));
   auto& dbgImage = usesImage2d (surf.dbgImage, TextureFormat::RGBA8, zbuffer.size());
   auto& hashGrid = usesSsboInit(surf.hashGrid, hashGridSize);
 
@@ -1963,10 +1963,10 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
     cmd.setPipeline(shaders.surfInit);
     cmd.dispatchThreads(hashGridSize);
 
-    cmd.setPipeline(shaders.surfAlloc);
+    cmd.setPipeline(shaders.surfVote);
     cmd.dispatchThreads(sceneDepth.size());
 
-    cmd.setPipeline(shaders.surfAlloc2);
+    cmd.setPipeline(shaders.surfAlloc);
     cmd.dispatchThreads(hashGridSize);
     //alloc = false;
     }

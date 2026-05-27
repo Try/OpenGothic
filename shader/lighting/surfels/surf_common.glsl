@@ -1,7 +1,9 @@
 #ifndef SURF_COMMON_GLSL
 #define SURF_COMMON_GLSL
 
-const float SKY_DEPTH = 0.999995;
+const float SKY_DEPTH        = 0.999995;
+const float SURFEL_FOOTPRINT = 64;
+const float SURFEL_CELL      = 32;//SURFEL_FOOTPRINT/sqrt(2);
 
 struct Surfel {
   vec3 pos;
@@ -26,21 +28,21 @@ float computeTargetCellSize(float d, float aperture, vec2 resolution, float pixe
   }
 
 // Computes the discretized cell size (s_wd) rounding to the nearest power-of-two level
-float computeAdaptiveCellSize(float sw, float smin) {
+float computeAdaptiveCellSize(float sw, float sMin) {
   // Avoid log2 of zero or negative numbers if sw is too small
-  if(sw <= smin)
-    return smin;
+  if(sw <= sMin)
+    return sMin;
 
   // Equation 3: Discretize to power-of-two bands to create discrete levels of detail
-  float logScale = floor(log2(sw / smin));
-  float swd = pow(2.0, logScale) * smin;
+  float logScale = floor(log2(sw / sMin));
+  float swd = pow(2.0, logScale) * sMin;
   return swd;
   }
 
-float computeCellSize(float d, float fov, vec2 resolution,
-                      float pixelFeatureSize, float smin) {
+float computeCellSize(float d, float fov, vec2 resolution, float pixelFeatureSize) {
+  const float sMin = 1; // min 1 centimeter
   float sw = computeTargetCellSize(d, fov, resolution, pixelFeatureSize);
-  return computeAdaptiveCellSize(sw, smin);
+  return computeAdaptiveCellSize(sw, sMin);
   }
 
 uint hash(vec3 pos, float cellSize) {

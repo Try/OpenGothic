@@ -36,8 +36,13 @@ const uint index[36] = {
   4, 5, 0, 0, 5, 1
   };
 
-uint surfHash(vec3 pos, float cellSize) {
-  ivec3 p       = ivec3(pos / cellSize);
+vec3 hasGridPos(vec3 wpos, float cellSize) {
+  wpos = wpos / cellSize;
+  return round(wpos);
+  }
+
+uint surfHash(vec3 hpos, float cellSize) {
+  ivec3 p       = ivec3(round(hpos*cellSize));
   uint  hashKey = pcg(p.x + pcg(p.y + pcg(p.z)));
   return hashKey;
   }
@@ -64,8 +69,11 @@ void main() {
   center        = p.pos;
   normal        = decodeNormal(p.norm);
 
-  const float ld  = max(linearDepth(pp.z/pp.w, scene.clipInfo), 10);
   const float fov = 67.5f*M_PI/180.0;
-  const float sz  = computeCellSize(ld, fov, textureSize(depth,0), 64, 1);
-  instanceIndex = surfHash(p.pos, 5); //surfelId;
+  const float ld  = max(linearDepth(pp.z/pp.w, scene.clipInfo), 10);
+
+  const float sz   = computeCellSize(ld, fov, textureSize(depth,0), SURFEL_CELL);
+  const vec3  wpos = p.pos;
+  const vec3  ipos = hasGridPos(wpos, sz);
+  instanceIndex = surfHash(ipos, sz);
   }

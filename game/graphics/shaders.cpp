@@ -248,9 +248,9 @@ void Shaders::compileShaders() {
     auto fs = device.shader(sh.data,sh.len);
     surfDbg = device.pipeline(Triangles,state,vs,fs);
 
-    surfInit   = computeShader("surf_init.comp.sprv");
-    surfAlloc  = computeShader("surf_alloc.comp.sprv");
-    surfAlloc2 = computeShader("surf_alloc2.comp.sprv");
+    surfInit  = computeShader("surf_init.comp.sprv");
+    surfVote  = computeShader("surf_vote.comp.sprv");
+    surfAlloc = computeShader("surf_alloc.comp.sprv");
     }
 
   if(Shaders::isVsmSupported()) {

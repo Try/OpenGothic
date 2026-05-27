@@ -1,0 +1,94 @@
+#version 450
+
+#include "lighting/surfels/surf_common.glsl"
+#include "scene.glsl"
+#include "common.glsl"
+
+const float fov      = 67.5f*M_PI/180.0;
+
+layout(local_size_x = 16, local_size_y = 16) in;
+
+layout(std140, push_constant) uniform Push {
+  vec3 originLwc;
+  };
+layout(binding = 0, std140) uniform UboScene {
+  SceneDesc scene;
+  };
+
+layout(binding = 1) uniform sampler2D  gbufDiffuse;
+layout(binding = 2) uniform usampler2D gbufNormal;
+layout(binding = 3) uniform sampler2D  depth;
+layout(binding = 4, std430) buffer SB0 { uvec4 count; Surfel surfels[]; };
+layout(binding = 5, std430) buffer SB1 { uint hashGrid[]; };
+
+layout(binding = 11, rgba8) uniform image2D dbgImage;
+
+shared uint vote;
+void makeVote(ivec2 at) {
+  atomicMin(vote, (at.x + at.y*gl_WorkGroupSize.x));
+  }
+
+vec3 worldPos(float z, ivec2 fragCoord, ivec2 screenSize) {
+  const mat4 inv = scene.viewProjectLwcInv;
+  const vec2 uv  = vec2(fragCoord+0.5)*scene.screenResInv;
+  const vec4 pos = inv*vec4(uv * 2.0 - 1.0, z, 1);
+  return pos.xyz/pos.w + originLwc;
+  }
+
+uint packSurfId(float dist, ivec2 fragCoord, ivec2 screenSize) {
+  uint lo = (fragCoord.x + fragCoord.y*screenSize.x) & 0x0FFFFFF;
+  uint up = min(uint(dist * 0xFF), 0xFF) << 24;
+  return up | lo;
+  }
+
+vec3 hasGridPos(vec3 wpos, float cellSize) {
+  wpos = wpos / cellSize;
+  return round(wpos);
+  }
+
+float surfDist(vec3 hpos, vec3 pos, float cellSize) {
+  vec3 p = (pos/cellSize - hpos);
+  p *= 2/sqrt(2.0);
+  return dot(p,p); //quad distance
+  }
+
+uint surfHash(vec3 hpos, float cellSize) {
+  ivec3 p       = ivec3(round(hpos*cellSize));
+  uint  hashKey = pcg(p.x + pcg(p.y + pcg(p.z)));
+  return hashKey;
+  }
+
+void main() {
+  if(gl_GlobalInvocationID.xy==ivec2(0))
+    count = uvec4(0);
+
+  const ivec2 fragCoord  = ivec2(gl_GlobalInvocationID.xy);
+  const ivec2 screenSize = ivec2(textureSize(depth,0));
+  const bool  valid      = all(lessThan(fragCoord, screenSize));
+
+  if(!valid)
+    return;
+
+  const float z    = texelFetch(depth,fragCoord,0).x;
+  const vec3  norm = normalFetch(gbufNormal,fragCoord);
+  if(z >= SKY_DEPTH)
+    return;
+
+  const vec3  wpos = worldPos(z, fragCoord, screenSize);
+  const float ld   = max(linearDepth(z, scene.clipInfo), 10);
+
+  const float sz   = computeCellSize(ld, fov, textureSize(depth,0), SURFEL_CELL);
+  const vec3  ipos = hasGridPos(wpos, sz);
+  const float dist = surfDist(ipos, wpos, sz);
+
+  const uint  hKey = surfHash(ipos, sz) % hashGrid.length();
+
+  if(dist>0.5)
+    return;
+
+  const uint  sId  = packSurfId(dist, fragCoord, screenSize);
+  atomicMin(hashGrid[hKey], sId);
+
+  imageStore(dbgImage, fragCoord, vec4(debugColors[hKey%debugColors.length()], 1.0));
+  }
+
