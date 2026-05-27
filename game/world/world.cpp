@@ -408,6 +408,10 @@ void World::initG1Barrier() {
     return;
 
   G1Barrier barrier;
+  constexpr uint64_t ThunderDelay[4] = {8000,6000,14000,4000};
+  for(size_t i=0; i<barrier.thunderTimeout.size(); ++i)
+    barrier.thunderTimeout[i] = tickCount() + ThunderDelay[i];
+
   barrier.visual = addStaticView(proto,true);
   barrier.physic = PhysicMesh(*proto,*wdynamic,false);
   barrier.center = (bbox[0] + bbox[1]) * 0.5f;
@@ -433,9 +437,42 @@ void World::tickG1Barrier() {
     return;
 
   const float rx = g1Barrier->radius.x;
+  if(g1Barrier->ambientSound.isEmpty()) {
+    g1Barrier->ambientSound = Sound(*this,Sound::T_Regular,"MFX_BARRIERE_AMBIENT.WAV",pl->position(),60000.f,true);
+    g1Barrier->ambientSound.setAmbient(true);
+    g1Barrier->ambientSound.setLooping(true);
+    g1Barrier->ambientSound.setVolume(0.25f);
+    g1Barrier->ambientSound.play();
+    } else {
+    g1Barrier->ambientSound.setPosition(pl->position());
+    }
+
   const float rz = g1Barrier->radius.z;
   if(rx<=0.f || rz<=0.f)
     return;
+
+  {
+  constexpr uint64_t ThunderDelay[4] = {8000,6000,14000,4000};
+  constexpr float    QuadX[4]        = { 1.f,-1.f,-1.f, 1.f};
+  constexpr float    QuadZ[4]        = { 1.f, 1.f,-1.f,-1.f};
+  constexpr float    EdgeScale       = 0.70f;
+  constexpr float    HeightScale     = 0.55f;
+  const uint64_t     now             = tickCount();
+  for(size_t i=0; i<g1Barrier->thunderTimeout.size(); ++i) {
+    if(now<g1Barrier->thunderTimeout[i])
+      continue;
+
+    auto at = g1Barrier->center;
+    at.x += g1Barrier->radius.x*QuadX[i]*EdgeScale;
+    at.y += g1Barrier->radius.y*HeightScale;
+    at.z += g1Barrier->radius.z*QuadZ[i]*EdgeScale;
+
+    auto thunder = Sound(*this,Sound::T_Regular,"MFX_BARRIERE_SHOOT.WAV",at,60000.f,true);
+    thunder.setVolume(0.45f);
+    thunder.play();
+    g1Barrier->thunderTimeout[i] = now + ThunderDelay[i];
+    }
+  }
 
   const auto  pos = pl->position();
   const float dx  = pos.x - g1Barrier->center.x;
@@ -457,13 +494,17 @@ void World::tickG1Barrier() {
 
   if(tickCount()<=g1Barrier->damageTimeout)
     return;
-
   constexpr int32_t BarrierDamage       = 25;
   constexpr uint64_t BarrierRepeatDelay = 500;
   const auto& hnpc = pl->handle();
   const int32_t protection = hnpc.protection[zenkit::DamageType::BARRIER];
   if(protection>=0)
     pl->changeAttribute(ATR_HITPOINTS,-std::max(BarrierDamage-protection,0),false);
+  {
+  auto warning = Sound(*this,Sound::T_Regular,"MFX_BARRIERE_WARNING.WAV",pos,12000.f,true);
+  warning.setVolume(0.7f);
+  warning.play();
+  }
   g1Barrier->damageTimeout = tickCount() + BarrierRepeatDelay;
   }
 

@@ -22,8 +22,20 @@ Material::Material(const zenkit::Material& m, bool enableAlphaTest) {
     }
 
   loadFrames(m);
+  if(m.name=="MAGICFRONTIER_BARRIER") {
+    isG1Barrier = true;
+    alphaWeight = float(m.color.a)/255.f;
+    if(m.texture=="BARRIERE.TGA")
+      g1BarrierLayer = 1;
+    else if(m.texture.rfind("MAGBA_",0)==0)
+      g1BarrierLayer = 2;
+    else if(m.texture.rfind("MAGICFRONTIER_",0)==0)
+      g1BarrierLayer = 3;
+    }
 
   alpha = loadAlphaFunc(m.alpha_func,m.group,m.color.a,tex,enableAlphaTest);
+  if(isG1Barrier && m.alpha_func==zenkit::AlphaFunction::BLEND)
+    alpha = Transparent;
   if(alpha==Water && m.name=="OWODWFALL_WATERFALL_01") {
     // NOTE: waterfall heuristics
     alpha = Solid;
@@ -70,6 +82,8 @@ bool Material::operator ==(const Material& other) const {
          texAniMapDirPeriod==other.texAniMapDirPeriod &&
          texAniFPSInv==other.texAniFPSInv &&
          isGhost==other.isGhost &&
+         isG1Barrier==other.isG1Barrier &&
+         g1BarrierLayer==other.g1BarrierLayer &&
          waveMaxAmplitude==other.waveMaxAmplitude &&
          envMapping==other.envMapping;
   }

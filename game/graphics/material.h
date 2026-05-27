@@ -32,6 +32,8 @@ class Material final {
     Tempest::Point            texAniMapDirPeriod;
     uint64_t                  texAniFPSInv     = 1;
     bool                      isGhost          = false;
+    bool                      isG1Barrier      = false;
+    uint32_t                  g1BarrierLayer   = 0;
     float                     waveMaxAmplitude = 0;
     float                     envMapping       = 0;
 
@@ -59,4 +61,3 @@ class Material final {
     void             loadFrames(const zenkit::Material& m);
     void             loadFrames(const std::string_view fr, float fps);
   };
-

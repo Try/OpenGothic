@@ -5,6 +5,7 @@
 #include <Tempest/Matrix4x4>
 #include <string>
 #include <functional>
+#include <array>
 
 #include <zenkit/World.hh>
 
@@ -16,6 +17,7 @@
 #include "physics/physicmesh.h"
 #include "worldobjects.h"
 #include "worldsound.h"
+#include "world/objects/sound.h"
 #include "waypoint.h"
 #include "waymatrix.h"
 
@@ -236,6 +238,8 @@ class World final {
       Tempest::Vec3     center;
       Tempest::Vec3     radius;
       uint64_t          damageTimeout = 0;
+      Sound             ambientSound;
+      std::array<uint64_t,4> thunderTimeout = {};
     };
 
     std::unique_ptr<G1Barrier>              g1Barrier;

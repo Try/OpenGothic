@@ -157,6 +157,21 @@ vec4 diffuseTex() {
       uint fract = scene.tickCount32 % abs(texAniMapDirPeriod.y);
       texAnim.y  = float(fract)/float(texAniMapDirPeriod.y);
       }
+
+#if (MESH_TYPE!=T_PFX)
+    if((bucket[bucketId].flags & BK_G1_BARRIER) != 0) {
+      // Continuous UV drift on top of the per-frame texture swap so the
+      // lightning sheets feel alive instead of stamped on the sky dome.
+      float time  = float(scene.tickCount32 % 65536u) * 0.001;
+      uint  layer = bucket[bucketId].g1BarrierLayer;
+      vec2  drift = vec2(0);
+      if(layer==2u)
+        drift = vec2( 0.18, -0.11) * time;
+      else if(layer==3u)
+        drift = vec2(-0.13,  0.21) * time;
+      texAnim += fract(drift);
+      }
+#endif
   }
   const vec2 uv = shInp.uv + texAnim;
 #else
@@ -210,9 +225,67 @@ void mainForward(vec4 t) {
 #endif
 
 #if defined(EMISSIVE)
+// Cheap hash → pseudo-random in [0,1)
+float g1BarrierHash(vec3 p) {
+  p = fract(p * vec3(0.1031, 0.1030, 0.0973));
+  p += dot(p, p.yzx + 19.19);
+  return fract((p.x + p.y) * p.z);
+  }
+
+// Per-region flicker that makes the dome read as electric arcs
+// rather than a steady glow. Returns ~[0..1.6].
+float g1BarrierFlicker(vec3 worldPos, float time) {
+  // Quantize space so flicker varies across cells, not per pixel.
+  vec3  cell = floor(worldPos * 0.0015);
+  float h    = g1BarrierHash(cell);
+
+  // Two overlaid pulses at different rates, offset by hash.
+  float a    = sin(time * 7.0  + h * 17.0);
+  float b    = sin(time * 13.0 + h * 31.0);
+  float pulse = max(a, b);
+  pulse = pulse*pulse;          // sharpen — most of the time low, occasional bright peaks
+  return 0.4 + pulse * 1.8;     // floor + spike (so it's always visible, but really pops on peaks)
+  }
+
 void mainEmissive(vec4 t) {
-  vec3 color = textureEmmisive(t.rgb);
-  outColor = vec4(color,t.a);
+  vec3  color = textureEmmisive(t.rgb);
+  float alpha = t.a;
+
+#if !defined(SIMPLE_MAT) && (MESH_TYPE!=T_PFX)
+  if((bucket[bucketId].flags & BK_G1_BARRIER) != 0) {
+    // Reconstruct world-space position (MAT_POSITION is not available in
+    // the emissive variant) so we can do view-dependent + spatial effects.
+    vec2 ndc      = (gl_FragCoord.xy*scene.screenResInv)*2.0 - vec2(1.0);
+    vec4 wpos     = scene.viewProjectInv * vec4(ndc, gl_FragCoord.z, 1.0);
+    vec3 fragPos  = wpos.xyz / wpos.w;
+
+    vec3  view    = normalize(scene.camPos - fragPos);
+    vec3  normal  = normalize(shInp.normal);
+    float ndv     = abs(dot(view, normal));
+
+    // Soft rim: keep some visibility everywhere, much brighter at silhouette.
+    float rim     = pow(1.0 - ndv, 2.0);
+
+    // Electric flicker driven by world position + time.
+    float time    = float(scene.tickCount32 % 65536u) * 0.001;
+    float flicker = g1BarrierFlicker(fragPos, time);
+
+    // Layer 1 = base BARRIERE haze: subtle, no flicker.
+    // Layers 2/3 = MAGBA / MAGICFRONTIER lightning sheets: full electric behaviour.
+    uint  layer   = bucket[bucketId].g1BarrierLayer;
+    float intensity;
+    if(layer==1u) {
+      intensity = mix(0.15, 0.6, rim);
+      } else {
+      intensity = (0.35 + 0.65*rim) * flicker;
+      }
+
+    alpha *= intensity;
+    color *= intensity;
+    }
+#endif
+
+  outColor = vec4(color, alpha);
   }
 #endif
 
