@@ -37,7 +37,7 @@ vec3 worldPos(float z, ivec2 fragCoord, ivec2 screenSize) {
   }
 
 float surfDist(vec3 pos, vec3 norm, float cellSize) {
-#if 1
+#if 0
   pos = pos/cellSize;
 
   vec3 p = floor(pos + sign(norm)*0.5)+0.5 - (pos);
@@ -79,6 +79,23 @@ float computeCellSize2(float z, float px, float minSz) {
   return max(worldRadius, minSz);
   }
 
+ivec3 hasGridPos(vec3 wpos, float cellSize) {
+  wpos = wpos / cellSize;
+  return ivec3(round(wpos));
+  }
+
+float surfDist(ivec3 hpos, vec3 pos, float cellSize) {
+  vec3 p = (pos/cellSize - hpos);
+  p *= 2;///sqrt(2.0);
+  return dot(p,p); //quad distance
+  }
+
+uint surfHash(ivec3 hpos) {
+  ivec3 p       = hpos;
+  uint  hashKey = pcg(p.x + pcg(p.y + pcg(p.z)));
+  return hashKey;
+  }
+
 void main() {
   if(gl_GlobalInvocationID.xy==ivec2(0))
     count = uvec4(0);
@@ -95,18 +112,17 @@ void main() {
   if(z >= SKY_DEPTH)
     return;
 
-  const vec3  pos = worldPos(z, fragCoord, screenSize);
-  const float ld  = max(linearDepth(z, scene.clipInfo), 10);
+  const vec3  wpos = worldPos(z, fragCoord, screenSize);
+  const float ld   = max(linearDepth(z, scene.clipInfo), 10);
 
-  // const float sz  = computeCellSize2(z, 32, 5);
-  const float sz  = computeCellSize(ld, fov, textureSize(depth,0), 32, 1);
-  // const float sz  = computeCellSize(ld, fov, textureSize(depth,0), 64, 5);
+  const float sz   = computeCellSize(ld, fov, textureSize(depth,0), 32, 1);
+  const ivec3 ipos = hasGridPos(wpos, sz);
+  const float dist = surfDist(ipos, wpos, sz);
 
-  const float dist = surfDist(pos, norm, sz);
-  const uint  hKey = surfHash(pos, sz) % hashGrid.length();
+  const uint  hKey = surfHash(ipos) % hashGrid.length();
 
-  if(dist<0)
-    return;
+  if(dist>0.5)
+    ;//return;
 
   const uint  sId  = packSurfId(dist, fragCoord, screenSize);
   atomicMin(hashGrid[hKey], sId);

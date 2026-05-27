@@ -20,12 +20,12 @@ uint pcg(uint v) {
   return (word >> 22u) ^ word;
   }
 
-uint computeDepthSlice(float linDepth, float near, float far, uint num_slices) {
+uint computeDepthSlice(float linDepth, float near, float far, uint numSlices) {
   float z = linDepth;
   // Compute logarithmic slice index
-  float slice_float = log(z / near) * (float(num_slices) / log(far / near));
+  float slice_float = log(z / near) * (float(numSlices) / log(far / near));
   // Clamp to ensure it doesn't exceed the grid bounds
-  return clamp(uint(slice_float), 0u, num_slices - 1u);
+  return clamp(uint(slice_float), 0u, numSlices - 1u);
   }
 
 float computeTargetCellSize(float d, float aperture, vec2 resolution, float pixelFeatureSize) {
@@ -57,15 +57,19 @@ float computeCellSize(float d, float fov, vec2 resolution,
   return computeAdaptiveCellSize(sw, smin);
   }
 
-float surfDist(vec3 pos, float cellSize) {
-  pos /= cellSize;
-  vec3  p = floor(pos) + 0.5 - (pos);
-  p *= 2/sqrt(2.0);
+ivec3 hasGridPos(vec3 wpos, float cellSize) {
+  wpos = wpos / cellSize;
+  return ivec3(round(wpos));
+  }
+
+float surfDist(ivec3 hpos, vec3 pos, float cellSize) {
+  vec3 p = (pos/cellSize - hpos);
+  p *= 2;///sqrt(2.0);
   return dot(p,p); //quad distance
   }
 
-uint surfHash(vec3 pos, float cellSize) {
-  ivec3 p       = ivec3(pos / cellSize);
+uint surfHash(ivec3 hpos) {
+  ivec3 p       = hpos;
   uint  hashKey = pcg(p.x + pcg(p.y + pcg(p.z)));
   return hashKey;
   }
@@ -84,13 +88,15 @@ void main(void) {
 
   // float sz  = computeCellSize(lD, fov, textureSize(depth,0), 16, cellSize);
   // float sz  = computeCellSize(lD, fov, textureSize(depth,0), 2, 1);
-  float sz  = computeCellSize(lD, fov, textureSize(depth,0), 32, 1);
-  uint  h   = surfHash(pos.xyz/pos.w + originLwc, sz);
-  float dx  = surfDist(pos.xyz/pos.w + originLwc, sz);
+  float sz   = computeCellSize(lD, fov, textureSize(depth,0), 32, 1);
+  vec3  wpos = pos.xyz/pos.w + originLwc;
+  ivec3 ipos = hasGridPos(wpos, sz);
+  uint  h    = surfHash(ipos);
+  float dx   = surfDist(ipos, wpos, sz);
   //uint  sx  = computeDepthSlice(lD, 10, 100000, 32);
 
   // outColor = vec4(debugColors[h%debugColors.length()], 1.0);
-  outColor = vec4(dx * debugColors[h%debugColors.length()], 1.0);
-  // outColor = vec4(dx);
+  // outColor = vec4(dx * debugColors[h%debugColors.length()], 1.0);
+  outColor = vec4(dx);
   // outColor = vec4(debugColors[sx%debugColors.length()], 1.0);
   }
