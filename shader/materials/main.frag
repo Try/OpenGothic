@@ -165,7 +165,9 @@ vec4 diffuseTex() {
       float time  = float(scene.tickCount32 % 65536u) * 0.001;
       uint  layer = bucket[bucketId].g1BarrierLayer;
       vec2  drift = vec2(0);
-      if(layer==2u)
+      if(layer==1u)
+        drift = vec2( 0.05,  0.03) * time;
+      else if(layer==2u)
         drift = vec2( 0.18, -0.11) * time;
       else if(layer==3u)
         drift = vec2(-0.13,  0.21) * time;
@@ -232,20 +234,48 @@ float g1BarrierHash(vec3 p) {
   return fract((p.x + p.y) * p.z);
   }
 
-// Per-region flicker that makes the dome read as electric arcs
-// rather than a steady glow. Returns ~[0..1.6].
-float g1BarrierFlicker(vec3 worldPos, float time) {
-  // Quantize space so flicker varies across cells, not per pixel.
-  vec3  cell = floor(worldPos * 0.0015);
-  float h    = g1BarrierHash(cell);
-
-  // Two overlaid pulses at different rates, offset by hash.
-  float a    = sin(time * 7.0  + h * 17.0);
-  float b    = sin(time * 13.0 + h * 31.0);
-  float pulse = max(a, b);
-  pulse = pulse*pulse;          // sharpen — most of the time low, occasional bright peaks
-  return 0.4 + pulse * 1.8;     // floor + spike (so it's always visible, but really pops on peaks)
+// Smooth 3D value noise for continuous energy waves
+float g1BarrierNoise(vec3 x) {
+  vec3 p = floor(x);
+  vec3 f = fract(x);
+  f = f * f * (3.0 - 2.0 * f);
+  
+  return mix(mix(mix( g1BarrierHash(p + vec3(0,0,0)), 
+                      g1BarrierHash(p + vec3(1,0,0)), f.x),
+                 mix( g1BarrierHash(p + vec3(0,1,0)), 
+                      g1BarrierHash(p + vec3(1,1,0)), f.x), f.y),
+             mix(mix( g1BarrierHash(p + vec3(0,0,1)), 
+                      g1BarrierHash(p + vec3(1,0,1)), f.x),
+                 mix( g1BarrierHash(p + vec3(0,1,1)), 
+                      g1BarrierHash(p + vec3(1,1,1)), f.x), f.y), f.z);
   }
+
+float g1BarrierFBM(vec3 p) {
+    float f = 0.0;
+    float amp = 0.5;
+    for(int i=0; i<4; ++i) {
+        f += amp * g1BarrierNoise(p);
+        p *= 2.0;
+        amp *= 0.5;
+    }
+    return f;
+}
+
+float g1BarrierRidged(vec3 p) {
+    float sum = 0.0;
+    float amp = 0.5;
+    float weight = 1.0;
+    for(int i=0; i<3; ++i) {
+        float n = g1BarrierNoise(p) * 2.0 - 1.0;
+        n = 1.0 - abs(n);
+        n = n * n;
+        sum += n * amp * weight;
+        weight = n;
+        p *= 2.0;
+        amp *= 0.5;
+    }
+    return sum;
+}
 
 void mainEmissive(vec4 t) {
   vec3  color = textureEmmisive(t.rgb);
@@ -253,8 +283,7 @@ void mainEmissive(vec4 t) {
 
 #if !defined(SIMPLE_MAT) && (MESH_TYPE!=T_PFX)
   if((bucket[bucketId].flags & BK_G1_BARRIER) != 0) {
-    // Reconstruct world-space position (MAT_POSITION is not available in
-    // the emissive variant) so we can do view-dependent + spatial effects.
+    // Reconstruct world-space position
     vec2 ndc      = (gl_FragCoord.xy*scene.screenResInv)*2.0 - vec2(1.0);
     vec4 wpos     = scene.viewProjectInv * vec4(ndc, gl_FragCoord.z, 1.0);
     vec3 fragPos  = wpos.xyz / wpos.w;
@@ -263,30 +292,69 @@ void mainEmissive(vec4 t) {
     vec3  normal  = normalize(shInp.normal);
     float ndv     = abs(dot(view, normal));
 
-    // Soft rim: keep some visibility everywhere, much brighter at silhouette.
-    float rim     = pow(1.0 - ndv, 2.0);
+    float rim     = pow(1.0 - ndv, 2.5);
 
-    // Electric flicker driven by world position + time.
-    float time    = float(scene.tickCount32 % 65536u) * 0.001;
-    float flicker = g1BarrierFlicker(fragPos, time);
+    // time without rapid wrapping to prevent noise popping
+    float time    = float(scene.tickCount32 % 8388608u) * 0.001; 
 
-    // Layer 1 = base BARRIERE haze: subtle, no flicker.
-    // Layers 2/3 = MAGBA / MAGICFRONTIER lightning sheets: full electric behaviour.
     uint  layer   = bucket[bucketId].g1BarrierLayer;
-    float intensity;
-    if(layer==1u) {
-      intensity = mix(0.15, 0.6, rim);
-      } else {
-      intensity = (0.35 + 0.65*rim) * flicker;
-      }
 
-    alpha *= intensity;
-    color *= intensity;
+    // Electric blue/cyan palette
+    vec3 colorDark   = vec3(0.02, 0.1, 0.4);
+    vec3 colorMid    = vec3(0.1, 0.4, 0.9);
+    vec3 colorBright = vec3(0.6, 0.9, 1.0);
+
+    if (layer == 1u) {
+      // Base layer: Deep, slow-moving energy clouds
+      vec3 p = fragPos * 0.00015;
+      p.y += time * 0.015; // Slow upward drift
+      
+      float noiseVal = g1BarrierFBM(p + vec3(time * 0.005, 0.0, time * 0.005));
+      
+      // Blend colors based on noise
+      vec3 cloudColor = mix(colorDark, colorMid, noiseVal);
+      
+      // Intensity boosts at the rim
+      float intensity = mix(0.3, 1.0, rim) * (noiseVal + 0.2);
+      
+      color = cloudColor * intensity * 2.0;
+      alpha = intensity;
+      
+    } else if (layer == 2u || layer == 3u) {
+      // Lightning layers: Sharp, crackling arcs of energy
+      vec3 p = fragPos * 0.0001;
+      
+      // Offset and scale time based on layer
+      float t = time * (layer == 2u ? 0.04 : 0.06);
+      p.xz += (layer == 2u ? 50.0 : -50.0);
+      
+      // Fast sweeping motion
+      p.y -= t * 0.8;
+      p.x += t * 0.2;
+      
+      // Ridged noise creates sharp lines
+      float r = g1BarrierRidged(p + vec3(0.0, t * 0.2, 0.0));
+      
+      // Sharpen the arcs
+      float arc = pow(r, 4.0) * 4.0;
+      
+      // Global pulsing to make it feel alive and crackling
+      float pulse = sin(time * 5.0 + fragPos.y * 0.002) * 0.5 + 0.5;
+      float crackle = g1BarrierNoise(vec3(time * 10.0, float(layer), 0.0));
+      arc *= mix(0.5, 1.5, pulse * crackle);
+      
+      // Keep them bright on the edges
+      float intensity = arc * mix(0.2, 1.5, rim);
+      
+      // Inner hot core of the lightning
+      color = mix(colorMid, colorBright, clamp(arc * 0.5, 0.0, 1.0)) * intensity * 3.0;
+      alpha = intensity;
     }
+  }
 #endif
 
   outColor = vec4(color, alpha);
-  }
+}
 #endif
 
 #if defined(GHOST)
