@@ -207,8 +207,10 @@ void Camera::setMode(const Camera::Mode m) {
 
   if(reset) {
     state.range = def.best_range;
-    userRange   = (def.best_range - def.min_range)/(def.max_range - def.min_range);
-    state.spin  = Vec3(0);
+    if(def.max_range > def.min_range + 0.01f)
+      userRange = (def.best_range - def.min_range)/(def.max_range - def.min_range); else
+      userRange = 0;
+    state.spin = Vec3(0);
     }
 
   if(auto pl = Gothic::inst().player()) {
