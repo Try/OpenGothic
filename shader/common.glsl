@@ -335,6 +335,21 @@ vec3 normalFetch(in utexture2D gbufNormal, ivec2 p) {
   return decodeNormal(n);
   }
 
+uint wangHash(inout uint seed) {
+  seed = uint(seed ^ uint(61)) ^ uint(seed >> uint(16));
+  seed *= uint(9);
+  seed = seed ^ (seed >> 4);
+  seed *= uint(0x27d4eb2d);
+  seed = seed ^ (seed >> 15);
+  return seed;
+  }
+
+uint pcgHash(uint v) {
+  uint state = v * 747796405u + 2891336453u;
+  uint word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+  return (word >> 22u) ^ word;
+  }
+
 // PCG3D
 // https://www.jcgt.org/published/0009/03/02/
 // https://www.shadertoy.com/view/XlGcRh

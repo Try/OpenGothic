@@ -36,7 +36,7 @@ float surfDist(ivec3 hpos, vec3 pos, float cellSize) {
 
 uint surfHash(ivec3 hpos) {
   ivec3 p       = hpos;
-  uint  hashKey = pcg(p.x + pcg(p.y + pcg(p.z)));
+  uint  hashKey = pcgHash(p.x + pcgHash(p.y + pcgHash(p.z)));
   return hashKey;
   }
 

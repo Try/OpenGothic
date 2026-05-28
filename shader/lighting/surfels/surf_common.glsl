@@ -1,20 +1,16 @@
 #ifndef SURF_COMMON_GLSL
 #define SURF_COMMON_GLSL
 
+#include "common.glsl"
+
 const float SKY_DEPTH        = 0.999995;
-const float SURFEL_FOOTPRINT = 64;
+//const float SURFEL_FOOTPRINT = 64;
 const float SURFEL_CELL      = 32;//SURFEL_FOOTPRINT/sqrt(2);
 
 struct Surfel {
   vec3 pos;
   uint norm;
   };
-
-uint pcg(uint v) {
-  uint state = v * 747796405u + 2891336453u;
-  uint word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
-  return (word >> 22u) ^ word;
-  }
 
 float computeTargetCellSize(float d, float aperture, vec2 resolution, float pixelFeatureSize) {
   // Equation 2: Evaluate the angular factor based on resolution aspect ratio
@@ -45,10 +41,35 @@ float computeCellSize(float d, float fov, vec2 resolution, float pixelFeatureSiz
   return computeAdaptiveCellSize(sw, sMin);
   }
 
-uint hash(vec3 pos, float cellSize) {
-  ivec3 p      = ivec3(floor(pos / cellSize));
-  uint hashKey = pcg(uint(cellSize) + pcg(p.x + pcg(p.y + pcg(p.z))));
+uint surfHash(vec3 pos, float cellSize) {
+#if 0
+  ivec3 p      = ivec3(round(pos * cellSize));
+  uint hashKey =  pcgHash(p.x + pcgHash(p.y + pcgHash(p.z)));
   return hashKey;
+#else
+  ivec3 p = ivec3(round(pos * cellSize));
+
+  uint hash = 0x811C9DC5;
+  hash ^= p.x;
+  hash *= 0x01000193; // FNV-1a prime
+  hash = (hash << 13) | (hash >> 19);
+
+  hash ^= p.y;
+  hash *= 0x01000193;
+  hash = (hash << 17) | (hash >> 15);
+
+  hash ^= p.z;
+  hash *= 0x01000193;
+
+  // 5. Avalanche step to ensure every input bit affects every output bit
+  hash ^= hash >> 16;
+  hash *= 0x7feb352d;
+  hash ^= hash >> 15;
+  hash *= 0x846ca68b;
+  hash ^= hash >> 16;
+
+  return hash;
+#endif
   }
 
 #endif

@@ -97,16 +97,10 @@ bool isSolved(float diff, int samples) {
   // return d < 0.1 + samples*0.005;
   }
 
-float whangHashNoise(uvec2 uv, uint s) {
+float wangHashNoise(uvec2 uv, uint s) {
   uint seed = (uv.x*1664525u + uv.y) + s;
-
-  seed  = (seed ^ 61u) ^(seed >> 16u);
-  seed *= 9u;
-  seed  = seed ^(seed >> 4u);
-  seed *= uint(0x27d4eb2d);
-  seed  = seed ^(seed >> 15u);
-
-  float value = float(seed) / (4294967296.0);
+  uint hash = wangHash(seed);
+  float value = float(hash) / (4294967296.0);
   return value;
   }
 
@@ -238,7 +232,7 @@ void main() {
     }
 
   // const float f0 = M_PI*2.0*interleavedGradientNoise(fragCoord);
-  const float f0 = M_PI*2.0*whangHashNoise(uvec2(fragCoord), 0);
+  const float f0 = M_PI*2.0*wangHashNoise(uvec2(fragCoord), 0);
 
   int maxSteps = estimateMaxSteps(at0.z);
   atomicMax(shMaxSteps, maxSteps);
