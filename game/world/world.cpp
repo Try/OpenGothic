@@ -3,6 +3,8 @@
 #include <functional>
 #include <future>
 #include <cctype>
+#include <cmath>
+#include <algorithm>
 
 #include <Tempest/Log>
 #include <Tempest/Painter>
@@ -63,6 +65,25 @@ const char* materialTag(zenkit::MaterialGroup src) {
   return "UD";
   }
 
+static bool isWorldZen(std::string_view name) {
+  constexpr std::string_view worldZen = "world.zen";
+
+  const size_t slash = name.find_last_of("/\\");
+  if(slash!=std::string_view::npos)
+    name.remove_prefix(slash+1);
+
+  if(name.size()!=worldZen.size())
+    return false;
+
+  for(size_t i=0; i<name.size(); ++i) {
+    auto a = char(std::tolower(static_cast<unsigned char>(name[i])));
+    auto b = char(std::tolower(static_cast<unsigned char>(worldZen[i])));
+    if(a!=b)
+      return false;
+    }
+  return true;
+  }
+
 World::World(GameSession& game, std::string_view file, bool startup, std::function<void(int)> loadProgress)
   :wname(std::move(file)), game(game), wsound(game,*this), wobj(*this) {
   const auto* entry = Resources::vdfsIndex().find(wname);
@@ -107,6 +128,8 @@ World::World(GameSession& game, std::string_view file, bool startup, std::functi
 
     wdynamic = wdynamicFut.get();
     loadProgress(70);
+
+    initG1Barrier();
 
     globFx.reset(new GlobalEffects(*this));
     wmatrix.reset(new WayMatrix(*this, *world.way_net));
@@ -372,12 +395,126 @@ void World::scaleTime(uint64_t& dt) {
   globFx->scaleTime(dt);
   }
 
+void World::initG1Barrier() {
+  if(version().game!=1 || !isWorldZen(wname))
+    return;
+
+  auto* proto = Resources::loadMesh("MAGICFRONTIER_OUT.MSH");
+  if(proto==nullptr)
+    return;
+
+  const auto* bbox = proto->bbox();
+  if(bbox==nullptr)
+    return;
+
+  G1Barrier barrier;
+  constexpr uint64_t ThunderDelay[4] = {8000,6000,14000,4000};
+  for(size_t i=0; i<barrier.thunderTimeout.size(); ++i)
+    barrier.thunderTimeout[i] = tickCount() + ThunderDelay[i];
+
+  barrier.visual = addStaticView(proto,true);
+  barrier.physic = PhysicMesh(*proto,*wdynamic,false);
+  barrier.center = (bbox[0] + bbox[1]) * 0.5f;
+  barrier.radius = (bbox[1] - bbox[0]) * 0.5f;
+
+  Tempest::Matrix4x4 identity;
+  identity.identity();
+  barrier.visual.setObjMatrix(identity);
+  barrier.physic.setObjMatrix(identity);
+
+  if(barrier.visual.isEmpty() && barrier.physic.isEmpty())
+    return;
+
+  g1Barrier.reset(new G1Barrier(std::move(barrier)));
+  }
+
+void World::tickG1Barrier() {
+  if(g1Barrier==nullptr)
+    return;
+
+  auto* pl = player();
+  if(pl==nullptr || pl->isDead())
+    return;
+
+  const float rx = g1Barrier->radius.x;
+  if(g1Barrier->ambientSound.isEmpty()) {
+    g1Barrier->ambientSound = Sound(*this,Sound::T_Regular,"MFX_BARRIERE_AMBIENT.WAV",pl->position(),60000.f,true);
+    g1Barrier->ambientSound.setAmbient(true);
+    g1Barrier->ambientSound.setLooping(true);
+    g1Barrier->ambientSound.setVolume(0.25f);
+    g1Barrier->ambientSound.play();
+    } else {
+    g1Barrier->ambientSound.setPosition(pl->position());
+    }
+
+  const float rz = g1Barrier->radius.z;
+  if(rx<=0.f || rz<=0.f)
+    return;
+
+  {
+  constexpr uint64_t ThunderDelay[4] = {8000,6000,14000,4000};
+  constexpr float    QuadX[4]        = { 1.f,-1.f,-1.f, 1.f};
+  constexpr float    QuadZ[4]        = { 1.f, 1.f,-1.f,-1.f};
+  constexpr float    EdgeScale       = 0.70f;
+  constexpr float    HeightScale     = 0.55f;
+  const uint64_t     now             = tickCount();
+  for(size_t i=0; i<g1Barrier->thunderTimeout.size(); ++i) {
+    if(now<g1Barrier->thunderTimeout[i])
+      continue;
+
+    auto at = g1Barrier->center;
+    at.x += g1Barrier->radius.x*QuadX[i]*EdgeScale;
+    at.y += g1Barrier->radius.y*HeightScale;
+    at.z += g1Barrier->radius.z*QuadZ[i]*EdgeScale;
+
+    auto thunder = Sound(*this,Sound::T_Regular,"MFX_BARRIERE_SHOOT.WAV",at,60000.f,true);
+    thunder.setVolume(0.45f);
+    thunder.play();
+    g1Barrier->thunderTimeout[i] = now + ThunderDelay[i];
+    }
+  }
+
+  const auto  pos = pl->position();
+  const float dx  = pos.x - g1Barrier->center.x;
+  const float dz  = pos.z - g1Barrier->center.z;
+  const float d   = (dx*dx)/(rx*rx) + (dz*dz)/(rz*rz);
+
+  constexpr float DamageThreshold = 0.99f;
+  if(d<=DamageThreshold)
+    return;
+
+  if(d>1.f) {
+    auto clamped = pos;
+    const float s = 0.985f/std::sqrt(d);
+    clamped.x = g1Barrier->center.x + dx*s;
+    clamped.z = g1Barrier->center.z + dz*s;
+    if(pl->setPosition(clamped))
+      pl->updateTransform();
+    }
+
+  if(tickCount()<=g1Barrier->damageTimeout)
+    return;
+  constexpr int32_t BarrierDamage       = 25;
+  constexpr uint64_t BarrierRepeatDelay = 500;
+  const auto& hnpc = pl->handle();
+  const int32_t protection = hnpc.protection[zenkit::DamageType::BARRIER];
+  if(protection>=0)
+    pl->changeAttribute(ATR_HITPOINTS,-std::max(BarrierDamage-protection,0),false);
+  {
+  auto warning = Sound(*this,Sound::T_Regular,"MFX_BARRIERE_WARNING.WAV",pos,12000.f,true);
+  warning.setVolume(0.7f);
+  warning.play();
+  }
+  g1Barrier->damageTimeout = tickCount() + BarrierRepeatDelay;
+  }
+
 void World::tick(uint64_t dt) {
   static bool doTicks=true;
   if(!doTicks)
     return;
   wobj.tick(dt,dt);
   wdynamic->tick(dt);
+  tickG1Barrier();
   wview->tick(dt);
   if(auto pl = player())
     wsound.tick(*pl);

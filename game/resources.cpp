@@ -12,6 +12,7 @@
 #include <Tempest/Color>
 
 #include <zenkit/MultiResolutionMesh.hh>
+#include <zenkit/Mesh.hh>
 #include <zenkit/ModelHierarchy.hh>
 #include <zenkit/Model.hh>
 #include <zenkit/ModelScript.hh>
@@ -47,6 +48,154 @@ static void emplaceTag(char* buf, char tag){
       buf[i+1]='s';
       ++i;
       return;
+      }
+    }
+  }
+
+static bool isG1BarrierMesh(std::string_view name) {
+  return name=="MAGICFRONTIER_OUT.MSH";
+  }
+
+static void prepareG1BarrierMesh(zenkit::Mesh& mesh) {
+  const bool hasBarrierTexture = Resources::vdfsIndex().find("BARRIERE-C.TEX")!=nullptr;
+  for(auto& mat:mesh.materials) {
+    mat.name              = "MAGICFRONTIER_BARRIER";
+    mat.alpha_func        = zenkit::AlphaFunction::ADD;
+    mat.disable_collision = false;
+    mat.ignore_sun        = true;
+    mat.texture_anim_fps  = 0;
+
+    if(hasBarrierTexture) {
+      mat.texture = "BARRIERE.TGA";
+      mat.color   = zenkit::Color(255,255,255,20);
+      } else {
+      mat.texture.clear();
+      mat.color = zenkit::Color(60,110,210,20);
+      }
+    }
+  }
+
+static void addG1BarrierLayer(zenkit::Mesh& mesh, const char* assetName, const char* textureName,
+                              zenkit::AlphaFunction alphaFunc, uint8_t alpha, float fps) {
+  if(mesh.materials.empty() || Resources::vdfsIndex().find(assetName)==nullptr)
+    return;
+
+  const size_t triCount = std::min({mesh.polygons.material_indices.size(),
+                                    mesh.polygons.lightmap_indices.size(),
+                                    mesh.polygons.flags.size(),
+                                    mesh.polygons.vertex_indices.size()/3,
+                                    mesh.polygons.feature_indices.size()/3});
+  if(triCount==0)
+    return;
+
+  zenkit::Material mat = mesh.materials.front();
+  mat.name              = "MAGICFRONTIER_BARRIER";
+  mat.texture           = textureName;
+  mat.color             = zenkit::Color(255,255,255,alpha);
+  mat.alpha_func        = alphaFunc;
+  mat.texture_anim_fps  = fps;
+  mat.disable_collision = true;
+  mat.ignore_sun        = true;
+
+  const uint32_t matId = uint32_t(mesh.materials.size());
+  mesh.materials.push_back(std::move(mat));
+
+  mesh.polygons.material_indices.reserve(mesh.polygons.material_indices.size()+triCount);
+  mesh.polygons.lightmap_indices.reserve(mesh.polygons.lightmap_indices.size()+triCount);
+  mesh.polygons.flags.reserve(mesh.polygons.flags.size()+triCount);
+  mesh.polygons.vertex_indices.reserve(mesh.polygons.vertex_indices.size()+triCount*3);
+  mesh.polygons.feature_indices.reserve(mesh.polygons.feature_indices.size()+triCount*3);
+
+  for(size_t i=0; i<triCount; ++i) {
+    const size_t v = i*3;
+    mesh.polygons.vertex_indices.push_back(mesh.polygons.vertex_indices[v + 0]);
+    mesh.polygons.vertex_indices.push_back(mesh.polygons.vertex_indices[v + 1]);
+    mesh.polygons.vertex_indices.push_back(mesh.polygons.vertex_indices[v + 2]);
+    mesh.polygons.feature_indices.push_back(mesh.polygons.feature_indices[v + 0]);
+    mesh.polygons.feature_indices.push_back(mesh.polygons.feature_indices[v + 1]);
+    mesh.polygons.feature_indices.push_back(mesh.polygons.feature_indices[v + 2]);
+    mesh.polygons.material_indices.push_back(matId);
+    mesh.polygons.lightmap_indices.push_back(mesh.polygons.lightmap_indices[i]);
+    mesh.polygons.flags.push_back(mesh.polygons.flags[i]);
+    }
+  }
+
+static void addG1BarrierLayers(zenkit::Mesh& mesh) {
+  addG1BarrierLayer(mesh,"MAGBA_A0-C.TEX",        "MAGBA_A0.TGA",        zenkit::AlphaFunction::ADD, 96,6.f);
+  addG1BarrierLayer(mesh,"MAGICFRONTIER_A0-C.TEX","MAGICFRONTIER_A0.TGA",zenkit::AlphaFunction::ADD, 80,9.f);
+  }
+
+
+static void makeMeshTwoSided(zenkit::Mesh& mesh) {
+  const size_t triCount = std::min({mesh.polygons.material_indices.size(),
+                                    mesh.polygons.lightmap_indices.size(),
+                                    mesh.polygons.flags.size(),
+                                    mesh.polygons.vertex_indices.size()/3,
+                                    mesh.polygons.feature_indices.size()/3});
+  mesh.polygons.material_indices.reserve(triCount*2);
+  mesh.polygons.lightmap_indices.reserve(triCount*2);
+  mesh.polygons.flags.reserve(triCount*2);
+  mesh.polygons.vertex_indices.reserve(triCount*6);
+  mesh.polygons.feature_indices.reserve(triCount*6);
+
+  for(size_t i=0; i<triCount; ++i) {
+    const size_t v = i*3;
+    mesh.polygons.vertex_indices.push_back(mesh.polygons.vertex_indices[v + 0]);
+    mesh.polygons.vertex_indices.push_back(mesh.polygons.vertex_indices[v + 2]);
+    mesh.polygons.vertex_indices.push_back(mesh.polygons.vertex_indices[v + 1]);
+    mesh.polygons.feature_indices.push_back(mesh.polygons.feature_indices[v + 0]);
+    mesh.polygons.feature_indices.push_back(mesh.polygons.feature_indices[v + 2]);
+    mesh.polygons.feature_indices.push_back(mesh.polygons.feature_indices[v + 1]);
+    mesh.polygons.material_indices.push_back(mesh.polygons.material_indices[i]);
+    mesh.polygons.lightmap_indices.push_back(mesh.polygons.lightmap_indices[i]);
+    mesh.polygons.flags.push_back(mesh.polygons.flags[i]);
+    }
+  }
+
+static void triangulateStandaloneMesh(zenkit::Mesh& mesh) {
+  if(!mesh.polygons.vertex_indices.empty())
+    return;
+
+  size_t triCount = 0;
+  for(const auto& poly:mesh.geometry) {
+    const size_t end = poly.index_offset + poly.index_count;
+    if(poly.index_count<3 || poly.material>=mesh.materials.size() ||
+       end>mesh.polygon_vertex_indices.size() || end>mesh.polygon_feature_indices.size())
+      continue;
+    triCount += poly.index_count - 2;
+    }
+
+  mesh.polygons.material_indices.clear();
+  mesh.polygons.lightmap_indices.clear();
+  mesh.polygons.feature_indices.clear();
+  mesh.polygons.vertex_indices.clear();
+  mesh.polygons.flags.clear();
+
+  mesh.polygons.material_indices.reserve(triCount);
+  mesh.polygons.lightmap_indices.reserve(triCount);
+  mesh.polygons.feature_indices.reserve(triCount*3);
+  mesh.polygons.vertex_indices.reserve(triCount*3);
+  mesh.polygons.flags.reserve(triCount);
+
+  for(const auto& poly:mesh.geometry) {
+    const size_t end = poly.index_offset + poly.index_count;
+    if(poly.index_count<3 || poly.material>=mesh.materials.size() ||
+       end>mesh.polygon_vertex_indices.size() || end>mesh.polygon_feature_indices.size())
+      continue;
+
+    for(size_t i=2; i<poly.index_count; ++i) {
+      const size_t root = poly.index_offset;
+      const size_t a    = root + i - 1;
+      const size_t b    = root + i;
+      mesh.polygons.vertex_indices.push_back(mesh.polygon_vertex_indices[root]);
+      mesh.polygons.vertex_indices.push_back(mesh.polygon_vertex_indices[a]);
+      mesh.polygons.vertex_indices.push_back(mesh.polygon_vertex_indices[b]);
+      mesh.polygons.feature_indices.push_back(mesh.polygon_feature_indices[root]);
+      mesh.polygons.feature_indices.push_back(mesh.polygon_feature_indices[a]);
+      mesh.polygons.feature_indices.push_back(mesh.polygon_feature_indices[b]);
+      mesh.polygons.material_indices.push_back(poly.material);
+      mesh.polygons.lightmap_indices.push_back(poly.lightmap);
+      mesh.polygons.flags.push_back(poly.flags);
       }
     }
   }
@@ -441,6 +590,32 @@ ProtoMesh* Resources::implLoadMesh(std::string_view name) {
   }
 
 std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
+  if(FileExt::hasExt(name,"MSH")) {
+    const auto* entry = Resources::vdfsIndex().find(name);
+    if(entry == nullptr)
+      return nullptr;
+
+    zenkit::Mesh zmsh;
+    auto reader = entry->open_read();
+    zmsh.load(reader.get(),false);
+    if(isG1BarrierMesh(name))
+      prepareG1BarrierMesh(zmsh);
+    triangulateStandaloneMesh(zmsh);
+    if(isG1BarrierMesh(name))
+      addG1BarrierLayers(zmsh);
+    if(isG1BarrierMesh(name))
+      makeMeshTwoSided(zmsh);
+
+    if(zmsh.polygons.vertex_indices.empty())
+      return nullptr;
+
+    PackedMesh packed(zmsh,PackedMesh::PK_Visual);
+    if(packed.indices.empty() || packed.subMeshes.empty())
+      return nullptr;
+
+    return std::unique_ptr<ProtoMesh>{new ProtoMesh(std::move(packed),name)};
+    }
+
   if(FileExt::hasExt(name,"3DS")) {
     FileExt::exchangeExt(name,"3DS","MRM");
 

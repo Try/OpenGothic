@@ -5,6 +5,8 @@
 #include "graphics/mesh/pose.h"
 #include "graphics/mesh/protomesh.h"
 
+#include <algorithm>
+
 PhysicMesh::PhysicMesh(const ProtoMesh& proto, DynamicWorld& owner, bool movable)
   :ani(&proto) {
   Tempest::Matrix4x4 pos;
@@ -20,7 +22,9 @@ PhysicMesh::PhysicMesh(const ProtoMesh& proto, DynamicWorld& owner, bool movable
   }
 
 bool PhysicMesh::isEmpty() const {
-  return sub.empty();
+  return std::all_of(sub.begin(),sub.end(),[](const DynamicWorld::Item& i) {
+    return i.isEmpty();
+    });
   }
 
 void PhysicMesh::setObjMatrix(const Tempest::Matrix4x4& obj) {

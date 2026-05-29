@@ -128,6 +128,7 @@ bool DrawBuckets::commit(Encoder<CommandBuffer>& cmd, uint8_t fId) {
     bx.waveMaxAmplitude   = i.mat.waveMaxAmplitude;
     bx.alphaWeight        = i.mat.alphaWeight;
     bx.envMapping         = i.mat.envMapping;
+    bx.g1BarrierLayer     = i.mat.g1BarrierLayer;
     if(i.staticMesh!=nullptr) {
       auto& bbox    = i.staticMesh->bbox.bbox;
       bx.bboxRadius = i.staticMesh->bbox.rConservative;
@@ -147,6 +148,8 @@ bool DrawBuckets::commit(Encoder<CommandBuffer>& cmd, uint8_t fId) {
       bx.flags |= BK_SOLID;
     if(i.mat.alpha==Material::Water)
       bx.flags |= BK_WATER;
+    if(i.mat.isG1Barrier)
+      bx.flags |= BK_G1_BARRIER;
     bucket.push_back(bx);
     }
 

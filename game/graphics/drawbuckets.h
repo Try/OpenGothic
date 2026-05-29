@@ -63,6 +63,7 @@ class DrawBuckets {
       BK_SKIN  = 0x2,
       BK_MORPH = 0x4,
       BK_WATER = 0x8,
+      BK_G1_BARRIER = 0x10,
       };
 
     struct BucketGpu final {
@@ -73,7 +74,7 @@ class DrawBuckets {
       float          alphaWeight      = 1;
       float          envMapping       = 0;
       uint32_t       flags            = 0;
-      uint32_t       padd[1]          = {};
+      uint32_t       g1BarrierLayer   = 0;
       };
 
     struct {
