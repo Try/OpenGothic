@@ -157,23 +157,6 @@ vec4 diffuseTex() {
       uint fract = scene.tickCount32 % abs(texAniMapDirPeriod.y);
       texAnim.y  = float(fract)/float(texAniMapDirPeriod.y);
       }
-
-#if (MESH_TYPE!=T_PFX)
-    if((bucket[bucketId].flags & BK_G1_BARRIER) != 0) {
-      // Continuous UV drift on top of the per-frame texture swap so the
-      // lightning sheets feel alive instead of stamped on the sky dome.
-      float time  = float(scene.tickCount32 % 65536u) * 0.001;
-      uint  layer = bucket[bucketId].g1BarrierLayer;
-      vec2  drift = vec2(0);
-      if(layer==1u)
-        drift = vec2( 0.05,  0.03) * time;
-      else if(layer==2u)
-        drift = vec2( 0.18, -0.11) * time;
-      else if(layer==3u)
-        drift = vec2(-0.13,  0.21) * time;
-      texAnim += fract(drift);
-      }
-#endif
   }
   const vec2 uv = shInp.uv + texAnim;
 #else
@@ -227,55 +210,75 @@ void mainForward(vec4 t) {
 #endif
 
 #if defined(EMISSIVE)
-// Cheap hash → pseudo-random in [0,1)
-float g1BarrierHash(vec3 p) {
-  p = fract(p * vec3(0.1031, 0.1030, 0.0973));
+// ---------------------------------------------------------------------------
+// Gothic-1 magic barrier: a procedural electric energy dome.
+//
+// The dome mesh is flat-shaded, so its per-triangle normals are useless as a
+// pattern domain (they produce faceted blobs). Instead we derive a *smooth
+// radial direction* from the bucket's bounding box centre: every fragment is
+// turned into a unit-sphere direction, giving a seamless, scale-independent
+// domain that wraps the whole dome regardless of its size in world units.
+//
+// Electricity is drawn as thin branching filaments: a fractal scalar field is
+// domain-warped and we glow along its iso-contours with a 1/distance falloff,
+// giving a bright hot core surrounded by a soft halo - the classic look of an
+// electric arc - rather than soft noise clouds.
+//
+// The barrier is drawn as three coincident additive layers (SrcAlpha/One):
+//   layer 1 - the membrane    (faint translucent shell + fresnel rim)
+//   layer 2 - the main bolts   (thick, slow, branching arcs)
+//   layer 3 - the crackle      (fine fast sparks)
+// The on-screen contribution of each layer is color.rgb * alpha.
+// ---------------------------------------------------------------------------
+
+float g1bHash(vec3 p) {
+  p  = fract(p * vec3(0.1031, 0.1030, 0.0973));
   p += dot(p, p.yzx + 19.19);
   return fract((p.x + p.y) * p.z);
   }
 
-// Smooth 3D value noise for continuous energy waves
-float g1BarrierNoise(vec3 x) {
+float g1bNoise(vec3 x) {
   vec3 p = floor(x);
   vec3 f = fract(x);
   f = f * f * (3.0 - 2.0 * f);
-  
-  return mix(mix(mix( g1BarrierHash(p + vec3(0,0,0)), 
-                      g1BarrierHash(p + vec3(1,0,0)), f.x),
-                 mix( g1BarrierHash(p + vec3(0,1,0)), 
-                      g1BarrierHash(p + vec3(1,1,0)), f.x), f.y),
-             mix(mix( g1BarrierHash(p + vec3(0,0,1)), 
-                      g1BarrierHash(p + vec3(1,0,1)), f.x),
-                 mix( g1BarrierHash(p + vec3(0,1,1)), 
-                      g1BarrierHash(p + vec3(1,1,1)), f.x), f.y), f.z);
+  return mix(mix(mix(g1bHash(p + vec3(0,0,0)), g1bHash(p + vec3(1,0,0)), f.x),
+                 mix(g1bHash(p + vec3(0,1,0)), g1bHash(p + vec3(1,1,0)), f.x), f.y),
+             mix(mix(g1bHash(p + vec3(0,0,1)), g1bHash(p + vec3(1,0,1)), f.x),
+                 mix(g1bHash(p + vec3(0,1,1)), g1bHash(p + vec3(1,1,1)), f.x), f.y), f.z);
   }
 
-float g1BarrierFBM(vec3 p) {
-    float f = 0.0;
-    float amp = 0.5;
-    for(int i=0; i<4; ++i) {
-        f += amp * g1BarrierNoise(p);
-        p *= 2.0;
-        amp *= 0.5;
+float g1bFbm(vec3 p) {
+  float f = 0.0, amp = 0.5;
+  for(int i=0; i<4; ++i) {
+    f   += amp * g1bNoise(p);
+    p   *= 2.02;
+    amp *= 0.5;
     }
-    return f;
-}
+  return f;
+  }
 
-float g1BarrierRidged(vec3 p) {
-    float sum = 0.0;
-    float amp = 0.5;
-    float weight = 1.0;
-    for(int i=0; i<3; ++i) {
-        float n = g1BarrierNoise(p) * 2.0 - 1.0;
-        n = 1.0 - abs(n);
-        n = n * n;
-        sum += n * amp * weight;
-        weight = n;
-        p *= 2.0;
-        amp *= 0.5;
-    }
-    return sum;
-}
+// Distance to the nearest electric filament. A fractal field is strongly
+// domain-warped so its iso-contours become jagged, branching channels; the
+// returned value is ~0 on a channel and grows away from it.
+float g1bArcField(vec3 p) {
+  vec3 w = vec3(g1bNoise(p), g1bNoise(p + 4.7), g1bNoise(p + 9.2));
+  p += (w - 0.5) * 2.4;             // jagged branching displacement
+  float f = g1bFbm(p * 1.7);
+  return abs(f - 0.5);
+  }
+
+// Turn the filament distance into a glowing arc: a thin white-hot core with a
+// soft falloff halo. 'width' controls thickness, 'sharp' the falloff.
+float g1bArcGlow(float dist, float width, float sharp) {
+  return pow(width / (dist + width), sharp);
+  }
+
+// Patchy temporal flicker so different regions of the dome strike at different
+// moments instead of pulsing as one - real lightning is intermittent.
+float g1bFlicker(vec3 dir, float time) {
+  float n = g1bNoise(vec3(dir.xz * 3.0 + dir.y * 2.0, time));
+  return smoothstep(0.45, 0.95, n);
+  }
 
 void mainEmissive(vec4 t) {
   vec3  color = textureEmmisive(t.rgb);
@@ -283,78 +286,84 @@ void mainEmissive(vec4 t) {
 
 #if !defined(SIMPLE_MAT) && (MESH_TYPE!=T_PFX)
   if((bucket[bucketId].flags & BK_G1_BARRIER) != 0) {
-    // Reconstruct world-space position
-    vec2 ndc      = (gl_FragCoord.xy*scene.screenResInv)*2.0 - vec2(1.0);
-    vec4 wpos     = scene.viewProjectInv * vec4(ndc, gl_FragCoord.z, 1.0);
-    vec3 fragPos  = wpos.xyz / wpos.w;
+    // world-space fragment position, reconstructed from depth
+    vec2 ndc     = (gl_FragCoord.xy*scene.screenResInv)*2.0 - vec2(1.0);
+    vec4 wpos    = scene.viewProjectInv * vec4(ndc, gl_FragCoord.z, 1.0);
+    vec3 fragPos = wpos.xyz / wpos.w;
 
-    vec3  view    = normalize(scene.camPos - fragPos);
-    vec3  normal  = normalize(shInp.normal);
-    float ndv     = abs(dot(view, normal));
+    // Smooth radial direction from the dome's bounding-box centre. The mesh is
+    // flat-shaded, so this - not the faceted vertex normal - is what gives a
+    // continuous pattern domain across the whole dome.
+    vec3 bmin   = bucket[bucketId].bbox[0].xyz;
+    vec3 bmax   = bucket[bucketId].bbox[1].xyz;
+    vec3 center = (bmin + bmax) * 0.5;
+    vec3 rad    = max((bmax - bmin) * 0.5, vec3(1.0));
+    vec3 dir    = normalize((fragPos - center) / rad);
 
-    float rim     = pow(1.0 - ndv, 2.5);
+    vec3  view = normalize(scene.camPos - fragPos);
+    float ndv  = abs(dot(view, dir));
+    // grazing-angle fresnel: the dome silhouette glows brightest
+    float fres = pow(clamp(1.0 - ndv, 0.0, 1.0), 2.5);
 
-    // time without rapid wrapping to prevent noise popping
-    float time    = float(scene.tickCount32 % 8388608u) * 0.001; 
+    float time  = float(scene.tickCount32 % 4194304u) * 0.001;
+    uint  layer = bucket[bucketId].g1BarrierLayer;
 
-    uint  layer   = bucket[bucketId].g1BarrierLayer;
+    // electric blue-white palette
+    const vec3 cDeep   = vec3(0.01, 0.06, 0.16);   // shell tint
+    const vec3 cArc    = vec3(0.15, 0.55, 1.00);   // arc halo
+    const vec3 cHot     = vec3(0.75, 0.92, 1.00);  // near-core
+    const vec3 cCore   = vec3(0.95, 0.99, 1.00);   // white-hot core
 
-    // Electric blue/cyan palette
-    vec3 colorDark   = vec3(0.02, 0.1, 0.4);
-    vec3 colorMid    = vec3(0.1, 0.4, 0.9);
-    vec3 colorBright = vec3(0.6, 0.9, 1.0);
+    if(layer == 1u) {
+      // ---- membrane: a clearly visible, slowly drifting energy shell -------
+      float e1     = g1bFbm(dir*2.0 + vec3(0.0,        -time*0.04, 0.0));
+      float e2     = g1bFbm(dir*4.0 + vec3(time*0.02,  -time*0.03, 0.0));
+      float energy = e1*0.6 + e2*0.4;
 
-    if (layer == 1u) {
-      // Base layer: Deep, slow-moving energy clouds
-      vec3 p = fragPos * 0.00015;
-      p.y += time * 0.015; // Slow upward drift
-      
-      float noiseVal = g1BarrierFBM(p + vec3(time * 0.005, 0.0, time * 0.005));
-      
-      // Blend colors based on noise
-      vec3 cloudColor = mix(colorDark, colorMid, noiseVal);
-      
-      // Intensity boosts at the rim
-      float intensity = mix(0.3, 1.0, rim) * (noiseVal + 0.2);
-      
-      color = cloudColor * intensity * 2.0;
-      alpha = intensity;
-      
-    } else if (layer == 2u || layer == 3u) {
-      // Lightning layers: Sharp, crackling arcs of energy
-      vec3 p = fragPos * 0.0001;
-      
-      // Offset and scale time based on layer
-      float t = time * (layer == 2u ? 0.04 : 0.06);
-      p.xz += (layer == 2u ? 50.0 : -50.0);
-      
-      // Fast sweeping motion
-      p.y -= t * 0.8;
-      p.x += t * 0.2;
-      
-      // Ridged noise creates sharp lines
-      float r = g1BarrierRidged(p + vec3(0.0, t * 0.2, 0.0));
-      
-      // Sharpen the arcs
-      float arc = pow(r, 4.0) * 4.0;
-      
-      // Global pulsing to make it feel alive and crackling
-      float pulse = sin(time * 5.0 + fragPos.y * 0.002) * 0.5 + 0.5;
-      float crackle = g1BarrierNoise(vec3(time * 10.0, float(layer), 0.0));
-      arc *= mix(0.5, 1.5, pulse * crackle);
-      
-      // Keep them bright on the edges
-      float intensity = arc * mix(0.2, 1.5, rim);
-      
-      // Inner hot core of the lightning
-      color = mix(colorMid, colorBright, clamp(arc * 0.5, 0.0, 1.0)) * intensity * 3.0;
-      alpha = intensity;
+      vec3  tint = mix(cDeep, cArc, energy) * 1.2 + cHot*fres*0.9;
+      // a constant floor keeps the whole dome visible; energy + rim add shape
+      float glow = 0.30 + energy*0.30 + fres*0.70;
+
+      color = tint;
+      alpha = clamp(glow, 0.0, 1.0);
+      }
+    else if(layer == 2u) {
+      // ---- main bolts: thick, stable, slowly travelling branching arcs -----
+      vec3  p    = dir*5.0 + vec3(0.0, -time*0.15, time*0.03);
+      float d    = g1bArcField(p);
+      float bolt = g1bArcGlow(d, 0.025, 1.6);
+      // slow, smooth brightening - the arcs stay lit and gently pulse
+      bolt *= mix(0.55, 1.0, g1bFlicker(dir, time*0.8));
+
+      float core = smoothstep(0.55, 1.0, bolt);
+      color = cArc*bolt*1.4 + cCore*core*1.6;
+      alpha = clamp(bolt*1.1 + core, 0.0, 1.0) * mix(0.8, 1.0, fres);
+      }
+    else {
+      // ---- crackle: secondary finer arcs, drifting slowly ------------------
+      vec3  p     = dir*9.0 + vec3(3.3, -time*0.30, time*0.06);
+      float d     = g1bArcField(p);
+      float crack = g1bArcGlow(d, 0.016, 1.8);
+      crack *= mix(0.35, 1.0, g1bFlicker(dir*2.0, time*1.6));
+
+      float core = smoothstep(0.6, 1.0, crack);
+      color = cHot*crack + cCore*core*1.4;
+      alpha = clamp(crack*0.85 + core, 0.0, 1.0);
+      }
+
+    // The barrier blends additively, so the contribution is color*alpha. Fold
+    // it into a premultiplied colour and softly roll off the peak so several
+    // overlapping bright arcs cannot blow out to a flat white sheet.
+    vec3  contrib = color * alpha;
+    float peak    = max(contrib.r, max(contrib.g, contrib.b));
+    contrib *= 4.0 / max(4.0, peak);
+    color = contrib;
+    alpha = 1.0;
     }
-  }
 #endif
 
   outColor = vec4(color, alpha);
-}
+  }
 #endif
 
 #if defined(GHOST)
