@@ -255,7 +255,7 @@ void Cpu32::callFunction(ptr32_t func) {
 
 std::string Cpu32::popString() {
   if(stack.size()==0)
-    return 0;
+    return "";
   auto ptr = stack.back();
   stack.pop_back();
 
