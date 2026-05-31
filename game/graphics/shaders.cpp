@@ -251,6 +251,10 @@ void Shaders::compileShaders() {
     surfInit  = computeShader("surf_init.comp.sprv");
     surfVote  = computeShader("surf_vote.comp.sprv");
     surfAlloc = computeShader("surf_alloc.comp.sprv");
+
+    irrAlloc   = computeShader("irr_alloc.comp.sprv");
+    irrMip     = computeShader("irr_mip.comp.sprv");
+    irrScatter = computeShader("irr_scatter.comp.sprv");
     }
 
   if(Shaders::isVsmSupported()) {

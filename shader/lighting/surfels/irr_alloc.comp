@@ -1,0 +1,140 @@
+#version 450
+
+#include "lighting/surfels/surf_common.glsl"
+#include "scene.glsl"
+#include "common.glsl"
+
+layout(local_size_x = 16, local_size_y = 16) in;
+
+layout(std140, push_constant) uniform Push {
+  vec3 originLwc;
+  };
+layout(binding = 0, std140) uniform UboScene {
+  SceneDesc scene;
+  };
+
+layout(binding = 1) uniform sampler2D  gbufDiffuse;
+layout(binding = 2) uniform usampler2D gbufNormal;
+layout(binding = 3) uniform sampler2D  depth;
+layout(binding = 4, std430) buffer SB0 { uvec4 count; Surfel surfels[]; };
+//
+layout(binding = 6, r32f) uniform image2D pdfTree;
+//
+layout(binding = 11, rgba8) uniform image2D dbgImage;
+
+
+ivec2 fragCoord;
+ivec2 screenSize;
+
+vec3 worldPos(float z) {
+  const mat4 inv = scene.viewProjectLwcInv;
+  const vec2 uv  = vec2(fragCoord+0.5)*scene.screenResInv;
+  const vec4 pos = inv*vec4(uv * 2.0 - 1.0, z, 1);
+  return pos.xyz/pos.w + originLwc;
+  }
+
+float wangHashNoise(uvec2 uv, uint s) {
+  uint seed = (uv.x*1664525u + uv.y) + s;
+  uint hash = wangHash(seed);
+  float value = float(hash) / (4294967296.0);
+  return value;
+  }
+
+float readZ(in vec2 posf) {
+  return textureLod(depth, posf.xy*0.5+vec2(0.5), 0).r;
+  }
+
+vec3 unproject(ivec2 hit, float z) {
+  const vec2  inPos = vec2(2*hit+ivec2(1,1))/vec2(screenSize)-vec2(1,1);
+  const vec3  at    = vec3(inPos.xy, z);
+  const vec3  pos   = projectiveUnproject(scene.projectInv, at);
+  return pos;
+  }
+
+vec3 reconstructNormal(const ivec2 at) {
+  const vec3 norm = normalFetch(gbufNormal, at);
+  const vec3 nx   = mat3(scene.view) * norm;
+  return nx;
+  }
+
+float pixelToWorld(float pixelRadius, float z) {
+  z = linearDepth(z, scene.clipInfo);
+  float clipRadius  = (2.0 * pixelRadius) * scene.screenResInv.y;
+  float worldRadius = (clipRadius * z) / scene.project[1][1];
+  return worldRadius;
+  }
+
+vec4 hitPass(ivec2 fragCoord, float h0, const vec3 pos0, float z0, const vec3 norm) {
+  if(z0==1.0)
+    return vec4(0);
+
+  int   step = 32;
+  float rI   = pixelToWorld(step, z0); // ideally, sholud be harmonic mean of ray hits
+
+  float wInv = 10;
+
+  float c    = cos(h0), s = sin(h0);
+  ivec2 hit = fragCoord + ivec2(round(vec2(c,s)*step));
+  hit = clamp(hit, ivec2(0), screenSize-1);
+
+  const vec3  norm1  = reconstructNormal(hit);
+
+  const float z1     = texelFetch(depth, hit, 0).r;
+  const vec3  pos1   = unproject(hit, z1);
+
+  const vec3  dp     = pos1-pos0;
+  const float lenDp  = length(dp);
+  if(lenDp>rI*2)
+    ;//return vec4(0,0,1,1);
+
+  // Making_Radiance_and_Irradiance_Caching_Practical_A.pdf
+  // part 3, Weighting Function
+  const float wDist  = (lenDp)/max(rI*2.0, 1);
+  const float wAng   = sqrt(1.0 - min(dot(norm,norm1),1));
+  wInv   = wDist*1 + wAng*1;
+
+  const float wOcclusion = 1;//max(0, dot(dp/lenDp, norm1));
+
+  //return vec4(wDist-1);
+  float ret = 1.0/max(wInv,0.01);
+  return vec4(max(1.0 - ret, 0));
+
+  //const float selfOcclusionTerm = abs(dot(dp/lenDp, norm));
+  //const float wErr   = lenDp/rI + dot(norm, dp/lenDp);
+  //return vec4(1.0/(0.01+wErr));
+  }
+
+void main() {
+  screenSize = ivec2(textureSize(depth,0));
+  fragCoord  = ivec2(gl_GlobalInvocationID.xy);
+
+  const bool  valid = all(lessThan(fragCoord, screenSize));
+  const vec2  inPos = vec2(2*fragCoord+ivec2(1,1))/vec2(screenSize)-vec2(1,1);
+
+  const float z0    = readZ(inPos.xy);
+  const vec3  pos0  = unproject(fragCoord,z0);
+
+  const vec3  norm  = valid ? reconstructNormal(fragCoord) : vec3(0);
+  const float f0    = M_PI*2.0*wangHashNoise(uvec2(fragCoord), 0);
+
+  vec4 hit = hitPass(fragCoord,f0,pos0,z0,norm);
+
+  if(z0<0.9999)
+    atomicAdd(count.y, 1);
+
+  imageStore(pdfTree, ivec2(gl_GlobalInvocationID.xy), vec4(hit.x));
+  // imageStore(pdfTree, ivec2(gl_GlobalInvocationID.xy), vec4(1));
+
+  imageStore(dbgImage, ivec2(gl_GlobalInvocationID.xy), hit);
+
+  if(false && z0<0.9999 && gl_LocalInvocationIndex==0) {
+    // dummy for now
+    const uint id = atomicAdd(count.x, 1);
+    if(id>=surfels.length())
+      return;
+    Surfel sx;
+    sx.pos  = worldPos(z0);
+    sx.norm = texelFetch(gbufNormal, fragCoord, 0).r;
+    surfels[id] = sx;
+    }
+  }

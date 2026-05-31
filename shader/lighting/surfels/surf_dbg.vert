@@ -41,10 +41,11 @@ vec3 hasGridPos(vec3 wpos, float cellSize) {
   return round(wpos);
   }
 
-uint surfHash_(vec3 hpos, float cellSize) {
-  ivec3 p       = ivec3(round(hpos*cellSize));
-  uint  hashKey = pcgHash(p.x + pcgHash(p.y + pcgHash(p.z)));
-  return hashKey;
+float pixelToWorld(float pixelRadius, float z) {
+  z = linearDepth(z, scene.clipInfo);
+  float clipRadius  = (2.0 * pixelRadius) * scene.screenResInv.y;
+  float worldRadius = (clipRadius * z) / scene.project[1][1];
+  return worldRadius;
   }
 
 void main() {
@@ -60,8 +61,9 @@ void main() {
   const vec4 pp   = scene.viewProject * vec4(p.pos, 1.0);
 
   float pixelRadius = 5.0;
-  float clipRadius  = (2.0 * pixelRadius) * scene.screenResInv.y;
-  float worldRadius = clipRadius * (-pp.z) / scene.project[1][1];
+  // float clipRadius  = (2.0 * pixelRadius) * scene.screenResInv.y;
+  // float worldRadius = clipRadius * (-pp.z) / scene.project[1][1];
+  float worldRadius = pixelToWorld(pixelRadius, pp.z/pp.w);
 
   //radius        = 5;
   radius        = worldRadius;

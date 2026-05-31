@@ -679,7 +679,7 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
   cmd.setDebugMarker("Translucent");
   wview->drawTranslucent(cmd, fId);
 
-  drawHashDbg(sceneLinear, cmd, *wview);
+  // drawHashDbg(sceneLinear, cmd, *wview);
   drawProbesDbg(cmd, *wview);
   drawProbesHitDbg(cmd);
   drawSurfelsDbg(cmd, *wview);
@@ -1936,15 +1936,17 @@ void Renderer::prepareEpipolar(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wo
 void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview) {
   static bool alloc = true;
 
-  const uint32_t hashGridSize = 4'194'304; // SHaRC docimentation recommends 2^22
+  const  uint32_t hashGridSize = 4'194'304; // SHaRC docimentation recommends 2^22
+  static uint32_t maxSurfels   = 8096;
   cmd.setDebugMarker("Surfels");
 
   auto& scene    = wview.sceneGlobals();
   auto& surfels  = usesSsboInit(surf.surfels,  shaders.surfVote.sizeofBuffer(4, surf.maxSurfels));
   auto& dbgImage = usesImage2d (surf.dbgImage, TextureFormat::RGBA8, zbuffer.size());
   auto& hashGrid = usesSsboInit(surf.hashGrid, hashGridSize);
+  auto& pdfTree  = usesImage2d (surf.pdfTree, TextureFormat::R32F, zbuffer.size(), true);
 
-  if(alloc) {
+  if(false && alloc) {
     struct Push {
       Vec3 originLwc;
       } push;
@@ -1969,6 +1971,53 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
     cmd.setPipeline(shaders.surfAlloc);
     cmd.dispatchThreads(hashGridSize);
     //alloc = false;
+    }
+
+  if(true && alloc) {
+    struct Push {
+      Vec3    originLwc;
+      uint32_t maxSurfels;
+      } push = {};
+    push.originLwc  = scene.originLwc;
+    push.maxSurfels = maxSurfels;
+
+    cmd.setPushData(push);
+    cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
+    cmd.setBinding(1, gbufDiffuse, Sampler::nearest());
+    cmd.setBinding(2, gbufNormal,  Sampler::nearest());
+    cmd.setBinding(3, zbuffer,     Sampler::nearest());
+    cmd.setBinding(4, surfels);
+    cmd.setBinding(5, hashGrid);
+    cmd.setBinding(6, pdfTree);
+    //
+    cmd.setBinding(11, dbgImage);
+
+    cmd.setPipeline(shaders.surfInit);
+    cmd.dispatchThreads(hashGridSize); //for sake of zeroing counters
+
+    cmd.setPipeline(shaders.irrAlloc);
+    cmd.dispatchThreads(sceneDepth.size());
+
+    uint32_t w = uint32_t(pdfTree.w()), h = uint32_t(pdfTree.h());
+    cmd.setPipeline(shaders.irrMip);
+    for(uint32_t i=1; i<pdfTree.mipCount(); ++i) {
+      cmd.setBinding(0, pdfTree, Sampler::nearest(), i-1);
+      cmd.setBinding(1, pdfTree, Sampler::nearest(), i-0);
+      w = std::max<uint32_t>(w/2, 1);
+      h = std::max<uint32_t>(h/2, 1);
+      cmd.dispatchThreads(w,h);
+      }
+
+    cmd.setPushData(push);
+    cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
+    cmd.setBinding(1, gbufDiffuse, Sampler::nearest());
+    cmd.setBinding(2, gbufNormal,  Sampler::nearest());
+    cmd.setBinding(3, zbuffer,     Sampler::nearest());
+    cmd.setBinding(4, surfels);
+    cmd.setBinding(5, hashGrid);
+    cmd.setBinding(6, pdfTree);
+    cmd.setPipeline(shaders.irrScatter);
+    cmd.dispatchThreads(maxSurfels);
     }
   }
 

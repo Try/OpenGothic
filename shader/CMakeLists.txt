@@ -314,6 +314,9 @@ add_shader(surf_dbg.frag             lighting/surfels/surf_dbg.frag)
 add_shader(surf_init.comp            lighting/surfels/surf_init.comp)
 add_shader(surf_vote.comp            lighting/surfels/surf_vote.comp)
 add_shader(surf_alloc.comp           lighting/surfels/surf_alloc.comp)
+add_shader(irr_alloc.comp            lighting/surfels/irr_alloc.comp)
+add_shader(irr_mip.comp              lighting/surfels/irr_mip.comp)
+add_shader(irr_scatter.comp          lighting/surfels/irr_scatter.comp)
 
 # Pathtracing
 add_shader(pathtrace.frag            lighting/pt/pathtrace.frag -DRAY_QUERY -DRAY_QUERY_AT)

@@ -213,6 +213,7 @@ class Renderer final {
       const uint32_t            maxSurfels = 16*1024;
       Tempest::StorageBuffer    surfels;
       Tempest::StorageBuffer    hashGrid;
+      Tempest::StorageImage     pdfTree;
 
       Tempest::StorageImage     dbgImage;
       } surf;
