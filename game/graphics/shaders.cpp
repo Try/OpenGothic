@@ -259,6 +259,12 @@ void Shaders::compileShaders() {
     surfAdaptive = computeShader("surf_adaptive.comp.sprv");
     surfMip      = computeShader("surf_mip.comp.sprv");
     surfScatter  = computeShader("surf_scatter.comp.sprv");
+
+    surfBinning  = computeShader("surf_binning.comp.sprv");
+    surfBinClear = computeShader("surf_bin_clear.comp.sprv");
+    surfBinAlloc = computeShader("surf_bin_alloc.comp.sprv");
+
+    surfApply    = computeShader("surf_apply.comp.sprv");
     }
 
   if(Shaders::isVsmSupported()) {

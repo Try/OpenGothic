@@ -89,6 +89,8 @@ class Shaders {
     Tempest::ComputePipeline surfInit, surfVote, surfAlloc;
     Tempest::ComputePipeline irrAlloc, irrMip, irrScatter;
     Tempest::ComputePipeline surfAdaptive, surfMip, surfScatter;
+    Tempest::ComputePipeline surfBinClear, surfBinning, surfBinAlloc;
+    Tempest::ComputePipeline surfApply;
 
     // Epipolar
     Tempest::ComputePipeline fogEpipolarVsm;

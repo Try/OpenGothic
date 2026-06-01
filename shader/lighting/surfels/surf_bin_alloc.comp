@@ -1,0 +1,20 @@
+#version 450
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+layout(binding = 1, std430) buffer SB0 { uvec4 count; };
+layout(binding = 2, r32ui) uniform uimage2D surfCnts;
+layout(binding = 3, r32ui) uniform uimage2D surfBins;
+
+void main() {
+  const ivec2 tile = ivec2(gl_GlobalInvocationID.xy);
+  const ivec2 sz   = imageSize(surfBins);
+  if(tile.x>=sz.x || tile.y>=sz.y)
+    return;
+
+  const uint v   = imageLoad(surfCnts, tile).x;
+  const uint ptr = atomicAdd(count.z, v);
+
+  imageStore(surfCnts, tile, uvec4(0));
+  imageStore(surfBins, tile, uvec4(ptr));
+  }

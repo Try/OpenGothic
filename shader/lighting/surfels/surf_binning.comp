@@ -1,0 +1,40 @@
+#version 450
+
+#include "lighting/surfels/surf_common.glsl"
+#include "scene.glsl"
+#include "common.glsl"
+
+layout(local_size_x = 64) in;
+
+layout(std140, push_constant) uniform Push {
+  int tileSize;
+  int allocPass;
+  };
+layout(binding = 0, std140) uniform UboScene {
+  SceneDesc scene;
+  };
+layout(binding = 1, std430) buffer SB0 { uvec4 count; Surfel surfels[]; };
+layout(binding = 2, r32ui) uniform uimage2D surfCnts;
+layout(binding = 3, r32ui) uniform uimage2D surfBins;
+layout(binding = 4, std430) buffer SB1 { uint surfelIds[]; };
+
+void main() {
+  const uint surfelId = gl_GlobalInvocationID.x;
+  if(surfelId>=count.x)
+    return;
+
+  const Surfel p    = surfels[surfelId];
+  const vec4   pos4 = scene.viewProject * vec4(p.pos, 1.0);
+
+  const vec3   pos = pos4.xyz/pos4.w;
+  ivec2 ipos = ivec2((pos.xy*0.5+0.5) * vec2(scene.screenRes))+tileSize/2;
+
+  ivec2 sz   = imageSize(surfCnts);
+  ivec2 tile = clamp(ipos/tileSize, ivec2(0), sz);
+
+  const uint lptr = imageAtomicAdd(surfCnts, tile, 1);
+  if(allocPass>0) {
+    const uint ptr = imageLoad(surfBins, tile).x + lptr;
+    surfelIds[ptr] = surfelId;
+    }
+  }

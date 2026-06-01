@@ -23,7 +23,6 @@ layout(binding = 7, r32f)    uniform image2D pdfTree;
 //
 layout(binding = 11, rgba8) uniform image2D dbgImage;
 
-
 vec3 worldPos(float z, ivec2 fragCoord, ivec2 screenSize) {
   const mat4 inv = scene.viewProjectLwcInv;
   const vec2 uv  = vec2(fragCoord+0.5)*scene.screenResInv;

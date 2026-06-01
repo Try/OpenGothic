@@ -22,8 +22,8 @@ float samplePass(bool avgPass, ivec2 coord0, ivec2 coord1, inout vec4 avgPos, in
         vec3 norm = imageLoad(srcNorm, ivec2(i,r)).xyz*2.0 - 1.0;
 
         normErr   += (1.0 - dot(norm, avgNormal));
-        //posErr    += abs(dot(pos - avgPos.xyz, avgNormal));
-        posErr    += abs(dot(normalize(pos - avgPos.xyz), avgNormal));
+        posErr    += abs(dot(pos - avgPos.xyz, avgNormal));
+        // posErr    += abs(dot(normalize(pos - avgPos.xyz), avgNormal));
         parentErr += imageLoad(srcPdf, ivec2(i,r)).x;
         }
       }

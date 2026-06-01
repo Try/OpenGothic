@@ -1,0 +1,130 @@
+#version 450
+
+#include "lighting/surfels/surf_common.glsl"
+#include "scene.glsl"
+#include "common.glsl"
+
+layout(local_size_x = 16, local_size_y = 16) in;
+
+const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
+
+layout(std140, push_constant) uniform Push {
+  vec3 originLwc;
+  uint tileSize;
+  };
+layout(binding = 0, std140) uniform UboScene {
+  SceneDesc scene;
+  };
+layout(binding = 1) uniform sampler2D  gbufDiffuse;
+layout(binding = 2) uniform usampler2D gbufNormal;
+layout(binding = 3) uniform sampler2D  depth;
+layout(binding = 4, std430) buffer SB0 { uvec4 count; Surfel surfels[]; };
+layout(binding = 5, std430) buffer SB1 { uint surfelList[]; };
+layout(binding = 6, r32ui) uniform uimage2D surfCnts;
+layout(binding = 7, r32ui) uniform uimage2D surfBins;
+
+layout(binding = 11, rgba8) uniform image2D dbgImage;
+
+const uint MaxSurfInCache = 64;
+shared uint surfCount;
+shared vec4 surfelsPos [MaxSurfInCache];
+shared vec4 surfelsNorm[MaxSurfInCache];
+shared vec2 surfelsScr [MaxSurfInCache];
+
+vec3 worldPos(float z, ivec2 fragCoord, ivec2 screenSize) {
+  const mat4 inv = scene.viewProjectLwcInv;
+  const vec2 uv  = vec2(fragCoord+0.5)*scene.screenResInv;
+  const vec4 pos = inv*vec4(uv * 2.0 - 1.0, z, 1);
+  return pos.xyz/pos.w + originLwc;
+  }
+
+float pixelToWorld(float pixelRadius, float z) {
+  z = linearDepth(z, scene.clipInfo);
+  float clipRadius  = (2.0 * pixelRadius) * scene.screenResInv.y;
+  float worldRadius = (clipRadius * z) / scene.project[1][1];
+  return worldRadius;
+  }
+
+void pullTile(ivec2 tileId) {
+  const uint laneID = gl_LocalInvocationIndex;
+
+  const uint cnt = imageLoad(surfCnts, tileId).x;
+  const uint ptr = imageLoad(surfBins, tileId).x;
+  const int  pixelRadius = 16;
+
+  for(uint i=laneID; i<cnt; i+=NumThreads) {
+    uint id  = atomicAdd(surfCount,1);
+    if(id>=MaxSurfInCache)
+      return;
+
+    uint sId = surfelList[ptr+i];
+
+    const Surfel s    = surfels[sId];
+    const vec4   pos4 = scene.viewProject * vec4(s.pos, 1.0);
+
+    const vec3   pos  = pos4.xyz/pos4.w;
+    const ivec2  ipos = ivec2((pos.xy*0.5+0.5) * vec2(scene.screenRes))/ivec2(gl_WorkGroupSize.xy);
+
+    if(gl_WorkGroupID.xy!=ipos)
+      ;//continue;
+
+    const float wRadius = pixelToWorld(pixelRadius, pos.z);
+    surfelsPos [id] = vec4(s.pos, uintBitsToFloat(sId));
+    surfelsNorm[id] = vec4(decodeNormal(s.norm), wRadius);
+    surfelsScr [id] = vec2((pos.xy*0.5+0.5) * vec2(scene.screenRes));
+    }
+  }
+
+void main() {
+  surfCount = 0;
+  barrier();
+
+  const ivec2 fragCoord  = ivec2(gl_GlobalInvocationID.xy);
+  const ivec2 screenSize = ivec2(textureSize(depth,0));
+  const bool  valid      = all(lessThan(fragCoord, screenSize));
+
+  const float z   = valid ? texelFetch(depth,fragCoord,0).x : 0;
+  const bool  sky = (z >= SKY_DEPTH);
+
+  ivec2 t = ivec2(gl_WorkGroupID.xy*gl_WorkGroupSize.xy)/int(tileSize);
+  pullTile(t+ivec2(0,0));
+  pullTile(t+ivec2(1,0));
+  pullTile(t+ivec2(0,1));
+  pullTile(t+ivec2(1,1));
+  barrier();
+
+  if(!valid || sky)
+    return;
+
+  const vec3 wpos = worldPos(z, fragCoord, screenSize);
+  const vec3 norm = normalFetch(gbufNormal,fragCoord);
+
+  vec4  clr  = vec4(0);
+  float maxW = 0;
+  for(int i=0; i<surfCount; ++i) {
+    vec2  ds = (vec2(fragCoord) - surfelsScr[i].xy)/(tileSize*0.5);
+
+    vec3  ldir   = surfelsPos[i].xyz - wpos;
+    float eDist  = length(ldir)/surfelsNorm[i].w;
+    float eNorm  = sqrt(max(2 - 2*dot(norm, surfelsNorm[i].xyz), 0.0001));
+
+    float wPix   = dot(ds,ds);
+    wPix = max(1-wPix*wPix,0);
+
+    float w   = wPix/max(eDist+eNorm, 0.0001);
+
+    vec3  dbg = debugColors[floatBitsToUint(surfelsPos[i].w) % debugColors.length()];
+    if(w>maxW) {
+      maxW = w;
+      //clr  = dbg;
+      }
+    clr += vec4(dbg*w, w);
+    }
+
+  if(clr.a>0)
+    clr.rgb /= clr.a;
+
+  // imageStore(dbgImage, fragCoord, vec4(surfCount/255.0));
+  // imageStore(dbgImage, fragCoord, vec4(maxW));
+  imageStore(dbgImage, fragCoord, vec4(clr.rgb,1));
+  }

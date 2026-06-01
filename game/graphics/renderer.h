@@ -218,6 +218,9 @@ class Renderer final {
       Tempest::StorageImage     posTree;
       Tempest::StorageImage     normTree;
 
+      Tempest::StorageImage     surfCnts, surfBins;
+      Tempest::StorageBuffer    surfList;
+
       Tempest::StorageImage     dbgImage;
       } surf;
 

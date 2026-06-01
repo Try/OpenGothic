@@ -43,7 +43,8 @@ void sampleTree(ivec2 coord0, ivec2 coord1, int mip, inout float index, inout iv
       }
 
   if(vSum<=0) {
-    p = ivec2(0);
+    index = 0;
+    p     = coord0;
     return;
     }
 
