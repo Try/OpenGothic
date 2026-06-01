@@ -318,6 +318,10 @@ add_shader(irr_alloc.comp            lighting/surfels/irr_alloc.comp)
 add_shader(irr_mip.comp              lighting/surfels/irr_mip.comp)
 add_shader(irr_scatter.comp          lighting/surfels/irr_scatter.comp)
 
+add_shader(surf_adaptive.comp        lighting/surfels/surf_adaptive.comp)
+add_shader(surf_mip.comp             lighting/surfels/surf_mip.comp)
+add_shader(surf_scatter.comp         lighting/surfels/surf_scatter.comp)
+
 # Pathtracing
 add_shader(pathtrace.frag            lighting/pt/pathtrace.frag -DRAY_QUERY -DRAY_QUERY_AT)
 

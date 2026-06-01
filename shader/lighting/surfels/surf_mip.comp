@@ -1,0 +1,64 @@
+#version 450
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+layout(binding = 0, rgba32f) uniform readonly  image2D srcPos;
+layout(binding = 1, rgba16)  uniform readonly  image2D srcNorm;
+layout(binding = 2, r32f)    uniform readonly  image2D srcPdf;
+layout(binding = 3, rgba32f) uniform writeonly image2D dstPos;
+layout(binding = 4, rgba16)  uniform writeonly image2D dstNorm;
+layout(binding = 5, r32f)    uniform writeonly image2D dstPdf;
+
+float samplePass(bool avgPass, ivec2 coord0, ivec2 coord1, inout vec4 avgPos, inout vec3 avgNormal) {
+  float normErr = 0, posErr = 0, parentErr = 0;
+
+  for(int i=coord0.x; i<coord1.x; ++i) {
+    for(int r=coord0.y; r<coord1.y; ++r) {
+      if(avgPass) {
+        avgPos    += imageLoad(srcPos,  ivec2(i,r));
+        avgNormal += imageLoad(srcNorm, ivec2(i,r)).xyz*2.0 - 1.0;
+        } else {
+        vec3 pos  = imageLoad(srcPos,  ivec2(i,r)).xyz;
+        vec3 norm = imageLoad(srcNorm, ivec2(i,r)).xyz*2.0 - 1.0;
+
+        normErr   += (1.0 - dot(norm, avgNormal));
+        //posErr    += abs(dot(pos - avgPos.xyz, avgNormal));
+        posErr    += abs(dot(normalize(pos - avgPos.xyz), avgNormal));
+        parentErr += imageLoad(srcPdf, ivec2(i,r)).x;
+        }
+      }
+    }
+  return parentErr*1 + posErr*0 + normErr*1;
+  }
+
+void main() {
+  ivec2 dstCoord = ivec2(gl_GlobalInvocationID.xy);
+  ivec2 dstSize  = imageSize(dstPos);
+  ivec2 srcSize  = imageSize(srcPos);
+
+  if(dstCoord.x >= dstSize.x || dstCoord.y >= dstSize.y)
+    return;
+
+  ivec2 coord0 = dstCoord * 2;
+  ivec2 coord1 = coord0+2;
+
+  // bottom-right corner might have 3x3 footprint in npot image
+  if(dstCoord.x+1==dstSize.x)
+    coord1.x = srcSize.x;
+  if(dstCoord.y+1==dstSize.y)
+    coord1.y = srcSize.y;
+
+  vec4 pos  = vec4(0);
+  vec3 norm = vec3(0);
+  samplePass(true, coord0, coord1, pos, norm);
+
+  float cnt = pos.w;
+  pos.xyz /= max(cnt,1);
+  norm = normalize(norm);
+
+  const float err = cnt>0 ? samplePass(false, coord0, coord1, pos, norm) : 0;
+
+  imageStore(dstPos,  dstCoord, vec4(pos));
+  imageStore(dstNorm, dstCoord, vec4(norm*0.5+0.5,0));
+  imageStore(dstPdf,  dstCoord, vec4(err));
+  }

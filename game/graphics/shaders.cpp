@@ -255,6 +255,10 @@ void Shaders::compileShaders() {
     irrAlloc   = computeShader("irr_alloc.comp.sprv");
     irrMip     = computeShader("irr_mip.comp.sprv");
     irrScatter = computeShader("irr_scatter.comp.sprv");
+
+    surfAdaptive = computeShader("surf_adaptive.comp.sprv");
+    surfMip      = computeShader("surf_mip.comp.sprv");
+    surfScatter  = computeShader("surf_scatter.comp.sprv");
     }
 
   if(Shaders::isVsmSupported()) {

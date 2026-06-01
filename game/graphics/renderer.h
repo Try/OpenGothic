@@ -215,6 +215,9 @@ class Renderer final {
       Tempest::StorageBuffer    hashGrid;
       Tempest::StorageImage     pdfTree;
 
+      Tempest::StorageImage     posTree;
+      Tempest::StorageImage     normTree;
+
       Tempest::StorageImage     dbgImage;
       } surf;
 
