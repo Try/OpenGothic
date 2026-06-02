@@ -1964,7 +1964,7 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
   auto& surfBins = usesImage2d (surf.surfBins, TextureFormat::R32U, tc);
 
   static bool alloc = true;
-  if(true && alloc) {
+  if(false && alloc) {
     struct Push {
       Vec3 originLwc;
       } push;
@@ -2086,6 +2086,31 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
     cmd.setBinding(5, pdfTree);
     cmd.setPipeline(shaders.surfScatter);
     cmd.dispatchThreads(maxSurfels);
+    }
+
+  if(true && alloc) {
+    struct Push {
+      Vec3    originLwc;
+      uint32_t maxSurfels;
+      } push = {};
+    push.originLwc  = scene.originLwc;
+    push.maxSurfels = maxSurfels;
+
+    cmd.setPushData(push);
+    cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
+    cmd.setBinding(1, gbufDiffuse, Sampler::nearest());
+    cmd.setBinding(2, gbufNormal,  Sampler::nearest());
+    cmd.setBinding(3, zbuffer,     Sampler::nearest());
+    cmd.setBinding(4, surfels);
+    //
+    cmd.setBinding(11, dbgImage);
+
+    cmd.setPipeline(shaders.surfInit);
+    cmd.dispatchThreads(1); //for sake of zeroing counters
+
+    const auto tc = tileCount(zbuffer.size(), 128);
+    cmd.setPipeline(shaders.surfTiled);
+    cmd.dispatch(tc);
     }
 
   static bool binning = false;

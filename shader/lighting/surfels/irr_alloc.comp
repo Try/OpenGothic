@@ -90,8 +90,8 @@ vec4 hitPass(ivec2 fragCoord, float h0, const vec3 pos0, float z0, const vec3 no
   // Making_Radiance_and_Irradiance_Caching_Practical_A.pdf
   // part 3, Weighting Function
   const float wDist  = (lenDp)/max(rI*2.0, 1);
-  const float wAng   = sqrt(1.0 - min(dot(norm,norm1),1));
-  wInv   = wDist*1 + wAng*1;
+  const float wAng   = sqrt(max(1.0 - dot(norm,norm1),0));
+  wInv   = wDist*0 + wAng*1;
 
   const float wOcclusion = 1;//max(0, dot(dp/lenDp, norm1));
 
@@ -122,7 +122,7 @@ void main() {
   if(z0<0.9999)
     atomicAdd(count.y, 1);
 
-  imageStore(pdfTree, ivec2(gl_GlobalInvocationID.xy), vec4(hit.x));
+  imageStore(pdfTree, ivec2(gl_GlobalInvocationID.xy), vec4(hit.x+0.001));
   // imageStore(pdfTree, ivec2(gl_GlobalInvocationID.xy), vec4(1));
 
   imageStore(dbgImage, ivec2(gl_GlobalInvocationID.xy), hit);

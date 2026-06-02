@@ -1,0 +1,178 @@
+#version 450
+
+#include "lighting/surfels/surf_common.glsl"
+#include "scene.glsl"
+#include "common.glsl"
+
+layout(local_size_x = 16, local_size_y = 16) in;
+
+const ivec2 TileSize        = ivec2(128);
+const int   DefaultCoverage = 100;
+const float NormalBias      = 0.0015;
+
+layout(std140, push_constant) uniform Push {
+  vec3 originLwc;
+  };
+layout(binding = 0, std140) uniform UboScene {
+  SceneDesc scene;
+  };
+
+layout(binding = 1) uniform sampler2D  gbufDiffuse;
+layout(binding = 2) uniform usampler2D gbufNormal;
+layout(binding = 3) uniform sampler2D  depth;
+layout(binding = 4, std430) buffer SB0 { uvec4 count; Surfel surfels[]; } glob;
+
+//
+layout(binding = 11, rgba8) uniform image2D dbgImage;
+
+//
+struct Surf {
+  vec4 pos;  // pos, size
+  vec3 norm;
+  };
+shared Surf pointQueue[64];
+shared int  pointQueueSize;
+
+shared uint fragVote;
+
+vec3 rayOrigin(ivec2 frag, float depth, vec3 normal) {
+  const vec2 fragCoord = ((frag.xy+0.5)*scene.screenResInv)*2.0 - vec2(1.0);
+  const vec4 scr       = vec4(fragCoord.x, fragCoord.y, depth, 1.0);
+  const vec4 wpos      = scene.viewProjectLwcInv * scr;
+  return (wpos.xyz + normal*NormalBias)/wpos.w;
+  }
+
+vec3 worldPos(float z, ivec2 fragCoord, ivec2 screenSize) {
+  const mat4 inv = scene.viewProjectLwcInv;
+  const vec2 uv  = vec2(fragCoord+0.5)*scene.screenResInv;
+  const vec4 pos = inv*vec4(uv * 2.0 - 1.0, z, 1);
+  return (pos.xyz)/pos.w + originLwc;
+  }
+
+float pixelToWorld(float pixelRadius, float z) {
+  z = linearDepth(z, scene.clipInfo);
+  float clipRadius  = (2.0 * pixelRadius) * scene.screenResInv.y;
+  float worldRadius = (clipRadius * z) / scene.project[1][1];
+  return worldRadius;
+  }
+
+
+float calculteWeight(const Surf s, const vec3 wpos, const vec3 norm) {
+  vec3  ldir   = wpos - s.pos.xyz;
+  float dist   = length(ldir);
+  float dotN   = dot(norm, s.norm.xyz);
+
+  float eGeom  = dist/s.pos.w + sqrt(max(2 - 2*dotN, 0));
+  //float eOccl  = step(-0.1, dot(normalize(ldir), s.norm.xyz)); // allow small occlusion
+  float eOccl  = dot(normalize(ldir), s.norm.xyz)*0.5+0.5; // allow small occlusion
+//return eOccl;
+  float w      = (1.0*eOccl)/max(eGeom, 0.001) - 0.0001;
+  return w;
+  }
+
+void mainTile(const ivec2 fragCoord, const ivec2 screenSize) {
+  const bool  valid = all(lessThan(fragCoord, screenSize));
+  if(!valid)
+    return;
+
+  const float z     = texelFetch(depth,fragCoord,0).x;
+  const bool  sky   = (z >= SKY_DEPTH);
+  if(sky)
+    return;
+
+  const vec3  norm = normalFetch(gbufNormal, fragCoord);
+  const vec3  wpos = worldPos(z, fragCoord, screenSize);
+  const float edge = 0.9;
+
+  float wMax = 0;
+  for(int i=pointQueueSize; i>0;) {
+    --i;
+    const Surf  s = pointQueue[i];
+    const float w = calculteWeight(s,wpos,norm);
+    wMax = max(wMax,w);
+    if(wMax >= edge)
+      break;
+    }
+
+  imageStore(dbgImage, fragCoord, vec4(wMax/edge));
+
+  if(wMax >= edge)
+    return;
+  uint  w = floatBitsToUint(wMax/edge) & 0xFFFF0000;
+  uint  b = uint(w) | uint(gl_LocalInvocationIndex);
+  atomicMin(fragVote, b);
+  }
+
+void surfAlloc(ivec2 fragCoord, const ivec2 screenSize) {
+  if(gl_LocalInvocationIndex!=0)
+    return;
+
+  if(pointQueueSize>=pointQueue.length()) {
+    return;
+    }
+
+  const uint vote = fragVote;
+  fragVote = 0xFFFFFFFF;
+
+  if((vote & 0x0000FFFF)==0x0000FFFF)
+    return;
+
+  const int i = pointQueueSize;
+  pointQueueSize++;
+
+  const uint id = vote & 0xFFFF;
+  fragCoord.x += int(id % gl_WorkGroupSize.x);
+  fragCoord.y += int(id / gl_WorkGroupSize.x);
+
+  const float z    = texelFetch(depth, fragCoord, 0).x;
+  const vec3  wpos = worldPos(z, fragCoord, screenSize);
+  const vec3  norm = normalFetch(gbufNormal, fragCoord);
+  const float sz   = max(pixelToWorld(DefaultCoverage, z), 1);
+
+  Surf s;
+  s.pos  = vec4(wpos, sz);
+  s.norm = norm;
+  pointQueue[i] = s;
+  }
+
+void storeSurfels() {
+  const uint laneID = gl_LocalInvocationIndex;
+
+  if(laneID==0)
+    fragVote = atomicAdd(glob.count.x, pointQueueSize);
+  barrier();
+
+  if(laneID<pointQueueSize) {
+    const uint ptr = fragVote + laneID;
+    const Surf tmp = pointQueue[laneID];
+
+    Surfel sx;
+    sx.pos  = tmp.pos.xyz;
+    sx.norm = encodeNormal(tmp.norm);
+    glob.surfels[ptr] = sx;
+    }
+  }
+
+void main() {
+  if(!(gl_WorkGroupID.x<2 && gl_WorkGroupID.y<2))
+    ;//return;
+  pointQueueSize = 0;
+  fragVote       = 0xFFFFFFFF;
+  barrier();
+
+  const ivec2 screenSize = ivec2(textureSize(depth,0));
+
+  const ivec2 coord0 = ivec2(gl_WorkGroupID.xy) * TileSize;
+  const ivec2 coord1 = ivec2(gl_WorkGroupID.xy) * TileSize + TileSize;
+
+  for(int y=coord0.y; y<coord1.y; y+=int(gl_WorkGroupSize.y))
+    for(int x=coord0.x; x<coord1.x; x+=int(gl_WorkGroupSize.x)){
+      mainTile(ivec2(x,y) + ivec2(gl_LocalInvocationID.xy), screenSize);
+      barrier();
+
+      surfAlloc(ivec2(x,y), screenSize);
+      barrier();
+      }
+
+  storeSurfels();
+  }

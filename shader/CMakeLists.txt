@@ -326,6 +326,8 @@ add_shader(surf_bin_clear.comp       lighting/surfels/surf_bin_clear.comp)
 add_shader(surf_bin_alloc.comp       lighting/surfels/surf_bin_alloc.comp)
 add_shader(surf_apply.comp           lighting/surfels/surf_apply.comp)
 
+add_shader(surf_tiled.comp           lighting/surfels/surf_tiled.comp)
+
 # Pathtracing
 add_shader(pathtrace.frag            lighting/pt/pathtrace.frag -DRAY_QUERY -DRAY_QUERY_AT)
 
