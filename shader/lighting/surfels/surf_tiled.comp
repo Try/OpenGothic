@@ -7,8 +7,9 @@
 layout(local_size_x = 16, local_size_y = 16) in;
 
 const ivec2 TileSize        = ivec2(128);
-const int   DefaultCoverage = 100;
+const float DefaultCoverage = 128 * 1.414 * 1.2;
 const float NormalBias      = 0.0015;
+const uint  Salt            = 0x9D;
 
 layout(std140, push_constant) uniform Push {
   vec3 originLwc;
@@ -27,8 +28,9 @@ layout(binding = 11, rgba8) uniform image2D dbgImage;
 
 //
 struct Surf {
-  vec4 pos;  // pos, size
-  vec3 norm;
+  vec4  pos;  // pos, size
+  vec3  norm;
+  ivec2 fragCoord; //TODO: remove
   };
 shared Surf pointQueue[64];
 shared int  pointQueueSize;
@@ -56,18 +58,25 @@ float pixelToWorld(float pixelRadius, float z) {
   return worldRadius;
   }
 
-
-float calculteWeight(const Surf s, const vec3 wpos, const vec3 norm) {
+float calculteWeight(const Surf s, const vec3 wpos, const vec3 norm, ivec2 fragCoord) {
+  // Irradiance Caching Algorithm. Greg Ward; Dolby Canada
+  // https://cgg.mff.cuni.cz/~jaroslav/papers/2008-irradiance_caching_class/03-greg-ic.pdf
   vec3  ldir   = wpos - s.pos.xyz;
   float dist   = length(ldir);
   float dotN   = dot(norm, s.norm.xyz);
 
-  float eGeom  = dist/s.pos.w + sqrt(max(2 - 2*dotN, 0));
-  //float eOccl  = step(-0.1, dot(normalize(ldir), s.norm.xyz)); // allow small occlusion
-  float eOccl  = dot(normalize(ldir), s.norm.xyz)*0.5+0.5; // allow small occlusion
-//return eOccl;
-  float w      = (1.0*eOccl)/max(eGeom, 0.001) - 0.0001;
-  return w;
+  //float fd     = 1.0; //max(0, 1.0 - dist/s.pos.w); fd = fd*fd; // smooth factor, to limit surfel radius
+
+  float eGeom  = dist/s.pos.w + sqrt(max(1 - 1*dotN, 0));
+  // float eOccl  = dot(normalize(ldir), s.norm.xyz)*0.5+0.5; // allow small occlusion
+  float eOccl  = dot((ldir/dist), 0.5*(s.norm.xyz+norm))*0.5+0.5; // allow small occlusion
+
+  //vec2  ds = vec2(fragCoord - s.fragCoord)/(TileSize.x*1.0);
+  //float wPix   = 1.0; //max(1.0 - dot(ds,ds), 0);
+
+  // return eOccl;
+  // return (1.0*eOccl)/max(eGeom, 0.001) - 0.001;
+  return (1.0*eOccl)/max(eGeom, 0.001) - 1.0;
   }
 
 void mainTile(const ivec2 fragCoord, const ivec2 screenSize) {
@@ -82,24 +91,26 @@ void mainTile(const ivec2 fragCoord, const ivec2 screenSize) {
 
   const vec3  norm = normalFetch(gbufNormal, fragCoord);
   const vec3  wpos = worldPos(z, fragCoord, screenSize);
-  const float edge = 0.9;
+  const float edge = 0.2;
 
-  float wMax = 0;
+  float wMax = 0; // wangHashNoise(fragCoord,0)*0.01;
   for(int i=pointQueueSize; i>0;) {
     --i;
     const Surf  s = pointQueue[i];
-    const float w = calculteWeight(s,wpos,norm);
+    const float w = calculteWeight(s,wpos,norm,fragCoord);
+    // w = max(w,0);
     wMax = max(wMax,w);
-    if(wMax >= edge)
+    if(wMax > edge)
       break;
     }
 
-  imageStore(dbgImage, fragCoord, vec4(wMax/edge));
+  imageStore(dbgImage, fragCoord, vec4(wMax-edge));
 
-  if(wMax >= edge)
+  if(wMax > edge)
     return;
+
   uint  w = floatBitsToUint(wMax/edge) & 0xFFFF0000;
-  uint  b = uint(w) | uint(gl_LocalInvocationIndex);
+  uint  b = uint(w) | uint(gl_LocalInvocationIndex) ^ Salt;
   atomicMin(fragVote, b);
   }
 
@@ -120,18 +131,19 @@ void surfAlloc(ivec2 fragCoord, const ivec2 screenSize) {
   const int i = pointQueueSize;
   pointQueueSize++;
 
-  const uint id = vote & 0xFFFF;
+  const uint id = (vote & 0xFFFF) ^ Salt;
   fragCoord.x += int(id % gl_WorkGroupSize.x);
   fragCoord.y += int(id / gl_WorkGroupSize.x);
 
   const float z    = texelFetch(depth, fragCoord, 0).x;
   const vec3  wpos = worldPos(z, fragCoord, screenSize);
   const vec3  norm = normalFetch(gbufNormal, fragCoord);
-  const float sz   = max(pixelToWorld(DefaultCoverage, z), 1);
+  const float sz   = max(pixelToWorld(DefaultCoverage, z), 25);
 
   Surf s;
-  s.pos  = vec4(wpos, sz);
-  s.norm = norm;
+  s.pos       = vec4(wpos, sz);
+  s.norm      = norm;
+  s.fragCoord = fragCoord;
   pointQueue[i] = s;
   }
 
