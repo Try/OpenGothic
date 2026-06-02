@@ -109,7 +109,7 @@ void main() {
     float eNorm  = sqrt(max(2 - 2*dot(norm, surfelsNorm[i].xyz), 0.0001));
 
     float wPix   = dot(ds,ds);
-    wPix = max(1-wPix*wPix,0);
+    wPix = max(1-wPix,0);
 
     float w   = wPix/max(eDist+eNorm, 0.0001);
 

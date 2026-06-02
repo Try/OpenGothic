@@ -5,12 +5,28 @@
 
 const float SKY_DEPTH        = 0.999995;
 //const float SURFEL_FOOTPRINT = 64;
-const float SURFEL_CELL      = 32;//SURFEL_FOOTPRINT/sqrt(2);
+const float SURFEL_CELL      = 64;//SURFEL_FOOTPRINT/sqrt(2);
 
 struct Surfel {
   vec3 pos;
   uint norm;
   };
+
+uint octahedral_8(in vec3 nor) {
+  nor.xy /= ( abs( nor.x ) + abs( nor.y ) + abs( nor.z ) );
+  nor.xy  = (nor.z >= 0.0) ? nor.xy : (1.0-abs(nor.yx))*msign(nor.xy);
+  uvec2 d = uvec2(round(7.5 + nor.xy*7.5));
+  return d.x|(d.y<<4u);
+  }
+
+vec3 i_octahedral_8( uint data ) {
+  uvec2 iv = uvec2( data, data>>4u ) & 15u; vec2 v = vec2(iv)/7.5 - 1.0;
+  vec3 nor = vec3(v, 1.0 - abs(v.x) - abs(v.y)); // Rune Stubbe's version,
+  float t = max(-nor.z,0.0);                     // much faster than original
+  nor.x += (nor.x>0.0)?-t:t;                     // implementation of this
+  nor.y += (nor.y>0.0)?-t:t;                     // technique
+  return normalize( nor );
+  }
 
 float computeTargetCellSize(float d, float aperture, vec2 resolution, float pixelFeatureSize) {
   // Equation 2: Evaluate the angular factor based on resolution aspect ratio
@@ -41,10 +57,10 @@ float computeCellSize(float d, float fov, vec2 resolution, float pixelFeatureSiz
   return computeAdaptiveCellSize(sw, sMin);
   }
 
-uint surfHash(vec3 pos, float cellSize) {
-#if 0
-  ivec3 p      = ivec3(round(pos * cellSize));
-  uint hashKey =  pcgHash(p.x + pcgHash(p.y + pcgHash(p.z)));
+uint surfHash(vec3 pos, float cellSize, uint inorm) {
+#if 1
+  ivec3 p       = ivec3(round(pos * cellSize));
+  uint  hashKey = pcgHash(inorm + pcgHash(p.x + pcgHash(p.y + pcgHash(p.z))));
   return hashKey;
 #else
   ivec3 p = ivec3(round(pos * cellSize));

@@ -74,8 +74,9 @@ void main() {
   const float fov = 67.5f*M_PI/180.0;
   const float ld  = max(linearDepth(pp.z/pp.w, scene.clipInfo), 10);
 
-  const float sz   = computeCellSize(ld, fov, textureSize(depth,0), SURFEL_CELL);
-  const vec3  wpos = p.pos;
-  const vec3  ipos = hasGridPos(wpos, sz);
-  instanceIndex = surfHash(ipos, sz);
+  const float sz    = computeCellSize(ld, fov, textureSize(depth,0), SURFEL_CELL);
+  const vec3  wpos  = p.pos;
+  const vec3  ipos  = hasGridPos(wpos, sz);
+  const uint  inorm = octahedral_8(normal);
+  instanceIndex = surfHash(ipos, sz, inorm);
   }

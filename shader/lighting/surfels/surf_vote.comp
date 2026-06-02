@@ -52,6 +52,16 @@ float surfDist(vec3 hpos, vec3 pos, float cellSize) {
   return dot(p,p); //quad distance
   }
 
+float surfDist(vec3 hpos, vec3 pos, float cellSize, uint inorm, vec3 norm) {
+  vec3 p = (pos/cellSize - hpos);
+  p *= 2/sqrt(2.0);
+  float ed = length(p); // distance
+
+  vec3 n = i_octahedral_8(inorm);
+  float en = sqrt(max(1.0 - dot(n,norm),0.0));
+  return ed+en;
+  }
+
 void main() {
   const ivec2 fragCoord  = ivec2(gl_GlobalInvocationID.xy);
   const ivec2 screenSize = ivec2(textureSize(depth,0));
@@ -65,16 +75,17 @@ void main() {
   if(z >= SKY_DEPTH)
     return;
 
-  const vec3  wpos = worldPos(z, fragCoord, screenSize);
-  const float ld   = max(linearDepth(z, scene.clipInfo), 10);
+  const float ld    = max(linearDepth(z, scene.clipInfo), 10);
+  const float sz    = computeCellSize(ld, fov, textureSize(depth,0), SURFEL_CELL);
 
-  const float sz   = computeCellSize(ld, fov, textureSize(depth,0), SURFEL_CELL);
-  const vec3  ipos = hasGridPos(wpos, sz);
-  const float dist = surfDist(ipos, wpos, sz);
+  const vec3  wpos  = worldPos(z, fragCoord, screenSize);
+  const vec3  ipos  = hasGridPos(wpos, sz);
+  const uint  inorm = octahedral_8(norm);
 
-  const uint  hKey = surfHash(ipos, sz) % hashGrid.length();
+  const float dist  = surfDist(ipos, wpos, sz, inorm, norm);
+  const uint  hKey  = surfHash(ipos, sz, inorm) % hashGrid.length();
 
-  if(dist>0.5)
+  if(dist>0.9)
     return;
 
   const uint  sId  = packSurfId(dist, fragCoord, screenSize);

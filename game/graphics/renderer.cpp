@@ -685,7 +685,7 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
   cmd.setDebugMarker("Translucent");
   wview->drawTranslucent(cmd, fId);
 
-  // drawHashDbg(sceneLinear, cmd, *wview);
+  //drawHashDbg(sceneLinear, cmd, *wview);
   drawProbesDbg(cmd, *wview);
   drawProbesHitDbg(cmd);
   drawSurfelsDbg(cmd, *wview);
@@ -1022,7 +1022,8 @@ void Renderer::drawHashDbg(Attachment& result, Tempest::Encoder<Tempest::Command
   cmd.setDebugMarker("Hash-dbg");
   cmd.setPushData(push);
   cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
-  cmd.setBinding(1, zbuffer);
+  cmd.setBinding(2, gbufNormal);
+  cmd.setBinding(3, zbuffer);
 
   cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}});
   cmd.setPipeline(shaders.hashDbg);
@@ -1940,7 +1941,9 @@ void Renderer::prepareEpipolar(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wo
   }
 
 void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview) {
-  static bool alloc = true;
+  static bool enable = true;
+  if(!enable)
+    return;
 
   const  uint32_t hashGridSize = 4'194'304; // SHaRC docimentation recommends 2^22
   static uint32_t maxSurfels   = 8192;
@@ -1960,7 +1963,8 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
   auto& surfCnts = usesImage2d (surf.surfCnts, TextureFormat::R32U, tc);
   auto& surfBins = usesImage2d (surf.surfBins, TextureFormat::R32U, tc);
 
-  if(false && alloc) {
+  static bool alloc = true;
+  if(true && alloc) {
     struct Push {
       Vec3 originLwc;
       } push;
@@ -2034,7 +2038,7 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
     cmd.dispatchThreads(maxSurfels);
     }
 
-  if(true && alloc) {
+  if(false && alloc) {
     struct Push {
       Vec3    originLwc;
       uint32_t maxSurfels;
@@ -2084,7 +2088,7 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
     cmd.dispatchThreads(maxSurfels);
     }
 
-  static bool binning = true;
+  static bool binning = false;
   if(binning) {
     struct Push {
       int32_t tileSize;
@@ -2118,7 +2122,7 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
     //binning = false;
     }
 
-  static bool apply = true;
+  static bool apply = false;
   if(apply) {
     struct Push {
       Vec3    originLwc;
