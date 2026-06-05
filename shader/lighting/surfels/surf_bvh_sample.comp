@@ -1,0 +1,69 @@
+#version 450
+
+#include "lighting/surfels/surf_common.glsl"
+#include "scene.glsl"
+#include "common.glsl"
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+const uint BVH_NullNode = 0x00000000;
+const uint BVH_BoxNode  = 0x10000000;
+const uint BVH_DataNode = 0x20000000;
+
+struct BVHNode {
+  ivec4 bbox;
+  uint  ptrNext;
+  uint  ptrMiss;
+  ivec2 padd0;
+  };
+
+layout(std140, push_constant) uniform Push {
+  vec3 originLwc;
+  uint maxSurfels;
+  };
+layout(binding = 0, std140) uniform UboScene {
+  SceneDesc scene;
+  };
+
+layout(binding = 1) uniform sampler2D  gbufDiffuse;
+layout(binding = 2) uniform usampler2D gbufNormal;
+layout(binding = 3) uniform sampler2D  depth;
+layout(binding = 4, std430) readonly buffer SB0 { uvec4 count; Surfel surfels[]; };
+layout(binding = 5, std430) readonly buffer SB1 { BVHNode bvh[]; };
+//
+layout(binding = 11, rgba8) uniform image2D dbgImage;
+
+bool intersect(ivec2 fragCoord, ivec4 bbox) {
+  return bbox.x <= fragCoord.x && fragCoord.x<bbox.z &&
+         bbox.y <= fragCoord.y && fragCoord.y<bbox.w;
+  }
+
+int traverse(ivec2 fragCoord) {
+  int count = 0;
+
+  uint ptr = (0 | BVH_BoxNode);
+  while(ptr!=0xFFFFFFFF) {
+    const uint    type = (ptr & 0xF0000000);
+    const BVHNode b    = bvh[ptr & 0x0FFFFFFF];
+
+    if(type==BVH_DataNode) {
+      ++count;
+      ptr = b.ptrMiss;
+      continue;
+      }
+    if(!intersect(fragCoord, b.bbox)) {
+      ptr = b.ptrMiss;
+      continue;
+      }
+    ptr = b.ptrNext;
+    }
+
+  return count;
+  }
+
+void main() {
+  const ivec2 fragCoord = ivec2(gl_GlobalInvocationID.xy);
+
+  const uint v = traverse(fragCoord);
+  imageStore(dbgImage, fragCoord, vec4(v/255.0));
+  }

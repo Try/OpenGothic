@@ -2130,6 +2130,21 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
     cmd.dispatch(1);
     }
 
+  static bool traverse = true;
+  if(traverse) {
+    cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
+    cmd.setBinding(1, gbufDiffuse, Sampler::nearest());
+    cmd.setBinding(2, gbufNormal,  Sampler::nearest());
+    cmd.setBinding(3, zbuffer,     Sampler::nearest());
+    cmd.setBinding(4, surfels);
+    cmd.setBinding(5, surfBvh);
+    //
+    cmd.setBinding(11, dbgImage);
+
+    cmd.setPipeline(shaders.surfBvhSample);
+    cmd.dispatchThreads(zbuffer.size());
+    }
+
   static bool binning = false;
   if(binning) {
     struct Push {

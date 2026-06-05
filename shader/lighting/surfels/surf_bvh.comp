@@ -13,12 +13,10 @@ const uint BVH_BoxNode  = 0x10000000;
 const uint BVH_DataNode = 0x20000000;
 
 struct BVHNode {
-  ivec4 bboxA;
-  ivec4 bboxB;
-  uint  ptrA;
-  uint  ptrB;
-  uint  skipA;
-  uint  skipB;
+  ivec4 bbox;
+  uint  ptrNext;
+  uint  ptrMiss;
+  ivec2 padd0;
   };
 
 struct Task {
@@ -26,6 +24,7 @@ struct Task {
   uint  begin;
   uint  end;
   uint  bvhPtr;
+  uint  ptrMiss;
   };
 
 layout(std140, push_constant) uniform Push {
@@ -56,18 +55,19 @@ uint toBitHint(uint num) {
   return num>1 ? BVH_BoxNode : BVH_DataNode;
   }
 
-void pushTask(ivec4 bbox, uint bvhPtr, uint begin, uint end) {
+void pushTask(ivec4 bbox, uint bvhPtr, uint ptrMiss, uint begin, uint end) {
   Task t;
-  t.bbox   = bbox;
-  t.begin  = begin;
-  t.end    = end;
-  t.bvhPtr = bvhPtr;
+  t.bbox    = bbox;
+  t.begin   = begin;
+  t.end     = end;
+  t.bvhPtr  = bvhPtr;
+  t.ptrMiss = ptrMiss;
 
   stack[stackPtr] = t;
   ++stackPtr;
   }
 
-uint findSplit(uint bvhPtr, uint begin, uint end, ivec2 bboxMin, ivec2 bboxMax) {
+uint findSplit(uint bvhPtr, uint ptrMiss, uint begin, uint end, ivec2 bboxMin, ivec2 bboxMax) {
   const uint laneID = gl_LocalInvocationIndex;
 
   splitLeft  = begin;
@@ -127,17 +127,18 @@ uint findSplit(uint bvhPtr, uint begin, uint end, ivec2 bboxMin, ivec2 bboxMax) 
 
   if(laneID==0) {
     const uint alloc = atomicAdd(bvhSize, 2);
+    const uint ptrA  = (alloc+0) | toBitHint(splitLeft-begin);
+    const uint ptrB  = (alloc+1) | toBitHint(end-splitLeft);
+
     BVHNode node;
-    node.bboxA = bboxA;
-    node.bboxB = bboxB;
-    node.ptrA  = (alloc+0) | toBitHint(splitLeft-begin);
-    node.ptrB  = (alloc+1) | toBitHint(end-splitLeft);
-    node.skipA = node.ptrB;
-    node.skipB = 0;
+    node.bbox    = ivec4(bboxMin, bboxMax);
+    node.ptrNext = ptrA;
+    node.ptrMiss = ptrMiss;
+    node.padd0   = ivec2(0);
     bvh[bvhPtr] = node;
 
-    pushTask(bboxA, node.ptrA, begin,     splitLeft);
-    pushTask(bboxB, node.ptrB, splitLeft, end);
+    pushTask(bboxA, ptrA, ptrB,    begin,     splitLeft);
+    pushTask(bboxB, ptrB, ptrMiss, splitLeft, end);
     }
 
   memoryBarrierBuffer();
@@ -147,7 +148,7 @@ uint findSplit(uint bvhPtr, uint begin, uint end, ivec2 bboxMin, ivec2 bboxMax) 
 bool nextTask() {
   const uint laneID = gl_LocalInvocationIndex;
   if(stackPtr==0)
-    return false;
+    return true;
   Task t = stack[stackPtr-1];
   barrier();
 
@@ -159,22 +160,20 @@ bool nextTask() {
   const uint ptr = t.bvhPtr & 0x0FFFFFFF;
 
   if(stackPtr+2 < stack.length() && t.end - t.begin > 1) {
-    findSplit(ptr, t.begin, t.end, t.bbox.xy, t.bbox.zw);
+    findSplit(ptr, t.ptrMiss, t.begin, t.end, t.bbox.xy, t.bbox.zw);
     } else {
     //TODO: real leaf node
     if(laneID==0) {
       BVHNode node;
-      node.bboxA = ivec4(0);
-      node.bboxB = ivec4(0);
-      node.ptrA  = t.begin;
-      node.ptrB  = t.end;
-      node.skipA = 0;
-      node.skipB = 0;
+      node.bbox    = ivec4(0);
+      node.ptrNext = t.ptrMiss;
+      node.ptrMiss = t.ptrMiss;
+      node.padd0   = ivec2(t.begin, t.end);
       bvh[ptr] = node;
       }
     }
 
-  return true;
+  return false;
   }
 
 void main() {
@@ -182,14 +181,14 @@ void main() {
   bvhSize  = 1;
   barrier();
 
-  findSplit(0, 0, count.x, ivec2(0), textureSize(depth, 0));
+  findSplit(0, 0xFFFFFFFF, 0, count.x, ivec2(0), textureSize(depth, 0));
   barrier();
 
   while(true) {
     const bool done = nextTask();
     barrier();
 
-    if(!done)
+    if(done)
       break;
     }
   }
