@@ -159,8 +159,11 @@ void storeSurfels() {
     const Surf tmp = pointQueue[laneID];
 
     Surfel sx;
-    sx.pos  = tmp.pos.xyz;
-    sx.norm = encodeNormal(tmp.norm);
+    sx.pos       = tmp.pos.xyz;
+    sx.norm      = encodeNormal(tmp.norm);
+    sx.fragCoord = tmp.fragCoord;
+    sx.radius    = tmp.pos.w;
+    sx.radiusPix = 128; //TODO
     glob.surfels[ptr] = sx;
     }
   }

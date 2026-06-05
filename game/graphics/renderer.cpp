@@ -580,7 +580,8 @@ void Renderer::dbgDraw(Tempest::Painter& p) {
   //tex.push_back(&textureCast(shadowMap[1]));
   //tex.push_back(&textureCast<const Texture2d&>(shadowMap[0]));
   //tex.push_back(&textureCast<const Texture2d&>(vsm.pageData));
-  tex.push_back(&textureCast<const Texture2d&>(swrt.outputImage));
+  //tex.push_back(&textureCast<const Texture2d&>(swrt.outputImage));
+  tex.push_back(&textureCast<const Texture2d&>(surf.dbgImage));
 
   static int size = 400;
   int left = 10;
@@ -1946,18 +1947,21 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
     return;
 
   const  uint32_t hashGridSize = 4'194'304; // SHaRC docimentation recommends 2^22
-  static uint32_t maxSurfels   = 8192;
-  static int32_t  tileSize     = 64;
+  const  uint32_t maxSurfels   = surf.maxSurfels;
+  static int32_t  tileSize     = 128;
   cmd.setDebugMarker("Surfels");
 
   auto& scene    = wview.sceneGlobals();
   auto& surfels  = usesSsboInit(surf.surfels,  shaders.surfVote.sizeofBuffer(4, surf.maxSurfels));
   auto& dbgImage = usesImage2d (surf.dbgImage, TextureFormat::RGBA8, zbuffer.size());
+
   auto& hashGrid = usesSsboInit(surf.hashGrid, hashGridSize);
   auto& pdfTree  = usesImage2d (surf.pdfTree,  TextureFormat::R32F, zbuffer.size(), true);
   auto& posTree  = usesImage2d (surf.posTree,  TextureFormat::RGBA32F, zbuffer.size(), true);
   auto& normTree = usesImage2d (surf.normTree, TextureFormat::RGBA16,  zbuffer.size(), true);
   auto& surfList = usesSsboInit(surf.surfList, surf.maxSurfels*sizeof(uint32_t));
+
+  auto& surfBvh  = usesSsbo    (surf.surfBvh,  shaders.surfBvh.sizeofBuffer(5, 2*surf.maxSurfels));
 
   auto  tc       = tileCount(zbuffer.size().toPoint()+IVec2(tileSize), tileSize);
   auto& surfCnts = usesImage2d (surf.surfCnts, TextureFormat::R32U, tc);
@@ -2111,6 +2115,19 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
     const auto tc = tileCount(zbuffer.size(), 128);
     cmd.setPipeline(shaders.surfTiled);
     cmd.dispatch(tc);
+    }
+
+  static bool bvh = true;
+  if(bvh) {
+    cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
+    cmd.setBinding(1, gbufDiffuse, Sampler::nearest());
+    cmd.setBinding(2, gbufNormal,  Sampler::nearest());
+    cmd.setBinding(3, zbuffer,     Sampler::nearest());
+    cmd.setBinding(4, surfels);
+    cmd.setBinding(5, surfBvh);
+
+    cmd.setPipeline(shaders.surfBvh);
+    cmd.dispatch(1);
     }
 
   static bool binning = false;

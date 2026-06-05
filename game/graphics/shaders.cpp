@@ -267,6 +267,7 @@ void Shaders::compileShaders() {
     surfApply    = computeShader("surf_apply.comp.sprv");
 
     surfTiled    = computeShader("surf_tiled.comp.sprv");
+    surfBvh      = computeShader("surf_bvh.comp.sprv");
     }
 
   if(Shaders::isVsmSupported()) {

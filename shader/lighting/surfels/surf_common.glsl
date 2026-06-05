@@ -8,8 +8,11 @@ const float SKY_DEPTH        = 0.999995;
 const float SURFEL_CELL      = 64;//SURFEL_FOOTPRINT/sqrt(2);
 
 struct Surfel {
-  vec3 pos;
-  uint norm;
+  vec3  pos;
+  uint  norm;
+  ivec2 fragCoord;
+  float radius;
+  int   radiusPix;
   };
 
 uint octahedral_8(in vec3 nor) {
