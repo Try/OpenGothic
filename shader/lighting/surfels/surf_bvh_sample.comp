@@ -33,12 +33,32 @@ layout(binding = 5, std430) readonly buffer SB1 { BVHNode bvh[]; };
 //
 layout(binding = 11, rgba8) uniform image2D dbgImage;
 
+vec4 color = vec4(0);
+
+vec3 worldPos(float z, ivec2 fragCoord, ivec2 screenSize) {
+  const mat4 inv = scene.viewProjectLwcInv;
+  const vec2 uv  = vec2(fragCoord+0.5)*scene.screenResInv;
+  const vec4 pos = inv*vec4(uv * 2.0 - 1.0, z, 1);
+  return (pos.xyz)/pos.w + originLwc;
+  }
+
+float calculteWeight(const Surfel s, const vec3 wpos, const vec3 norm) {
+  return calculteWeight(s.pos.xyz, decodeNormal(s.norm), s.radius, wpos, norm);
+  }
+
+void shade(const Surfel s, const vec3 wpos, const vec3 norm, const vec3 clr) {
+  float w = calculteWeight(s, wpos, norm);
+  if(w<=0)
+    return;
+  color += vec4(clr*w, w);
+  }
+
 bool intersect(ivec2 fragCoord, ivec4 bbox) {
   return bbox.x <= fragCoord.x && fragCoord.x<bbox.z &&
          bbox.y <= fragCoord.y && fragCoord.y<bbox.w;
   }
 
-int traverse(ivec2 fragCoord) {
+int traverse(ivec2 fragCoord, const vec3 wpos, const vec3 norm) {
   int count = 0;
 
   uint ptr = (0 | BVH_BoxNode);
@@ -47,8 +67,11 @@ int traverse(ivec2 fragCoord) {
     const BVHNode b    = bvh[ptr & 0x0FFFFFFF];
 
     if(type==BVH_DataNode) {
-      ++count;
       ptr = b.ptrMiss;
+      for(uint i=b.padd0.x; i<b.padd0.y; ++i) {
+        shade(surfels[i], wpos, norm, debugColors[i%debugColors.length()]);
+        }
+      count += (b.padd0.y-b.padd0.x);
       continue;
       }
     if(!intersect(fragCoord, b.bbox)) {
@@ -62,8 +85,25 @@ int traverse(ivec2 fragCoord) {
   }
 
 void main() {
-  const ivec2 fragCoord = ivec2(gl_GlobalInvocationID.xy);
+  const ivec2 fragCoord  = ivec2(gl_GlobalInvocationID.xy);
+  const ivec2 screenSize = ivec2(textureSize(depth,0));
+  const bool  valid = all(lessThan(fragCoord, screenSize));
+  if(!valid)
+    return;
 
-  const uint v = traverse(fragCoord);
-  imageStore(dbgImage, fragCoord, vec4(v/255.0));
+  const float z     = texelFetch(depth,fragCoord,0).x;
+  const bool  sky   = (z >= SKY_DEPTH);
+  if(sky)
+    return;
+
+  const vec3  norm = normalFetch(gbufNormal, fragCoord);
+  const vec3  wpos = worldPos(z, fragCoord, screenSize);
+
+  const uint v = traverse(fragCoord, wpos, norm);
+
+  if(color.w>0)
+    color.rgb /= color.w;
+
+  //imageStore(dbgImage, fragCoord, vec4(v/255.0));
+  imageStore(dbgImage, fragCoord, vec4(color.rgb, v/255.0));
   }

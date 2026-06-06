@@ -2117,7 +2117,7 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
     cmd.dispatch(tc);
     }
 
-  static bool bvh = true;
+  static bool bvh = false;
   if(bvh) {
     cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
     cmd.setBinding(1, gbufDiffuse, Sampler::nearest());
@@ -2130,7 +2130,7 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
     cmd.dispatch(1);
     }
 
-  static bool traverse = true;
+  static bool traverse = false;
   if(traverse) {
     cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
     cmd.setBinding(1, gbufDiffuse, Sampler::nearest());
@@ -2145,7 +2145,7 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
     cmd.dispatchThreads(zbuffer.size());
     }
 
-  static bool binning = false;
+  static bool binning = true;
   if(binning) {
     struct Push {
       int32_t tileSize;
@@ -2179,7 +2179,7 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
     //binning = false;
     }
 
-  static bool apply = false;
+  static bool apply = true;
   if(apply) {
     struct Push {
       Vec3    originLwc;

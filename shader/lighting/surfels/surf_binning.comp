@@ -24,13 +24,10 @@ void main() {
     return;
 
   const Surfel p    = surfels[surfelId];
-  const vec4   pos4 = scene.viewProject * vec4(p.pos, 1.0);
-
-  const vec3   pos = pos4.xyz/pos4.w;
-  ivec2 ipos = ivec2((pos.xy*0.5+0.5) * vec2(scene.screenRes))+tileSize/2;
+  const ivec2  ipos = p.fragCoord;
 
   ivec2 sz   = imageSize(surfCnts);
-  ivec2 tile = clamp(ipos/tileSize, ivec2(0), sz);
+  ivec2 tile = clamp((ipos+tileSize/2)/tileSize, ivec2(0), sz);
 
   const uint lptr = imageAtomicAdd(surfCnts, tile, 1);
   if(allocPass>0) {

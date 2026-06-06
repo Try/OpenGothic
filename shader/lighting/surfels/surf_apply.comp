@@ -29,7 +29,6 @@ const uint MaxSurfInCache = 64;
 shared uint surfCount;
 shared vec4 surfelsPos [MaxSurfInCache];
 shared vec4 surfelsNorm[MaxSurfInCache];
-shared vec2 surfelsScr [MaxSurfInCache];
 
 vec3 worldPos(float z, ivec2 fragCoord, ivec2 screenSize) {
   const mat4 inv = scene.viewProjectLwcInv;
@@ -38,40 +37,31 @@ vec3 worldPos(float z, ivec2 fragCoord, ivec2 screenSize) {
   return pos.xyz/pos.w + originLwc;
   }
 
-float pixelToWorld(float pixelRadius, float z) {
-  z = linearDepth(z, scene.clipInfo);
-  float clipRadius  = (2.0 * pixelRadius) * scene.screenResInv.y;
-  float worldRadius = (clipRadius * z) / scene.project[1][1];
-  return worldRadius;
-  }
-
 void pullTile(ivec2 tileId) {
   const uint laneID = gl_LocalInvocationIndex;
 
   const uint cnt = imageLoad(surfCnts, tileId).x;
   const uint ptr = imageLoad(surfBins, tileId).x;
-  const int  pixelRadius = 16;
+
+  ivec2 bboxMin = ivec2(gl_WorkGroupID.xy*gl_WorkGroupSize.xy);
+  ivec2 bboxMax = bboxMin + ivec2(gl_WorkGroupSize.xy);
 
   for(uint i=laneID; i<cnt; i+=NumThreads) {
-    uint id  = atomicAdd(surfCount,1);
-    if(id>=MaxSurfInCache)
-      return;
-
     uint sId = surfelList[ptr+i];
 
     const Surfel s    = surfels[sId];
-    const vec4   pos4 = scene.viewProject * vec4(s.pos, 1.0);
+    const ivec2  at   = s.fragCoord;
 
-    const vec3   pos  = pos4.xyz/pos4.w;
-    const ivec2  ipos = ivec2((pos.xy*0.5+0.5) * vec2(scene.screenRes))/ivec2(gl_WorkGroupSize.xy);
+    if(bboxMax.x < at.x-s.radiusPix || bboxMax.y < at.y-s.radiusPix)
+      continue;
+    if(at.x+s.radiusPix < bboxMin.x || at.y+s.radiusPix < bboxMin.y)
+      continue;
 
-    if(gl_WorkGroupID.xy!=ipos)
-      ;//continue;
-
-    const float wRadius = pixelToWorld(pixelRadius, pos.z);
+    const uint id = atomicAdd(surfCount,1);
+    if(id>=MaxSurfInCache)
+      return;
     surfelsPos [id] = vec4(s.pos, uintBitsToFloat(sId));
-    surfelsNorm[id] = vec4(decodeNormal(s.norm), wRadius);
-    surfelsScr [id] = vec2((pos.xy*0.5+0.5) * vec2(scene.screenRes));
+    surfelsNorm[id] = vec4(decodeNormal(s.norm), s.radius);
     }
   }
 
@@ -93,6 +83,10 @@ void main() {
   pullTile(t+ivec2(1,1));
   barrier();
 
+  if(surfCount>MaxSurfInCache)
+    surfCount = MaxSurfInCache;
+  barrier();
+
   if(!valid || sky)
     return;
 
@@ -102,22 +96,14 @@ void main() {
   vec4  clr  = vec4(0);
   float maxW = 0;
   for(int i=0; i<surfCount; ++i) {
-    vec2  ds = (vec2(fragCoord) - surfelsScr[i].xy)/(tileSize*0.5);
-
-    vec3  ldir   = surfelsPos[i].xyz - wpos;
-    float eDist  = length(ldir)/surfelsNorm[i].w;
-    float eNorm  = sqrt(max(2 - 2*dot(norm, surfelsNorm[i].xyz), 0.0001));
-
-    float wPix   = dot(ds,ds);
-    wPix = max(1-wPix,0);
-
-    float w   = wPix/max(eDist+eNorm, 0.0001);
-
-    vec3  dbg = debugColors[floatBitsToUint(surfelsPos[i].w) % debugColors.length()];
+    float w   = calculteWeight(surfelsPos[i].xyz, surfelsNorm[i].xyz, surfelsNorm[i].w, wpos, norm);
+    vec3  dbg = surfDebugColor(surfelsPos[i].xyz, floatBitsToUint(surfelsPos[i].w));
     if(w>maxW) {
       maxW = w;
       //clr  = dbg;
       }
+    if(w <= 0)
+      continue;
     clr += vec4(dbg*w, w);
     }
 
@@ -126,5 +112,5 @@ void main() {
 
   // imageStore(dbgImage, fragCoord, vec4(surfCount/255.0));
   // imageStore(dbgImage, fragCoord, vec4(maxW));
-  imageStore(dbgImage, fragCoord, vec4(clr.rgb,1));
+  imageStore(dbgImage, fragCoord, vec4(clr.rgb, surfCount/100.0));
   }

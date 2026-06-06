@@ -78,5 +78,5 @@ void main() {
   const vec3  wpos  = p.pos;
   const vec3  ipos  = hasGridPos(wpos, sz);
   const uint  inorm = octahedral_8(normal);
-  instanceIndex = surfHash(ipos, sz, inorm);
+  instanceIndex = surfelId; //surfHash(ipos, sz, inorm);
   }

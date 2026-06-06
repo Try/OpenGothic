@@ -91,4 +91,34 @@ uint surfHash(vec3 pos, float cellSize, uint inorm) {
 #endif
   }
 
+float calculteWeight(const vec3 spos, const vec3 snorm, float radius, const vec3 wpos, const vec3 wnorm) {
+  // An Approximate Global Illumination System for Computer Generated Films
+  // https://www.tabellion.org/et/paper/siggraph_2004_gi_for_films.pdf
+  // https://cgg.mff.cuni.cz/~jaroslav/papers/2008-irradiance_caching_class/03-greg-ic.pdf
+  vec3  ldir   = wpos - spos;
+  float dist   = length(ldir);
+  float dotN   = dot(wnorm, snorm);
+
+  dist = max(dist, 0.0001);
+
+  float ePos  = dist/radius;
+  float eNorm = sqrt(max(1 - 1*dotN, 0)) / sqrt(1.0 - cos(M_PI/3.0)); // Eq. 4
+  float w     = 1.0 - max(ePos, eNorm); // Eq. 2
+
+  float eOccl = dot((ldir/dist), 0.5*(snorm+wnorm))*0.5+0.5; // allow small occlusion
+  return w*eOccl;
+  }
+
+vec3 surfDebugColor(Surfel s, uint sId) {
+  ivec3 p = ivec3(s.pos/10);
+  uint  h = pcgHash(p.x + pcgHash(p.y + pcgHash(p.z)));
+  return debugColors[h%debugColors.length()];
+  }
+
+vec3 surfDebugColor(vec3 pos, uint sId) {
+  ivec3 p = ivec3(pos/10);
+  uint  h = pcgHash(p.x + pcgHash(p.y + pcgHash(p.z)));
+  return debugColors[h%debugColors.length()];
+  }
+
 #endif
