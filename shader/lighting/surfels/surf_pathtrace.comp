@@ -250,8 +250,9 @@ void main() {
   vec3  irradiance = vec3(0);
   float hHit       = 0; // harmonic mean
   for(int i=0; i<numPaths; ++i) {
-    const vec3 ray = randCosWeightedHemisphereDirection(tbn, rngState);
-    const vec4 pt  = pathtrace(p.pos+ray*1.0, ray, rngState);
+    // const vec3 ray = randCosWeightedHemisphereDirection(tbn, rngState);
+    const vec3 ray = tbn * sampleHemisphereCos(i,numPaths,0).xzy;
+    const vec4 pt  = pathtrace(p.pos, ray, rngState);
 
     irradiance.rgb += pt.rgb;
     hHit += 1.0/max(pt.a, 0.01);

@@ -44,11 +44,11 @@ vec3 rayOrigin(ivec2 frag, float depth, vec3 normal) {
   return (wpos.xyz + normal*NormalBias)/wpos.w;
   }
 
-vec3 worldPos(float z, ivec2 fragCoord, ivec2 screenSize) {
+vec3 worldPos(float z, vec3 normal, ivec2 fragCoord, ivec2 screenSize) {
   const mat4 inv = scene.viewProjectLwcInv;
   const vec2 uv  = vec2(fragCoord+0.5)*scene.screenResInv;
   const vec4 pos = inv*vec4(uv * 2.0 - 1.0, z, 1);
-  return (pos.xyz)/pos.w + originLwc;
+  return (pos.xyz + normal*NormalBias)/pos.w + originLwc;
   }
 
 float pixelToWorld(float pixelRadius, float z) {
@@ -77,7 +77,7 @@ void mainTile(const ivec2 fragCoord, const ivec2 screenSize) {
     return;
 
   const vec3  norm = normalFetch(gbufNormal, fragCoord);
-  const vec3  wpos = worldPos(z, fragCoord, screenSize);
+  const vec3  wpos = worldPos(z, norm, fragCoord, screenSize);
   const float edge = 0.2;
 
   float wMax = 0;
@@ -123,8 +123,8 @@ void surfAlloc(ivec2 fragCoord, const ivec2 screenSize) {
   fragCoord.y += int(id / gl_WorkGroupSize.x);
 
   const float z    = texelFetch(depth, fragCoord, 0).x;
-  const vec3  wpos = worldPos(z, fragCoord, screenSize);
   const vec3  norm = normalFetch(gbufNormal, fragCoord);
+  const vec3  wpos = worldPos(z, norm, fragCoord, screenSize);
   const float sz   = max(pixelToWorld(DefaultCoverage, z), 0);
 
   Surf s;
