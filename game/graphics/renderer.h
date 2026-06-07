@@ -213,11 +213,6 @@ class Renderer final {
     struct {
       const uint32_t            maxSurfels = 16*1024;
       Tempest::StorageBuffer    surfels;
-      Tempest::StorageBuffer    hashGrid;
-      Tempest::StorageImage     pdfTree;
-
-      Tempest::StorageImage     posTree;
-      Tempest::StorageImage     normTree;
 
       Tempest::StorageImage     irrImage;
       Tempest::StorageImage     surfCnts, surfBins;

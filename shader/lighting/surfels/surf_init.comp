@@ -7,7 +7,7 @@ layout(binding = 4, std430) buffer SB0 { uvec4 count;     };
 
 void main() {
   if(gl_GlobalInvocationID.xy==ivec2(0))
-    count = uvec4(0);
+    count = uvec4(0,1,1,0);
 /*
   const uint hKey = gl_GlobalInvocationID.x;
   if(hKey >= hashGrid.length())

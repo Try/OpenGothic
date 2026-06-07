@@ -86,12 +86,10 @@ class Shaders {
 
     // GI-Surf
     Tempest::RenderPipeline  surfDbg;
-    Tempest::ComputePipeline surfInit, surfVote, surfAlloc;
-    Tempest::ComputePipeline irrAlloc, irrMip, irrScatter;
-    Tempest::ComputePipeline surfAdaptive, surfMip, surfScatter;
+    Tempest::ComputePipeline surfInit, surfTiled;
     Tempest::ComputePipeline surfBinClear, surfBinning, surfBinAlloc;
     Tempest::ComputePipeline surfApply;
-    Tempest::ComputePipeline surfTiled, surfBvh, surfBvhSample;
+    Tempest::ComputePipeline surfBvh, surfBvhSample;
     Tempest::ComputePipeline surfPathtrace;
 
     // Epipolar

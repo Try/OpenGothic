@@ -249,17 +249,8 @@ void Shaders::compileShaders() {
     auto fs = device.shader(sh.data,sh.len);
     surfDbg = device.pipeline(Triangles,state,vs,fs);
 
-    surfInit  = computeShader("surf_init.comp.sprv");
-    surfVote  = computeShader("surf_vote.comp.sprv");
-    surfAlloc = computeShader("surf_alloc.comp.sprv");
-
-    irrAlloc   = computeShader("irr_alloc.comp.sprv");
-    irrMip     = computeShader("irr_mip.comp.sprv");
-    irrScatter = computeShader("irr_scatter.comp.sprv");
-
-    surfAdaptive = computeShader("surf_adaptive.comp.sprv");
-    surfMip      = computeShader("surf_mip.comp.sprv");
-    surfScatter  = computeShader("surf_scatter.comp.sprv");
+    surfInit     = computeShader("surf_init.comp.sprv");
+    surfTiled    = computeShader("surf_tiled.comp.sprv");
 
     surfBinning  = computeShader("surf_binning.comp.sprv");
     surfBinClear = computeShader("surf_bin_clear.comp.sprv");
@@ -269,7 +260,6 @@ void Shaders::compileShaders() {
 
     surfApply    = computeShader("surf_apply.comp.sprv");
 
-    surfTiled     = computeShader("surf_tiled.comp.sprv");
     surfBvh       = computeShader("surf_bvh.comp.sprv");
     surfBvhSample = computeShader("surf_bvh_sample.comp.sprv");
     }
