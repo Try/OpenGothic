@@ -22,10 +22,9 @@ layout(binding = 4, std430) buffer SB0 { uvec4 count; Surfel surfels[]; };
 layout(binding = 5, std430) buffer SB1 { uint surfelList[]; };
 layout(binding = 6, r32ui) uniform uimage2D surfCnts;
 layout(binding = 7, r32ui) uniform uimage2D surfBins;
+layout(binding = 8, r11f_g11f_b10f) uniform image2D irradiance;
 
-layout(binding = 11, rgba8) uniform image2D dbgImage;
-
-const uint MaxSurfInCache = 64;
+const uint MaxSurfInCache = 128;
 shared uint surfCount;
 shared vec4 surfelsPos [MaxSurfInCache];
 shared vec4 surfelsNorm[MaxSurfInCache];
@@ -83,8 +82,8 @@ void main() {
   pullTile(t+ivec2(1,1));
   barrier();
 
-  if(surfCount>MaxSurfInCache)
-    surfCount = MaxSurfInCache;
+  if(gl_LocalInvocationIndex==0)
+    surfCount = min(surfCount, MaxSurfInCache);
   barrier();
 
   if(!valid || sky)
@@ -96,21 +95,21 @@ void main() {
   vec4  clr  = vec4(0);
   float maxW = 0;
   for(int i=0; i<surfCount; ++i) {
-    float w   = calculteWeight(surfelsPos[i].xyz, surfelsNorm[i].xyz, surfelsNorm[i].w, wpos, norm);
-    vec3  dbg = surfDebugColor(surfelsPos[i].xyz, floatBitsToUint(surfelsPos[i].w));
-    if(w>maxW) {
+    float w        = calculteWeight(surfelsPos[i].xyz, surfelsNorm[i].xyz, surfelsNorm[i].w, wpos, norm);
+    uint  surfelId = floatBitsToUint(surfelsPos[i].w);
+    vec3  color    = surfels[surfelId].irradiance;
+    if(w>maxW)
       maxW = w;
-      //clr  = dbg;
-      }
     if(w <= 0)
       continue;
-    clr += vec4(dbg*w, w);
+    clr += vec4(color*w, w);
     }
 
   if(clr.a>0)
     clr.rgb /= clr.a;
+  clr.rgb *= scene.exposure;
 
   // imageStore(dbgImage, fragCoord, vec4(surfCount/255.0));
   // imageStore(dbgImage, fragCoord, vec4(maxW));
-  imageStore(dbgImage, fragCoord, vec4(clr.rgb, surfCount/100.0));
+  imageStore(irradiance, fragCoord, vec4(clr.rgb, surfCount/100.0));
   }

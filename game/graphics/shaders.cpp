@@ -75,6 +75,7 @@ void Shaders::compileShaders() {
 
   ambientLight       = ambientLightShader("ambient_light");
   ambientLightSsao   = ambientLightShader("ambient_light_ssao");
+  ambientLightSurf   = ambientLightShader("ambient_light_surf");
 
   irradiance         = computeShader("irradiance.comp.sprv");
   cloudsLut          = computeShader("clouds_lut.comp.sprv");
@@ -263,6 +264,8 @@ void Shaders::compileShaders() {
     surfBinning  = computeShader("surf_binning.comp.sprv");
     surfBinClear = computeShader("surf_bin_clear.comp.sprv");
     surfBinAlloc = computeShader("surf_bin_alloc.comp.sprv");
+
+    surfPathtrace = computeShader("surf_pathtrace.comp.sprv");
 
     surfApply    = computeShader("surf_apply.comp.sprv");
 

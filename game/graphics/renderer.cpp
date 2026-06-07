@@ -331,7 +331,7 @@ bool Renderer::requiresTlas() const {
   if(!Gothic::options().doRayQuery)
     return false;
 
-  if(settings.giEnabled || settings.pathTraceEnabled)
+  if(settings.giEnabled || settings.giSurfelsEnabled || settings.pathTraceEnabled)
     return true;
   if(!(settings.rtsmEnabled || settings.vsmEnabled))
     return true;
@@ -581,7 +581,8 @@ void Renderer::dbgDraw(Tempest::Painter& p) {
   //tex.push_back(&textureCast<const Texture2d&>(shadowMap[0]));
   //tex.push_back(&textureCast<const Texture2d&>(vsm.pageData));
   //tex.push_back(&textureCast<const Texture2d&>(swrt.outputImage));
-  tex.push_back(&textureCast<const Texture2d&>(surf.dbgImage));
+  //tex.push_back(&textureCast<const Texture2d&>(surf.dbgImage));
+  tex.push_back(&textureCast<const Texture2d&>(surf.irrImage));
 
   static int size = 400;
   int left = 10;
@@ -1946,14 +1947,18 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
   if(!enable)
     return;
 
+  if(!settings.giSurfelsEnabled)
+    return;
+
   const  uint32_t hashGridSize = 4'194'304; // SHaRC docimentation recommends 2^22
   const  uint32_t maxSurfels   = surf.maxSurfels;
-  static int32_t  tileSize     = 128;
+  static int32_t  tileSize     = 256;
   cmd.setDebugMarker("Surfels");
 
   auto& scene    = wview.sceneGlobals();
   auto& surfels  = usesSsboInit(surf.surfels,  shaders.surfVote.sizeofBuffer(4, surf.maxSurfels));
   auto& dbgImage = usesImage2d (surf.dbgImage, TextureFormat::RGBA8, zbuffer.size());
+  auto& irrImage = usesImage2d (surf.irrImage, TextureFormat::R11G11B10UF, zbuffer.size());
 
   auto& hashGrid = usesSsboInit(surf.hashGrid, hashGridSize);
   auto& pdfTree  = usesImage2d (surf.pdfTree,  TextureFormat::R32F, zbuffer.size(), true);
@@ -2179,6 +2184,23 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
     //binning = false;
     }
 
+  static bool rays = true;
+  if(rays) {
+    cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
+    cmd.setBinding(1, surfels);
+    cmd.setBinding(2, sky.viewCldLut);
+    //
+    cmd.setBinding(6, scene.rtScene.tlas);
+    cmd.setBinding(7, Sampler::trillinear());
+    cmd.setBinding(8, scene.rtScene.tex);
+    cmd.setBinding(9, scene.rtScene.vbo);
+    cmd.setBinding(10,scene.rtScene.ibo);
+    cmd.setBinding(11,scene.rtScene.rtDesc);
+
+    cmd.setPipeline(shaders.surfPathtrace);
+    cmd.dispatchThreads(maxSurfels);
+    }
+
   static bool apply = true;
   if(apply) {
     struct Push {
@@ -2197,8 +2219,7 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
     cmd.setBinding(5, surfList);
     cmd.setBinding(6, surfCnts);
     cmd.setBinding(7, surfBins);
-    //
-    cmd.setBinding(11, dbgImage);
+    cmd.setBinding(8, irrImage);
 
     cmd.setPipeline(shaders.surfApply);
     cmd.dispatchThreads(zbuffer.size());
@@ -2559,10 +2580,17 @@ void Renderer::drawAmbient(Encoder<CommandBuffer>& cmd, const WorldView& view) {
   cmd.setBinding(1, gbufDiffuse, Sampler::nearest());
   cmd.setBinding(2, gbufNormal,  Sampler::nearest());
   cmd.setBinding(3, sky.irradianceLut);
-  if(settings.zCloudShadowScale) {
+  if(settings.giSurfelsEnabled) {
+    auto& ao = (settings.zCloudShadowScale ? textureCast<Texture2d&>(ssao.ssaoBlur) : Resources::fallbackBlack());
+    cmd.setBinding(4, ao,            Sampler::nearest(ClampMode::ClampToEdge));
+    cmd.setBinding(5, surf.irrImage, Sampler::nearest(ClampMode::ClampToEdge));
+    cmd.setPipeline(shaders.ambientLightSurf);
+    }
+  else if(settings.zCloudShadowScale) {
     cmd.setBinding(4, ssao.ssaoBlur, Sampler::nearest(ClampMode::ClampToEdge));
     cmd.setPipeline(shaders.ambientLightSsao);
-    } else {
+    }
+  else {
     cmd.setPipeline(shaders.ambientLight);
     }
   cmd.draw(nullptr, 0, 3);

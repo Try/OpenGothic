@@ -17,6 +17,9 @@ layout(binding  = 3) uniform texture2D  irradiance;
 #if defined(SSAO)
 layout(binding  = 4) uniform sampler2D ssao;
 #endif
+#if defined(SURFEL_GI)
+layout(binding  = 5) uniform sampler2D surfGi;
+#endif
 
 layout(location = 0) out vec4 outColor;
 
@@ -29,9 +32,6 @@ float textureSsao() { return 1; }
 #endif
 
 vec3 skyIrradiance(vec3 n) {
-#if 0
-  return scene.ambient * Fd_LambertInv;
-#else
   ivec3 d;
   d.x = n.x>=0 ? 1 : 0;
   d.y = n.y>=0 ? 1 : 0;
@@ -45,11 +45,26 @@ vec3 skyIrradiance(vec3 n) {
   ret += texelFetch(irradiance, ivec2(2,d.z), 0).rgb * n.z;
 
   return ret;
-#endif
   }
 
 float grayscale(vec3 color) {
   return dot(color, vec3(0.2125, 0.7154, 0.0721));
+  }
+
+vec3 luminance(vec3 norm) {
+#if defined(SURFEL_GI)
+  vec3 ambient = textureLod(surfGi, uv, 0).rgb;
+  return ambient;
+#else
+  vec3 ambient = scene.ambient;
+  vec3 sky     = skyIrradiance(norm);
+
+  vec3 ret  = vec3(0);
+  ret += ambient;
+  ret += sky*0.8;
+  ret += (norm.y*0.25+0.75) * NightAmbient * Fd_Lambert;
+  return ret;
+#endif
   }
 
 void main() {
@@ -62,18 +77,12 @@ void main() {
   const vec3  linear = textureAlbedo(diff);
   const float ao     = textureSsao();
 
-  vec3 ambient = scene.ambient;
-  vec3 sky     = skyIrradiance(norm);
-
-  vec3 luminance  = vec3(0);
-  luminance += ambient;
-  luminance += sky*0.8;
-  luminance += (norm.y*0.25+0.75) * NightAmbient * Fd_Lambert;
-
   vec3 color = linear;
-  color *= luminance;
+  color *= luminance(norm);
   color *= ao;
+#if !defined(SURFEL_GI) // preexposed already
   color *= scene.exposure;
+#endif
 
   outColor = vec4(color, 1);
   // outColor = vec4(vec3(ao), 0);

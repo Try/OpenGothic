@@ -217,6 +217,7 @@ add_shader(direct_light_vsm.frag     virtual_shadow/vsm_direct_light.frag)
 
 add_shader(ambient_light.frag        lighting/ambient_light.frag)
 add_shader(ambient_light_ssao.frag   lighting/ambient_light.frag -DSSAO)
+add_shader(ambient_light_surf.frag   lighting/ambient_light.frag -DSSAO -DSURFEL_GI)
 
 add_shader(light.vert                lighting/light.vert)
 add_shader(light.frag                lighting/light.frag)
@@ -329,6 +330,7 @@ add_shader(surf_apply.comp           lighting/surfels/surf_apply.comp)
 add_shader(surf_tiled.comp           lighting/surfels/surf_tiled.comp)
 add_shader(surf_bvh.comp             lighting/surfels/surf_bvh.comp)
 add_shader(surf_bvh_sample.comp      lighting/surfels/surf_bvh_sample.comp)
+add_shader(surf_pathtrace.comp       lighting/surfels/surf_pathtrace.comp)
 
 # Pathtracing
 add_shader(pathtrace.frag            lighting/pt/pathtrace.frag -DRAY_QUERY -DRAY_QUERY_AT)

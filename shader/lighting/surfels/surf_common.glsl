@@ -13,6 +13,8 @@ struct Surfel {
   ivec2 fragCoord;
   float radius;
   int   radiusPix;
+  vec3  irradiance;
+  uint  padd0;
   };
 
 uint octahedral_8(in vec3 nor) {

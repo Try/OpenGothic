@@ -121,6 +121,7 @@ class Renderer final {
       bool           zFogRadial         = false;
 
       bool           giEnabled          = false;
+      bool           giSurfelsEnabled   = true; //TESTING
       bool           aaEnabled          = false;
 
       float          zVidBrightness     = 0.5;
@@ -218,6 +219,7 @@ class Renderer final {
       Tempest::StorageImage     posTree;
       Tempest::StorageImage     normTree;
 
+      Tempest::StorageImage     irrImage;
       Tempest::StorageImage     surfCnts, surfBins;
       Tempest::StorageBuffer    surfList;
 

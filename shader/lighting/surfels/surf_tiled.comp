@@ -78,7 +78,7 @@ void mainTile(const ivec2 fragCoord, const ivec2 screenSize) {
 
   const vec3  norm = normalFetch(gbufNormal, fragCoord);
   const vec3  wpos = worldPos(z, fragCoord, screenSize);
-  const float edge = 0.01;
+  const float edge = 0.2;
 
   float wMax = 0;
   for(int i=pointQueueSize; i>0;) {
@@ -146,11 +146,12 @@ void storeSurfels() {
     const Surf tmp = pointQueue[laneID];
 
     Surfel sx;
-    sx.pos       = tmp.pos.xyz;
-    sx.norm      = encodeNormal(tmp.norm);
-    sx.fragCoord = tmp.fragCoord;
-    sx.radius    = tmp.pos.w;
-    sx.radiusPix = DefaultCoverage; //TODO
+    sx.pos        = tmp.pos.xyz;
+    sx.norm       = encodeNormal(tmp.norm);
+    sx.fragCoord  = tmp.fragCoord;
+    sx.radius     = tmp.pos.w;
+    sx.radiusPix  = DefaultCoverage; //TODO
+    sx.irradiance = surfDebugColor(tmp.pos.xyz, ptr);
     glob.surfels[ptr] = sx;
     }
   }

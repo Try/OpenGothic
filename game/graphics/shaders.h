@@ -30,7 +30,7 @@ class Shaders {
 
     Tempest::RenderPipeline  lights, lightsRq, lightsVsm;
     Tempest::RenderPipeline  directLight,  directLightSh, directLightRq;
-    Tempest::RenderPipeline  ambientLight, ambientLightSsao;
+    Tempest::RenderPipeline  ambientLight, ambientLightSsao, ambientLightSurf;
 
     Tempest::ComputePipeline copyBuf;
     Tempest::ComputePipeline copyImg;
@@ -92,6 +92,7 @@ class Shaders {
     Tempest::ComputePipeline surfBinClear, surfBinning, surfBinAlloc;
     Tempest::ComputePipeline surfApply;
     Tempest::ComputePipeline surfTiled, surfBvh, surfBvhSample;
+    Tempest::ComputePipeline surfPathtrace;
 
     // Epipolar
     Tempest::ComputePipeline fogEpipolarVsm;
