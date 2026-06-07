@@ -53,9 +53,13 @@ vec3 worldPos(float z, ivec2 fragCoord, ivec2 screenSize) {
 
 float pixelToWorld(float pixelRadius, float z) {
   z = linearDepth(z, scene.clipInfo);
-  float clipRadius  = (2.0 * pixelRadius) * min(scene.screenResInv.x, scene.screenResInv.y);
-  float worldRadius = (clipRadius * z) / scene.project[1][1];
-  return worldRadius;
+
+  float clipRadiusX = (2.0 * pixelRadius) * scene.screenResInv.x;
+  float clipRadiusY = (2.0 * pixelRadius) * scene.screenResInv.y;
+
+  float worldRadiusX = (clipRadiusX * z) / scene.project[0][0];
+  float worldRadiusY = (clipRadiusY * z) / scene.project[1][1];
+  return min(worldRadiusX, worldRadiusY);
   }
 
 float calculteWeight(const Surf s, const vec3 wpos, const vec3 norm) {
@@ -74,7 +78,7 @@ void mainTile(const ivec2 fragCoord, const ivec2 screenSize) {
 
   const vec3  norm = normalFetch(gbufNormal, fragCoord);
   const vec3  wpos = worldPos(z, fragCoord, screenSize);
-  const float edge = 0.1;
+  const float edge = 0.01;
 
   float wMax = 0;
   for(int i=pointQueueSize; i>0;) {
