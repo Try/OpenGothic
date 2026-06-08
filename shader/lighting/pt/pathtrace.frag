@@ -5,14 +5,14 @@
 #define RAY_QUERY_AT
 
 #define SOFT_SHADOW
+// #define RESCALE
 
 #include "lighting/rt/rt_common.glsl"
+#include "lighting/pt/pathtrace_common.glsl"
 #include "lighting/tonemapping.glsl"
 #include "scene.glsl"
 #include "common.glsl"
 
-//const float probeRayDistance = 200*100; // Lumen rt-probe uses 200-meters range
-const float TMax         = 1e30f;
 const vec3  groundAlbedo = vec3(0.3f); // testing
 
 layout(location = 0) in  vec2 inUV;
@@ -27,38 +27,6 @@ layout(binding = 0, std140) uniform UboScene {
 layout(binding = 2) uniform texture2D irradiance;
 layout(binding = 3) uniform sampler2D skyLUT;
 layout(binding = 4) uniform sampler2D textureSm1;
-
-uint srand(uvec2 fragCoord, uint seed) {
-  return uint(uint(fragCoord.x) * uint(1973) + uint(fragCoord.y) * uint(9277) + uint(seed) * uint(26699)) | uint(1);
-  }
-
-float randf(inout uint state) {
-  return float(wangHash(state)) / 4294967296.0;
-  }
-
-vec3 randVec3(inout uint state) {
-  float z = randf(state) * 2.0 - 1.0;
-  float a = randf(state) * 2.0 * M_PI;
-  float r = sqrt(1.0f - z * z);
-  float x = r * cos(a);
-  float y = r * sin(a);
-  return vec3(x, y, z);
-  }
-
-vec3 randCosWeightedHemisphereDirection(const vec3 n, inout uint rngState) {
-  vec2 rv2 = vec2(randf(rngState), randf(rngState));
-
-  vec3  uu = normalize( cross( n, vec3(0.0,1.0,1.0) ) );
-  vec3  vv = normalize( cross( uu, n ) );
-
-  float ra = sqrt(rv2.y);
-  float rx = ra*cos(6.2831*rv2.x);
-  float ry = ra*sin(6.2831*rv2.x);
-  float rz = sqrt( 1.0-rv2.y );
-  vec3  rr = vec3( rx*uu + ry*vv + rz*n );
-
-  return normalize(rr);
-  }
 
 vec3 skyIrradiance(vec3 n) {
   ivec3 d;
@@ -94,50 +62,8 @@ float shadowFactor(vec3 pos) {
   return calcShadow(shPos.xyz/shPos.w);
   }
 
-void rayQueryProceedAlphaTest(in rayQueryEXT rayQuery, inout uint rngState) {
-  while(rayQueryProceedEXT(rayQuery)) {
-    const uint type = rayQueryGetIntersectionTypeEXT(rayQuery,false);
-    if(type==gl_RayQueryCandidateIntersectionTriangleEXT) {
-      const vec4 d = resolveHit(rayQuery);
-      // const bool opaqueHit = (d.a>0.5);
-      const bool opaqueHit = (d.a > randf(rngState));
-      if(opaqueHit)
-        rayQueryConfirmIntersectionEXT(rayQuery);
-      }
-    }
-  }
 
-float rayQueryProceedShadow(const vec3 rayOrigin, const vec3 rayDirection, inout uint rngState) {
-  // CullBack due to vegetation
-  uint  flags = gl_RayFlagsSkipAABBEXT | gl_RayFlagsCullBackFacingTrianglesEXT;
-  float tMin  = 1;
-
-  rayQueryEXT rayQuery;
-  rayQueryInitializeEXT(rayQuery, topLevelAS, flags, CM_ShadowCaster,
-                        rayOrigin, tMin, rayDirection, 500*100);
-  rayQueryProceedAlphaTest(rayQuery);
-  // rayQueryProceedAlphaTest(rayQuery, rngState);
-  if(rayQueryGetIntersectionTypeEXT(rayQuery, true) == gl_RayQueryCommittedIntersectionNoneEXT)
-    return 1;
-  return 0;
-  }
-
-float computeTextureLOD(float dist, vec3 dir, vec3 norm) {
-  dist /= 500.0;
-  float mip = 0;
-  mip += log2(dist);
-  mip -= log2(abs(dot(dir, norm)));
-  return mip;
-  }
-
-struct HitResolve {
-  vec4  diff;
-  vec3  norm;
-  float rayT;
-  bool  water;
-  };
-
-vec3 randomizeRay(vec3 ray, float angle, inout uint rngState) {
+vec3 randomizeRay(vec3 ray, float angle, inout random rngState) {
   // https://www.shadertoy.com/view/3sfBWs
   const vec2 blueNoiseInDisk[64] = vec2[64](
       vec2(0.478712,0.875764),
@@ -207,7 +133,7 @@ vec3 randomizeRay(vec3 ray, float angle, inout uint rngState) {
       );
 
   // get a blue noise sample position
-  vec2 samplePos = blueNoiseInDisk[wangHash(rngState)%blueNoiseInDisk.length()];
+  vec2 samplePos = blueNoiseInDisk[wangHash(rngState.state)%blueNoiseInDisk.length()];
   samplePos *= tan(angle);
 
   vec3  r  = normalize(vec3(0,0,1) + vec3(samplePos,0));
@@ -218,57 +144,7 @@ vec3 randomizeRay(vec3 ray, float angle, inout uint rngState) {
   return vec3( r.x*uu + r.y*vv + r.z*ray );
   }
 
-HitResolve rayQueryProceedPrimary(const vec3 rayOrigin, const vec3 rayDirection, float mipOverride, inout uint rngState) {
-  // CullBack due to vegetation
-  uint  flags = gl_RayFlagsSkipAABBEXT | gl_RayFlagsCullBackFacingTrianglesEXT;
-  float tMin  = 2;
-
-  rayQueryEXT rayQuery;
-  rayQueryInitializeEXT(rayQuery, topLevelAS, flags, 0xFF,
-                        rayOrigin, tMin, rayDirection, 500*100);
-  rayQueryProceedAlphaTest(rayQuery);
-  // rayQueryProceedAlphaTest(rayQuery, rngState);
-  if(rayQueryGetIntersectionTypeEXT(rayQuery, true) == gl_RayQueryCommittedIntersectionNoneEXT) {
-    HitResolve ret;
-    ret.rayT = TMax;
-    return ret;
-    }
-
-  const HitDesc hit = pullCommitedHitDesc(rayQuery);
-
-  const float rayT   = rayQueryGetIntersectionTEXT(rayQuery, true);
-  const bool  face   = !(rayQueryGetIntersectionFrontFaceEXT(rayQuery, true)); //NOTE: not working on vegetation
-
-  const uint  id     = hit.instanceId;
-  const uvec3 index  = pullTrinagleIds(id,hit.primitiveId);
-
-  const vec2  uv0    = pullTexcoord(id,index.x);
-  const vec2  uv1    = pullTexcoord(id,index.y);
-  const vec2  uv2    = pullTexcoord(id,index.z);
-
-  const vec3  nr0    = pullNormal(id,index.x);
-  const vec3  nr1    = pullNormal(id,index.y);
-  const vec3  nr2    = pullNormal(id,index.z);
-
-  const vec3  b      = hit.baryCoord;
-  const vec2  uv     = (b.x*uv0 + b.y*uv1 + b.z*uv2);
-  vec3        norm   = (b.x*nr0 + b.y*nr1 + b.z*nr2);
-
-  const mat3x3 matrix = mat3x3(rayQueryGetIntersectionObjectToWorldEXT(rayQuery, true));
-  norm = normalize(matrix*norm);
-
-  const float mip    = mipOverride>=0 ? mipOverride : computeTextureLOD(rayT,rayDirection,norm);
-  const vec4  diff   = textureLod(sampler2D(textures[nonuniformEXT(id)], smp),uv,mip);
-
-  HitResolve ret;
-  ret.diff  = diff;
-  ret.norm  = norm;
-  ret.rayT  = face ? -rayT : rayT;
-  ret.water = hit.water;
-  return ret;
-  }
-
-float sampleDirectLight(vec3 norm, vec3 rayOrigin, vec3 rayDirection, bool shadowed, float softAngle, inout uint rngState) {
+float sampleDirectLight(vec3 norm, vec3 rayOrigin, vec3 rayDirection, bool shadowed, float softAngle, inout random rngState) {
 #if defined(SOFT_SHADOW)
   vec3  shRay  = randomizeRay(rayDirection, 0.5*M_PI/180.0, rngState);
 #else
@@ -287,11 +163,11 @@ float sampleDirectLight(vec3 norm, vec3 rayOrigin, vec3 rayDirection, bool shado
 vec4 pathtrace(vec3 rayOrigin, vec3 rayDirection) {
   const int numBounces = 5;
 
-  uint  rngState   = srand(uvec2(gl_FragCoord.xy), scene.tickCount32);
-  vec3  thruput    = vec3(1);
-  vec3  color      = vec3(0);
-  bool  underWater = (scene.underWater!=0);
-  float depth      = 0;
+  random rngState   = srand(uvec2(gl_FragCoord.xy), scene.tickCount32);
+  vec3   thruput    = vec3(1);
+  vec3   color      = vec3(0);
+  bool   underWater = (scene.underWater!=0);
+  float  depth      = 0;
 
   for(int bounce=0;; ++bounce) {
     if(dot(thruput*scene.GSunIntensity*scene.exposure, vec3(0.2126, 0.7152, 0.0722)) < 0.01)
@@ -299,10 +175,12 @@ vec4 pathtrace(vec3 rayOrigin, vec3 rayDirection) {
 
     if(bounce>=numBounces) {
       // return 0.5*vec4(1,0,1,depth)*scene.GSunIntensity;
+#if defined(RESCALE)
       // rescale to 100% thruput
       vec3 scale = 1.0-thruput;
       if(scale.r>0.01 && scale.g>0.01 && scale.b>0.01)
         return vec4(color/scale, depth);
+#endif
       return vec4(color, depth);
       }
 
@@ -343,7 +221,10 @@ vec4 pathtrace(vec3 rayOrigin, vec3 rayDirection) {
 
     rayOrigin    = (rayOrigin + rayDirection * hit.rayT);
     rayDirection = randCosWeightedHemisphereDirection(hit.norm, rngState);
-    thruput    *= textureAlbedo(hit.diff.rgb);
+    vec3 albedo  = textureAlbedo(hit.diff.rgb);
+    if(bounce>0)
+      albedo = min(albedo, 0.95);
+    thruput     *= albedo;
     //thruput    *= vec3(0.85); //snow
     //thruput    *= vec3(0.04); // asphalt
     //if(bounce>0)
@@ -388,7 +269,7 @@ vec2 halton(uint index) {
   }
 
 void main() {
-  const vec2 subpixel = (halton(srand(uvec2(gl_FragCoord.xy),frameId))-0.5) * scene.screenResInv;
+  const vec2 subpixel = (halton(srand(uvec2(gl_FragCoord.xy),frameId).state)-0.5) * scene.screenResInv;
 
   const mat4 inv = scene.viewProjectInv;
   const vec2 uv  = inUV + subpixel;
