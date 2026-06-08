@@ -2068,7 +2068,8 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
     cmd.setBinding(11,scene.rtScene.rtDesc);
 
     cmd.setPipeline(shaders.surfPathtrace);
-    cmd.dispatchThreads(maxSurfels);
+    //cmd.dispatchThreads(maxSurfels);
+    cmd.dispatchIndirect(surfels, 0);
     }
 
   static bool apply = true;

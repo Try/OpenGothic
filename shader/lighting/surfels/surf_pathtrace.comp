@@ -15,6 +15,8 @@
 
 layout(local_size_x = 64) in;
 
+const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
+
 layout(binding = 0, std140) uniform UboScene {
   SceneDesc scene;
   };
@@ -62,9 +64,11 @@ vec4 pathtrace(vec3 rayOrigin, vec3 rayDirection, inout random rngState) {
     if(bounce>=numBounces) {
       // return 0.5*vec4(1,0,1,depth)*scene.GSunIntensity;
       // rescale to 100% thruput
+      /*
       vec3 scale = 1.0-thruput;
       if(scale.r>0.01 && scale.g>0.01 && scale.b>0.01)
         return vec4(color/scale, depth);
+      */
       return vec4(color, depth);
       }
 
@@ -107,7 +111,7 @@ vec4 pathtrace(vec3 rayOrigin, vec3 rayDirection, inout random rngState) {
 
     rayOrigin    = (rayOrigin + rayDirection * hit.rayT);
     rayDirection = randCosWeightedHemisphereDirection(hit.norm, rngState);
-    thruput    *= textureAlbedo(hit.diff.rgb);
+    thruput     *= min(textureAlbedo(hit.diff.rgb), 0.95);
     //thruput    *= vec3(0.85); //snow
     //thruput    *= vec3(0.04); // asphalt
     //if(bounce>0)
@@ -123,9 +127,22 @@ vec4 pathtrace(vec3 rayOrigin, vec3 rayDirection, inout random rngState) {
   return vec4(color, depth);
   }
 
+shared vec4 reduction[NumThreads];
+
+void reduceIrr() {
+  uint laneID = gl_LocalInvocationIndex;
+
+  for(uint stride = NumThreads/2; stride > 0; stride >>= 1) {
+    if(laneID < stride) {
+      reduction[laneID] += reduction[laneID + stride];
+      }
+    barrier();
+    }
+  }
+
 void main() {
-  const uint numPaths = 16;
-  const uint surfelId = gl_GlobalInvocationID.x;
+  const uint numPaths = NumThreads;
+  const uint surfelId = gl_WorkGroupID.x; //gl_GlobalInvocationID.x;
   if(surfelId>=count.x)
     return;
 
@@ -134,16 +151,17 @@ void main() {
   const Surfel p   = surfels[surfelId];
   const mat3   tbn = toTangent(decodeNormal(p.norm));
 
-  vec3  irradiance = vec3(0);
-  float hHit       = 0; // harmonic mean
-  for(int i=0; i<numPaths; ++i) {
-    // const vec3 ray = randCosWeightedHemisphereDirection(tbn, rngState);
-    const vec3 ray = tbn * sampleHemisphereCos(i,numPaths,0).xzy;
-    const vec4 pt  = pathtrace(p.pos, ray, rngState);
+  const uint i   = gl_LocalInvocationIndex;
+  const vec3 ray = tbn * sampleHemisphereCos(i,numPaths,0).xzy;
+  const vec4 pt  = pathtrace(p.pos, ray, rngState);
 
-    irradiance.rgb += pt.rgb;
-    hHit += 1.0/max(pt.a, 0.01);
+  reduction[i] = vec4(pt.rgb, 1.0/pt.a);
+  barrier();
+
+  reduceIrr();
+
+  if(gl_LocalInvocationIndex==0) {
+    surfels[surfelId].irradiance = (reduction[0].rgb/float(numPaths));
+    //float hHit = 1.0/max(reduction[0].a, 0.00001); //harmonic mean
     }
-
-  surfels[surfelId].irradiance = (irradiance/float(numPaths));
   }

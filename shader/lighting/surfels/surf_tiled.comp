@@ -8,7 +8,7 @@ layout(local_size_x = 16, local_size_y = 16) in;
 
 const ivec2 TileSize        = ivec2(128);
 const int   DefaultCoverage = 128;
-const float NormalBias      = 0.0015;
+const float NormalBias      = 0.0030;
 const uint  Salt            = 0x9D;
 
 layout(std140, push_constant) uniform Push {

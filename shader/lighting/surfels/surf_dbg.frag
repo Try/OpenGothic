@@ -43,7 +43,8 @@ void main(void) {
   if(length(delta) > radius)
     ;//discard;
 
-  vec3 clr = surfDebugColor(p, instanceIndex) * (1.0-qDist);
+  // vec3 clr = surfDebugColor(p, instanceIndex) * (1.0-qDist);
+  vec3 clr = p.irradiance * (1.0-qDist) * scene.exposure;
   outColor = vec4(clr,1.0);
   // outColor = vec4(1,0,0,1.0);
   }

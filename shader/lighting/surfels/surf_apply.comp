@@ -28,6 +28,7 @@ const uint MaxSurfInCache = 128;
 shared uint surfCount;
 shared vec4 surfelsPos [MaxSurfInCache];
 shared vec4 surfelsNorm[MaxSurfInCache];
+shared vec4 surfelsIrr [MaxSurfInCache];
 
 vec3 worldPos(float z, ivec2 fragCoord, ivec2 screenSize) {
   const mat4 inv = scene.viewProjectLwcInv;
@@ -61,6 +62,7 @@ void pullTile(ivec2 tileId) {
       return;
     surfelsPos [id] = vec4(s.pos, uintBitsToFloat(sId));
     surfelsNorm[id] = vec4(decodeNormal(s.norm), s.radius);
+    surfelsIrr [id] = vec4(s.irradiance, 0);
     }
   }
 
@@ -86,8 +88,10 @@ void main() {
     surfCount = min(surfCount, MaxSurfInCache);
   barrier();
 
-  if(!valid || sky)
+  if(!valid || sky) {
+    imageStore(irradiance, fragCoord, vec4(0));
     return;
+    }
 
   const vec3 wpos = worldPos(z, fragCoord, screenSize);
   const vec3 norm = normalFetch(gbufNormal,fragCoord);
@@ -95,9 +99,8 @@ void main() {
   vec4  clr  = vec4(0);
   float maxW = 0;
   for(int i=0; i<surfCount; ++i) {
-    float w        = calculteWeight(surfelsPos[i].xyz, surfelsNorm[i].xyz, surfelsNorm[i].w, wpos, norm);
-    uint  surfelId = floatBitsToUint(surfelsPos[i].w);
-    vec3  color    = surfels[surfelId].irradiance;
+    const float w     = calculteWeight(surfelsPos[i].xyz, surfelsNorm[i].xyz, surfelsNorm[i].w, wpos, norm);
+    const vec3  color = surfelsIrr[i].rgb;
     if(w>maxW)
       maxW = w;
     if(w <= 0)
