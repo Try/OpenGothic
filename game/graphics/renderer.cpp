@@ -1958,7 +1958,7 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
   auto& surfels  = usesSsboInit(surf.surfels,  shaders.surfTiled.sizeofBuffer(4, surf.maxSurfels));
   auto& dbgImage = usesImage2d (surf.dbgImage, TextureFormat::RGBA8, zbuffer.size());
   auto& irrImage = usesImage2d (surf.irrImage, TextureFormat::R11G11B10UF, zbuffer.size());
-  auto& surfList = usesSsboInit(surf.surfList, surf.maxSurfels*sizeof(uint32_t));
+  auto& surfList = usesSsbo    (surf.surfList, surf.maxSurfels*sizeof(uint32_t));
 
   auto& surfBvh  = usesSsbo    (surf.surfBvh,  shaders.surfBvh.sizeofBuffer(5, 2*surf.maxSurfels));
 

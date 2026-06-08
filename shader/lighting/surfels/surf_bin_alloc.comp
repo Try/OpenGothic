@@ -5,6 +5,7 @@ layout(local_size_x = 8, local_size_y = 8) in;
 layout(binding = 1, std430) buffer SB0 { uvec4 count; };
 layout(binding = 2, r32ui) uniform uimage2D surfCnts;
 layout(binding = 3, r32ui) uniform uimage2D surfBins;
+layout(binding = 4, std430) readonly buffer SB1 { uint surfelIds[]; };
 
 void main() {
   const ivec2 tile = ivec2(gl_GlobalInvocationID.xy);
