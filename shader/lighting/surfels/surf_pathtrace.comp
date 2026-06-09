@@ -33,7 +33,7 @@ mat3 toTangent(vec3 norm) {
   return tangent;
   }
 
-float sampleDirectLight(vec3 norm, vec3 rayOrigin, vec3 rayDirection, bool shadowed, float softAngle, inout random rngState) {
+float sampleDirectLight(vec3 norm, vec3 rayOrigin, vec3 rayDirection, bool shadowed, float softAngle, inout Random rngState) {
 #if defined(SOFT_SHADOW)
   vec3  shRay  = randomizeRay(rayDirection, 0.5*M_PI/180.0, rngState);
 #else
@@ -49,7 +49,7 @@ float sampleDirectLight(vec3 norm, vec3 rayOrigin, vec3 rayDirection, bool shado
   return (lamb * shadow);
   }
 
-vec4 pathtrace(vec3 rayOrigin, vec3 rayDirection, inout random rngState) {
+vec4 pathtrace(vec3 rayOrigin, vec3 rayDirection, inout Random rngState) {
   const int numBounces = 5;
 
   vec3  thruput    = vec3(1);
@@ -141,12 +141,13 @@ void reduceIrr() {
   }
 
 void main() {
-  const uint numPaths = NumThreads;
-  const uint surfelId = gl_WorkGroupID.x; //gl_GlobalInvocationID.x;
+  const float eps      = 0.001;
+  const uint  numPaths = NumThreads;
+  const uint  surfelId = gl_WorkGroupID.x; //gl_GlobalInvocationID.x;
   if(surfelId>=count.x)
     return;
 
-  random rngState = random(0);
+  Random rngState = Random(0);
 
   const Surfel p   = surfels[surfelId];
   const mat3   tbn = toTangent(decodeNormal(p.norm));
@@ -155,13 +156,14 @@ void main() {
   const vec3 ray = tbn * sampleHemisphereCos(i,numPaths,0).xzy;
   const vec4 pt  = pathtrace(p.pos, ray, rngState);
 
-  reduction[i] = vec4(pt.rgb, 1.0/pt.a);
+  reduction[i] = vec4(pt.rgb, 1.0/max(pt.a, eps));
   barrier();
 
   reduceIrr();
 
   if(gl_LocalInvocationIndex==0) {
+    // const float hitMean = float(numPaths)/max(reduction[0].a, eps); //harmonic mean
+    // surfels[surfelId].radius     = min(surfels[surfelId].radius, hitMean);
     surfels[surfelId].irradiance = (reduction[0].rgb/float(numPaths));
-    //float hHit = 1.0/max(reduction[0].a, 0.00001); //harmonic mean
     }
   }

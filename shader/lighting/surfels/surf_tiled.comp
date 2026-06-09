@@ -66,6 +66,11 @@ float calculteWeight(const Surf s, const vec3 wpos, const vec3 norm) {
   return calculteWeight(s.pos.xyz, s.norm, s.pos.w, wpos, norm);
   }
 
+float seedNoise(vec3 wpos, float z, const ivec2 screenSize) {
+  uvec3 p = uvec3(wpos/32);
+  return (pcgHash(p.x + pcgHash(p.y + pcgHash(p.z)))/4294967296.0)*0.1;;
+  }
+
 void mainTile(const ivec2 fragCoord, const ivec2 screenSize) {
   const bool  valid = all(lessThan(fragCoord, screenSize));
   if(!valid)
@@ -80,7 +85,8 @@ void mainTile(const ivec2 fragCoord, const ivec2 screenSize) {
   const vec3  wpos = worldPos(z, norm, fragCoord, screenSize);
   const float edge = 0.2;
 
-  float wMax = 0;
+  uvec3 p    = uvec3(wpos/10);
+  float wMax = seedNoise(wpos, z, screenSize)*0.1;
   for(int i=pointQueueSize; i>0;) {
     --i;
     const Surf  s = pointQueue[i];
@@ -177,6 +183,16 @@ void main() {
       surfAlloc(ivec2(x,y), screenSize);
       barrier();
       }
+#if 0
+  for(int y=coord0.y; y<coord1.y; y+=int(gl_WorkGroupSize.y))
+    for(int x=coord0.x; x<coord1.x; x+=int(gl_WorkGroupSize.x)){
+      mainTile(ivec2(x,y) + ivec2(gl_LocalInvocationID.xy), screenSize);
+      barrier();
+
+      surfAlloc(ivec2(x,y), screenSize);
+      barrier();
+      }
+#endif
 
   storeSurfels();
   }

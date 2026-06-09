@@ -20,7 +20,7 @@ float rayPathTextureLOD(float dist, vec3 dir, vec3 norm) {
   return mip;
   }
 
-void rayQueryProceedAlphaTest(in rayQueryEXT rayQuery, inout random rng) {
+void rayQueryProceedAlphaTest(in rayQueryEXT rayQuery, inout Random rng) {
   while(rayQueryProceedEXT(rayQuery)) {
     const uint type = rayQueryGetIntersectionTypeEXT(rayQuery,false);
     if(type==gl_RayQueryCandidateIntersectionTriangleEXT) {
@@ -33,7 +33,7 @@ void rayQueryProceedAlphaTest(in rayQueryEXT rayQuery, inout random rng) {
     }
   }
 
-float rayQueryProceedShadow(const vec3 rayOrigin, const vec3 rayDirection, inout random rngState) {
+float rayQueryProceedShadow(const vec3 rayOrigin, const vec3 rayDirection, inout Random rngState) {
   // CullBack due to vegetation
   uint  flags = gl_RayFlagsSkipAABBEXT | gl_RayFlagsCullBackFacingTrianglesEXT;
   float tMin  = 1;
@@ -48,7 +48,7 @@ float rayQueryProceedShadow(const vec3 rayOrigin, const vec3 rayDirection, inout
   return 0;
   }
 
-HitResolve rayQueryProceedPrimary(const vec3 rayOrigin, const vec3 rayDirection, float mipOverride, inout random rngState) {
+HitResolve rayQueryProceedPrimary(const vec3 rayOrigin, const vec3 rayDirection, float mipOverride, inout Random rngState) {
   // CullBack due to vegetation
   uint  flags = gl_RayFlagsSkipAABBEXT | gl_RayFlagsCullBackFacingTrianglesEXT;
   float tMin  = 2;

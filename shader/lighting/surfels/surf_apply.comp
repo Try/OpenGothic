@@ -24,7 +24,7 @@ layout(binding = 6, r32ui) uniform uimage2D surfCnts;
 layout(binding = 7, r32ui) uniform uimage2D surfBins;
 layout(binding = 8, r11f_g11f_b10f) uniform image2D irradiance;
 
-const uint MaxSurfInCache = 128;
+const uint MaxSurfInCache = 256;
 shared uint surfCount;
 shared vec4 surfelsPos [MaxSurfInCache];
 shared vec4 surfelsNorm[MaxSurfInCache];
@@ -90,6 +90,10 @@ void main() {
 
   if(!valid || sky) {
     imageStore(irradiance, fragCoord, vec4(0));
+    return;
+    }
+  if(surfCount >= MaxSurfInCache) {
+    imageStore(irradiance, fragCoord, vec4(1,1,0,0));
     return;
     }
 

@@ -63,7 +63,7 @@ float shadowFactor(vec3 pos) {
   }
 
 
-vec3 randomizeRay(vec3 ray, float angle, inout random rngState) {
+vec3 randomizeRay(vec3 ray, float angle, inout Random rngState) {
   // https://www.shadertoy.com/view/3sfBWs
   const vec2 blueNoiseInDisk[64] = vec2[64](
       vec2(0.478712,0.875764),
@@ -144,7 +144,7 @@ vec3 randomizeRay(vec3 ray, float angle, inout random rngState) {
   return vec3( r.x*uu + r.y*vv + r.z*ray );
   }
 
-float sampleDirectLight(vec3 norm, vec3 rayOrigin, vec3 rayDirection, bool shadowed, float softAngle, inout random rngState) {
+float sampleDirectLight(vec3 norm, vec3 rayOrigin, vec3 rayDirection, bool shadowed, float softAngle, inout Random rngState) {
 #if defined(SOFT_SHADOW)
   vec3  shRay  = randomizeRay(rayDirection, 0.5*M_PI/180.0, rngState);
 #else
@@ -163,7 +163,7 @@ float sampleDirectLight(vec3 norm, vec3 rayOrigin, vec3 rayDirection, bool shado
 vec4 pathtrace(vec3 rayOrigin, vec3 rayDirection) {
   const int numBounces = 5;
 
-  random rngState   = srand(uvec2(gl_FragCoord.xy), scene.tickCount32);
+  Random rngState   = srand(uvec2(gl_FragCoord.xy), scene.tickCount32);
   vec3   thruput    = vec3(1);
   vec3   color      = vec3(0);
   bool   underWater = (scene.underWater!=0);

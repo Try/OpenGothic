@@ -68,7 +68,7 @@ void main(void) {
 
   // float sz  = computeCellSize(lD, fov, textureSize(depth,0), 16, cellSize);
   // float sz  = computeCellSize(lD, fov, textureSize(depth,0), 2, 1);
-  float sz   = computeCellSize(lD, fov, textureSize(depth,0), SURFEL_CELL);
+  float sz   = computeCellSize(lD, fov, textureSize(depth,0), 16);
   vec3  wpos = pos.xyz/pos.w + originLwc;
 
   ivec3 ipos  = hasGridPos(wpos, sz);

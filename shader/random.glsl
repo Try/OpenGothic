@@ -3,21 +3,21 @@
 
 #include "common.glsl"
 
-struct random {
+struct Random {
   uint state;
   };
 
-random srand(uvec2 fragCoord, uint seed) {
-  random r;
+Random srand(uvec2 fragCoord, uint seed) {
+  Random r;
   r.state = uint(uint(fragCoord.x) * uint(1973) + uint(fragCoord.y) * uint(9277) + uint(seed) * uint(26699)) | uint(1);
   return r;
   }
 
-float randf(inout random r) {
+float randf(inout Random r) {
   return float(wangHash(r.state)) / 4294967296.0;
   }
 
-vec3 randVec3(inout random rng) {
+vec3 randVec3(inout Random rng) {
   float z = randf(rng) * 2.0 - 1.0;
   float a = randf(rng) * 2.0 * M_PI;
   float r = sqrt(1.0f - z * z);
@@ -26,7 +26,7 @@ vec3 randVec3(inout random rng) {
   return vec3(x, y, z);
   }
 
-vec3 randCosWeightedHemisphereDirection(const vec3 n, inout random rng) {
+vec3 randCosWeightedHemisphereDirection(const vec3 n, inout Random rng) {
   vec2 rv2 = vec2(randf(rng), randf(rng));
 
   vec3  uu = normalize( cross( n, vec3(0.0,1.0,1.0) ) );
@@ -41,7 +41,7 @@ vec3 randCosWeightedHemisphereDirection(const vec3 n, inout random rng) {
   return normalize(rr);
   }
 
-vec3 randCosWeightedHemisphereDirection(const mat3 tbn, inout random rng) {
+vec3 randCosWeightedHemisphereDirection(const mat3 tbn, inout Random rng) {
   vec2 rv2 = vec2(randf(rng), randf(rng));
 
   float ra = sqrt(rv2.y);
