@@ -14,48 +14,23 @@ layout(binding = 0, std140) uniform UboScene {
   };
 layout(binding = 4, std430) buffer SB0 { uvec4 count; Surfel surfels[];  } surf;
 layout(binding = 8, std430) buffer SB2 { uvec4 count; SurfelAlloc req[]; } alloc;
-
-const int DefaultCoverage = 128;
-
-bool projectSphere(const vec4 sphere, out vec4 aabb, out float depthMin) {
-  const vec3  c     = (scene.view * vec4(sphere.xyz, 1)).xyz;
-  const float R     = sphere.w;
-  const float znear = 10; //push.znear;
-
-  if(c.z - R < znear) {
-    depthMin = 0;
-    aabb     = vec4(0,0,1,1);
-    return true;
-    }
-
-  float z = c.z - R;
-  depthMin  = scene.project[3][2]/z + scene.project[2][2];
-  float P00 = scene.project[0][0];
-  float P11 = scene.project[1][1];
-
-  vec3  cr   = c * R;
-  float czr2 = c.z * c.z - R * R;
-
-  float vx   = sqrt(c.x * c.x + czr2);
-  float minx = (vx * c.x - cr.z) / (vx * c.z + cr.x);
-  float maxx = (vx * c.x + cr.z) / (vx * c.z - cr.x);
-
-  float vy   = sqrt(c.y * c.y + czr2);
-  float miny = (vy * c.y - cr.z) / (vy * c.z + cr.y);
-  float maxy = (vy * c.y + cr.z) / (vy * c.z - cr.y);
-
-  aabb = vec4(minx * P00, miny * P11, maxx * P00, maxy * P11);
-  aabb = aabb*0.5 + vec4(0.5);
-  return true;
-  }
+layout(binding = 9, std430) buffer SB3 { uint deduplication[]; };
 
 void main() {
   const uint allocId = gl_GlobalInvocationID.x;
-  if(allocId>=alloc.count.x)
+  if(allocId>=alloc.count.x || allocId>=alloc.req.length())
     return;
 
-  const uint        surfelId = atomicAdd(surf.count.x,1);
-  const SurfelAlloc p        = alloc.req[surfelId];
+  const SurfelAlloc p = alloc.req[allocId];
+
+  if(p.reuseId!=0xFFFFFFFF) {
+    const uint bit  = (1u << (p.reuseId % 32));
+    const uint prev = atomicOr(deduplication[p.reuseId/32], bit);
+    if((bit & prev)!=0)
+      return;
+    }
+
+  const uint surfelId = atomicAdd(surf.count.x,1);
 
   Surfel sx;
   sx.pos        = p.pos.xyz;

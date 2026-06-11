@@ -3,7 +3,8 @@
 
 #include "common.glsl"
 
-const float SKY_DEPTH = 0.999995;
+const float SKY_DEPTH       = 0.999995;
+const int   DefaultCoverage = 128; // in pixels
 
 struct Surfel {
   vec3  pos;
@@ -18,7 +19,7 @@ struct Surfel {
 struct SurfelAlloc {
   vec4  pos;  // pos, size
   vec3  norm;
-  uint  padd0;
+  uint  reuseId;
   };
 
 float computeTargetCellSize(float d, float aperture, vec2 resolution, float pixelFeatureSize) {

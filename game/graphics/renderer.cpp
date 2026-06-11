@@ -1951,6 +1951,7 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
     return;
 
   const  uint32_t maxSurfels = surf.maxSurfels;
+  const  uint32_t maxAlloc   = surf.maxSurfels * 16;
   static int32_t  tileSize   = 128;
   cmd.setDebugMarker("Surfels");
 
@@ -1958,9 +1959,10 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
   auto& dbgImage  = usesImage2d (surf.dbgImage,  TextureFormat::RGBA8, zbuffer.size());
   auto& irrImage  = usesImage2d (surf.irrImage,  TextureFormat::R11G11B10UF, zbuffer.size());
 
-  auto& surfels   = usesSsboInit(surf.surfels,   shaders.surfTiled.sizeofBuffer(4, surf.maxSurfels));
-  auto& surfList  = usesSsbo    (surf.surfList,  16*surf.maxSurfels*sizeof(uint32_t));
-  auto& surfAlloc = usesSsbo    (surf.surfAlloc, shaders.surfTiled.sizeofBuffer(8, surf.maxSurfels));
+  auto& surfels   = usesSsboInit(surf.surfels,   shaders.surfTiled.sizeofBuffer(4, maxSurfels));
+  auto& surfList  = usesSsbo    (surf.surfList,  16*maxSurfels*sizeof(uint32_t));
+  auto& surfAlloc = usesSsbo    (surf.surfAlloc, shaders.surfTiled.sizeofBuffer(8, maxAlloc));
+  auto& surfDedup = usesSsboInit(surf.surfDedup, (maxSurfels+32-1)/32);
 
   auto  binCount = tileCount(zbuffer.size().toPoint()+IVec2(tileSize), tileSize);
   auto& surfCnts = usesImage2d(surf.surfCnts, TextureFormat::R32U, binCount);
@@ -1991,18 +1993,19 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
     cmd.setBinding(6, surfCnts);
     cmd.setBinding(7, surfBins);
     cmd.setBinding(8, surfAlloc);
+    cmd.setBinding(9, surfDedup);
     //
     cmd.setBinding(11, dbgImage);
 
     cmd.setPipeline(shaders.surfInit);
-    cmd.dispatchThreads(1); //for sake of zeroing counters
+    cmd.dispatchThreads(surfDedup.byteSize()/sizeof(uint32_t)); //for sake of zeroing counters
 
     const auto tc = tileCount(zbuffer.size(), 128);
     cmd.setPipeline(shaders.surfTiled);
     cmd.dispatch(tc);
 
     cmd.setPipeline(shaders.surfAlloc);
-    cmd.dispatchThreads(maxSurfels);
+    cmd.dispatchThreads(maxAlloc);
 
     //alloc = false;
     }

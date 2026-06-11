@@ -147,6 +147,7 @@ void main() {
   if(surfelId>=count.x)
     return;
 
+  // uint  hashKey = pcgHash(inorm
   Random rngState = Random(0);
 
   const Surfel p   = surfels[surfelId];
@@ -154,6 +155,7 @@ void main() {
 
   const uint i   = gl_LocalInvocationIndex;
   const vec3 ray = tbn * sampleHemisphereCos(i,numPaths,0).xzy;
+  // const vec3 ray = randCosWeightedHemisphereDirection(decodeNormal(p.norm), rngState);
   const vec4 pt  = pathtrace(p.pos, ray, rngState);
 
   reduction[i] = vec4(pt.rgb, 1.0/max(pt.a, eps));

@@ -29,6 +29,10 @@ float pixelToWorld(float pixelRadius, float z) {
   return min(worldRadiusX, worldRadiusY);
   }
 
+float renewRadius(const Surfel p, float z) {
+  return max(pixelToWorld(DefaultCoverage, z), 0);
+  }
+
 void main() {
   const uint surfelId = gl_GlobalInvocationID.x;
   if(surfelId>=count.x)
@@ -40,6 +44,7 @@ void main() {
   const ivec2  fragCoord = ivec2(posNdc*scene.screenRes + 0.5);
 
   surfels[surfelId].fragCoord = fragCoord;
+  surfels[surfelId].radius    = renewRadius(p, pos4.z/pos4.w);
 
   ivec2  pos0 = ivec2(fragCoord-p.radiusPix)/tileSize;
   ivec2  pos1 = ivec2(fragCoord+p.radiusPix)/tileSize + 1;
