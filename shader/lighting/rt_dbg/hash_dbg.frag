@@ -36,19 +36,9 @@ float surfDist(ivec3 hpos, vec3 pos, float cellSize) {
   return dot(p,p); //quad distance
   }
 
-float surfDist(ivec3 hpos, vec3 pos, float cellSize, uint inorm, vec3 norm) {
-  vec3 p = (pos/cellSize - hpos);
-  p *= 2/sqrt(2.0);
-  float ed = length(p); //quad distance
-
-  vec3 n = i_octahedral_8(inorm);
-  float en = sqrt(max(1.0 - dot(n,norm),0.0));
-  return ed+en;
-  }
-
-uint surfHash(ivec3 hpos, uint inorm) {
+uint surfHash(ivec3 hpos) {
   ivec3 p       = hpos;
-  uint  hashKey = pcgHash(pcgHash(p.x + pcgHash(p.y + pcgHash(p.z))) + inorm);
+  uint  hashKey = pcgHash(p.x + pcgHash(p.y + pcgHash(p.z)));
   return hashKey;
   }
 
@@ -68,14 +58,12 @@ void main(void) {
 
   // float sz  = computeCellSize(lD, fov, textureSize(depth,0), 16, cellSize);
   // float sz  = computeCellSize(lD, fov, textureSize(depth,0), 2, 1);
-  float sz   = computeCellSize(lD, fov, textureSize(depth,0), 16);
+  float sz   = computeCellSize(lD, fov, textureSize(depth,0), 64);
   vec3  wpos = pos.xyz/pos.w + originLwc;
 
   ivec3 ipos  = hasGridPos(wpos, sz);
-  uint  inorm = octahedral_8(norm);
-
-  uint  h     = surfHash(ipos, inorm);
-  float dx    = surfDist(ipos, wpos, sz, inorm, norm);
+  uint  h     = surfHash(ipos);
+  float dx    = surfDist(ipos, wpos, sz);
 
   //uint  sx  = computeDepthSlice(lD, 10, 100000, 32);
 

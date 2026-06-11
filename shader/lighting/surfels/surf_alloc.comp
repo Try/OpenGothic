@@ -1,0 +1,68 @@
+#version 450
+
+#include "lighting/surfels/surf_common.glsl"
+#include "scene.glsl"
+#include "common.glsl"
+
+layout(local_size_x = 64) in;
+
+layout(std140, push_constant) uniform Push {
+  vec3 originLwc;
+  };
+layout(binding = 0, std140) uniform UboScene {
+  SceneDesc scene;
+  };
+layout(binding = 4, std430) buffer SB0 { uvec4 count; Surfel surfels[];  } surf;
+layout(binding = 8, std430) buffer SB2 { uvec4 count; SurfelAlloc req[]; } alloc;
+
+const int DefaultCoverage = 128;
+
+bool projectSphere(const vec4 sphere, out vec4 aabb, out float depthMin) {
+  const vec3  c     = (scene.view * vec4(sphere.xyz, 1)).xyz;
+  const float R     = sphere.w;
+  const float znear = 10; //push.znear;
+
+  if(c.z - R < znear) {
+    depthMin = 0;
+    aabb     = vec4(0,0,1,1);
+    return true;
+    }
+
+  float z = c.z - R;
+  depthMin  = scene.project[3][2]/z + scene.project[2][2];
+  float P00 = scene.project[0][0];
+  float P11 = scene.project[1][1];
+
+  vec3  cr   = c * R;
+  float czr2 = c.z * c.z - R * R;
+
+  float vx   = sqrt(c.x * c.x + czr2);
+  float minx = (vx * c.x - cr.z) / (vx * c.z + cr.x);
+  float maxx = (vx * c.x + cr.z) / (vx * c.z - cr.x);
+
+  float vy   = sqrt(c.y * c.y + czr2);
+  float miny = (vy * c.y - cr.z) / (vy * c.z + cr.y);
+  float maxy = (vy * c.y + cr.z) / (vy * c.z - cr.y);
+
+  aabb = vec4(minx * P00, miny * P11, maxx * P00, maxy * P11);
+  aabb = aabb*0.5 + vec4(0.5);
+  return true;
+  }
+
+void main() {
+  const uint allocId = gl_GlobalInvocationID.x;
+  if(allocId>=alloc.count.x)
+    return;
+
+  const uint        surfelId = atomicAdd(surf.count.x,1);
+  const SurfelAlloc p        = alloc.req[surfelId];
+
+  Surfel sx;
+  sx.pos        = p.pos.xyz;
+  sx.norm       = encodeNormal(p.norm);
+  sx.radius     = p.pos.w;
+  sx.radiusPix  = DefaultCoverage; //TODO: calculate dynamically
+  sx.irradiance = surfDebugColor(p.pos.xyz, surfelId);
+
+  surf.surfels[surfelId] = sx;
+  }

@@ -14,24 +14,49 @@ layout(binding = 0, std140) uniform UboScene {
   SceneDesc scene;
   };
 layout(binding = 1, std430) buffer SB0 { uvec4 count; Surfel surfels[]; };
-layout(binding = 2, r32ui) uniform uimage2D surfCnts;
-layout(binding = 3, r32ui) uniform uimage2D surfBins;
+layout(binding = 2, r32ui)  uniform uimage2D surfCnts;
+layout(binding = 3, r32ui)  uniform readonly uimage2D surfBins;
 layout(binding = 4, std430) buffer SB1 { uint surfelIds[]; };
+
+float pixelToWorld(float pixelRadius, float z) {
+  z = linearDepth(z, scene.clipInfo);
+
+  float clipRadiusX = (2.0 * pixelRadius) * scene.screenResInv.x;
+  float clipRadiusY = (2.0 * pixelRadius) * scene.screenResInv.y;
+
+  float worldRadiusX = (clipRadiusX * z) / scene.project[0][0];
+  float worldRadiusY = (clipRadiusY * z) / scene.project[1][1];
+  return min(worldRadiusX, worldRadiusY);
+  }
 
 void main() {
   const uint surfelId = gl_GlobalInvocationID.x;
   if(surfelId>=count.x)
     return;
 
-  const Surfel p    = surfels[surfelId];
-  const ivec2  ipos = p.fragCoord;
+  const Surfel p         = surfels[surfelId];
+  const vec4   pos4      = scene.viewProject * vec4(p.pos, 1.0);
+  const vec2   posNdc    = ((pos4.xy/pos4.w)*0.5+0.5);
+  const ivec2  fragCoord = ivec2(posNdc*scene.screenRes + 0.5);
+
+  surfels[surfelId].fragCoord = fragCoord;
+
+  ivec2  pos0 = ivec2(fragCoord-p.radiusPix)/tileSize;
+  ivec2  pos1 = ivec2(fragCoord+p.radiusPix)/tileSize + 1;
 
   ivec2 sz   = imageSize(surfCnts);
-  ivec2 tile = clamp((ipos+tileSize/2)/tileSize, ivec2(0), sz);
+  pos0 = max(ivec2(0), pos0);
+  pos1 = min(sz,       pos1);
 
-  const uint lptr = imageAtomicAdd(surfCnts, tile, 1);
-  if(allocPass>0) {
-    const uint ptr = imageLoad(surfBins, tile).x + lptr;
-    surfelIds[ptr] = surfelId;
-    }
+  for(int y=pos0.y; y<pos1.y; ++y)
+    for(int x=pos0.x; x<pos1.x; ++x) {
+      const ivec2 tile = ivec2(x, y);
+      const uint  lptr = imageAtomicAdd(surfCnts, tile, 1);
+      if(allocPass==0)
+        continue;
+      const uint ptr = imageLoad(surfBins, tile).x + lptr;
+      if(ptr>=surfelIds.length())
+        return; // error!
+      surfelIds[ptr] = surfelId;
+      }
   }

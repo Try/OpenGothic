@@ -314,6 +314,7 @@ add_shader(surf_dbg.frag             lighting/surfels/surf_dbg.frag)
 
 add_shader(surf_init.comp            lighting/surfels/surf_init.comp)
 add_shader(surf_tiled.comp           lighting/surfels/surf_tiled.comp)
+add_shader(surf_alloc.comp           lighting/surfels/surf_alloc.comp)
 
 add_shader(surf_binning.comp         lighting/surfels/surf_binning.comp)
 add_shader(surf_bin_clear.comp       lighting/surfels/surf_bin_clear.comp)

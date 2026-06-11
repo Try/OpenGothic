@@ -61,8 +61,6 @@ void main() {
   const vec4 pp   = scene.viewProject * vec4(p.pos, 1.0);
 
   float pixelRadius = 5.0;
-  // float clipRadius  = (2.0 * pixelRadius) * scene.screenResInv.y;
-  // float worldRadius = clipRadius * (-pp.z) / scene.project[1][1];
   float worldRadius = pixelToWorld(pixelRadius, pp.z/pp.w);
 
   //radius        = 5;
@@ -74,9 +72,5 @@ void main() {
   const float fov = 67.5f*M_PI/180.0;
   const float ld  = max(linearDepth(pp.z/pp.w, scene.clipInfo), 10);
 
-  const float sz    = computeCellSize(ld, fov, textureSize(depth,0), SURFEL_CELL);
-  const vec3  wpos  = p.pos;
-  const vec3  ipos  = hasGridPos(wpos, sz);
-  const uint  inorm = octahedral_8(normal);
-  instanceIndex = surfelId; //surfHash(ipos, sz, inorm);
+  instanceIndex = surfelId;
   }

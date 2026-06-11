@@ -1951,36 +1951,46 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
     return;
 
   const  uint32_t maxSurfels = surf.maxSurfels;
-  static int32_t  tileSize   = 256;
+  static int32_t  tileSize   = 128;
   cmd.setDebugMarker("Surfels");
 
-  auto& scene    = wview.sceneGlobals();
-  auto& surfels  = usesSsboInit(surf.surfels,  shaders.surfTiled.sizeofBuffer(4, surf.maxSurfels));
-  auto& dbgImage = usesImage2d (surf.dbgImage, TextureFormat::RGBA8, zbuffer.size());
-  auto& irrImage = usesImage2d (surf.irrImage, TextureFormat::R11G11B10UF, zbuffer.size());
-  auto& surfList = usesSsbo    (surf.surfList, surf.maxSurfels*sizeof(uint32_t));
+  auto& scene     = wview.sceneGlobals();
+  auto& dbgImage  = usesImage2d (surf.dbgImage,  TextureFormat::RGBA8, zbuffer.size());
+  auto& irrImage  = usesImage2d (surf.irrImage,  TextureFormat::R11G11B10UF, zbuffer.size());
 
-  auto& surfBvh  = usesSsbo    (surf.surfBvh,  shaders.surfBvh.sizeofBuffer(5, 2*surf.maxSurfels));
+  auto& surfels   = usesSsboInit(surf.surfels,   shaders.surfTiled.sizeofBuffer(4, surf.maxSurfels));
+  auto& surfList  = usesSsbo    (surf.surfList,  16*surf.maxSurfels*sizeof(uint32_t));
+  auto& surfAlloc = usesSsbo    (surf.surfAlloc, shaders.surfTiled.sizeofBuffer(8, surf.maxSurfels));
 
-  auto  tc       = tileCount(zbuffer.size().toPoint()+IVec2(tileSize), tileSize);
-  auto& surfCnts = usesImage2d (surf.surfCnts, TextureFormat::R32U, tc);
-  auto& surfBins = usesImage2d (surf.surfBins, TextureFormat::R32U, tc);
+  auto  binCount = tileCount(zbuffer.size().toPoint()+IVec2(tileSize), tileSize);
+  auto& surfCnts = usesImage2d(surf.surfCnts, TextureFormat::R32U, binCount);
+  auto& surfBins = usesImage2d(surf.surfBins, TextureFormat::R32U, binCount);
+
+  static bool binning = true;
+  if(binning) {
+    // prev-frame
+    binSurfels(cmd, wview, tileSize, false);
+    }
+
+  struct Push {
+    Vec3    originLwc;
+    uint32_t tileSize;
+    } push = {};
+  push.originLwc = scene.originLwc;
+  push.tileSize  = uint32_t(tileSize);
 
   static bool alloc = true;
-  if(true && alloc) {
-    struct Push {
-      Vec3    originLwc;
-      uint32_t maxSurfels;
-      } push = {};
-    push.originLwc  = scene.originLwc;
-    push.maxSurfels = maxSurfels;
-
+  if(alloc) {
     cmd.setPushData(push);
     cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
     cmd.setBinding(1, gbufDiffuse, Sampler::nearest());
     cmd.setBinding(2, gbufNormal,  Sampler::nearest());
     cmd.setBinding(3, zbuffer,     Sampler::nearest());
     cmd.setBinding(4, surfels);
+    cmd.setBinding(5, surfList);
+    cmd.setBinding(6, surfCnts);
+    cmd.setBinding(7, surfBins);
+    cmd.setBinding(8, surfAlloc);
     //
     cmd.setBinding(11, dbgImage);
 
@@ -1990,68 +2000,16 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
     const auto tc = tileCount(zbuffer.size(), 128);
     cmd.setPipeline(shaders.surfTiled);
     cmd.dispatch(tc);
+
+    cmd.setPipeline(shaders.surfAlloc);
+    cmd.dispatchThreads(maxSurfels);
+
+    //alloc = false;
     }
 
-  static bool bvh = false;
-  if(bvh) {
-    cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
-    cmd.setBinding(1, gbufDiffuse, Sampler::nearest());
-    cmd.setBinding(2, gbufNormal,  Sampler::nearest());
-    cmd.setBinding(3, zbuffer,     Sampler::nearest());
-    cmd.setBinding(4, surfels);
-    cmd.setBinding(5, surfBvh);
-
-    cmd.setPipeline(shaders.surfBvh);
-    cmd.dispatch(1);
-    }
-
-  static bool traverse = false;
-  if(traverse) {
-    cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
-    cmd.setBinding(1, gbufDiffuse, Sampler::nearest());
-    cmd.setBinding(2, gbufNormal,  Sampler::nearest());
-    cmd.setBinding(3, zbuffer,     Sampler::nearest());
-    cmd.setBinding(4, surfels);
-    cmd.setBinding(5, surfBvh);
-    //
-    cmd.setBinding(11, dbgImage);
-
-    cmd.setPipeline(shaders.surfBvhSample);
-    cmd.dispatchThreads(zbuffer.size());
-    }
-
-  static bool binning = true;
   if(binning) {
-    struct Push {
-      int32_t tileSize;
-      int32_t allocPass;
-      } push = {};
-    push.tileSize = tileSize;
-
-    cmd.setPushData(push);
-    cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
-    cmd.setBinding(1, surfels);
-    cmd.setBinding(2, surfCnts);
-    cmd.setBinding(3, surfBins);
-    cmd.setBinding(4, surfList);
-    cmd.setBinding(4, surfList);
-
-    cmd.setPipeline(shaders.surfBinClear);
-    cmd.dispatchThreads(surfBins.size());
-
-    push.allocPass = 0;
-    cmd.setPushData(push);
-    cmd.setPipeline(shaders.surfBinning);
-    cmd.dispatchThreads(maxSurfels);
-
-    cmd.setPipeline(shaders.surfBinAlloc);
-    cmd.dispatchThreads(surfBins.size());
-
-    push.allocPass = 1;
-    cmd.setPushData(push);
-    cmd.setPipeline(shaders.surfBinning);
-    cmd.dispatchThreads(maxSurfels);
-    //binning = false;
+    // current frame
+    binSurfels(cmd, wview, tileSize, false);
     }
 
   static bool rays = true;
@@ -2074,13 +2032,6 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
 
   static bool apply = true;
   if(apply) {
-    struct Push {
-      Vec3    originLwc;
-      int32_t tileSize;
-      } push = {};
-    push.originLwc = scene.originLwc;
-    push.tileSize  = tileSize;
-
     cmd.setPushData(push);
     cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
     cmd.setBinding(1, gbufDiffuse, Sampler::nearest());
@@ -2095,6 +2046,47 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
     cmd.setPipeline(shaders.surfApply);
     cmd.dispatchThreads(zbuffer.size());
     }
+  }
+
+void Renderer::binSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview, int32_t tileSize, bool clearOnly) {
+  const  uint32_t maxSurfels = surf.maxSurfels;
+
+  auto& scene    = wview.sceneGlobals();
+  auto& surfels  = surf.surfels;
+  auto& surfCnts = surf.surfCnts;
+  auto& surfBins = surf.surfBins;
+  auto& surfList = surf.surfList;
+
+  struct Push {
+    int32_t tileSize;
+    int32_t allocPass;
+    } push = {};
+  push.tileSize = tileSize;
+
+  cmd.setPushData(push);
+  cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
+  cmd.setBinding(1, surfels);
+  cmd.setBinding(2, surfCnts);
+  cmd.setBinding(3, surfBins);
+  cmd.setBinding(4, surfList);
+
+  cmd.setPipeline(shaders.surfBinClear);
+  cmd.dispatchThreads(surfBins.size());
+  if(clearOnly)
+    return;
+
+  push.allocPass = 0;
+  cmd.setPushData(push);
+  cmd.setPipeline(shaders.surfBinning);
+  cmd.dispatchThreads(maxSurfels);
+
+  cmd.setPipeline(shaders.surfBinAlloc);
+  cmd.dispatchThreads(surfBins.size());
+
+  push.allocPass = 1;
+  cmd.setPushData(push);
+  cmd.setPipeline(shaders.surfBinning);
+  cmd.dispatchThreads(maxSurfels);
   }
 
 void Renderer::prepareIrradiance(Encoder<CommandBuffer>& cmd, WorldView& wview) {

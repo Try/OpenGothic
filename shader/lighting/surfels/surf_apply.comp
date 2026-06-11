@@ -18,13 +18,13 @@ layout(binding = 0, std140) uniform UboScene {
 layout(binding = 1) uniform sampler2D  gbufDiffuse;
 layout(binding = 2) uniform usampler2D gbufNormal;
 layout(binding = 3) uniform sampler2D  depth;
-layout(binding = 4, std430) buffer SB0 { uvec4 count; Surfel surfels[]; };
-layout(binding = 5, std430) buffer SB1 { uint surfelList[]; };
+layout(binding = 4, std430) readonly buffer SB0 { uvec4 count; Surfel surfels[]; };
+layout(binding = 5, std430) readonly buffer SB1 { uint surfelList[]; };
 layout(binding = 6, r32ui) uniform uimage2D surfCnts;
 layout(binding = 7, r32ui) uniform uimage2D surfBins;
 layout(binding = 8, r11f_g11f_b10f) uniform image2D irradiance;
 
-const uint MaxSurfInCache = 256;
+const uint MaxSurfInCache = 256; //FIXME: iterate whole tile
 shared uint surfCount;
 shared vec4 surfelsPos [MaxSurfInCache];
 shared vec4 surfelsNorm[MaxSurfInCache];
@@ -78,10 +78,7 @@ void main() {
   const bool  sky = (z >= SKY_DEPTH);
 
   ivec2 t = ivec2(gl_WorkGroupID.xy*gl_WorkGroupSize.xy)/int(tileSize);
-  pullTile(t+ivec2(0,0));
-  pullTile(t+ivec2(1,0));
-  pullTile(t+ivec2(0,1));
-  pullTile(t+ivec2(1,1));
+  pullTile(t);
   barrier();
 
   if(gl_LocalInvocationIndex==0)
