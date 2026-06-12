@@ -22,6 +22,17 @@ struct SurfelAlloc {
   uint  reuseId;
   };
 
+bool isSurfelVisible(const Surfel s, ivec2 bboxMin, ivec2 bboxMax) {
+  const ivec2 at     = s.fragCoord;
+  const int   radius = s.radiusPix;
+
+  if(bboxMax.x < at.x-radius || bboxMax.y < at.y-radius)
+    return false;
+  if(at.x+radius < bboxMin.x || at.y+radius < bboxMin.y)
+    return false;
+  return true;
+  }
+
 float computeTargetCellSize(float d, float aperture, vec2 resolution, float pixelFeatureSize) {
   // Equation 2: Evaluate the angular factor based on resolution aspect ratio
   float term1 = aperture / resolution.x;

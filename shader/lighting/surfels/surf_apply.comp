@@ -27,6 +27,7 @@ layout(binding = 8, r11f_g11f_b10f) uniform image2D irradiance;
 shared vec4 surfelsPos [NumThreads];
 shared vec4 surfelsNorm[NumThreads];
 shared vec4 surfelsIrr [NumThreads];
+shared uint surfelCount;
 
 vec3 worldPos(float z, ivec2 fragCoord, ivec2 screenSize) {
   const mat4 inv = scene.viewProjectLwcInv;
@@ -61,21 +62,29 @@ void main() {
   const vec3  norm = normalFetch(gbufNormal, fragCoord);
   const bool  sky  = (z >= SKY_DEPTH);
 
+  ivec2 bboxMin = ivec2(gl_WorkGroupID.xy*gl_WorkGroupSize.xy);
+  ivec2 bboxMax = bboxMin + ivec2(gl_WorkGroupSize.xy);
+
   vec4 clr = vec4(0);
   for(uint i=0; ; i+=NumThreads) {
+    surfelCount = 0;
+    barrier();
+
     if(i+laneID < cnt) {
       const uint   sId = surfelList[ptr+i+laneID];
       const Surfel s   = surfels[sId];
 
-      surfelsPos [laneID] = vec4(s.pos, uintBitsToFloat(sId));
-      surfelsNorm[laneID] = vec4(decodeNormal(s.norm), s.radius);
-      surfelsIrr [laneID] = vec4(s.irradiance, 0);
+      if(isSurfelVisible(s, bboxMin, bboxMax)) {
+        const uint   id  = atomicAdd(surfelCount, 1);
+        surfelsPos [id] = vec4(s.pos, uintBitsToFloat(sId));
+        surfelsNorm[id] = vec4(decodeNormal(s.norm), s.radius);
+        surfelsIrr [id] = vec4(s.irradiance, 0);
+        }
       }
     barrier();
 
     if(!sky) {
-      const uint surfCount = min(cnt-i, NumThreads);
-      applyBatch(clr, wpos, norm, surfCount);
+      applyBatch(clr, wpos, norm, surfelCount);
       }
 
     if(i+NumThreads>=cnt)

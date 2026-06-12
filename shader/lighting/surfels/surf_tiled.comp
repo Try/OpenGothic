@@ -11,6 +11,7 @@ const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z
 const ivec2 TileSize   = ivec2(128);
 const float NormalBias = 0.0030;
 const uint  Salt       = 0x9D;
+const float Edge       = 0.15;
 
 layout(std140, push_constant) uniform Push {
   vec3 originLwc;
@@ -30,7 +31,7 @@ layout(binding = 8, std430)          buffer SB2 { uvec4 count; SurfelAlloc req[]
 layout(binding = 11, rgba8) uniform image2D dbgImage;
 
 shared SurfelAlloc prevQueue [256];
-shared SurfelAlloc pointQueue[64];
+shared SurfelAlloc pointQueue[128];
 shared int         pointQueueSize;
 shared int         prevQueueSize;
 
@@ -82,7 +83,6 @@ void mainTile(const ivec2 fragCoord, const ivec2 screenSize) {
 
   const vec3  norm = normalFetch(gbufNormal, fragCoord);
   const vec3  wpos = worldPos(z, norm, fragCoord, screenSize);
-  const float edge = 0.2;
 
   uvec3 p    = uvec3(wpos/10);
   float wMax = seedNoise(wpos, z, screenSize)*0.1;
@@ -92,16 +92,16 @@ void mainTile(const ivec2 fragCoord, const ivec2 screenSize) {
     const float       w = calculteWeight(s,wpos,norm);
     // w = max(w,0);
     wMax = max(wMax,w);
-    if(wMax > edge)
+    if(wMax > Edge)
       break;
     }
 
-  imageStore(dbgImage, fragCoord, vec4(wMax-edge));
+  imageStore(dbgImage, fragCoord, vec4(wMax-Edge));
 
-  if(wMax > edge)
+  if(wMax > Edge)
     return;
 
-  uint  w = floatBitsToUint(wMax/edge) & 0xFFFF0000;
+  uint  w = floatBitsToUint(wMax/Edge) & 0xFFFF0000;
   uint  b = uint(w) | uint(gl_LocalInvocationIndex) ^ Salt;
   atomicMin(fragVote, b);
   }
@@ -126,7 +126,7 @@ void reuseSurfel(ivec2 fragCoord, const ivec2 screenSize) {
 
   if(laneID<prevQueueSize) {
     const float wsurf = calculteWeight(prevQueue[laneID],wpos,norm);
-    if(wsurf>0.1) {
+    if(wsurf > Edge) {
       uint  w = floatBitsToUint(wsurf) & 0xFFFF0000;
       uint  b = uint(w) | uint(laneID);
       atomicMax(reuseVote, b);
