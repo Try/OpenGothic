@@ -24,11 +24,9 @@ layout(binding = 6, r32ui) uniform uimage2D surfCnts;
 layout(binding = 7, r32ui) uniform uimage2D surfBins;
 layout(binding = 8, r11f_g11f_b10f) uniform image2D irradiance;
 
-const uint MaxSurfInCache = 256; //FIXME: iterate whole tile
-shared uint surfCount;
-shared vec4 surfelsPos [MaxSurfInCache];
-shared vec4 surfelsNorm[MaxSurfInCache];
-shared vec4 surfelsIrr [MaxSurfInCache];
+shared vec4 surfelsPos [NumThreads];
+shared vec4 surfelsNorm[NumThreads];
+shared vec4 surfelsIrr [NumThreads];
 
 vec3 worldPos(float z, ivec2 fragCoord, ivec2 screenSize) {
   const mat4 inv = scene.viewProjectLwcInv;
@@ -37,83 +35,60 @@ vec3 worldPos(float z, ivec2 fragCoord, ivec2 screenSize) {
   return pos.xyz/pos.w + originLwc;
   }
 
-void pullTile(ivec2 tileId) {
-  const uint laneID = gl_LocalInvocationIndex;
-
-  const uint cnt = imageLoad(surfCnts, tileId).x;
-  const uint ptr = imageLoad(surfBins, tileId).x;
-
-  ivec2 bboxMin = ivec2(gl_WorkGroupID.xy*gl_WorkGroupSize.xy);
-  ivec2 bboxMax = bboxMin + ivec2(gl_WorkGroupSize.xy);
-
-  for(uint i=laneID; i<cnt; i+=NumThreads) {
-    uint sId = surfelList[ptr+i];
-
-    const Surfel s    = surfels[sId];
-    const ivec2  at   = s.fragCoord;
-
-    if(bboxMax.x < at.x-s.radiusPix || bboxMax.y < at.y-s.radiusPix)
+void applyBatch(inout vec4 clr, const vec3 wpos, const vec3 norm, const uint surfCount) {
+  for(int i=0; i<surfCount; ++i) {
+    const float w     = calculteWeight(surfelsPos[i].xyz, surfelsNorm[i].xyz, surfelsNorm[i].w, wpos, norm);
+    const vec3  color = surfelsIrr[i].rgb;
+    if(w <= 0)
       continue;
-    if(at.x+s.radiusPix < bboxMin.x || at.y+s.radiusPix < bboxMin.y)
-      continue;
-
-    const uint id = atomicAdd(surfCount,1);
-    if(id>=MaxSurfInCache)
-      return;
-    surfelsPos [id] = vec4(s.pos, uintBitsToFloat(sId));
-    surfelsNorm[id] = vec4(decodeNormal(s.norm), s.radius);
-    surfelsIrr [id] = vec4(s.irradiance, 0);
+    clr += vec4(color*w, w);
     }
   }
 
 void main() {
-  surfCount = 0;
-  barrier();
+  const uint laneID = gl_LocalInvocationIndex;
 
   const ivec2 fragCoord  = ivec2(gl_GlobalInvocationID.xy);
   const ivec2 screenSize = ivec2(textureSize(depth,0));
   const bool  valid      = all(lessThan(fragCoord, screenSize));
 
-  const float z   = valid ? texelFetch(depth,fragCoord,0).x : 0;
-  const bool  sky = (z >= SKY_DEPTH);
+  const ivec2 tileId = ivec2(gl_WorkGroupID.xy*gl_WorkGroupSize.xy)/int(tileSize);
+  const uint  cnt    = imageLoad(surfCnts, tileId).x;
+  const uint  ptr    = imageLoad(surfBins, tileId).x;
 
-  ivec2 t = ivec2(gl_WorkGroupID.xy*gl_WorkGroupSize.xy)/int(tileSize);
-  pullTile(t);
-  barrier();
+  const float z    = valid ? texelFetch(depth,fragCoord,0).x : 1;
+  const vec3  wpos = worldPos(z, fragCoord, screenSize);
+  const vec3  norm = normalFetch(gbufNormal, fragCoord);
+  const bool  sky  = (z >= SKY_DEPTH);
 
-  if(gl_LocalInvocationIndex==0)
-    surfCount = min(surfCount, MaxSurfInCache);
-  barrier();
+  vec4 clr = vec4(0);
+  for(uint i=0; ; i+=NumThreads) {
+    if(i+laneID < cnt) {
+      const uint   sId = surfelList[ptr+i+laneID];
+      const Surfel s   = surfels[sId];
 
-  if(!valid || sky) {
-    imageStore(irradiance, fragCoord, vec4(0));
+      surfelsPos [laneID] = vec4(s.pos, uintBitsToFloat(sId));
+      surfelsNorm[laneID] = vec4(decodeNormal(s.norm), s.radius);
+      surfelsIrr [laneID] = vec4(s.irradiance, 0);
+      }
+    barrier();
+
+    if(!sky) {
+      const uint surfCount = min(cnt-i, NumThreads);
+      applyBatch(clr, wpos, norm, surfCount);
+      }
+
+    if(i+NumThreads>=cnt)
+      break;
+    barrier();
+    }
+
+  if(!valid || sky)
     return;
-    }
-  if(surfCount >= MaxSurfInCache) {
-    imageStore(irradiance, fragCoord, vec4(1,1,0,0));
-    return;
-    }
-
-  const vec3 wpos = worldPos(z, fragCoord, screenSize);
-  const vec3 norm = normalFetch(gbufNormal,fragCoord);
-
-  vec4  clr  = vec4(0);
-  float maxW = 0;
-  for(int i=0; i<surfCount; ++i) {
-    const float w     = calculteWeight(surfelsPos[i].xyz, surfelsNorm[i].xyz, surfelsNorm[i].w, wpos, norm);
-    const vec3  color = surfelsIrr[i].rgb;
-    if(w>maxW)
-      maxW = w;
-    if(w <= 0)
-      continue;
-    clr += vec4(color*w, w);
-    }
 
   if(clr.a>0)
     clr.rgb /= clr.a;
   clr.rgb *= scene.exposure;
 
-  // imageStore(dbgImage, fragCoord, vec4(surfCount/255.0));
-  // imageStore(dbgImage, fragCoord, vec4(maxW));
-  imageStore(irradiance, fragCoord, vec4(clr.rgb, surfCount/100.0));
+  imageStore(irradiance, fragCoord, vec4(clr.rgb, clr.a));
   }
