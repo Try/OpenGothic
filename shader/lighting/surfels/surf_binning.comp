@@ -18,26 +18,49 @@ layout(binding = 2, r32ui)  uniform uimage2D surfCnts;
 layout(binding = 3, r32ui)  uniform readonly uimage2D surfBins;
 layout(binding = 4, std430) buffer SB1 { uint surfelIds[]; };
 
+vec4 projectSphere(const vec3 pos, float R) {
+  // https://jcgt.org/published/0002/02/05/paper.pdf
+  const vec4 viewPos = (scene.viewProject * vec4(pos.xyz, 1));
+  const vec3 c       = viewPos.xyz;
+
+  if (c.z + R < 0.0) {
+    return vec4(-1);
+    }
+
+  const float P00 = scene.project[0][0]; // fx
+  const float P11 = scene.project[1][1]; // fy
+
+  vec3  cr   = c * R;
+  float czr2 = c.z * c.z - R * R;
+
+  float vx   = sqrt(c.x * c.x + czr2);
+  float minx = (vx * c.x - cr.z) / (vx * c.z + cr.x);
+  float maxx = (vx * c.x + cr.z) / (vx * c.z - cr.x);
+
+  float vy   = sqrt(c.y * c.y + czr2);
+  float miny = (vy * c.y - cr.z) / (vy * c.z + cr.y);
+  float maxy = (vy * c.y + cr.z) / (vy * c.z - cr.y);
+
+  vec4 aabb = vec4(minx * P00, miny * P11, maxx * P00, maxy * P11);
+  aabb = aabb*0.5 + vec4(0.5);
+  return vec4(floor(aabb.xy*scene.screenRes), ceil(aabb.zw*scene.screenRes));
+  }
+
 float pixelToWorld(float pixelRadius, float z) {
   z = linearDepth(z, scene.clipInfo);
 
-  float clipRadiusX = (2.0 * pixelRadius) * scene.screenResInv.x;
-  float clipRadiusY = (2.0 * pixelRadius) * scene.screenResInv.y;
+  float clipRadiusX  = (2.0 * pixelRadius) * scene.screenResInv.x;
+  float clipRadiusY  = (2.0 * pixelRadius) * scene.screenResInv.y;
 
   float worldRadiusX = (clipRadiusX * z) / scene.project[0][0];
   float worldRadiusY = (clipRadiusY * z) / scene.project[1][1];
   return min(worldRadiusX, worldRadiusY);
   }
 
-float renewRadius(const Surfel p, float z) {
-  float maxR = pixelToWorld(DefaultCoverage, z);
-  float minR = pixelToWorld(4, z);
-  //return max(1, maxR);
-
-  return max(min(p.hRayHit*0.5, maxR), minR);
-
-  // return max(min(p.hRayHit, maxR), 1);
-  // return clamp(p.hRayHit, 1, maxR);
+int worldToPixel(const vec3 pos, float R) {
+  vec4 area = projectSphere(pos, R);
+  vec2 sz   = area.zw - area.xy;
+  return int( ceil(max(sz.x, sz.y)*0.5) );
   }
 
 void main() {
@@ -45,16 +68,22 @@ void main() {
   if(surfelId>=count.x)
     return;
 
-  const Surfel p         = surfels[surfelId];
-  const vec4   pos4      = scene.viewProject * vec4(p.pos, 1.0);
-  const vec2   posNdc    = ((pos4.xy/pos4.w)*0.5+0.5);
-  const ivec2  fragCoord = ivec2(posNdc*scene.screenRes + 0.5);
+  const Surfel p          = surfels[surfelId];
+  const vec4   pos4       = scene.viewProject * vec4(p.pos, 1.0);
+  const vec2   posNdc     = ((pos4.xy/pos4.w)*0.5+0.5);
+  const ivec2  fragCoord  = ivec2(posNdc*scene.screenRes + 0.5);
+  const float  rMin       = pixelToWorld(MinCoverage,     pos4.z/pos4.w);
+  const float  rMax       = pixelToWorld(DefaultCoverage, pos4.z/pos4.w);
+  const float  radiusMean = max(rMin, min(p.radiusMean, rMax));
+  const int    radiusPix  = DefaultCoverage; //min(worldToPixel(p.pos, p.radiusMean), DefaultCoverage);
 
-  surfels[surfelId].fragCoord = fragCoord;
-  surfels[surfelId].radius    = renewRadius(p, pos4.z/pos4.w);
+  surfels[surfelId].fragCoord  = fragCoord;
+  surfels[surfelId].radiusPix  = radiusPix;
+  surfels[surfelId].radius     = rMax;
+  surfels[surfelId].radiusMean = radiusMean;
 
-  ivec2  pos0 = ivec2(fragCoord-p.radiusPix)/tileSize;
-  ivec2  pos1 = ivec2(fragCoord+p.radiusPix)/tileSize + 1;
+  ivec2  pos0 = ivec2(fragCoord-radiusPix)/tileSize;
+  ivec2  pos1 = ivec2(fragCoord+radiusPix)/tileSize + 1;
 
   ivec2 sz   = imageSize(surfCnts);
   pos0 = max(ivec2(0), pos0);
@@ -68,7 +97,7 @@ void main() {
         continue;
       const uint ptr = imageLoad(surfBins, tile).x + lptr;
       if(ptr>=surfelIds.length())
-        return; // error!
+        return; // error! Must be too little memmory for the binning
       surfelIds[ptr] = surfelId;
       }
   }

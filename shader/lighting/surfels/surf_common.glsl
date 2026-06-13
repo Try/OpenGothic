@@ -4,6 +4,7 @@
 #include "common.glsl"
 
 const float SKY_DEPTH       = 0.999995;
+const int   MinCoverage     = 4; // in pixels
 const int   DefaultCoverage = 128; // in pixels
 
 struct Surfel {
@@ -11,10 +12,9 @@ struct Surfel {
   uint  norm;
   ivec2 fragCoord;
   float radius;
-  int   radiusPix;
+  float radiusMean;
   vec3  irradiance;
-  //uint  padd0;
-  float hRayHit;
+  int   radiusPix;
   };
 
 struct SurfelAlloc {
@@ -94,7 +94,7 @@ uint surfHash(vec3 pos, float cellSize, uint inorm) {
 #endif
   }
 
-float calculteWeight(const vec3 spos, const vec3 snorm, float radius, const vec3 wpos, const vec3 wnorm) {
+float calculteWeight(const vec3 spos, const vec3 snorm, float radius, float rMax, const vec3 wpos, const vec3 wnorm) {
   // An Approximate Global Illumination System for Computer Generated Films
   // https://www.tabellion.org/et/paper/siggraph_2004_gi_for_films.pdf
   // https://cgg.mff.cuni.cz/~jaroslav/papers/2008-irradiance_caching_class/03-greg-ic.pdf
@@ -103,7 +103,7 @@ float calculteWeight(const vec3 spos, const vec3 snorm, float radius, const vec3
   float dotN   = dot(wnorm, snorm);
 
   dist = max(dist, 0.0001);
-#if 1
+#if 0
   float ePos  = dist/radius;
   float eNorm = sqrt(max(1 - 1*dotN, 0)) / sqrt(1.0 - cos(M_PI/6.0)); // Eq. 4
   float w     = 1.0 - max(ePos, eNorm); // Eq. 2
@@ -112,6 +112,11 @@ float calculteWeight(const vec3 spos, const vec3 snorm, float radius, const vec3
   //float eOccl = 1.0 - clamp(-dot(ldir, wnorm), 0, 1)*0.5; // allow small occlusion
   //float eOccl = (dot(ldir, snorm) > 0.1*dist) ? 0.1 : 1;
   return w*eOccl;
+#elif 1
+  float wPos  = max(1.0 - dist/rMax, 0.0)*(radius/dist);
+  float wNorm = pow(max(dotN, 0.0), 2.0);
+  float wOccl = dot((ldir/dist), snorm)*0.5+0.5; // allow small occlusion
+  return wPos * wNorm * wOccl;
 #else
   float ePos  = max(dist/radius, 0.0);
   float eNorm = sqrt(max(1 - 1*dotN, 0));

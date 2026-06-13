@@ -23,6 +23,8 @@ layout(binding = 5, std430) readonly buffer SB1 { uint surfelList[]; };
 layout(binding = 6, r32ui) uniform uimage2D surfCnts;
 layout(binding = 7, r32ui) uniform uimage2D surfBins;
 layout(binding = 8, r11f_g11f_b10f) uniform image2D irradiance;
+//
+layout(binding = 11, rgba8) uniform image2D dbgImage;
 
 shared vec4 surfelsPos [NumThreads];
 shared vec4 surfelsNorm[NumThreads];
@@ -38,7 +40,7 @@ vec3 worldPos(float z, ivec2 fragCoord, ivec2 screenSize) {
 
 void applyBatch(inout vec4 clr, const vec3 wpos, const vec3 norm, const uint surfCount) {
   for(int i=0; i<surfCount; ++i) {
-    const float w     = calculteWeight(surfelsPos[i].xyz, surfelsNorm[i].xyz, surfelsNorm[i].w, wpos, norm);
+    const float w     = calculteWeight(surfelsPos[i].xyz, surfelsNorm[i].xyz, surfelsIrr[i].w, surfelsNorm[i].w, wpos, norm);
     const vec3  color = surfelsIrr[i].rgb;
     if(w <= 0)
       continue;
@@ -78,7 +80,7 @@ void main() {
         const uint   id  = atomicAdd(surfelCount, 1);
         surfelsPos [id] = vec4(s.pos, uintBitsToFloat(sId));
         surfelsNorm[id] = vec4(decodeNormal(s.norm), s.radius);
-        surfelsIrr [id] = vec4(s.irradiance, 0);
+        surfelsIrr [id] = vec4(s.irradiance, s.radiusMean);
         }
       }
     barrier();
@@ -100,4 +102,5 @@ void main() {
   clr.rgb *= scene.exposure;
 
   imageStore(irradiance, fragCoord, vec4(clr.rgb, clr.a));
+  imageStore(dbgImage, fragCoord, vec4(clr.a));
   }

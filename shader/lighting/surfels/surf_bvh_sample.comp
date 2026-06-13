@@ -43,7 +43,7 @@ vec3 worldPos(float z, ivec2 fragCoord, ivec2 screenSize) {
   }
 
 float calculteWeight(const Surfel s, const vec3 wpos, const vec3 norm) {
-  return calculteWeight(s.pos.xyz, decodeNormal(s.norm), s.radius, wpos, norm);
+  return calculteWeight(s.pos.xyz, decodeNormal(s.norm), s.radiusMean, s.radius, wpos, norm);
   }
 
 void shade(const Surfel s, const vec3 wpos, const vec3 norm, const vec3 clr) {

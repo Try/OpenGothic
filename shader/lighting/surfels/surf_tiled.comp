@@ -11,7 +11,7 @@ const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z
 const ivec2 TileSize   = ivec2(128);
 const float NormalBias = 0.0030;
 const uint  Salt       = 0x9D;
-const float Edge       = 0.15;
+const float Edge       = 0.25;
 
 layout(std140, push_constant) uniform Push {
   vec3 originLwc;
@@ -31,7 +31,11 @@ layout(binding = 8, std430)          buffer SB2 { uvec4 count; SurfelAlloc req[]
 layout(binding = 11, rgba8) uniform image2D dbgImage;
 
 shared SurfelAlloc prevQueue [256];
+shared float       prevRMax  [256];
+
 shared SurfelAlloc pointQueue[128];
+shared float       pointRMax [128];
+
 shared int         pointQueueSize;
 shared int         prevQueueSize;
 
@@ -62,8 +66,8 @@ float pixelToWorld(float pixelRadius, float z) {
   return min(worldRadiusX, worldRadiusY);
   }
 
-float calculteWeight(const SurfelAlloc s, const vec3 wpos, const vec3 norm) {
-  return calculteWeight(s.pos.xyz, s.norm, s.pos.w, wpos, norm);
+float calculteWeight(const SurfelAlloc s, float rMax, const vec3 wpos, const vec3 norm) {
+  return calculteWeight(s.pos.xyz, s.norm, s.pos.w, rMax, wpos, norm);
   }
 
 float seedNoise(vec3 wpos, float z, const ivec2 screenSize) {
@@ -85,11 +89,11 @@ void mainTile(const ivec2 fragCoord, const ivec2 screenSize) {
   const vec3  wpos = worldPos(z, norm, fragCoord, screenSize);
 
   uvec3 p    = uvec3(wpos/10);
-  float wMax = seedNoise(wpos, z, screenSize)*0.1;
+  float wMax = 0; // seedNoise(wpos, z, screenSize)*0.1;
   for(int i=pointQueueSize; i>0;) {
     --i;
     const SurfelAlloc s = pointQueue[i];
-    const float       w = calculteWeight(s,wpos,norm);
+    const float       w = calculteWeight(s,pointRMax[i],wpos,norm);
     // w = max(w,0);
     wMax = max(wMax,w);
     if(wMax > Edge)
@@ -125,7 +129,7 @@ void reuseSurfel(ivec2 fragCoord, const ivec2 screenSize) {
   const vec3  wpos = worldPos(z, norm, fragCoord, screenSize);
 
   if(laneID<prevQueueSize) {
-    const float wsurf = calculteWeight(prevQueue[laneID],wpos,norm);
+    const float wsurf = calculteWeight(prevQueue[laneID],prevRMax[laneID],wpos,norm);
     if(wsurf > Edge) {
       uint  w = floatBitsToUint(wsurf) & 0xFFFF0000;
       uint  b = uint(w) | uint(laneID);
@@ -145,9 +149,11 @@ void reuseSurfel(ivec2 fragCoord, const ivec2 screenSize) {
   reuseVote = 0x0000FFFF;
 
   pointQueue[pointQueueSize] = prevQueue[reuseId];
+  pointRMax [pointQueueSize] = prevRMax [reuseId];
   pointQueueSize++;
 
   prevQueue[reuseId] = prevQueue[prevQueueSize-1];
+  prevRMax [reuseId] = prevRMax [prevQueueSize-1];
   prevQueueSize--;
   }
 
@@ -175,10 +181,11 @@ void surfAlloc(ivec2 fragCoord, const ivec2 screenSize) {
   const float sz   = max(pixelToWorld(DefaultCoverage, z), 0);
 
   SurfelAlloc s;
-  s.pos     = vec4(wpos, sz);
+  s.pos     = vec4(wpos, sz*0.5);
   s.norm    = norm;
   s.reuseId = 0xFFFFFFFF;
   pointQueue[pointQueueSize] = s;
+  pointRMax [pointQueueSize] = sz;
   pointQueueSize++;
   }
 
@@ -220,6 +227,7 @@ void loadTile(ivec2 tileId) {
     s.norm    = decodeNormal(sx.norm);
     s.reuseId = sId;
     prevQueue[i] = s;
+    prevRMax [i] = sx.radiusMean;
     }
   }
 

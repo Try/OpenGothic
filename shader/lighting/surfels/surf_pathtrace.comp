@@ -4,6 +4,8 @@
 #define RAY_QUERY
 #define RAY_QUERY_AT
 
+// #define USE_MIN_HIT_DIST
+
 #include "lighting/rt/rt_common.glsl"
 #include "lighting/pt/pathtrace_common.glsl"
 #include "lighting/surfels/surf_common.glsl"
@@ -134,7 +136,12 @@ void reduceIrr() {
 
   for(uint stride = NumThreads/2; stride > 0; stride >>= 1) {
     if(laneID < stride) {
-      reduction[laneID] += reduction[laneID + stride];
+      reduction[laneID].rgb += reduction[laneID + stride].rgb;
+#if defined(USE_MIN_HIT_DIST)
+      reduction[laneID].a = min(reduction[laneID].a, reduction[laneID + stride].a);
+#else
+      reduction[laneID].a += reduction[laneID + stride].a;
+#endif
       }
     barrier();
     }
@@ -158,15 +165,23 @@ void main() {
   // const vec3 ray = randCosWeightedHemisphereDirection(decodeNormal(p.norm), rngState);
   const vec4 pt  = pathtrace(p.pos, ray, rngState);
 
-  reduction[i] = vec4(pt.rgb, 1.0/max(pt.a, eps));
+#if defined(USE_MIN_HIT_DIST)
+  reduction[i] = vec4(pt.rgb, pt.a);
+#else
+  reduction[i] = vec4(pt.rgb, 1.0/clamp(pt.a, eps, p.radius));
+#endif
   barrier();
 
   reduceIrr();
 
   if(gl_LocalInvocationIndex==0) {
+#if defined(USE_MIN_HIT_DIST)
+    const float hitMin = max(4, reduction[0].a);
+    surfels[surfelId].radiusMean = hitMin;
+#else
     const float hitMean = float(numPaths)/max(reduction[0].a, eps); //harmonic mean
-    surfels[surfelId].hRayHit    = hitMean;
-    // surfels[surfelId].radius     = min(hitMean, p.radius);
+    surfels[surfelId].radiusMean = hitMean;
+#endif
     surfels[surfelId].irradiance = (reduction[0].rgb/float(numPaths));
     }
   }
