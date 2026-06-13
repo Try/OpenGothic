@@ -147,14 +147,14 @@ void main() {
   if(surfelId>=count.x)
     return;
 
-  // uint  hashKey = pcgHash(inorm
-  Random rngState = Random(0);
 
   const Surfel p   = surfels[surfelId];
   const mat3   tbn = toTangent(decodeNormal(p.norm));
 
+  Random rngState = Random(pcgHash(gl_LocalInvocationIndex));
+
   const uint i   = gl_LocalInvocationIndex;
-  const vec3 ray = tbn * sampleHemisphereCos(i,numPaths,0).xzy;
+  const vec3 ray = tbn * sampleHemisphereCos(i,numPaths,0);
   // const vec3 ray = randCosWeightedHemisphereDirection(decodeNormal(p.norm), rngState);
   const vec4 pt  = pathtrace(p.pos, ray, rngState);
 
@@ -164,8 +164,9 @@ void main() {
   reduceIrr();
 
   if(gl_LocalInvocationIndex==0) {
-    // const float hitMean = float(numPaths)/max(reduction[0].a, eps); //harmonic mean
-    // surfels[surfelId].radius     = min(surfels[surfelId].radius, hitMean);
+    const float hitMean = float(numPaths)/max(reduction[0].a, eps); //harmonic mean
+    surfels[surfelId].hRayHit    = hitMean;
+    // surfels[surfelId].radius     = min(hitMean, p.radius);
     surfels[surfelId].irradiance = (reduction[0].rgb/float(numPaths));
     }
   }

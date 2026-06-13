@@ -13,7 +13,8 @@ struct Surfel {
   float radius;
   int   radiusPix;
   vec3  irradiance;
-  uint  padd0;
+  //uint  padd0;
+  float hRayHit;
   };
 
 struct SurfelAlloc {
@@ -102,7 +103,7 @@ float calculteWeight(const vec3 spos, const vec3 snorm, float radius, const vec3
   float dotN   = dot(wnorm, snorm);
 
   dist = max(dist, 0.0001);
-
+#if 1
   float ePos  = dist/radius;
   float eNorm = sqrt(max(1 - 1*dotN, 0)) / sqrt(1.0 - cos(M_PI/6.0)); // Eq. 4
   float w     = 1.0 - max(ePos, eNorm); // Eq. 2
@@ -111,6 +112,12 @@ float calculteWeight(const vec3 spos, const vec3 snorm, float radius, const vec3
   //float eOccl = 1.0 - clamp(-dot(ldir, wnorm), 0, 1)*0.5; // allow small occlusion
   //float eOccl = (dot(ldir, snorm) > 0.1*dist) ? 0.1 : 1;
   return w*eOccl;
+#else
+  float ePos  = max(dist/radius, 0.0);
+  float eNorm = sqrt(max(1 - 1*dotN, 0));
+  float eOccl = dot((ldir/dist), 0.5*(snorm+wnorm))*0.5+0.5; // allow small occlusion
+  return (1.0*eOccl)/max(ePos + eNorm, 0.0001) - 1.0;
+#endif
   }
 
 vec3 surfDebugColor(Surfel s, uint sId) {

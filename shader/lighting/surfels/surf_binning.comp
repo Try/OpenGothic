@@ -30,7 +30,14 @@ float pixelToWorld(float pixelRadius, float z) {
   }
 
 float renewRadius(const Surfel p, float z) {
-  return max(pixelToWorld(DefaultCoverage, z), 0);
+  float maxR = pixelToWorld(DefaultCoverage, z);
+  float minR = pixelToWorld(4, z);
+  //return max(1, maxR);
+
+  return max(min(p.hRayHit*0.5, maxR), minR);
+
+  // return max(min(p.hRayHit, maxR), 1);
+  // return clamp(p.hRayHit, 1, maxR);
   }
 
 void main() {

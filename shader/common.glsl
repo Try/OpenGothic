@@ -188,7 +188,7 @@ vec3 sampleHemisphereCos(uint i, uint numSamples, float offsetAng) {
   const float u   = sqrt(1 - xi.x);
   const float u1p = sqrt(1 - u*u);
   const float a   = M_PI*2.0*xi.y + offsetAng;
-  return vec3(cos(a) * u1p, xi.x, sin(a) * u1p);
+  return vec3(cos(a) * u1p, sin(a) * u1p, xi.x);
   }
 
 vec3 sampleSphere(uint i, uint numSamples, float offsetAng) {
