@@ -252,17 +252,13 @@ void Shaders::compileShaders() {
     surfInit     = computeShader("surf_init.comp.sprv");
     surfTiled    = computeShader("surf_tiled.comp.sprv");
     surfAlloc    = computeShader("surf_alloc.comp.sprv");
+    surfApply    = computeShader("surf_apply.comp.sprv");
 
     surfBinning  = computeShader("surf_binning.comp.sprv");
     surfBinClear = computeShader("surf_bin_clear.comp.sprv");
     surfBinAlloc = computeShader("surf_bin_alloc.comp.sprv");
 
     surfPathtrace = computeShader("surf_pathtrace.comp.sprv");
-
-    surfApply    = computeShader("surf_apply.comp.sprv");
-
-    surfBvh       = computeShader("surf_bvh.comp.sprv");
-    surfBvhSample = computeShader("surf_bvh_sample.comp.sprv");
     }
 
   if(Shaders::isVsmSupported()) {
