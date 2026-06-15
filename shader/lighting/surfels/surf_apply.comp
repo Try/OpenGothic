@@ -94,8 +94,10 @@ void main() {
     barrier();
     }
 
-  if(!valid || sky)
+  if(!valid || sky) {
+    imageStore(dbgImage, fragCoord, vec4(1));
     return;
+    }
 
   if(clr.a>0)
     clr.rgb /= clr.a;
