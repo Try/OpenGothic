@@ -40,6 +40,12 @@ static bool boolArg(std::string_view v) {
   return std::string_view(v)!="0" && std::string_view(v)!="false";
   }
 
+static int intArg(std::string_view v) {
+  if(v=="false")
+    return 0;
+  return (std::stol(std::string(v)));
+  }
+
 CommandLine::CommandLine(int argc, const char** argv) {
   instance = this;
   if(argc<1)
@@ -114,8 +120,8 @@ CommandLine::CommandLine(int argc, const char** argv) {
       ++i;
       if(i<argc) {
         try {
-          aaPresetId = uint32_t(std::stoul(std::string(argv[i])));
-          aaPresetId = std::clamp(aaPresetId, 0u, uint32_t(AaPreset::PRESETS_COUNT)-1u);
+          const int arg = std::max(0, intArg(argv[i]));
+          aaPresetId = std::clamp(uint32_t(arg), 0u, uint32_t(AaPreset::PRESETS_COUNT)-1u);
           }
         catch (const std::exception& e) {
           Log::i("failed to read cmaa2 preset: \"", std::string(argv[i]), "\"");
@@ -124,8 +130,10 @@ CommandLine::CommandLine(int argc, const char** argv) {
       }
     else if(arg=="-gi") {
       ++i;
-      if(i<argc)
-        isGi = boolArg(argv[i]);
+      if(i<argc) {
+        const int arg = std::max(0, intArg(argv[i]));
+        isGi = GiMethod(std::clamp(arg, 0, GiMethod::Count-1));
+        }
       }
     else if(arg=="-ms") {
       ++i;

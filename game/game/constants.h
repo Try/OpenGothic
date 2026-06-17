@@ -540,3 +540,10 @@ enum class Benchmark : uint8_t {
   Normal,
   CiTooling
   };
+
+enum GiMethod : uint8_t {
+  None,
+  Probes, // legacy
+  IrrC,
+  Count
+  };

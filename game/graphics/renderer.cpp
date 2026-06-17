@@ -88,11 +88,12 @@ Renderer::Renderer(Tempest::Swapchain& swapchain)
 
   Gothic::inst().togglePathtrace.bind(this, &Renderer::togglePathtrace);
 
-  settings.giEnabled   = Gothic::options().doRtGi;
-  settings.vsmEnabled  = Gothic::options().doVirtualShadow;
-  settings.rtsmEnabled = Gothic::options().doSoftwareShadow;
-  settings.swrEnabled  = Gothic::options().swRenderingPreset>0;
-  settings.swrtEnabled = Gothic::options().doSoftwareRT;
+  settings.giEnabled        = Gothic::options().doRtGi;
+  settings.giSurfelsEnabled = Gothic::options().doIrrcGi;
+  settings.vsmEnabled       = Gothic::options().doVirtualShadow;
+  settings.rtsmEnabled      = Gothic::options().doSoftwareShadow;
+  settings.swrEnabled       = Gothic::options().swRenderingPreset>0;
+  settings.swrtEnabled      = Gothic::options().doSoftwareRT;
 
   sky.cloudsLut     = device.image2d   (sky.lutRGBAFormat,  2,  1);
   sky.transLut      = device.attachment(sky.lutRGBFormat, 256, 64);
@@ -562,7 +563,7 @@ void Renderer::draw(Encoder<CommandBuffer>& cmd, uint8_t cmdId, size_t imgId,
   }
 
 void Renderer::dbgDraw(Tempest::Painter& p) {
-  static bool dbg = false;
+  static bool dbg = true;
   if(!dbg)
     return;
 
@@ -2373,7 +2374,7 @@ void Renderer::drawRayQueryDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, co
   }
 
 void Renderer::drawSurfelsDbg(Encoder<CommandBuffer>& cmd, const WorldView& wview) {
-  static bool enable = false;
+  static bool enable = true;
   if(!enable)
     return;
 
@@ -2390,7 +2391,7 @@ void Renderer::drawProbesDbg(Encoder<CommandBuffer>& cmd, const WorldView& wview
   if(!settings.giEnabled)
     return;
 
-  static bool enable = false;
+  static bool enable = true;
   if(!enable)
     return;
 

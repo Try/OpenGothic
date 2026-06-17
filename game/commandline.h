@@ -36,7 +36,7 @@ class CommandLine {
     bool                isValidationMode() const { return isDebug;      }
     bool                isWindowMode()     const { return isWindow;     }
     bool                isRayQuery()       const { return isRQuery;     }
-    bool                isRtGi()           const { return isGi;         }
+    GiMethod            isRtGi()           const { return isGi;         }
     bool                isMeshShading()    const { return isMeshSh;     }
     bool                isBindless()       const { return isBindlessSh; }
     bool                isVirtualShadow()  const { return isVsm;        }
@@ -74,7 +74,7 @@ class CommandLine {
     bool                isBindlessSh = true;
     bool                isVsm        = false;
     bool                isRtSm       = false;
-    bool                isGi         = false;
+    GiMethod            isGi         = GiMethod::None;
     bool                forceG1      = false;
     bool                forceG2      = false;
     bool                forceG2NR    = false;

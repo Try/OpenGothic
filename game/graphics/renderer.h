@@ -123,7 +123,7 @@ class Renderer final {
       bool           zFogRadial         = false;
 
       bool           giEnabled          = false;
-      bool           giSurfelsEnabled   = true; //TESTING
+      bool           giSurfelsEnabled   = false;
       bool           aaEnabled          = false;
 
       float          zVidBrightness     = 0.5;
