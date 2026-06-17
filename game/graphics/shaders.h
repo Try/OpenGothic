@@ -27,6 +27,8 @@ class Shaders {
     static Shaders& inst();
     static bool isVsmSupported();
     static bool isRtsmSupported();
+    static bool isGi1Supported();
+    static bool isGi2Supported();
 
     Tempest::RenderPipeline  lights, lightsRq, lightsVsm;
     Tempest::RenderPipeline  directLight,  directLightSh, directLightRq;

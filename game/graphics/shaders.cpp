@@ -381,6 +381,26 @@ bool Shaders::isRtsmSupported() {
   return true;
   }
 
+bool Shaders::isGi1Supported() {
+  auto& gpu = Resources::device().properties();
+  if(!gpu.raytracing.rayQuery)
+    return false;
+  if(!gpu.hasStorageFormat(R11G11B10UF) || !gpu.hasStorageFormat(R16))
+    return false;
+  if(gpu.tex2d.maxSize<4096 || gpu.compute.maxInvocations<256 || !gpu.descriptors.nonUniformIndexing)
+    return false;
+  return true;
+  }
+
+bool Shaders::isGi2Supported() {
+  auto& gpu = Resources::device().properties();
+  if(!gpu.raytracing.rayQuery)
+    return false;
+  if(gpu.compute.maxInvocations<256 || !gpu.descriptors.nonUniformIndexing)
+    return false;
+  return true;
+  }
+
 const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawCommands::Type t, PipelineType pt, bool bl) const {
   if(t==DrawCommands::Static) {
     // same shader

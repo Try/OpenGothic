@@ -88,8 +88,7 @@ Renderer::Renderer(Tempest::Swapchain& swapchain)
 
   Gothic::inst().togglePathtrace.bind(this, &Renderer::togglePathtrace);
 
-  settings.giEnabled        = Gothic::options().doRtGi;
-  settings.giSurfelsEnabled = Gothic::options().doIrrcGi;
+  settings.giMethod         = Gothic::options().doGi;
   settings.vsmEnabled       = Gothic::options().doVirtualShadow;
   settings.rtsmEnabled      = Gothic::options().doSoftwareShadow;
   settings.swrEnabled       = Gothic::options().swRenderingPreset>0;
@@ -194,7 +193,7 @@ void Renderer::setupSettings() {
 
   auto prevVidResIndex = settings.vidResIndex;
   settings.vidResIndex = Gothic::inst().settingsGetF("INTERNAL","vidResIndex");
-  settings.aaEnabled = (Gothic::options().aaPreset>0) && (settings.vidResIndex==0);
+  settings.aaEnabled   = (Gothic::options().aaPreset>0) && (settings.vidResIndex==0);
 
   // direct lighting
   if(settings.rtsmEnabled)
@@ -217,8 +216,23 @@ void Renderer::setupSettings() {
   else
     lights.directLightPso = &shaders.lights;
 
+  const auto gi = settings.giMethod;
+  if(gi==GiMethod::Probes && Shaders::isGi1Supported() && Gothic::options().doRayQuery) {
+    settings.giMethod = GiMethod::Probes;
+    }
+  else if(gi==GiMethod::IrrC && Shaders::isGi2Supported() && Gothic::options().doRayQuery) {
+    settings.giMethod = GiMethod::IrrC;
+    }
+  else {
+    settings.giMethod = GiMethod::None;
+    }
+
   if(prevVidResIndex!=settings.vidResIndex) {
     resetSwapchain();
+    }
+  if(settings.giMethod!=GiMethod::None) {
+    // need a projective shadow, for gi
+    resetShadowmap();
     }
   resetSkyFog();
   resetShadowmap();
@@ -231,21 +245,15 @@ void Renderer::toggleGi() {
   if(!Gothic::options().doRayQuery)
     return;
 
-  auto prop = device.properties();
-  if(prop.tex2d.maxSize<4096 || !prop.hasStorageFormat(R11G11B10UF) || !prop.hasStorageFormat(R16))
-    return;
-
-  settings.giEnabled = !settings.giEnabled;
+  if(settings.giMethod==GiMethod::None && Gothic::options().doGi!=GiMethod::None)
+    settings.giMethod = Gothic::options().doGi;
+  else if(settings.giMethod==GiMethod::None && Shaders::isGi1Supported())
+    settings.giMethod = GiMethod::Probes; // default for now
+  else
+    settings.giMethod = GiMethod::None;
 
   device.waitIdle();
-  if(auto wview  = Gothic::inst().worldView()) {
-    wview->resetRendering();
-    }
-  if(settings.giEnabled) {
-    // need a projective shadow, for gi
-    resetShadowmap();
-    }
-  prepareUniforms();
+  setupSettings();
   }
 
 void Renderer::toggleVsm() {
@@ -326,7 +334,7 @@ bool Renderer::requiresTlas() const {
   if(!Gothic::options().doRayQuery)
     return false;
 
-  if(settings.giEnabled || settings.giSurfelsEnabled || settings.pathTraceEnabled)
+  if(settings.giMethod!=GiMethod::None || settings.pathTraceEnabled)
     return true;
   if(!(settings.rtsmEnabled || settings.vsmEnabled))
     return true;
@@ -413,7 +421,7 @@ void Renderer::resetShadowmap() {
   for(int i=0; i<Resources::ShadowLayers; ++i)
     Resources::recycle(std::move(shadowMap[i]));
 
-  const bool forceSm1 = (settings.giEnabled || settings.pathTraceEnabled || sky.quality==PathTrace);
+  const bool forceSm1 = (settings.giMethod==GiMethod::Probes || settings.pathTraceEnabled || sky.quality==PathTrace);
   for(int i=0; i<Resources::ShadowLayers; ++i) {
     if(!(i==1 && forceSm1)) {
       if(settings.vsmEnabled && !(settings.rtsmEnabled && i==1))
@@ -1942,7 +1950,7 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
   if(!enable)
     return;
 
-  if(!settings.giSurfelsEnabled)
+  if(settings.giMethod!=GiMethod::IrrC)
     return;
 
   // const  auto     maxSeed    = tileCount(zbuffer.size(), 4); // 4px is smalles footprint
@@ -2106,7 +2114,7 @@ void Renderer::prepareIrradiance(Encoder<CommandBuffer>& cmd, WorldView& wview) 
   }
 
 void Renderer::prepareGi(Encoder<CommandBuffer>& cmd, WorldView& wview) {
-  if(!settings.giEnabled || !settings.zCloudShadowScale) {
+  if(settings.giMethod!=GiMethod::Probes || !settings.zCloudShadowScale) {
     return;
     }
 
@@ -2388,7 +2396,7 @@ void Renderer::drawSurfelsDbg(Encoder<CommandBuffer>& cmd, const WorldView& wvie
   }
 
 void Renderer::drawProbesDbg(Encoder<CommandBuffer>& cmd, const WorldView& wview) {
-  if(!settings.giEnabled)
+  if(settings.giMethod!=GiMethod::Probes)
     return;
 
   static bool enable = true;
@@ -2405,7 +2413,7 @@ void Renderer::drawProbesDbg(Encoder<CommandBuffer>& cmd, const WorldView& wview
   }
 
 void Renderer::drawProbesHitDbg(Encoder<CommandBuffer>& cmd) {
-  if(!settings.giEnabled)
+  if(settings.giMethod!=GiMethod::Probes)
     return;
 
   static bool enable = false;
@@ -2427,9 +2435,19 @@ void Renderer::drawAmbient(Encoder<CommandBuffer>& cmd, const WorldView& view) {
   if(!enable)
     return;
 
-  if(settings.giEnabled && settings.zCloudShadowScale) {
-    cmd.setDebugMarker("AmbientLight");
-    cmd.setBinding(0, view.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+  cmd.setDebugMarker("AmbientLight");
+  cmd.setBinding(0, view.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+  cmd.setBinding(1, gbufDiffuse, Sampler::nearest());
+  cmd.setBinding(2, gbufNormal,  Sampler::nearest());
+  cmd.setBinding(3, sky.irradianceLut);
+  if(settings.giMethod==GiMethod::IrrC) {
+    auto& ao = (settings.zCloudShadowScale ? textureCast<Texture2d&>(ssao.ssaoBlur) : Resources::fallbackBlack());
+    cmd.setBinding(4, ao,            Sampler::nearest(ClampMode::ClampToEdge));
+    cmd.setBinding(5, surf.irrImage, Sampler::nearest(ClampMode::ClampToEdge));
+    cmd.setPipeline(shaders.ambientLightSurf);
+    }
+  else if(settings.giMethod==GiMethod::Probes && settings.zCloudShadowScale) {
+    //TBD
     cmd.setBinding(1, gi.probesLighting);
     cmd.setBinding(2, gbufDiffuse,   Sampler::nearest());
     cmd.setBinding(3, gbufNormal,    Sampler::nearest());
@@ -2438,20 +2456,6 @@ void Renderer::drawAmbient(Encoder<CommandBuffer>& cmd, const WorldView& view) {
     cmd.setBinding(6, gi.hashTable);
     cmd.setBinding(7, gi.probes);
     cmd.setPipeline(shaders.probeAmbient);
-    cmd.draw(nullptr, 0, 3);
-    return;
-    }
-
-  cmd.setDebugMarker("AmbientLight");
-  cmd.setBinding(0, view.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-  cmd.setBinding(1, gbufDiffuse, Sampler::nearest());
-  cmd.setBinding(2, gbufNormal,  Sampler::nearest());
-  cmd.setBinding(3, sky.irradianceLut);
-  if(settings.giSurfelsEnabled) {
-    auto& ao = (settings.zCloudShadowScale ? textureCast<Texture2d&>(ssao.ssaoBlur) : Resources::fallbackBlack());
-    cmd.setBinding(4, ao,            Sampler::nearest(ClampMode::ClampToEdge));
-    cmd.setBinding(5, surf.irrImage, Sampler::nearest(ClampMode::ClampToEdge));
-    cmd.setPipeline(shaders.ambientLightSurf);
     }
   else if(settings.zCloudShadowScale) {
     cmd.setBinding(4, ssao.ssaoBlur, Sampler::nearest(ClampMode::ClampToEdge));

@@ -122,8 +122,7 @@ class Renderer final {
       bool           zCloudShadowScale  = false;
       bool           zFogRadial         = false;
 
-      bool           giEnabled          = false;
-      bool           giSurfelsEnabled   = false;
+      GiMethod       giMethod           = GiMethod::None;
       bool           aaEnabled          = false;
 
       float          zVidBrightness     = 0.5;
