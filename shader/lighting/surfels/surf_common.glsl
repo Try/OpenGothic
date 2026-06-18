@@ -4,7 +4,7 @@
 #include "common.glsl"
 
 const float SKY_DEPTH       = 0.999995;
-const int   MinCoverage     = 4; // in pixels
+const int   MinCoverage     = 8;   // in pixels
 const int   DefaultCoverage = 128; // in pixels
 
 struct Surfel {

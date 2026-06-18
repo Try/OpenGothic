@@ -12,7 +12,8 @@ const ivec2 TileSize    = ivec2(128);
 const float NormalBias  = 0.0030;
 const uint  Salt        = 0x9D;
 const float Edge        = 0.1;
-const float MaxAttempts = 3;
+const float MaxAttempts = 4;
+const int   MaxQueue    = 256;
 
 layout(std140, push_constant) uniform Push {
   vec3 originLwc;
@@ -31,23 +32,16 @@ layout(binding = 8, std430)          buffer SB2 { uvec4 count; SurfelAlloc req[]
 //
 layout(binding = 11, rgba8) uniform image2D dbgImage;
 
-shared SurfelAlloc prevQueue [256];
-shared float       prevRMax  [256];
+shared SurfelAlloc prevQueue [MaxQueue];
+shared float       prevRMax  [MaxQueue];
 
-shared SurfelAlloc pointQueue[128];
-shared float       pointRMax [128];
+shared SurfelAlloc pointQueue[MaxQueue];
+shared float       pointRMax [MaxQueue];
 
 shared int         pointQueueSize;
 shared int         prevQueueSize;
 
 shared uint fragVote, reuseVote;
-
-vec3 rayOrigin(ivec2 frag, float depth, vec3 normal) {
-  const vec2 fragCoord = ((frag.xy+0.5)*scene.screenResInv)*2.0 - vec2(1.0);
-  const vec4 scr       = vec4(fragCoord.x, fragCoord.y, depth, 1.0);
-  const vec4 wpos      = scene.viewProjectLwcInv * scr;
-  return (wpos.xyz + normal*NormalBias)/wpos.w;
-  }
 
 vec3 worldPos(float z, vec3 normal, ivec2 fragCoord, ivec2 screenSize) {
   const mat4 inv = scene.viewProjectLwcInv;
@@ -121,21 +115,34 @@ void loadTile(ivec2 tileId) {
   ivec2 bboxMin = ivec2(gl_WorkGroupID.xy*TileSize);
   ivec2 bboxMax = bboxMin + ivec2(TileSize);
 
-  if(laneID==0)
-    prevQueueSize = int(min(cnt, prevQueue.length()));
+  const bool conservative = (cnt>prevQueue.length());
+
   barrier();
 
-  for(uint i=laneID; i<prevQueueSize; i+=NumThreads) {
+  for(uint i=laneID; i<cnt; i+=NumThreads) {
     const uint   sId = surfelList[ptr+i];
     const Surfel sx  = glob.surfels[sId];
+
+    if(conservative) {
+      ivec2 fragCoord = sx.fragCoord;
+      if(fragCoord.x < bboxMin.x || bboxMax.x<=fragCoord.x ||
+         fragCoord.y < bboxMin.y || bboxMax.y<=fragCoord.y)
+        continue;
+      }
+
+    const uint id = atomicAdd(prevQueueSize, 1);
 
     SurfelAlloc s;
     s.pos     = vec4(sx.pos, sx.radius);
     s.norm    = decodeNormal(sx.norm);
     s.reuseId = sId;
-    prevQueue[i] = s;
-    prevRMax [i] = sx.radiusMean;
+    prevQueue[id] = s;
+    prevRMax [id] = sx.radiusMean;
     }
+  barrier();
+
+  if(laneID==0)
+    prevQueueSize = int(min(prevQueueSize, prevQueue.length()));
   }
 
 void reuseSurfelVote(vec3 wpos, vec3 norm) {
@@ -158,7 +165,7 @@ void reuseSurfel(uint reuseId) {
   prevQueue[reuseId] = prevQueue[prevQueueSize-1];
   prevRMax [reuseId] = prevRMax [prevQueueSize-1];
   prevQueueSize--;  
- }
+  }
 
 void allocSurfel(vec3 wpos, vec3 norm, float sz) {
   SurfelAlloc s;
