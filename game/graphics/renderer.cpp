@@ -2439,29 +2439,27 @@ void Renderer::drawAmbient(Encoder<CommandBuffer>& cmd, const WorldView& view) {
   cmd.setBinding(0, view.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
   cmd.setBinding(1, gbufDiffuse, Sampler::nearest());
   cmd.setBinding(2, gbufNormal,  Sampler::nearest());
-  cmd.setBinding(3, sky.irradianceLut);
   if(settings.giMethod==GiMethod::IrrC) {
     auto& ao = (settings.zCloudShadowScale ? textureCast<Texture2d&>(ssao.ssaoBlur) : Resources::fallbackBlack());
+    cmd.setBinding(3, surf.irrImage, Sampler::nearest(ClampMode::ClampToEdge));
     cmd.setBinding(4, ao,            Sampler::nearest(ClampMode::ClampToEdge));
-    cmd.setBinding(5, surf.irrImage, Sampler::nearest(ClampMode::ClampToEdge));
     cmd.setPipeline(shaders.ambientLightSurf);
     }
   else if(settings.giMethod==GiMethod::Probes && settings.zCloudShadowScale) {
-    //TBD
-    cmd.setBinding(1, gi.probesLighting);
-    cmd.setBinding(2, gbufDiffuse,   Sampler::nearest());
-    cmd.setBinding(3, gbufNormal,    Sampler::nearest());
+    cmd.setBinding(3, ssao.ssaoBlur, Sampler::nearest());
     cmd.setBinding(4, zbuffer,       Sampler::nearest());
-    cmd.setBinding(5, ssao.ssaoBlur, Sampler::nearest());
-    cmd.setBinding(6, gi.hashTable);
-    cmd.setBinding(7, gi.probes);
+    cmd.setBinding(5, gi.hashTable);
+    cmd.setBinding(6, gi.probes);
+    cmd.setBinding(7, gi.probesLighting);
     cmd.setPipeline(shaders.probeAmbient);
     }
   else if(settings.zCloudShadowScale) {
+    cmd.setBinding(3, sky.irradianceLut);
     cmd.setBinding(4, ssao.ssaoBlur, Sampler::nearest(ClampMode::ClampToEdge));
     cmd.setPipeline(shaders.ambientLightSsao);
     }
   else {
+    cmd.setBinding(3, sky.irradianceLut);
     cmd.setPipeline(shaders.ambientLight);
     }
   cmd.draw(nullptr, 0, 3);

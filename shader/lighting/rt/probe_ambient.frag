@@ -17,14 +17,13 @@
 layout(binding  = 0, std140) uniform UboScene {
   SceneDesc scene;
   };
-layout(binding  = 1) uniform sampler2D  probesLighting;
-layout(binding  = 2) uniform sampler2D  gbufDiffuse;
-layout(binding  = 3) uniform usampler2D gbufNormal;
+layout(binding  = 1) uniform sampler2D  gbufDiffuse;
+layout(binding  = 2) uniform usampler2D gbufNormal;
+layout(binding  = 3) uniform sampler2D  ssao;
 layout(binding  = 4) uniform sampler2D  depth;
-layout(binding  = 5) uniform sampler2D  ssao;
-
-layout(binding  = 6, std430) readonly buffer Hbo0 { uint hashTable[]; };
-layout(binding  = 7, std430) readonly buffer Pbo  { ProbesHeader probeHeader; Probe probe[]; };
+layout(binding  = 5, std430) readonly buffer Hbo0 { uint hashTable[]; };
+layout(binding  = 6, std430) readonly buffer Pbo  { ProbesHeader probeHeader; Probe probe[]; };
+layout(binding  = 7) uniform sampler2D  probesLighting;
 
 layout(location = 0) out vec4 outColor;
 
