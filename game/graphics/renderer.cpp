@@ -2399,7 +2399,7 @@ void Renderer::drawProbesDbg(Encoder<CommandBuffer>& cmd, const WorldView& wview
   if(settings.giMethod!=GiMethod::Probes)
     return;
 
-  static bool enable = true;
+  static bool enable = false;
   if(!enable)
     return;
 

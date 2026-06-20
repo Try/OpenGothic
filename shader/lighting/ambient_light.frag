@@ -13,12 +13,14 @@ layout(binding  = 0, std140) uniform UboScene {
   };
 layout(binding  = 1) uniform texture2D  gbufDiffuse;
 layout(binding  = 2) uniform usampler2D gbufNormal;
-layout(binding  = 3) uniform texture2D  irradiance;
-#if defined(SSAO)
-layout(binding  = 4) uniform sampler2D ssao;
-#endif
 #if defined(SURFEL_GI)
-layout(binding  = 5) uniform sampler2D surfGi;
+layout(binding  = 3) uniform sampler2D  surfGi;
+layout(binding  = 4) uniform sampler2D  ssao;
+#elif defined(SSAO)
+layout(binding  = 3) uniform texture2D  irradiance;
+layout(binding  = 4) uniform sampler2D  ssao;
+#else
+layout(binding  = 3) uniform texture2D  irradiance;
 #endif
 
 layout(location = 0) out vec4 outColor;
@@ -31,6 +33,7 @@ float textureSsao() { return textureLod(ssao, uv, 0).r; }
 float textureSsao() { return 1; }
 #endif
 
+#if !defined(SURFEL_GI)
 vec3 skyIrradiance(vec3 n) {
   ivec3 d;
   d.x = n.x>=0 ? 1 : 0;
@@ -46,6 +49,7 @@ vec3 skyIrradiance(vec3 n) {
 
   return ret;
   }
+#endif
 
 float grayscale(vec3 color) {
   return dot(color, vec3(0.2125, 0.7154, 0.0721));
@@ -79,8 +83,11 @@ void main() {
 
   vec3 color = linear;
   color *= luminance(norm);
+#if defined(SURFEL_GI)
+  // preexposed already
+  //color *= ao;
+#else
   color *= ao;
-#if !defined(SURFEL_GI) // preexposed already
   color *= scene.exposure;
 #endif
 
