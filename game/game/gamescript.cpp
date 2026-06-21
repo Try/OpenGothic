@@ -963,10 +963,16 @@ void GameScript::exec(const GameScript::DlgChoice &dlg, Npc& player, Npc& npc) {
   if(info.information==int(dlg.scriptFn)) {
     setNpcInfoKnown(pl,info);
     } else {
-    for(size_t i=0;i<info.choices.size();){
-      if(info.choices[i].function==int(dlg.scriptFn))
-        info.choices.erase(info.choices.begin()+int(i)); else
-        ++i;
+    // NOTE: in original-game oCInformationManager::OnChoice(oCInfoChoice*) @0x006629a0 the selected
+    // sub-choice is removed via oCInfo::RemoveChoice @0x00703c20, which deletes exactly the FIRST
+    // list entry whose TEXT matches the clicked choice and then stops. OpenGothic keyed on the
+    // function index and erased every match, wrongly removing sibling choices that share one
+    // handler function but have different text.
+    for(size_t i=0;i<info.choices.size();++i){
+      if(info.choices[i].text==dlg.title){
+        info.choices.erase(info.choices.begin()+int(i));
+        break;
+        }
       }
     }
   vm.call_function(vm.find_symbol_by_index(dlg.scriptFn));
