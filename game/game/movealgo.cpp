@@ -641,8 +641,14 @@ float MoveAlgo::waterDepthChest() const {
   }
 
 float MoveAlgo::falldownHeight() const {
-  auto gl = npc.guild();
-  return float(npc.world().script().guildVal().falldown_height[gl]);
+  auto  gl = npc.guild();
+  float h0 = float(npc.world().script().guildVal().falldown_height[gl]);
+  // NOTE: in original-game the ACROBAT talent doubles the per-NPC fall-down height
+  // (oCNpc::SetTalentSkill 0x00730f60); keep the gravity-trigger height consistent with the
+  // fall-damage threshold in DamageCalculator::damageFall.
+  if(npc.talentSkill(TALENT_ACROBAT)>0)
+    h0 *= 2.f;
+  return h0;
   }
 
 bool MoveAlgo::canFlyOverWater() const {

@@ -46,7 +46,12 @@ DamageCalculator::Val DamageCalculator::damageFall(Npc& npc, float speed) {
   float   gravity     = DynamicWorld::gravity;
   float   fallTime    = speed/gravity;
   float   height      = 0.5f*std::abs(gravity)*fallTime*fallTime;
+  // NOTE: in original-game oCNpc::SetTalentSkill (Gothic2.exe 0x00730f60) the ACROBAT talent
+  // doubles the per-NPC fall-down height (offset 0x90c) consumed by CreateFallDamage; mirror
+  // that 2x safe-fall threshold so acrobatics actually reduces fall damage.
   float   h0          = float(g.falldown_height[gl]);
+  if(npc.talentSkill(TALENT_ACROBAT)>0)
+    h0 *= 2.f;
   float   dmgPerMeter = float(g.falldown_damage[gl]);
   int32_t prot        = npc.protection(::PROT_FALL);
 
