@@ -403,13 +403,18 @@ bool Inventory::setSlot(Item *&slot, Item* next, Npc& owner, bool force) {
   GameScript& vm = owner.world().script();
 
   if(next!=nullptr) {
+    // NOTE: in original-game oCNpc::Equip (Gothic2.exe 0x00739c90) calls the stat-gate
+    // (CanUse) only for weapons (EquipWeapon) and armor (EquipArmor); rings/amulets/belts
+    // equip with no attribute requirement (only slot-count limits). Skip the cond gate for
+    // those slots so a ring/amulet/belt with a cond_value is not wrongly blocked.
+    const bool ringAmuBelt = (uint32_t(next->itemFlag()) & (ITM_RING|ITM_AMULET|ITM_BELT))!=0;
     int32_t atr=0,nValue=0,plMag=0,itMag=0;
-    if(!force && !next->checkCondUse(owner,atr,nValue)) {
+    if(!force && !ringAmuBelt && !next->checkCondUse(owner,atr,nValue)) {
       vm.printCannotUseError(owner,atr,nValue);
       return false;
       }
 
-    if(!force && !next->checkCondRune(owner,plMag,itMag)) {
+    if(!force && !ringAmuBelt && !next->checkCondRune(owner,plMag,itMag)) {
       vm.printCannotCastError(owner,plMag,itMag);
       return false;
       }
