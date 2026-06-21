@@ -1004,21 +1004,27 @@ void PlayerControl::processPickLock(Npc& pl, Interactive& inter, KeyCodec::Actio
   else
     return;
 
-  auto cmp = inter.pickLockCode();
-  while(pickLockProgress<cmp.size()) {
-    auto c = cmp[pickLockProgress];
+  // NOTE: in original-game oCMobLockable::PickLock (Gothic2.exe @0x00724800) the combination
+  // index lives on the lockable mob and is reset to 0 ONLY on a wrong keypress -- not on detach.
+  // Keep it on the Interactive so partial progress persists per-lock across interruption and
+  // never bleeds between different locks.
+  auto     cmp  = inter.pickLockCode();
+  uint32_t prog = inter.lockProgress();
+  while(prog<cmp.size()) {
+    auto c = cmp[prog];
     if(c=='l' || c=='L' || c=='r' || c=='R')
       break;
-    ++pickLockProgress;
+    ++prog;
     }
 
-  if(pickLockProgress<cmp.size() && std::toupper(cmp[pickLockProgress])!=ch) {
-    pickLockProgress = 0;
+  if(prog<cmp.size() && std::toupper(cmp[prog])!=ch) {
+    prog = 0;
     const int32_t dex = Gothic::inst().version().game==2 ? pl.attribute(ATR_DEXTERITY) : (100 - pl.talentValue(TALENT_PICKLOCK));
     if(dex<=int32_t(script.rand(100)))  {
       script.invokePickLock(pl,0,1);
       pl.delItem(ItKE_lockpick,1);
       if(pl.inventory().itemCount(ItKE_lockpick)==0) {
+        inter.setLockProgress(prog);
         quitPicklock(pl);
         return;
         }
@@ -1026,15 +1032,16 @@ void PlayerControl::processPickLock(Npc& pl, Interactive& inter, KeyCodec::Actio
       script.invokePickLock(pl,0,0);
       }
     } else {
-    pickLockProgress++;
-    if(pickLockProgress>=cmp.size()) {
+    prog++;
+    if(prog>=cmp.size()) {
       script.invokePickLock(pl,1,1);
       inter.setAsCracked(true);
-      pickLockProgress = 0;
+      prog = 0;
       } else {
       script.invokePickLock(pl,1,0);
       }
     }
+  inter.setLockProgress(prog);
   }
 
 void PlayerControl::processLadder(Npc& pl, Interactive& inter, KeyCodec::Action key) {
@@ -1047,7 +1054,9 @@ void PlayerControl::processLadder(Npc& pl, Interactive& inter, KeyCodec::Action 
 
 void PlayerControl::quitPicklock(Npc& pl) {
   inv.close();
-  pickLockProgress = 0;
+  // NOTE: progress is no longer reset here -- the original (oCMobLockable::PickLock @0x00724800)
+  // keeps the combination index on the mob and clears it only on a wrong keypress, so detaching
+  // from a half-picked lock must preserve the progress stored on the Interactive.
   pl.setInteraction(nullptr);
   }
 

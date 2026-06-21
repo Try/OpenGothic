@@ -66,6 +66,8 @@ class Interactive : public Vob {
     std::string_view    pickLockCode() const { return pickLockStr; }
     void                setAsCracked(bool c) { isLockCracked = c; }
     bool                isCracked() const { return isLockCracked; }
+    uint32_t            lockProgress() const          { return pickLockProgress; }
+    void                setLockProgress(uint32_t p)   { pickLockProgress = p; }
     bool                needToLockpick(const Npc& pl) const;
 
     Inventory&          inventory();
@@ -169,6 +171,11 @@ class Interactive : public Vob {
     bool                reverseState  = false;
     bool                loopState     = false;
     bool                isLockCracked = false;
+    // NOTE: in original-game oCMobLockable::PickLock (Gothic2.exe @0x00724800) the combination
+    // index is stored on the mob (state dword @0x234 >> 2) and is reset to 0 ONLY on a wrong
+    // keypress -- never on detach -- so partial progress persists per-lock and never bleeds
+    // between different locks.
+    uint32_t            pickLockProgress = 0;
 
     uint64_t            waitAnim      = 0;
     bool                animChanged   = false;

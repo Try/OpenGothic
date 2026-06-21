@@ -146,7 +146,6 @@ class PlayerControl final {
     float          rotMouse=0;
     float          rotMouseY=0;
     bool           casting = false;
-    size_t         pickLockProgress = 0;
 
     float          runAngleDest   = 0.f;
     uint64_t       turnAniSmooth  = 0;
