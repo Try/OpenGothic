@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "ghidra": {
+      "command": "/Users/admin/wc3-re/GhidraMCP/.venv/bin/python",
+      "args": [
+        "/Users/admin/wc3-re/GhidraMCP/bridge_mcp_ghidra.py",
+        "--ghidra-server",
+        "http://127.0.0.1:8080/"
+      ]
+    }
+  }
+}
