@@ -1016,9 +1016,22 @@ Item* Inventory::bestItem(Npc &owner, ItmFlags f) {
     if(itData.munition>0 && findByClass(size_t(itData.munition))==nullptr)
       continue;
 
-    if(std::make_tuple(itData.damage_total, itData.value)>std::make_tuple(damage, value)){
+    // NOTE: in original-game oCNpc::EquipBestWeapon/EquipBestArmor pick the first usable item
+    // in inventory display order; that order ranks weapons by oCItem::GetFullDamage (sum of the
+    // per-type damage[] array, not the scalar damage_total) and armor by GetFullProtection (sum
+    // of the per-type protection[] array), descending. OG ranked armor by value (cost) -- so an
+    // NPC equipped its most expensive armor, not its most protective. Mirror the summed key.
+    int32_t key = 0;
+    if(flag & ITM_CAT_ARMOR) {
+      for(size_t d=0; d<zenkit::DamageType::NUM; ++d)
+        key += itData.protection[d];
+      } else {
+      for(size_t d=0; d<zenkit::DamageType::NUM; ++d)
+        key += itData.damage[d];
+      }
+    if(std::make_tuple(key, itData.value)>std::make_tuple(damage, value)){
       ret    = i.get();
-      damage = itData.damage_total;
+      damage = key;
       value  = itData.value;
       }
     }
