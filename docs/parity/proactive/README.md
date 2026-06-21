@@ -21,6 +21,12 @@ patch with a `// NOTE: in original-game …` citation.
 | Music zones | overlapping zones picked by load order, not priority | `worldsound.cpp` `tickSoundZone` |
 | Sight FOV | NPC horizontal vision cone ±80° vs original ±91° | `npc.cpp` `canRayHitPoint`/`canSeeItem` |
 | Fight range | 3D distance vs original horizontal + same-height gate | `fightalgo.cpp` `qDistTo` |
+| NPC mobsi gate | conditionFunc/useWithItem evaluated for player only, not all NPCs | `interactive.cpp` `checkUseConditions` |
+| Routine fallback | gap-fallback picked most-recently-ended, not largest-start | `npc.cpp` `currentRoutine` |
+| Trade sell price | std::ceil instead of round-to-nearest (overpays player) | `item.cpp` `sellCost` |
+| TouchDamage | repeat_delay==0 damaged every frame instead of once per entry | `touchdamage.cpp` `tick` |
+| Mover NEXT/PREV | SINGLE_KEYS didn't wrap (stuck at ends) | `movetrigger.cpp` `onGotoMsg` |
+| Mover TRIGGER_CTRL | closed on first untrigger, ignoring trigger ref-count | `movetrigger.cpp` |
 | Equip | ring/amulet/belt wrongly gated on attribute requirement | `inventory.cpp` `setSlot` |
 
 ## Deferred (analyzed, not applied — genuinely need runtime or are unsafe to apply blind)
