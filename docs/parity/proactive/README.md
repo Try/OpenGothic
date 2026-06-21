@@ -23,22 +23,9 @@ patch with a `// NOTE: in original-game …` citation.
 | Fight range | 3D distance vs original horizontal + same-height gate | `fightalgo.cpp` `qDistTo` |
 | Equip | ring/amulet/belt wrongly gated on attribute requirement | `inventory.cpp` `setSlot` |
 
-## Deferred (analyzed, not applied — need runtime or larger work)
+## Deferred (analyzed, not applied — genuinely need runtime or are unsafe to apply blind)
 | Area | Why |
 |---|---|
-| Multi-type immune damage (`damage-immune-multitype`) | original's invincibility decision is bit-order-dependent |
-| Periodic perc fighter/item (`aistate-perc-fighter-item-missing`) | PERC_ASSESSFIGHTER/ITEM not raised; needs new helpers |
+| Multi-type immune damage (`damage-immune-multitype`) | exact fix needs the original's bit-order `stillAllNonPositive` state; the shortcut would make immune NPCs killable on masks like `FLY\|POINT` (rare mixed-type case) |
+| Periodic perc fighter/item (`aistate-perc-fighter-item-missing`) | original raises PERC_ASSESSFIGHTER/ASSESSITEM each scan; OG doesn't — needs new nearest-fighter/item helpers + raises new AI reactions (feature-add, needs runtime validation) |
 
-## Swept clean (no divergence found — verified faithful)
-- Dialog/info pipeline, melee hit/parry/combo/stagger, steal/swim/sleep/regen.
-- **Triggers** (`zCTrigger`): activation-count, retrigger-cooldown and fire-delay match
-  the original — non-mover `maxActivationCount = uint32_t(max_activation_count)` reproduces
-  the original's "0 = never, N = N times, -1 = infinite" (negative count never decrements
-  past 0). Only minor edge-case: OG updates the retrigger timestamp on enable/disable too.
-- **Projectiles**: Bullet-engine physics (realistic gravity, 30 m/s); the original
-  `oCAIArrow` is a different physics model — architectural, no clean constant divergence.
-
-## Not yet swept (resume next)
-XP/leveling/learn (mostly script-side), food/potion effect application, torch/fire.
-
-All applied fixes are build- and boot-verified, **not** gameplay-verified (no playtest from this headless setup).
