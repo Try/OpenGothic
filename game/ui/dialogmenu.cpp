@@ -289,7 +289,10 @@ void DialogMenu::printScreen(std::string_view msg, int x, int y, int time, const
   PScreen e;
   e.txt  = msg;
   e.font = &font;
-  e.time = uint32_t(time*1000)+1000;
+  // NOTE: in original-game PrintScreen / oCNpc::EV_PrintScreen the on-screen lifetime is exactly
+  // time*1000 ms with no constant added; a negative/zero time elapses on the first tick. OG added
+  // +1000 (every print lingered a second too long) and uint32_t(-1000)+1000 wrapped to ~4.29e9 ms.
+  e.time = (time>0) ? uint32_t(time*1000) : 0u;
   e.x    = x;
   e.y    = y;
   pscreen.emplace(pscreen.begin(),std::move(e));
@@ -462,7 +465,10 @@ void DialogMenu::paintEvent(Tempest::PaintEvent &e) {
     if(y<0){
       y = (area.h-sz.h)/2;
       } else {
-      y = ((area.h-sz.h)*y)/100+sz.h;
+      // NOTE: in original-game zCView::CreateText, posy is the text TOP at viewH*posy/100;
+      // GthFont::drawText anchors on the baseline, so add sz.h to convert top->baseline without
+      // the extra (area.h-sz.h) scaling (which sat the text ~half a line too high).
+      y = (area.h*y)/100+sz.h;
       }
     fnt.drawText(p, x, y, sc.txt);
     }
