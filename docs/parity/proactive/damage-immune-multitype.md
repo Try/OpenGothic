@@ -57,7 +57,23 @@ reachable, e.g. EDGE+FLY). The original's `invincible` choice is bit-order
 dependent, so an exact reproduction is awkward; the patch below matches the
 single-type case and approximates the mixed case.
 
-## Proposed patch (approximate)
+## ⚠ Correction: the approximate patch below is WRONG for some masks — DEFER
+
+Worked through the original's bit-order logic precisely: `invincible` becomes true the
+moment an immune type (`prot<0`) is seen *while no armored type (`prot>=1`) has been
+seen yet* (bit order: BARRIER,BLUNT,EDGE,FIRE,FLY,MAGIC,POINT,FALL), and once set it is
+never cleared. So:
+- `EDGE(50)|FLY(-1)` — EDGE (lower bit) clears `stillAllNonPositive` first ⇒ not
+  invincible. The patch agrees. ✓
+- `FLY(-1)|POINT(50)` — FLY (lower bit) sets invincible *before* POINT is seen ⇒
+  **invincible, 0 HP**. The patch below would instead clear invincible (POINT prot>=0)
+  and apply damage. ✗ A by-design-immune NPC would become killable.
+
+An exact fix must replicate the `stillAllNonPositive` bit-order state, not just "any
+non-immune type ⇒ not invincible". Given this only affects rare mixed immune+armored
+multi-bit masks, it is left **deferred** rather than applying the incorrect shortcut.
+
+## Proposed patch (approximate — DO NOT APPLY as-is; see correction above)
 
 File: `game/game/damagecalculator.cpp` — `rangeDamage(Npc&, Npc&, Damage, CollideMask)`
 
