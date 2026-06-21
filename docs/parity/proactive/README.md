@@ -29,10 +29,17 @@ patch with a `// NOTE: in original-game …` citation.
 | Mover TRIGGER_CTRL | closed on first untrigger, ignoring trigger ref-count | `movetrigger.cpp` |
 | Equip | ring/amulet/belt wrongly gated on attribute requirement | `inventory.cpp` `setSlot` |
 
-## Deferred (analyzed, not applied — genuinely need runtime or are unsafe to apply blind)
-| Area | Why |
+## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
+| Finding | Why deferred |
 |---|---|
-| Multi-type immune damage (`damage-immune-multitype`) | exact fix needs the original's bit-order `stillAllNonPositive` state; the shortcut would make immune NPCs killable on masks like `FLY\|POINT` (rare mixed-type case) |
-| Regen rate vs interval (`regen-rate-reciprocal`) | original = +1 per N seconds, OG = N per second (reciprocal); likely near-dead in vanilla; orders-of-magnitude risk to flip blind — needs the attribute values + runtime |
-| Periodic perc fighter/item (`aistate-perc-fighter-item-missing`) | original raises PERC_ASSESSFIGHTER/ASSESSITEM each scan; OG doesn't — needs new nearest-fighter/item helpers + raises new AI reactions (feature-add, needs runtime validation) |
+| `regen-rate-reciprocal` | original = +1 per N sec, OG = N per sec (reciprocal); likely near-dead in vanilla; orders-of-magnitude risk to flip blind |
+| `damage-immune-multitype` | exact fix needs bit-order state; shortcut would make immune NPCs killable on rare mixed masks |
+| `aistate-perc-fighter-item-missing` | PERC_ASSESSFIGHTER/ITEM not raised — adds new AI reactions; needs runtime |
+| `ext-getdisttowp-metric`, `waynet-nearest-metric`, `waynet-edge-cost-metric` | Euclidean→Manhattan/octagonal distance; exact metric uncertain + broad script/routing impact |
+| `camera-azimuth-clamp` | exact set of wide-azimuth camera modes unconfirmed; player-facing camera risk |
+| `death-unconscious-perc-wipe` | conflicts with an OG "William in Jarkendar" workaround; needs runtime |
+| `hit-stumble-weapon-drawn` | hinges on monster weaponState (troll/waran regression risk); needs runtime |
+| `itemplace-waypoint-direction` | visual-only item yaw; touches all item rendering; needs a visual check |
+| `detect-npcex-magic-filter` | non-surgical: needs the frozen/spell-state predicate mirrored |
+| `bow-multi-munition` | UNSAFE as written: ITM_MULTI flag conflation would make all arrows infinite |
 
