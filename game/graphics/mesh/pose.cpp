@@ -148,7 +148,10 @@ void Pose::setSkeleton(const Skeleton* sk) {
     }
   for(auto& i:hasSamples)
     i = S_None;
-  trY          = skeleton->rootTr.y;
+  // NOTE: in original-game zCModel::SetVisualVirtual/LoadVisualVirtual (Gothic2.exe
+  // 0x00578760) tolerates an unresolved/failed visual; setSkeleton(nullptr) is a handled
+  // state here (guarded above and below), so don't dereference a null skeleton. #946
+  trY          = (skeleton!=nullptr) ? skeleton->rootTr.y : 0.f;
   needToUpdate = true;
   if(lay.size()>0) //TODO
     Log::d("WARNING: ",__func__," animation adjustment is not implemented");
