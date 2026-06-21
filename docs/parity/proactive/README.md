@@ -39,6 +39,9 @@ patch with a `// NOTE: in original-game …` citation.
 | Immortal heal | immortal guard only checked val<0, so heals/regen raised immortal NPC HP | `npc.cpp` `changeAttribute` |
 | Climb-up ledge | JUMPUPLOW band lacked the step_height floor (knee-high ledge played climb anim) | `npc.cpp` `tryJump` |
 | Pick-lock progress | combination index was per-player & reset on detach, not per-mob & persistent | `interactive.h` / `playercontrol.cpp` |
+| Daytime sound | zCVobSoundDaytime window crossing midnight never played the primary sound | `worldsound.cpp` `tick` |
+| Dialog order | equal-`nr` choices reordered by a non-stable scriptFn tie-break vs declaration order | `gamescript.cpp` `sort` |
+| Spell FX node | TARGET-mode FX attached to emTrjOriginNode instead of emTrjTargetNode | `effect.cpp` `syncAttachesSingle` |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
@@ -58,4 +61,7 @@ patch with a `// NOTE: in original-game …` citation.
 | `theft-assesstheft-isplayer-gate` | dropping the `isPlayer()` guard so NPC item-pickups broadcast PERC_ASSESSTHEFT adds new NPC-vs-NPC witness reactions; AI-behavior risk, needs runtime |
 | `aistate-startstate-unconditional-queue-clear` | gating AI-queue clear to the hard-interrupt path; OG models hard/soft state switches differently and existing workarounds assume an always-cleared queue — needs in-game verification (agent-deferred) |
 | `lock-picklock-progress` (save/load part) | persisting the in-progress combination index across save/load needs a serialization-version bump (the per-mob relocation itself is applied) |
+| `monster-getnexttarget-sticky` | Npc_GetNextTarget should keep the current enemy if still valid (sticky) rather than flip to nearest every call; the original's validity check also re-acquires on flee-state (-4/-5) and charm/sleep/freeze, which have no grep-verified 1:1 OG equivalent — an isDown()-only sticky path would wrongly lock onto a controlled/fleeing foe. Combat AI, needs runtime |
+| `perc-passive-range-senses-fallback` | passive perception uses percRange.at(perc, senses_range) fallback vs original's static percRange[] table; removing the fallback depends on the unconfirmable static default + whether scripts always Perc_SetRange — agent-deferred |
+| `hitreact-ondamage-processinfos-dialog-guard` | original skips hit-reaction/damage while an EV_PROCESSINFOS dialog transition is queued; OG models dialog via AiQueue/outputPipe with no grep-verifiable per-Npc oCMsgConversation equivalent to gate on — agent-deferred |
 
