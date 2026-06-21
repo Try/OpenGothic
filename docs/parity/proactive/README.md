@@ -28,6 +28,13 @@ patch with a `// NOTE: in original-game …` citation.
 | Mover NEXT/PREV | SINGLE_KEYS didn't wrap (stuck at ends) | `movetrigger.cpp` `onGotoMsg` |
 | Mover TRIGGER_CTRL | closed on first untrigger, ignoring trigger ref-count | `movetrigger.cpp` |
 | Equip | ring/amulet/belt wrongly gated on attribute requirement | `inventory.cpp` `setSlot` |
+| Item effects | equipped change_atr/change_value attribute bonuses never applied | `inventory.cpp` `applyArmor` |
+| Item use | consumable (food/potion) skipped the cond_atr requirement gate | `inventory.cpp` `use` |
+| TouchDamage | DAM_BARRIER didn't instant-kill a swimming victim (deep-water drown) | `touchdamage.cpp` `tick` |
+| Anim SFX | last-frame SFX re-fired every tick on non-looping anims | `animation.cpp` `processSfx` |
+| Magic level | `Spell_Cast_<tag>` got a 0-based level vs original 1-based | `npc.cpp` `commitSpell` |
+| Ranged falloff | G2 hit-chance cut off at 45m vs original 100m decay | `damagecalculator.cpp` `rangeDamage` |
+| Trade gold | billed/paid for requested count, not units actually transferred | `inventory.cpp` `transfer` |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
@@ -42,4 +49,5 @@ patch with a `// NOTE: in original-game …` citation.
 | `itemplace-waypoint-direction` | visual-only item yaw; touches all item rendering; needs a visual check |
 | `detect-npcex-magic-filter` | non-surgical: needs the frozen/spell-state predicate mirrored |
 | `bow-multi-munition` | UNSAFE as written: ITM_MULTI flag conflation would make all arrows infinite |
+| `focus-elevation-cone` | adds a vertical elevdo/elevup focus gate; the elevation reference frame (player at-vector vs atan2-from-position) is approximated, and a wrong frame could reject legitimate item/lever focus — needs in-game validation |
 
