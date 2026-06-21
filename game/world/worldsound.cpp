@@ -238,7 +238,10 @@ void WorldSound::tickSoundZone(Npc& player) {
     }
 
   gtime time  = owner.time().timeInDay();
-  bool  isDay = (gtime(4,0)<=time && time<=gtime(21,0));
+  // NOTE: in original-game oCWorldTimer::IsDay (Gothic2.exe 0x00781280, via
+  // oCZoneMusic::IsDaytime 0x00642400) treats 06:30-18:30 as day for music DAY/NGT variant
+  // selection. The 04:00-21:00 window played the daytime theme ~5h/day too widely.
+  bool  isDay = (gtime(6,30)<=time && time<gtime(18,30));
   bool  isFgt = owner.isTargeted(player) || player.isDead();
 
   GameMusic::Tags mode = GameMusic::Std;
