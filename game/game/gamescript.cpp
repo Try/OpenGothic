@@ -2326,9 +2326,13 @@ bool GameScript::npc_isonfp(std::shared_ptr<zenkit::INpc> npcRef, std::string_vi
 int GameScript::npc_getheighttonpc(std::shared_ptr<zenkit::INpc> aRef, std::shared_ptr<zenkit::INpc> bRef) {
   auto a = findNpc(aRef);
   auto b = findNpc(bRef);
-  float ret = 0;
-  if(a!=nullptr && b!=nullptr)
-    ret = std::abs(a->position().y - b->position().y);
+  // NOTE: in original-game Npc_GetHeightToNpc (Gothic2.exe oGameExternal.cpp @0x006f2970)
+  // returns 0x7fffffff (INT_MAX) when either NPC handle is invalid -- exactly like
+  // Npc_GetDistToNpc. OpenGothic returned 0 here, which a script height test reads as
+  // "same height / very close" instead of "unreachable" (and disagreed with npc_getdisttonpc).
+  if(a==nullptr || b==nullptr)
+    return std::numeric_limits<int32_t>::max();
+  float ret = std::abs(a->position().y - b->position().y);
   return int32_t(ret);
   }
 

@@ -35,6 +35,7 @@ patch with a `// NOTE: in original-game …` citation.
 | Magic level | `Spell_Cast_<tag>` got a 0-based level vs original 1-based | `npc.cpp` `commitSpell` |
 | Ranged falloff | G2 hit-chance cut off at 45m vs original 100m decay | `damagecalculator.cpp` `rangeDamage` |
 | Trade gold | billed/paid for requested count, not units actually transferred | `inventory.cpp` `transfer` |
+| GetHeightToNpc | returned 0 (not INT_MAX) for an invalid NPC, unlike GetDistToNpc & the original | `gamescript.cpp` `npc_getheighttonpc` |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
@@ -50,4 +51,5 @@ patch with a `// NOTE: in original-game …` citation.
 | `detect-npcex-magic-filter` | non-surgical: needs the frozen/spell-state predicate mirrored |
 | `bow-multi-munition` | UNSAFE as written: ITM_MULTI flag conflation would make all arrows infinite |
 | `focus-elevation-cone` | adds a vertical elevdo/elevup focus gate; the elevation reference frame (player at-vector vs atan2-from-position) is approximated, and a wrong frame could reject legitimate item/lever focus — needs in-game validation |
+| `anim-wounded-overlay-lowhp` | HP-driven `_WOUNDED` locomotion overlay (CheckModelOverlays @0x007301d0); visual-only, triggers only at HP≤2, needs exact MDS overlay-name construction + OG overlay API + on-screen check |
 
