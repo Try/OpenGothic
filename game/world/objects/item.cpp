@@ -328,6 +328,11 @@ int32_t Item::uiValue(size_t id) const {
   }
 
 int32_t Item::cost() const {
+  // NOTE: in original-game oCItem::GetValue (Gothic2.exe 0x00712650) scales the value by
+  // condition: ceil(value * hp / hp_max) when hp_max>0. Full-condition items (the vanilla
+  // norm, hp==hp_max) are unchanged; a damaged item is worth proportionally less.
+  if(hitem->hp_max>0 && hitem->hp<hitem->hp_max)
+    return int32_t(std::ceil(float(hitem->value)*float(hitem->hp)/float(hitem->hp_max)));
   return hitem->value;
   }
 
