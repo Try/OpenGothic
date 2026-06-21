@@ -57,6 +57,13 @@ bool AnimationSolver::hasOverlay(const Skeleton* sk) const {
 void AnimationSolver::addOverlay(const Skeleton* sk, uint64_t time) {
   if(sk==nullptr)
     return;
+  // NOTE: in original-game oCNpc::ApplyOverlay (Gothic2.exe 0x0072d2c0) skips re-adding a
+  // permanent overlay that is already present, so Mdl_ApplyOverlayMds is idempotent. Without
+  // this, applying the same MDS twice leaves a duplicate that a single Mdl_RemoveOverlayMds
+  // (which removes only the first match) cannot fully clear. Timed overlays (time!=0) are not
+  // deduplicated, matching the original.
+  if(time==0 && hasOverlay(sk))
+    return;
   // incompatible overlay
   if(baseSk==nullptr || sk->nodes.size()!=baseSk->nodes.size())
     return;
