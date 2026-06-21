@@ -1,7 +1,5 @@
 #include "pose.h"
 
-#include <Tempest/Log>
-
 #include "utils/string_frm.h"
 #include "world/objects/npc.h"
 #include "world/world.h"
@@ -9,7 +7,9 @@
 #include "skeleton.h"
 #include "animmath.h"
 
+#include <algorithm>
 #include <cmath>
+#include <utility>
 
 using namespace Tempest;
 
@@ -135,9 +135,16 @@ bool Pose::hasStateFlag(BodyState f) const {
   return false;
   }
 
-void Pose::setSkeleton(const Skeleton* sk) {
+void Pose::setSkeleton(const Skeleton* sk, const AnimationSolver* solver) {
   if(skeleton==sk)
     return;
+
+  auto prevLay      = std::move(lay);
+  auto prevRotation = rotation;
+  auto prevCombo    = combo;
+  auto prevItemUseSt     = itemUseSt;
+  auto prevItemUseDestSt = itemUseDestSt;
+
   skeleton = sk;
   for(auto& i:tr)
     i.identity();
@@ -148,11 +155,43 @@ void Pose::setSkeleton(const Skeleton* sk) {
     }
   for(auto& i:hasSamples)
     i = S_None;
-  trY          = skeleton->rootTr.y;
+  trY          = (skeleton!=nullptr ? skeleton->rootTr.y : 0.f);
   needToUpdate = true;
-  if(lay.size()>0) //TODO
-    Log::d("WARNING: ",__func__," animation adjustment is not implemented");
-  lay.clear();
+
+  rotation       = nullptr;
+  hasEvents      = 0;
+  isFlyCombined  = 0;
+  hasTransitions = 0;
+  combo          = ComboState();
+  itemUseSt      = 0;
+  itemUseDestSt  = 0;
+
+  if(solver!=nullptr && skeleton!=nullptr) {
+    for(auto& i:prevLay) {
+      if(i.seq==nullptr)
+        continue;
+      auto* seq = solver->solveFrm(i.seq->name);
+      if(seq==nullptr)
+        continue;
+
+      i.seq  = seq;
+      i.comb = std::min<uint8_t>(i.comb, uint8_t(seq->comb.size()));
+      lay.push_back(i);
+      onAddLayer(lay.back());
+
+      if(prevRotation!=nullptr && prevRotation->name==seq->name)
+        rotation = seq;
+      }
+    std::sort(lay.begin(),lay.end(),[](const Layer& a,const Layer& b){
+      return a.seq->layer<b.seq->layer;
+      });
+
+    if(lay.size()>0) {
+      combo          = prevCombo;
+      itemUseSt      = prevItemUseSt;
+      itemUseDestSt  = prevItemUseDestSt;
+      }
+    }
 
   if(skeleton!=nullptr)
     mkSkeleton(Matrix4x4::mkIdentity());

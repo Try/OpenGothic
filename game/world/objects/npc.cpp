@@ -19,7 +19,13 @@
 #include "gothic.h"
 #include "resources.h"
 
+#include <unordered_set>
+
 using namespace Tempest;
+
+namespace {
+std::unordered_set<const Npc*> g_liveNpcs;
+}
 
 static std::string_view humansTorchOverlay = "_TORCH.MDS";
 
@@ -179,6 +185,7 @@ struct Npc::TransformBack {
 
 Npc::Npc(World &owner, size_t instance, std::string_view waypoint, NpcProcessPolicy aiPolicy)
   :owner(owner),aiPolicy(aiPolicy),mvAlgo(*this) {
+  g_liveNpcs.insert(this);
   outputPipe     = owner.script().openAiOuput();
 
   hnpc           = std::make_shared<zenkit::INpc>();
@@ -201,8 +208,13 @@ Npc::Npc(World &owner, size_t instance, std::string_view waypoint, NpcProcessPol
   }
 
 Npc::~Npc(){
+  g_liveNpcs.erase(this);
   if(currentInteract)
     currentInteract->detach(*this,true);
+  }
+
+bool Npc::isValidNpcPtr(const Npc* ptr) {
+  return ptr!=nullptr && g_liveNpcs.find(ptr)!=g_liveNpcs.end();
   }
 
 void Npc::save(Serialize &fout, size_t id, std::string_view directory) {

@@ -78,6 +78,8 @@ class Npc final {
     Npc(const Npc&)=delete;
     ~Npc();
 
+    static bool isValidNpcPtr(const Npc* ptr);
+
     void       save(Serialize& fout, size_t id, std::string_view directory);
     void       load(Serialize& fout, size_t id, std::string_view directory);
     void       postValidate();

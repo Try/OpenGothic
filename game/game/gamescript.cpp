@@ -1479,25 +1479,35 @@ Npc* GameScript::findNpc(zenkit::DaedalusSymbol* s) {
   }
 
 Npc* GameScript::findNpc(zenkit::INpc *handle) {
-  if(handle==nullptr)
+  if(handle==nullptr || handle->user_ptr==nullptr)
     return nullptr;
-  assert(handle->user_ptr); // engine bug, if null
-  return reinterpret_cast<Npc*>(handle->user_ptr);
+
+  auto* ptr = reinterpret_cast<Npc*>(handle->user_ptr);
+  if(!Npc::isValidNpcPtr(ptr))
+    return nullptr;
+  return ptr;
   }
 
 Npc* GameScript::findNpc(const std::shared_ptr<zenkit::INpc>& handle) {
-  if(handle==nullptr)
+  if(handle==nullptr || handle->user_ptr==nullptr)
     return nullptr;
-  assert(handle->user_ptr); // engine bug, if null
-  return reinterpret_cast<Npc*>(handle->user_ptr);
+
+  auto* ptr = reinterpret_cast<Npc*>(handle->user_ptr);
+  if(!Npc::isValidNpcPtr(ptr))
+    return nullptr;
+  return ptr;
   }
 
 Npc* GameScript::findNpcById(const std::shared_ptr<zenkit::DaedalusInstance>& handle) {
   if(handle==nullptr)
     return nullptr;
   if(auto npc = dynamic_cast<const zenkit::INpc*>(handle.get())) {
-    assert(npc->user_ptr); // engine bug, if null
-    return reinterpret_cast<Npc*>(npc->user_ptr);
+    if(npc->user_ptr==nullptr)
+      return nullptr;
+    auto* ptr = reinterpret_cast<Npc*>(npc->user_ptr);
+    if(!Npc::isValidNpcPtr(ptr))
+      return nullptr;
+    return ptr;
     }
   return findNpcById(handle->symbol_index());
   }

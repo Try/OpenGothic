@@ -58,7 +58,7 @@ void MdlVisual::setVisual(const Skeleton *v) {
   if(v!=nullptr)
     rebindAttaches(*v);
   solver.setSkeleton(v);
-  skInst->setSkeleton(v);
+  skInst->setSkeleton(v,&solver);
   view.setSkeleton(v);
 
   skeleton = v;
