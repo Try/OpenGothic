@@ -48,6 +48,7 @@ class CommandLine {
     bool                doForceG2NR()      const { return forceG2NR;    }
     bool                aaPreset()         const { return aaPresetId;   }
     std::string_view    defaultSave()      const { return saveDef;    }
+    std::u16string_view configPath()       const { return gconfig;    } // #881: -c <path>
 
     std::string         wrldDef;
 
@@ -57,6 +58,7 @@ class CommandLine {
     GraphicBackend      graphics = GraphicBackend::Vulkan;
     std::u16string      gpath, gmod;
     std::u16string      gscript;
+    std::u16string      gconfig;   // #881: optional override for the user Gothic.ini path
     std::u16string      gcutscene;
     std::string         saveDef;
     bool                devmode      = false;

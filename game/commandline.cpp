@@ -58,6 +58,12 @@ CommandLine::CommandLine(int argc, const char** argv) {
       if(i<argc)
         gpath.assign(argv[i],argv[i]+std::strlen(argv[i]));
       }
+    else if(arg=="-c") {
+      // #881: path to an alternate user Gothic.ini (mirrors the -g byte-widen assign)
+      ++i;
+      if(i<argc)
+        gconfig.assign(argv[i],argv[i]+std::strlen(argv[i]));
+      }
     else if(arg=="-devmode") {
       // http://www.gothic-library.ru/publ/marvin/1-1-0-547
       devmode = true;

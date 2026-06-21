@@ -109,7 +109,9 @@ Gothic::Gothic() {
   wrldDef = CommandLine::inst().wrldDef;
 
   baseIniFile.reset(new IniFile(nestedPath({u"system",u"Gothic.ini"},Dir::FT_File)));
-  iniFile    .reset(new IniFile(u"Gothic.ini"));
+  // #881: allow -c <path> to relocate the writable user Gothic.ini; default unchanged.
+  auto userIni = CommandLine::inst().configPath();
+  iniFile    .reset(new IniFile(userIni.empty() ? std::u16string_view(u"Gothic.ini") : userIni));
   if(!iniFile->has("INTERNAL", "vidResIndex")) {
     iniFile->set("INTERNAL", "vidResIndex", 0); // full-res
     }
