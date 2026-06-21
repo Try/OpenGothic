@@ -1,0 +1,1954 @@
+{
+ "binary_function_total": 32610,
+ "zengin_class_count": 733,
+ "rows": [
+  {
+   "subsystem": "NPC, AI & Combat",
+   "zengin": "oCNpc",
+   "binary_fns": 618,
+   "opengothic": [
+    "Npc"
+   ],
+   "og_present": [
+    "Npc"
+   ],
+   "og_methods": 293,
+   "og_files": [
+    "game/world/objects/npc.cpp",
+    "game/world/objects/npc.h"
+   ],
+   "status": "matched",
+   "issues": [
+    946,
+    934,
+    920,
+    901,
+    858,
+    857,
+    817,
+    791,
+    730,
+    684,
+    661,
+    656,
+    647,
+    639,
+    626,
+    624,
+    620,
+    585,
+    511,
+    494,
+    177
+   ]
+  },
+  {
+   "subsystem": "NPC, AI & Combat",
+   "zengin": "oCNpc_States",
+   "binary_fns": 46,
+   "opengothic": [
+    "Npc"
+   ],
+   "og_present": [
+    "Npc"
+   ],
+   "og_methods": 293,
+   "og_files": [
+    "game/world/objects/npc.cpp",
+    "game/world/objects/npc.h"
+   ],
+   "status": "matched",
+   "issues": [
+    946,
+    934,
+    920,
+    901,
+    858,
+    857,
+    817,
+    791,
+    730,
+    684,
+    661,
+    656,
+    647,
+    639,
+    626,
+    624,
+    620,
+    585,
+    511,
+    494,
+    177
+   ]
+  },
+  {
+   "subsystem": "NPC, AI & Combat",
+   "zengin": "oCAIHuman",
+   "binary_fns": 54,
+   "opengothic": [
+    "AiQueue",
+    "FightAlgo"
+   ],
+   "og_present": [
+    "AiQueue",
+    "FightAlgo"
+   ],
+   "og_methods": 84,
+   "og_files": [
+    "game/game/fightalgo.h",
+    "game/world/aiqueue.h"
+   ],
+   "status": "matched",
+   "issues": [
+    946,
+    934,
+    920,
+    901,
+    858,
+    857,
+    817,
+    791,
+    730,
+    684,
+    661,
+    656,
+    647,
+    639,
+    626,
+    624,
+    620,
+    585,
+    511,
+    494,
+    177
+   ]
+  },
+  {
+   "subsystem": "NPC, AI & Combat",
+   "zengin": "oCAniCtrl_Human",
+   "binary_fns": 122,
+   "opengothic": [
+    "MoveAlgo",
+    "MdlVisual"
+   ],
+   "og_present": [
+    "MoveAlgo",
+    "MdlVisual"
+   ],
+   "og_methods": 121,
+   "og_files": [
+    "game/game/movealgo.h",
+    "game/graphics/mdlvisual.h"
+   ],
+   "status": "matched",
+   "issues": [
+    946,
+    934,
+    920,
+    901,
+    858,
+    857,
+    817,
+    791,
+    730,
+    684,
+    661,
+    656,
+    647,
+    639,
+    626,
+    624,
+    620,
+    585,
+    511,
+    494,
+    177
+   ]
+  },
+  {
+   "subsystem": "NPC, AI & Combat",
+   "zengin": "zCAIPlayer",
+   "binary_fns": 62,
+   "opengothic": [
+    "MoveAlgo"
+   ],
+   "og_present": [
+    "MoveAlgo"
+   ],
+   "og_methods": 50,
+   "og_files": [
+    "game/game/movealgo.h"
+   ],
+   "status": "matched",
+   "issues": [
+    946,
+    934,
+    920,
+    901,
+    858,
+    857,
+    817,
+    791,
+    730,
+    684,
+    661,
+    656,
+    647,
+    639,
+    626,
+    624,
+    620,
+    585,
+    511,
+    494,
+    177
+   ]
+  },
+  {
+   "subsystem": "NPC, AI & Combat",
+   "zengin": "oCMobInter",
+   "binary_fns": 61,
+   "opengothic": [
+    "Interactive"
+   ],
+   "og_present": [
+    "Interactive"
+   ],
+   "og_methods": 69,
+   "og_files": [
+    "game/world/objects/interactive.h"
+   ],
+   "status": "matched",
+   "issues": [
+    946,
+    934,
+    920,
+    901,
+    858,
+    857,
+    817,
+    791,
+    730,
+    684,
+    661,
+    656,
+    647,
+    639,
+    626,
+    624,
+    620,
+    585,
+    511,
+    494,
+    177
+   ]
+  },
+  {
+   "subsystem": "World, VOBs & navigation",
+   "zengin": "zCVob",
+   "binary_fns": 177,
+   "opengothic": [
+    "Vob"
+   ],
+   "og_present": [
+    "Vob"
+   ],
+   "og_methods": 14,
+   "og_files": [
+    "game/world/objects/vob.h"
+   ],
+   "status": "matched",
+   "issues": [
+    940,
+    939,
+    931,
+    911,
+    909,
+    903,
+    657,
+    642,
+    637,
+    600,
+    312,
+    182
+   ]
+  },
+  {
+   "subsystem": "World, VOBs & navigation",
+   "zengin": "zCWorld",
+   "binary_fns": 105,
+   "opengothic": [
+    "World"
+   ],
+   "og_present": [
+    "World"
+   ],
+   "og_methods": 103,
+   "og_files": [
+    "game/world/world.h"
+   ],
+   "status": "matched",
+   "issues": [
+    940,
+    939,
+    931,
+    911,
+    909,
+    903,
+    657,
+    642,
+    637,
+    600,
+    312,
+    182
+   ]
+  },
+  {
+   "subsystem": "World, VOBs & navigation",
+   "zengin": "oCWorld",
+   "binary_fns": 28,
+   "opengothic": [
+    "World",
+    "WorldObjects"
+   ],
+   "og_present": [
+    "World",
+    "WorldObjects"
+   ],
+   "og_methods": 172,
+   "og_files": [
+    "game/world/world.h",
+    "game/world/worldobjects.h"
+   ],
+   "status": "matched",
+   "issues": [
+    940,
+    939,
+    931,
+    911,
+    909,
+    903,
+    657,
+    642,
+    637,
+    600,
+    312,
+    182
+   ]
+  },
+  {
+   "subsystem": "World, VOBs & navigation",
+   "zengin": "zCWayNet",
+   "binary_fns": 51,
+   "opengothic": [
+    "WayMatrix",
+    "WayPoint"
+   ],
+   "og_present": [
+    "WayMatrix",
+    "WayPoint"
+   ],
+   "og_methods": 27,
+   "og_files": [
+    "game/world/waymatrix.h",
+    "game/world/waypoint.h"
+   ],
+   "status": "matched",
+   "issues": [
+    940,
+    939,
+    931,
+    911,
+    909,
+    903,
+    657,
+    642,
+    637,
+    600,
+    312,
+    182
+   ]
+  },
+  {
+   "subsystem": "World, VOBs & navigation",
+   "zengin": "oCItem",
+   "binary_fns": 72,
+   "opengothic": [
+    "Item"
+   ],
+   "og_present": [
+    "Item"
+   ],
+   "og_methods": 67,
+   "og_files": [
+    "game/graphics/visualobjects.h",
+    "game/physics/dynamicworld.h",
+    "game/ui/gamemenu.h",
+    "game/world/objects/item.h"
+   ],
+   "status": "matched",
+   "issues": [
+    940,
+    939,
+    931,
+    911,
+    909,
+    903,
+    657,
+    642,
+    637,
+    600,
+    312,
+    182
+   ]
+  },
+  {
+   "subsystem": "World, VOBs & navigation",
+   "zengin": "oCItemContainer",
+   "binary_fns": 60,
+   "opengothic": [
+    "Inventory",
+    "Interactive"
+   ],
+   "og_present": [
+    "Inventory",
+    "Interactive"
+   ],
+   "og_methods": 146,
+   "og_files": [
+    "game/game/inventory.h",
+    "game/world/objects/interactive.h"
+   ],
+   "status": "matched",
+   "issues": [
+    940,
+    939,
+    931,
+    911,
+    909,
+    903,
+    657,
+    642,
+    637,
+    600,
+    312,
+    182
+   ]
+  },
+  {
+   "subsystem": "World, VOBs & navigation",
+   "zengin": "oCNpcInventory",
+   "binary_fns": 40,
+   "opengothic": [
+    "Inventory"
+   ],
+   "og_present": [
+    "Inventory"
+   ],
+   "og_methods": 77,
+   "og_files": [
+    "game/game/inventory.h"
+   ],
+   "status": "matched",
+   "issues": [
+    940,
+    939,
+    931,
+    911,
+    909,
+    903,
+    657,
+    642,
+    637,
+    600,
+    312,
+    182
+   ]
+  },
+  {
+   "subsystem": "World, VOBs & navigation",
+   "zengin": "zCMover",
+   "binary_fns": 36,
+   "opengothic": [
+    "MoveTrigger",
+    "MoverControler"
+   ],
+   "og_present": [
+    "MoveTrigger",
+    "MoverControler"
+   ],
+   "og_methods": 23,
+   "og_files": [
+    "game/world/triggers/movercontroler.h",
+    "game/world/triggers/movetrigger.h"
+   ],
+   "status": "matched",
+   "issues": [
+    940,
+    939,
+    931,
+    911,
+    909,
+    903,
+    657,
+    642,
+    637,
+    600,
+    312,
+    182
+   ]
+  },
+  {
+   "subsystem": "World, VOBs & navigation",
+   "zengin": "zCTrigger",
+   "binary_fns": 23,
+   "opengothic": [
+    "Trigger",
+    "AbstractTrigger"
+   ],
+   "og_present": [
+    "Trigger",
+    "AbstractTrigger"
+   ],
+   "og_methods": 24,
+   "og_files": [
+    "game/world/triggers/abstracttrigger.h",
+    "game/world/triggers/trigger.h"
+   ],
+   "status": "matched",
+   "issues": [
+    940,
+    939,
+    931,
+    911,
+    909,
+    903,
+    657,
+    642,
+    637,
+    600,
+    312,
+    182
+   ]
+  },
+  {
+   "subsystem": "World, VOBs & navigation",
+   "zengin": "oCTouchDamage",
+   "binary_fns": 5,
+   "opengothic": [
+    "TouchDamage"
+   ],
+   "og_present": [
+    "TouchDamage"
+   ],
+   "og_methods": 5,
+   "og_files": [
+    "game/world/triggers/touchdamage.h"
+   ],
+   "status": "matched",
+   "issues": [
+    940,
+    939,
+    931,
+    911,
+    909,
+    903,
+    657,
+    642,
+    637,
+    600,
+    312,
+    182
+   ]
+  },
+  {
+   "subsystem": "Game session, scripting & Daedalus",
+   "zengin": "oCGame",
+   "binary_fns": 104,
+   "opengothic": [
+    "GameSession",
+    "Gothic"
+   ],
+   "og_present": [
+    "GameSession",
+    "Gothic"
+   ],
+   "og_methods": 139,
+   "og_files": [
+    "game/game/gamesession.h",
+    "game/gothic.h"
+   ],
+   "status": "matched",
+   "issues": [
+    864,
+    852,
+    841,
+    826,
+    818,
+    771,
+    747,
+    737,
+    707,
+    584,
+    573,
+    535,
+    523,
+    231,
+    215,
+    184,
+    39
+   ]
+  },
+  {
+   "subsystem": "Game session, scripting & Daedalus",
+   "zengin": "zCParser",
+   "binary_fns": 130,
+   "opengothic": [
+    "GameScript"
+   ],
+   "og_present": [
+    "GameScript"
+   ],
+   "og_methods": 314,
+   "og_files": [
+    "game/game/gamescript.h"
+   ],
+   "status": "matched",
+   "issues": [
+    864,
+    852,
+    841,
+    826,
+    818,
+    771,
+    747,
+    737,
+    707,
+    584,
+    573,
+    535,
+    523,
+    231,
+    215,
+    184,
+    39
+   ]
+  },
+  {
+   "subsystem": "Combat damage & spells",
+   "zengin": "oCSpell",
+   "binary_fns": 43,
+   "opengothic": [
+    "SpellDefinitions",
+    "Bullet"
+   ],
+   "og_present": [
+    "SpellDefinitions",
+    "Bullet"
+   ],
+   "og_methods": 26,
+   "og_files": [
+    "game/game/definitions/spelldefinitions.h",
+    "game/world/bullet.h"
+   ],
+   "status": "matched",
+   "issues": [
+    920,
+    858,
+    857,
+    817,
+    661,
+    626,
+    620,
+    511,
+    494,
+    177
+   ]
+  },
+  {
+   "subsystem": "Combat damage & spells",
+   "zengin": "oCMag_Book",
+   "binary_fns": 49,
+   "opengothic": [
+    "InventoryMenu"
+   ],
+   "og_present": [
+    "InventoryMenu"
+   ],
+   "og_methods": 47,
+   "og_files": [
+    "game/ui/inventorymenu.cpp",
+    "game/ui/inventorymenu.h"
+   ],
+   "status": "matched",
+   "issues": [
+    920,
+    858,
+    857,
+    817,
+    661,
+    626,
+    620,
+    511,
+    494,
+    177
+   ]
+  },
+  {
+   "subsystem": "Rendering, meshes & visual FX",
+   "zengin": "zCRenderer",
+   "binary_fns": 67,
+   "opengothic": [
+    "WorldView"
+   ],
+   "og_present": [
+    "WorldView"
+   ],
+   "og_methods": 43,
+   "og_files": [
+    "game/graphics/worldview.h"
+   ],
+   "status": "matched",
+   "issues": [
+    945,
+    932,
+    898,
+    871,
+    710,
+    698,
+    681,
+    665,
+    623,
+    476,
+    451,
+    407,
+    387,
+    386,
+    357,
+    171,
+    105
+   ]
+  },
+  {
+   "subsystem": "Rendering, meshes & visual FX",
+   "zengin": "zCRnd_D3D",
+   "binary_fns": 125,
+   "opengothic": [
+    "WorldView"
+   ],
+   "og_present": [
+    "WorldView"
+   ],
+   "og_methods": 43,
+   "og_files": [
+    "game/graphics/worldview.h"
+   ],
+   "status": "matched",
+   "issues": [
+    945,
+    932,
+    898,
+    871,
+    710,
+    698,
+    681,
+    665,
+    623,
+    476,
+    451,
+    407,
+    387,
+    386,
+    357,
+    171,
+    105
+   ]
+  },
+  {
+   "subsystem": "Rendering, meshes & visual FX",
+   "zengin": "zCMesh",
+   "binary_fns": 85,
+   "opengothic": [
+    "WorldView"
+   ],
+   "og_present": [
+    "WorldView"
+   ],
+   "og_methods": 43,
+   "og_files": [
+    "game/graphics/worldview.h"
+   ],
+   "status": "matched",
+   "issues": [
+    945,
+    932,
+    898,
+    871,
+    710,
+    698,
+    681,
+    665,
+    623,
+    476,
+    451,
+    407,
+    387,
+    386,
+    357,
+    171,
+    105
+   ]
+  },
+  {
+   "subsystem": "Rendering, meshes & visual FX",
+   "zengin": "zCPolygon",
+   "binary_fns": 81,
+   "opengothic": [
+    "WorldView"
+   ],
+   "og_present": [
+    "WorldView"
+   ],
+   "og_methods": 43,
+   "og_files": [
+    "game/graphics/worldview.h"
+   ],
+   "status": "matched",
+   "issues": [
+    945,
+    932,
+    898,
+    871,
+    710,
+    698,
+    681,
+    665,
+    623,
+    476,
+    451,
+    407,
+    387,
+    386,
+    357,
+    171,
+    105
+   ]
+  },
+  {
+   "subsystem": "Rendering, meshes & visual FX",
+   "zengin": "zCModel",
+   "binary_fns": 107,
+   "opengothic": [
+    "Skeleton",
+    "Animation",
+    "MdlVisual"
+   ],
+   "og_present": [
+    "Skeleton",
+    "Animation",
+    "MdlVisual"
+   ],
+   "og_methods": 113,
+   "og_files": [
+    "game/graphics/mdlvisual.h",
+    "game/graphics/mesh/animation.h",
+    "game/graphics/mesh/skeleton.h"
+   ],
+   "status": "matched",
+   "issues": [
+    945,
+    932,
+    898,
+    871,
+    710,
+    698,
+    681,
+    665,
+    623,
+    476,
+    451,
+    407,
+    387,
+    386,
+    357,
+    171,
+    105
+   ]
+  },
+  {
+   "subsystem": "Rendering, meshes & visual FX",
+   "zengin": "zCModelPrototype",
+   "binary_fns": 63,
+   "opengothic": [
+    "Skeleton"
+   ],
+   "og_present": [
+    "Skeleton"
+   ],
+   "og_methods": 10,
+   "og_files": [
+    "game/graphics/mesh/skeleton.h"
+   ],
+   "status": "matched",
+   "issues": [
+    945,
+    932,
+    898,
+    871,
+    710,
+    698,
+    681,
+    665,
+    623,
+    476,
+    451,
+    407,
+    387,
+    386,
+    357,
+    171,
+    105
+   ]
+  },
+  {
+   "subsystem": "Rendering, meshes & visual FX",
+   "zengin": "zCMorphMesh",
+   "binary_fns": 38,
+   "opengothic": [
+    "MdlVisual"
+   ],
+   "og_present": [
+    "MdlVisual"
+   ],
+   "og_methods": 71,
+   "og_files": [
+    "game/graphics/mdlvisual.h"
+   ],
+   "status": "matched",
+   "issues": [
+    945,
+    932,
+    898,
+    871,
+    710,
+    698,
+    681,
+    665,
+    623,
+    476,
+    451,
+    407,
+    387,
+    386,
+    357,
+    171,
+    105
+   ]
+  },
+  {
+   "subsystem": "Rendering, meshes & visual FX",
+   "zengin": "zCProgMeshProto",
+   "binary_fns": 51,
+   "opengothic": [
+    "WorldView"
+   ],
+   "og_present": [
+    "WorldView"
+   ],
+   "og_methods": 43,
+   "og_files": [
+    "game/graphics/worldview.h"
+   ],
+   "status": "matched",
+   "issues": [
+    945,
+    932,
+    898,
+    871,
+    710,
+    698,
+    681,
+    665,
+    623,
+    476,
+    451,
+    407,
+    387,
+    386,
+    357,
+    171,
+    105
+   ]
+  },
+  {
+   "subsystem": "Rendering, meshes & visual FX",
+   "zengin": "oCVisualFX",
+   "binary_fns": 102,
+   "opengothic": [
+    "VisualFx",
+    "Effect"
+   ],
+   "og_present": [
+    "VisualFx",
+    "Effect"
+   ],
+   "og_methods": 39,
+   "og_files": [
+    "game/game/globaleffects.h",
+    "game/graphics/effect.h",
+    "game/graphics/visualfx.h",
+    "game/world/worldsound.h"
+   ],
+   "status": "matched",
+   "issues": [
+    945,
+    932,
+    898,
+    871,
+    710,
+    698,
+    681,
+    665,
+    623,
+    476,
+    451,
+    407,
+    387,
+    386,
+    357,
+    171,
+    105
+   ]
+  },
+  {
+   "subsystem": "Rendering, meshes & visual FX",
+   "zengin": "zCParticleFX",
+   "binary_fns": 39,
+   "opengothic": [
+    "ParticleFx",
+    "PfxEmitter"
+   ],
+   "og_present": [
+    "ParticleFx",
+    "PfxEmitter"
+   ],
+   "og_methods": 30,
+   "og_files": [
+    "game/graphics/pfx/particlefx.h",
+    "game/world/objects/pfxemitter.h"
+   ],
+   "status": "matched",
+   "issues": [
+    945,
+    932,
+    898,
+    871,
+    710,
+    698,
+    681,
+    665,
+    623,
+    476,
+    451,
+    407,
+    387,
+    386,
+    357,
+    171,
+    105
+   ]
+  },
+  {
+   "subsystem": "Rendering, meshes & visual FX",
+   "zengin": "zCSkyControler_Outdoor",
+   "binary_fns": 48,
+   "opengothic": [
+    "WorldView"
+   ],
+   "og_present": [
+    "WorldView"
+   ],
+   "og_methods": 43,
+   "og_files": [
+    "game/graphics/worldview.h"
+   ],
+   "status": "matched",
+   "issues": [
+    945,
+    932,
+    898,
+    871,
+    710,
+    698,
+    681,
+    665,
+    623,
+    476,
+    451,
+    407,
+    387,
+    386,
+    357,
+    171,
+    105
+   ]
+  },
+  {
+   "subsystem": "Camera & cutscenes",
+   "zengin": "zCCamera",
+   "binary_fns": 36,
+   "opengothic": [
+    "Camera"
+   ],
+   "og_present": [
+    "Camera"
+   ],
+   "og_methods": 65,
+   "og_files": [
+    "game/camera.h"
+   ],
+   "status": "matched",
+   "issues": []
+  },
+  {
+   "subsystem": "Camera & cutscenes",
+   "zengin": "zCAICamera",
+   "binary_fns": 50,
+   "opengothic": [
+    "Camera"
+   ],
+   "og_present": [
+    "Camera"
+   ],
+   "og_methods": 65,
+   "og_files": [
+    "game/camera.h"
+   ],
+   "status": "matched",
+   "issues": []
+  },
+  {
+   "subsystem": "Camera & cutscenes",
+   "zengin": "zCCSCamera",
+   "binary_fns": 50,
+   "opengothic": [
+    "CsCamera",
+    "Camera"
+   ],
+   "og_present": [
+    "CsCamera",
+    "Camera"
+   ],
+   "og_methods": 74,
+   "og_files": [
+    "game/camera.h",
+    "game/world/triggers/cscamera.h"
+   ],
+   "status": "matched",
+   "issues": []
+  },
+  {
+   "subsystem": "Camera & cutscenes",
+   "zengin": "zCCSManager",
+   "binary_fns": 52,
+   "opengothic": [
+    "Camera"
+   ],
+   "og_present": [
+    "Camera"
+   ],
+   "og_methods": 65,
+   "og_files": [
+    "game/camera.h"
+   ],
+   "status": "matched",
+   "issues": []
+  },
+  {
+   "subsystem": "Camera & cutscenes",
+   "zengin": "zCCSPlayer",
+   "binary_fns": 39,
+   "opengothic": [
+    "Camera"
+   ],
+   "og_present": [
+    "Camera"
+   ],
+   "og_methods": 65,
+   "og_files": [
+    "game/camera.h"
+   ],
+   "status": "matched",
+   "issues": []
+  },
+  {
+   "subsystem": "Camera & cutscenes",
+   "zengin": "zCCutscene",
+   "binary_fns": 50,
+   "opengothic": [
+    "Camera"
+   ],
+   "og_present": [
+    "Camera"
+   ],
+   "og_methods": 65,
+   "og_files": [
+    "game/camera.h"
+   ],
+   "status": "matched",
+   "issues": []
+  },
+  {
+   "subsystem": "Sound & music",
+   "zengin": "zCSndSys_MSS",
+   "binary_fns": 50,
+   "opengothic": [
+    "WorldSound",
+    "Sound"
+   ],
+   "og_present": [
+    "WorldSound",
+    "Sound"
+   ],
+   "og_methods": 31,
+   "og_files": [
+    "game/world/objects/sound.h",
+    "game/world/worldsound.cpp",
+    "game/world/worldsound.h"
+   ],
+   "status": "matched",
+   "issues": [
+    922,
+    899,
+    117
+   ]
+  },
+  {
+   "subsystem": "Sound & music",
+   "zengin": "oCZoneMusic",
+   "binary_fns": 38,
+   "opengothic": [
+    "GameMusic"
+   ],
+   "og_present": [
+    "GameMusic"
+   ],
+   "og_methods": 32,
+   "og_files": [
+    "game/gamemusic.cpp",
+    "game/gamemusic.h"
+   ],
+   "status": "matched",
+   "issues": [
+    922,
+    899,
+    117
+   ]
+  },
+  {
+   "subsystem": "UI & menus",
+   "zengin": "zCMenu",
+   "binary_fns": 46,
+   "opengothic": [
+    "MenuRoot",
+    "GameMenu"
+   ],
+   "og_present": [
+    "MenuRoot",
+    "GameMenu"
+   ],
+   "og_methods": 85,
+   "og_files": [
+    "game/ui/gamemenu.cpp",
+    "game/ui/gamemenu.h",
+    "game/ui/menuroot.h"
+   ],
+   "status": "matched",
+   "issues": [
+    713,
+    662,
+    479,
+    92
+   ]
+  },
+  {
+   "subsystem": "UI & menus",
+   "zengin": "zCMenuItem",
+   "binary_fns": 56,
+   "opengothic": [
+    "MenuRoot"
+   ],
+   "og_present": [
+    "MenuRoot"
+   ],
+   "og_methods": 17,
+   "og_files": [
+    "game/ui/menuroot.h"
+   ],
+   "status": "matched",
+   "issues": [
+    713,
+    662,
+    479,
+    92
+   ]
+  },
+  {
+   "subsystem": "UI & menus",
+   "zengin": "zCView",
+   "binary_fns": 101,
+   "opengothic": [
+    "MenuRoot"
+   ],
+   "og_present": [
+    "MenuRoot"
+   ],
+   "og_methods": 17,
+   "og_files": [
+    "game/ui/menuroot.h"
+   ],
+   "status": "matched",
+   "issues": [
+    713,
+    662,
+    479,
+    92
+   ]
+  },
+  {
+   "subsystem": "UI & menus",
+   "zengin": "zCConsole",
+   "binary_fns": 34,
+   "opengothic": [
+    "ConsoleWidget"
+   ],
+   "og_present": [
+    "ConsoleWidget"
+   ],
+   "og_methods": 17,
+   "og_files": [
+    "game/ui/consolewidget.cpp",
+    "game/ui/consolewidget.h"
+   ],
+   "status": "matched",
+   "issues": [
+    713,
+    662,
+    479,
+    92
+   ]
+  },
+  {
+   "subsystem": "Save / load & serialization",
+   "zengin": "zCArchiverBinSafe",
+   "binary_fns": 98,
+   "opengothic": [
+    "Serialize"
+   ],
+   "og_present": [
+    "Serialize"
+   ],
+   "og_methods": 26,
+   "og_files": [
+    "game/game/serialize.h"
+   ],
+   "status": "matched",
+   "issues": [
+    907,
+    614,
+    410,
+    126
+   ]
+  },
+  {
+   "subsystem": "Save / load & serialization",
+   "zengin": "zCArchiverGeneric",
+   "binary_fns": 91,
+   "opengothic": [
+    "Serialize"
+   ],
+   "og_present": [
+    "Serialize"
+   ],
+   "og_methods": 26,
+   "og_files": [
+    "game/game/serialize.h"
+   ],
+   "status": "matched",
+   "issues": [
+    907,
+    614,
+    410,
+    126
+   ]
+  }
+ ],
+ "unmapped_top": [
+  {
+   "zengin": "zCBuffer",
+   "binary_fns": 56
+  },
+  {
+   "zengin": "zCOption",
+   "binary_fns": 48
+  },
+  {
+   "zengin": "zSTRING",
+   "binary_fns": 47
+  },
+  {
+   "zengin": "zCMovementTracker",
+   "binary_fns": 47
+  },
+  {
+   "zengin": "zCInput",
+   "binary_fns": 43
+  },
+  {
+   "zengin": "zCCSCutsceneContext",
+   "binary_fns": 40
+  },
+  {
+   "zengin": "zCEventManager",
+   "binary_fns": 38
+  },
+  {
+   "zengin": "zCNetMessage",
+   "binary_fns": 38
+  },
+  {
+   "zengin": "zCViewObject",
+   "binary_fns": 38
+  },
+  {
+   "zengin": "zCTexture",
+   "binary_fns": 35
+  },
+  {
+   "zengin": "zCEventMessage",
+   "binary_fns": 33
+  },
+  {
+   "zengin": "zCNet",
+   "binary_fns": 33
+  },
+  {
+   "zengin": "zCCBspNode",
+   "binary_fns": 33
+  },
+  {
+   "zengin": "zCMaterial",
+   "binary_fns": 32
+  },
+  {
+   "zengin": "oCVob",
+   "binary_fns": 32
+  },
+  {
+   "zengin": "oCRtnManager",
+   "binary_fns": 32
+  },
+  {
+   "zengin": "zCPathSearch",
+   "binary_fns": 31
+  },
+  {
+   "zengin": "zCBspTree",
+   "binary_fns": 31
+  },
+  {
+   "zengin": "oCInformationManager",
+   "binary_fns": 31
+  },
+  {
+   "zengin": "zCActiveSnd",
+   "binary_fns": 30
+  },
+  {
+   "zengin": "zCPar_Symbol",
+   "binary_fns": 30
+  },
+  {
+   "zengin": "zCInput_Win32",
+   "binary_fns": 29
+  },
+  {
+   "zengin": "zCSndFX_MSS",
+   "binary_fns": 29
+  },
+  {
+   "zengin": "oCMOB",
+   "binary_fns": 29
+  },
+  {
+   "zengin": "oCSpawnManager",
+   "binary_fns": 29
+  },
+  {
+   "zengin": "zCBspBase",
+   "binary_fns": 28
+  },
+  {
+   "zengin": "zCMgcEigenD",
+   "binary_fns": 28
+  },
+  {
+   "zengin": "zCCollObjectCharacter",
+   "binary_fns": 27
+  },
+  {
+   "zengin": "zCModelAni",
+   "binary_fns": 27
+  },
+  {
+   "zengin": "zCClassDef",
+   "binary_fns": 27
+  },
+  {
+   "zengin": "zCResourceManager",
+   "binary_fns": 27
+  },
+  {
+   "zengin": "oCViewDialogTrade",
+   "binary_fns": 27
+  },
+  {
+   "zengin": "zCCSBlock",
+   "binary_fns": 26
+  },
+  {
+   "zengin": "zCPlayerInfo",
+   "binary_fns": 26
+  },
+  {
+   "zengin": "zCPolyStrip",
+   "binary_fns": 26
+  },
+  {
+   "zengin": "zCQuadMark",
+   "binary_fns": 25
+  },
+  {
+   "zengin": "zCSoundSystem",
+   "binary_fns": 25
+  },
+  {
+   "zengin": "zCWaypoint",
+   "binary_fns": 25
+  },
+  {
+   "zengin": "zCViewDialogChoice",
+   "binary_fns": 25
+  },
+  {
+   "zengin": "oCNpcFocus",
+   "binary_fns": 25
+  },
+  {
+   "zengin": "zCFont",
+   "binary_fns": 25
+  },
+  {
+   "zengin": "oCMsgManipulate",
+   "binary_fns": 24
+  },
+  {
+   "zengin": "zCVisual",
+   "binary_fns": 24
+  },
+  {
+   "zengin": "zCKBSpline",
+   "binary_fns": 24
+  },
+  {
+   "zengin": "zCSparseArrayBase",
+   "binary_fns": 24
+  },
+  {
+   "zengin": "zCVertexBuffer",
+   "binary_fns": 23
+  },
+  {
+   "zengin": "zCVobSound",
+   "binary_fns": 23
+  },
+  {
+   "zengin": "oCMission",
+   "binary_fns": 23
+  },
+  {
+   "zengin": "oCMsgMovement",
+   "binary_fns": 22
+  },
+  {
+   "zengin": "oCMsgConversation",
+   "binary_fns": 22
+  },
+  {
+   "zengin": "zCDecal",
+   "binary_fns": 22
+  },
+  {
+   "zengin": "zCFFT",
+   "binary_fns": 22
+  },
+  {
+   "zengin": "zCSession",
+   "binary_fns": 22
+  },
+  {
+   "zengin": "zCPose",
+   "binary_fns": 21
+  },
+  {
+   "zengin": "zCMusicSystem",
+   "binary_fns": 21
+  },
+  {
+   "zengin": "zCSoundFX",
+   "binary_fns": 21
+  },
+  {
+   "zengin": "zCModelMeshLib",
+   "binary_fns": 21
+  },
+  {
+   "zengin": "zCMeshSoftSkin",
+   "binary_fns": 21
+  },
+  {
+   "zengin": "zCRigidBody",
+   "binary_fns": 21
+  },
+  {
+   "zengin": "zCTex_D3D",
+   "binary_fns": 21
+  },
+  {
+   "zengin": "oCViewDialogItemContainer",
+   "binary_fns": 21
+  },
+  {
+   "zengin": "oCViewDialogStealContainer",
+   "binary_fns": 21
+  },
+  {
+   "zengin": "zCViewDraw",
+   "binary_fns": 21
+  },
+  {
+   "zengin": "zCPar_File",
+   "binary_fns": 21
+  },
+  {
+   "zengin": "oCVisFX_MultiTarget",
+   "binary_fns": 20
+  },
+  {
+   "zengin": "zCRenderManager",
+   "binary_fns": 20
+  },
+  {
+   "zengin": "zCSkyControler",
+   "binary_fns": 20
+  },
+  {
+   "zengin": "zCVobLight",
+   "binary_fns": 20
+  },
+  {
+   "zengin": "zCViewFX",
+   "binary_fns": 20
+  },
+  {
+   "zengin": "oCInfo",
+   "binary_fns": 20
+  },
+  {
+   "zengin": "oCPortalRoomManager",
+   "binary_fns": 20
+  },
+  {
+   "zengin": "zCPar_SymbolTable",
+   "binary_fns": 20
+  },
+  {
+   "zengin": "zCCSPoolItem",
+   "binary_fns": 19
+  },
+  {
+   "zengin": "oCSavegameInfo",
+   "binary_fns": 19
+  },
+  {
+   "zengin": "oCMsgDamage",
+   "binary_fns": 19
+  },
+  {
+   "zengin": "zCMenuItemList",
+   "binary_fns": 19
+  },
+  {
+   "zengin": "zCMusicSys_DirectMusic",
+   "binary_fns": 19
+  },
+  {
+   "zengin": "zCViewPrint",
+   "binary_fns": 19
+  },
+  {
+   "zengin": "zCCSSyncBlock",
+   "binary_fns": 18
+  },
+  {
+   "zengin": "zCCSLib",
+   "binary_fns": 18
+  },
+  {
+   "zengin": "zCBinkPlayer",
+   "binary_fns": 18
+  },
+  {
+   "zengin": "zCVideoPlayer",
+   "binary_fns": 18
+  },
+  {
+   "zengin": "zCNetVobControl",
+   "binary_fns": 18
+  },
+  {
+   "zengin": "zCSkyControler_Indoor",
+   "binary_fns": 18
+  },
+  {
+   "zengin": "zCCodeMaster",
+   "binary_fns": 18
+  },
+  {
+   "zengin": "zCTouchAnimate",
+   "binary_fns": 18
+  },
+  {
+   "zengin": "oCDocumentManager",
+   "binary_fns": 18
+  },
+  {
+   "zengin": "oCViewDialogInventory",
+   "binary_fns": 18
+  },
+  {
+   "zengin": "oCMobContainer",
+   "binary_fns": 18
+  },
+  {
+   "zengin": "oCNpcMessage",
+   "binary_fns": 18
+  },
+  {
+   "zengin": "oCWorldTimer",
+   "binary_fns": 18
+  },
+  {
+   "zengin": "zCPar_Stack",
+   "binary_fns": 18
+  },
+  {
+   "zengin": "zCCSBlockBase",
+   "binary_fns": 17
+  },
+  {
+   "zengin": "zCGameInfo",
+   "binary_fns": 17
+  },
+  {
+   "zengin": "zCOBBox3D",
+   "binary_fns": 17
+  },
+  {
+   "zengin": "zCTriggerList",
+   "binary_fns": 17
+  },
+  {
+   "zengin": "zCVertexBuffer_D3D",
+   "binary_fns": 17
+  },
+  {
+   "zengin": "oCViewDocument",
+   "binary_fns": 17
+  },
+  {
+   "zengin": "oCMobLockable",
+   "binary_fns": 17
+  },
+  {
+   "zengin": "zCWay",
+   "binary_fns": 17
+  }
+ ],
+ "issue_buckets": {
+  "animation": [
+   946,
+   934,
+   901
+  ],
+  "rendering": [
+   945,
+   932,
+   898,
+   871,
+   710,
+   698,
+   681,
+   665,
+   623,
+   476,
+   451,
+   407,
+   387,
+   386,
+   357,
+   171,
+   105
+  ],
+  "uncategorized": [
+   944,
+   409,
+   230
+  ],
+  "world": [
+   940,
+   911,
+   909,
+   657,
+   637,
+   600
+  ],
+  "physics": [
+   939,
+   931,
+   903,
+   642,
+   312,
+   182
+  ],
+  "sound": [
+   922,
+   899,
+   117
+  ],
+  "gameplay": [
+   920,
+   858,
+   857,
+   817,
+   661,
+   626,
+   620,
+   511,
+   494,
+   177
+  ],
+  "saveload": [
+   907,
+   614,
+   410,
+   126
+  ],
+  "platform": [
+   888,
+   887,
+   882,
+   881,
+   842,
+   799,
+   780,
+   711,
+   649,
+   594,
+   521,
+   520,
+   518,
+   517,
+   304,
+   127,
+   75,
+   14
+  ],
+  "input": [
+   873,
+   772,
+   749,
+   287,
+   262
+  ],
+  "mods": [
+   864,
+   852,
+   826,
+   818,
+   771,
+   747,
+   737,
+   584,
+   573,
+   535,
+   184
+  ],
+  "scripting": [
+   841,
+   707,
+   523,
+   231,
+   215,
+   39
+  ],
+  "ai": [
+   791,
+   730,
+   684,
+   656,
+   647,
+   639,
+   624,
+   585
+  ],
+  "stability": [
+   746,
+   726,
+   719,
+   712,
+   643,
+   577
+  ],
+  "ui": [
+   713,
+   662,
+   479,
+   92
+  ],
+  "performance": [
+   680
+  ]
+ },
+ "parity_flagged": [
+  117,
+  387,
+  585,
+  665,
+  746,
+  799
+ ],
+ "g1_flagged": [
+  614,
+  624,
+  626,
+  661,
+  730,
+  922,
+  931,
+  932,
+  934,
+  944
+ ]
+}

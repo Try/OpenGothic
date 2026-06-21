@@ -1,0 +1,109 @@
+{
+  "_comment": "Seed correspondences between original ZenGin classes (Gothic2.exe namespaces, as Ghidra demangles them) and OpenGothic classes. THIS IS THE ITERATION SURFACE: edit the mappings / add subsystems, then run `python3 ~/gothic-re/scripts/build_parity_map.py` to regenerate PARITY_MAP.md + parity_map.json. Each subsystem's `buckets` selects which GitHub issue buckets (see ~/gothic-re/out/issues.json) attach to it. Seeded from game/world/objects/vob.cpp (VirtualObjectType dispatch) and game/game/compatibility/mem32instances.h.",
+  "subsystems": [
+    {
+      "name": "NPC, AI & Combat",
+      "buckets": ["ai", "animation", "gameplay"],
+      "map": {
+        "oCNpc": ["Npc"],
+        "oCNpc_States": ["Npc"],
+        "oCAIHuman": ["AiQueue", "FightAlgo"],
+        "oCAniCtrl_Human": ["MoveAlgo", "MdlVisual"],
+        "zCAIPlayer": ["MoveAlgo"],
+        "oCMobInter": ["Interactive"]
+      }
+    },
+    {
+      "name": "World, VOBs & navigation",
+      "buckets": ["world", "physics"],
+      "map": {
+        "zCVob": ["Vob"],
+        "zCWorld": ["World"],
+        "oCWorld": ["World", "WorldObjects"],
+        "zCWayNet": ["WayMatrix", "WayPoint"],
+        "oCItem": ["Item"],
+        "oCItemContainer": ["Inventory", "Interactive"],
+        "oCNpcInventory": ["Inventory"],
+        "zCMover": ["MoveTrigger", "MoverControler"],
+        "zCTrigger": ["Trigger", "AbstractTrigger"],
+        "oCTouchDamage": ["TouchDamage"]
+      }
+    },
+    {
+      "name": "Game session, scripting & Daedalus",
+      "buckets": ["scripting", "mods"],
+      "map": {
+        "oCGame": ["GameSession", "Gothic"],
+        "zCParser": ["GameScript"]
+      }
+    },
+    {
+      "name": "Combat damage & spells",
+      "buckets": ["gameplay"],
+      "map": {
+        "oCSpell": ["SpellDefinitions", "Bullet"],
+        "oCMag_Book": ["InventoryMenu"]
+      }
+    },
+    {
+      "name": "Rendering, meshes & visual FX",
+      "buckets": ["rendering"],
+      "map": {
+        "zCRenderer": ["WorldView"],
+        "zCRnd_D3D": ["WorldView"],
+        "zCMesh": ["WorldView"],
+        "zCPolygon": ["WorldView"],
+        "zCModel": ["Skeleton", "Animation", "MdlVisual"],
+        "zCModelPrototype": ["Skeleton"],
+        "zCMorphMesh": ["MdlVisual"],
+        "zCProgMeshProto": ["WorldView"],
+        "oCVisualFX": ["VisualFx", "Effect"],
+        "zCParticleFX": ["ParticleFx", "PfxEmitter"],
+        "zCSkyControler_Outdoor": ["WorldView"]
+      }
+    },
+    {
+      "name": "Camera & cutscenes",
+      "buckets": [],
+      "map": {
+        "zCCamera": ["Camera"],
+        "zCAICamera": ["Camera"],
+        "zCCSCamera": ["CsCamera", "Camera"],
+        "zCCSManager": ["Camera"],
+        "zCCSPlayer": ["Camera"],
+        "zCCutscene": ["Camera"]
+      }
+    },
+    {
+      "name": "Sound & music",
+      "buckets": ["sound"],
+      "map": {
+        "zCSndSys_MSS": ["WorldSound", "Sound"],
+        "oCZoneMusic": ["GameMusic"]
+      }
+    },
+    {
+      "name": "UI & menus",
+      "buckets": ["ui"],
+      "map": {
+        "zCMenu": ["MenuRoot", "GameMenu"],
+        "zCMenuItem": ["MenuRoot"],
+        "zCView": ["MenuRoot"],
+        "zCConsole": ["ConsoleWidget"]
+      }
+    },
+    {
+      "name": "Save / load & serialization",
+      "buckets": ["saveload"],
+      "map": {
+        "zCArchiverBinSafe": ["Serialize"],
+        "zCArchiverGeneric": ["Serialize"]
+      }
+    },
+    {
+      "name": "Platform, build, performance & stability",
+      "buckets": ["platform", "stability", "performance"],
+      "map": {}
+    }
+  ]
+}
