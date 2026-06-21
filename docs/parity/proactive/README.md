@@ -27,5 +27,6 @@ patch with a `// NOTE: in original-game …` citation.
 | Area | Why |
 |---|---|
 | Multi-type immune damage (`damage-immune-multitype`) | exact fix needs the original's bit-order `stillAllNonPositive` state; the shortcut would make immune NPCs killable on masks like `FLY\|POINT` (rare mixed-type case) |
+| Regen rate vs interval (`regen-rate-reciprocal`) | original = +1 per N seconds, OG = N per second (reciprocal); likely near-dead in vanilla; orders-of-magnitude risk to flip blind — needs the attribute values + runtime |
 | Periodic perc fighter/item (`aistate-perc-fighter-item-missing`) | original raises PERC_ASSESSFIGHTER/ASSESSITEM each scan; OG doesn't — needs new nearest-fighter/item helpers + raises new AI reactions (feature-add, needs runtime validation) |
 
