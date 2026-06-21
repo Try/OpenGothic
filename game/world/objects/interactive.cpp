@@ -408,7 +408,11 @@ void Interactive::implTick(Pos& p) {
     emitTriggerEvent(TriggerEvent::T_Untrigger);
     }
 
-  if(npc.isPlayer() && !loopState && attach) {
+  // NOTE: in original-game oCMobInter::CheckStateChange (Gothic2.exe 0x00720440) fires the
+  // per-state on_state callback for ANY npc on every committed transition, not just the player;
+  // OG gated it on isPlayer(), so a scripted NPC stepping a multi-state mobsi never ran the
+  // intermediate on_state_S1..S{n-1} scripts (terminal state fires separately, ungated).
+  if(!loopState && attach) {
     invokeStateFunc(npc);
     }
 
