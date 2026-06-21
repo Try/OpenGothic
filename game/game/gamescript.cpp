@@ -1378,24 +1378,24 @@ Attitude GameScript::guildAttitude(const Npc &p0, const Npc &p1) const {
   }
 
 Attitude GameScript::personAttitude(const Npc &p0, const Npc &p1) const {
-  if(!p0.isPlayer() && !p1.isPlayer())
+  // NOTE: in original-game oCNpc::GetAttitude (Gothic2.exe 0x0072fab0) is self->GetAttitude(other)
+  // and consults the SUBJECT's perm/temp attitude ONLY when the OTHER argument is the player; when
+  // the subject itself is the player it returns the pure guild-matrix value and never looks at the
+  // NPC's perm/temp. Keying on "other is the player" (p1) -- rather than "whichever is not the
+  // player" -- both keeps the common Npc_GetAttitude(self_npc, hero) path correct and stops
+  // Npc_GetAttitude(hero, npc) from wrongly surfacing a temp-angered NPC's attitude.
+  if(!p1.isPlayer())
     return guildAttitude(p0,p1);
 
-  Attitude att=ATT_NULL;
-  const Npc& npc = p0.isPlayer() ? p1 : p0;
-  // NOTE: in original-game oCNpc::GetAttitude (Gothic2.exe 0x0072fab0) the temp attitude
-  // (Npc_SetTempAttitude — e.g. a guard reacting to a crime) overrides perm when it has been
-  // set differently, for attitude toward the player. OpenGothic ignored tmpAttitude here
-  // (there was a "//TODO: temp attitudes"), so temporarily angered/pacified NPCs were still
-  // judged by their permanent attitude. Npc_GetPermAttitude stays perm-only.
-  att = npc.tempAttitude();
-  if(att!=ATT_NULL && att!=npc.attitude())
+  // here p1 is the player, so the subject p0 is the NPC: temp attitude (Npc_SetTempAttitude --
+  // e.g. a guard reacting to a crime) overrides perm when set differently, then perm, then guild.
+  Attitude att = p0.tempAttitude();
+  if(att!=ATT_NULL && att!=p0.attitude())
     return att;
-  att = npc.attitude();
+  att = p0.attitude();
   if(att!=ATT_NULL)
     return att;
-  att = guildAttitude(p0,p1);
-  return att;
+  return guildAttitude(p0,p1);
   }
 
 bool GameScript::isFriendlyFire(const Npc& src, const Npc& dst) const {
@@ -2208,19 +2208,29 @@ int GameScript::npc_getinvitembyslot(std::shared_ptr<zenkit::INpc> npcRef, int c
   }
 
 int GameScript::npc_removeinvitem(std::shared_ptr<zenkit::INpc> npcRef, int itemId) {
+  // NOTE: in original-game Npc_RemoveInvItem @0x006e7d90 returns 1 when the item was present in
+  // the inventory (and thus removed), 0 otherwise. OpenGothic always returned 0, breaking scripts
+  // that gate on the result (e.g. `if(Npc_RemoveInvItem(self,it)) ...`).
   auto npc = findNpc(npcRef);
-  if(npc!=nullptr)
+  if(npc==nullptr)
+    return 0;
+  const bool had = npc->itemCount(uint32_t(itemId))>0;
+  if(had)
     npc->delItem(uint32_t(itemId),1);
-  return 0;
+  return had ? 1 : 0;
   }
 
 int GameScript::npc_removeinvitems(std::shared_ptr<zenkit::INpc> npcRef, int itemId, int amount) {
+  // NOTE: in original-game Npc_RemoveInvItems @0x006e8200 returns 1 when at least one matching
+  // item existed (and was removed -- over-removal is a partial removal down to empty), 0 when
+  // none existed. OpenGothic always returned 0.
   auto npc = findNpc(npcRef);
-
-  if(npc!=nullptr && amount>0)
+  if(npc==nullptr)
+    return 0;
+  const bool had = npc->itemCount(uint32_t(itemId))>0;
+  if(had && amount>0)
     npc->delItem(uint32_t(itemId),uint32_t(amount));
-
-  return 0;
+  return had ? 1 : 0;
   }
 
 int GameScript::npc_getbodystate(std::shared_ptr<zenkit::INpc> npcRef) {
