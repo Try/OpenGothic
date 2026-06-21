@@ -17,6 +17,7 @@ subsystems OpenGothic *replaces* (Tempest / ZenKit / dmusic). So the map is
 | `name_map.json` | **Hand-edited seed** — the iteration surface. ZenGin class → OpenGothic class(es), grouped by subsystem, with the GitHub issue buckets each subsystem owns. |
 | `PARITY_MAP.md` | **Generated.** Per subsystem: linked issues + a table (ZenGin class, binary fn count, OG class/methods/files, status) + an "unmapped ZenGin classes" backlog. |
 | `parity_map.json` | **Generated.** Structured form for tooling/automation. |
+| `TRIAGE.md` | **Disposition of every open issue** (fixed / deferred / out-of-scope). |
 | `findings/issue-<n>.md` | Per-issue parity analyses (decompiled original behavior vs OG, with a proposed fix). |
 
 Bulky raw dumps live outside the repo in `~/gothic-re/out/`
