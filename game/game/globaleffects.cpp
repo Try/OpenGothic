@@ -173,6 +173,11 @@ GlobalFx GlobalEffects::addSlowTime(const std::string* argv, size_t argc) {
   SlowTime s;
   s.mul = v[0];
   s.div = 1000;
+  // NOTE: in original-game time.slw (swampweed smoke) is a single bounded world
+  // time-scaler, not a stack -- re-applying replaces it. Appending multiplied the
+  // stacks together (e.g. 0.5^n) into a permanent, unrecoverable slow-motion (#920).
+  // timeEff is treated single-instance elsewhere (stopEffect clears it), so clear first.
+  timeEff.clear();
   timeEff.emplace_back(std::make_shared<SlowTime>(s));
   return GlobalFx(timeEff.back());
   }
