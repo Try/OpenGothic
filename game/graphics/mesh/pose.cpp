@@ -768,11 +768,13 @@ const Animation::Sequence* Pose::continueCombo(const AnimationSolver &solver, co
     return nullptr;
     }
 
-  if(!(d.defWindow[id+0]<t && t<=d.defWindow[id+1])) {
-    if(prev->seq->name==sq->name && sq->data->defHitEnd.size()>0)
-      combo.setBreak();
+  // NOTE: in original-game oCAniCtrl_Human::HitCombo @0x006b0260 a re-press that falls outside the
+  // combo window [windowStart..windowEnd] (inclusive both ends) is silently ignored -- the
+  // "press pending" bit is cleared but the combo is NOT broken, so a later in-window press still
+  // chains. OpenGothic broke the combo on any same-direction mistimed press, permanently locking
+  // out the chain after a too-early press. Drop that lockout and make the low bound inclusive.
+  if(!(d.defWindow[id+0]<=t && t<=d.defWindow[id+1]))
     return nullptr;
-    }
 
   if(combo.isBreak())
     return nullptr;
