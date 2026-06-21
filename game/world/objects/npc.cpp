@@ -3271,20 +3271,16 @@ const Npc::Routine& Npc::currentRoutine(bool assertWp) const {
       return i;
     }
 
-  const auto     day   = gtime(24,0).toInt();
-  const Routine* rtn   = nullptr;
-  int64_t        delta = std::numeric_limits<int64_t>::max();
+  // NOTE: in original-game oCRtnManager::FindRoutine, when no routine window contains the
+  // current time, the fallback is the last entry in the start-sorted list -- i.e. the entry
+  // with the largest start time -- not the routine whose end most recently passed.
+  // OpenGothic does not sort `routines`, so pick the max-start entry explicitly.
+  const Routine* rtn = nullptr;
   for(auto& i:routines) {
     if(assertWp && i.point==nullptr)
       continue;
-    int64_t d = time.toInt() - i.end.toInt();
-    if(d<0)
-      d += day;
-    // take the last one if multiple with same end time exist
-    if(d<=delta) {
-      rtn   = &i;
-      delta = d;
-      }
+    if(rtn==nullptr || rtn->start<i.start)
+      rtn = &i;
     }
 
   if(rtn!=nullptr)
