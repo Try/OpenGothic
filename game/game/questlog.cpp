@@ -25,8 +25,17 @@ void QuestLog::setStatus(std::string_view name, QuestLog::Status s) {
   }
 
 void QuestLog::addEntry(std::string_view name, std::string_view entry) {
-  if(auto m = find(name))
-    m->entry.emplace_back(entry);
+  // NOTE: in original-game oCLogTopic::AddEntry @0x00663870 (from the log_addentry external
+  // @0x006e3df0) suppresses the insert when an entry with byte-identical text already exists in
+  // the topic; only unique entries are appended. OpenGothic appended unconditionally, so a
+  // re-issued Log_AddEntry on a revisited dialogue branch produced duplicate journal lines.
+  auto m = find(name);
+  if(m==nullptr)
+    return;
+  for(auto& e:m->entry)
+    if(e==entry)
+      return;
+  m->entry.emplace_back(entry);
   }
 
 QuestLog::Quest *QuestLog::find(std::string_view name) {
