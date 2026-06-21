@@ -3552,7 +3552,15 @@ void Npc::dropItem(size_t id, size_t count) {
   if(rightHand<visual.pose().boneCount())
     mat = visual.pose().bone(rightHand);
 
-  auto it = owner.addItemDyn(id,mat,hnpc->symbol_index());
+  // NOTE: in original-game oCAIVobMove::Init @0x0069f540 (from oCNpc::DoDropVob @0x00744dd0)
+  // the dropped item's rotation is reset to identity via zCVob::ResetRotationsWorld @0x0061c000
+  // before physics is enabled; only the world position is taken from the hand. Keep the
+  // translation, drop the hand-bone rotation, so the item starts world-axis-aligned.
+  Tempest::Matrix4x4 drop;
+  drop.identity();
+  drop.translate(mat.at(3,0),mat.at(3,1),mat.at(3,2));
+
+  auto it = owner.addItemDyn(id,drop,hnpc->symbol_index());
   it->setCount(count);
   invent.delItem(id,count,*this);
   }
