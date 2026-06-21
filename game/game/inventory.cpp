@@ -860,6 +860,15 @@ void Inventory::applyArmor(Item &it, Npc &owner, int32_t sgn) {
     auto v = owner.protection(Protection(i));
     owner.changeProtection(Protection(i),v+it.handle().protection[i]*sgn);
     }
+  // NOTE: in original-game oCNpc::AddItemEffects (Gothic2.exe 0x007320f0) / RemoveItemEffects
+  // (0x00732270) each equipped item also applies its change_atr[]/change_value[] pairs as
+  // attribute bonuses (add on equip, subtract on unequip; change_atr<=0 skipped). OpenGothic
+  // serialized these fields but never applied them.
+  for(size_t i=0;i<zenkit::IItem::condition_count;++i){
+    const int32_t atr = it.handle().change_atr[i];
+    if(atr>0)
+      owner.changeAttribute(Attribute(atr), it.handle().change_value[i]*sgn, false);
+    }
   }
 
 bool Inventory::use(size_t cls, Npc &owner, uint8_t slotHint, bool force) {
@@ -913,6 +922,18 @@ bool Inventory::use(size_t cls, Npc &owner, uint8_t slotHint, bool force) {
       deleteLater = true;
       } else {
       return true;
+      }
+    }
+
+  // NOTE: in original-game oCNpc::UseItem (Gothic2.exe 0x0073bc10) gates EVERY item category
+  // through CanUse, which fails (G_CANNOTUSE) when any cond_value[i] > self.attribute[cond_atr[i]].
+  // OpenGothic only gated the equip/setSlot path, so a food/potion with an unmet attribute
+  // requirement was consumed anyway.
+  if(!force) {
+    int32_t atr=0,nValue=0;
+    if(!it->checkCondUse(owner,atr,nValue)) {
+      owner.world().script().printCannotUseError(owner,atr,nValue);
+      return false;
       }
     }
 
