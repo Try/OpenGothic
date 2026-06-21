@@ -72,7 +72,11 @@ DamageCalculator::Val DamageCalculator::damageFall(Npc& npc, float speed) {
 
 DamageCalculator::Val DamageCalculator::rangeDamage(Npc& nsrc, Npc& nother, const Bullet& b, const CollideMask bMsk) {
   float dist       = b.pathLength();
-  bool  noHit      = dist>float(MaxMagRange);
+  // NOTE: in original-game a spell applies damage on physical collision with no path-length
+  // gate (oCVisualFX::ProcessCollision @0x004958d0); only the arrow/bolt path has a range
+  // falloff. OpenGothic zeroed spell damage past MaxMagRange(3500cm) even though spell bullets
+  // fly to ~10000cm, so distant spell hits dealt 0. Apply the cutoff to non-spell bullets only.
+  bool  noHit      = !b.isSpell() && dist>float(MaxMagRange);
   bool  invincible = !checkDamageMask(nsrc,nother,&b);
   auto  dmg        = b.damage();
 
