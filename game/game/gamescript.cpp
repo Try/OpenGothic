@@ -2084,12 +2084,15 @@ bool GameScript::npc_isdead(std::shared_ptr<zenkit::INpc> npcRef) {
   }
 
 bool GameScript::npc_knowsinfo(std::shared_ptr<zenkit::INpc> npcRef, int infoinstance) {
-  auto npc = findNpc(npcRef);
-  if(!npc)
+  // NOTE: in original-game Npc_KnowsInfo (Gothic2.exe) ignores the npc argument and returns a
+  // global per-info "told" flag (oCInfoManager::InformationTold). OpenGothic stores the told set
+  // keyed on the hero, so querying with a non-hero npc (e.g. Npc_KnowsInfo(self,INFO)) returned
+  // false even after the info was told. Query against the hero to match.
+  auto pl  = world().player();
+  auto npc = (pl!=nullptr) ? pl : findNpc(npcRef);
+  if(npc==nullptr)
     return false;
-
-  zenkit::INpc& vnpc = npc->handle();
-  return doesNpcKnowInfo(vnpc, uint32_t(infoinstance));
+  return doesNpcKnowInfo(npc->handle(), uint32_t(infoinstance));
   }
 
 void GameScript::npc_settalentskill(std::shared_ptr<zenkit::INpc> npcRef, int t, int lvl) {
