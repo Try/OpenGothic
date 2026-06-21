@@ -1250,13 +1250,15 @@ void Npc::changeAttribute(Attribute a, int32_t val, bool allowUnconscious) {
       return;
     if(isPlayer() && owner.currentCs()!=nullptr)
       return;
-    // NOTE: in original-game oCNpc::ChangeAttribute (Gothic2.exe 0x0072ff60) the IMMORTAL
-    // flag is bypassed for the sentinel val==-999, so scripts/cutscenes can force-kill an
-    // immortal NPC via Npc_ChangeAttribute(self,ATR_HITPOINTS,-999). Blocking it silently
-    // dropped those scripted deaths.
-    if(isImmortal() && val!=-999)
-      return;
     }
+
+  // NOTE: in original-game oCNpc::ChangeAttribute (Gothic2.exe 0x0072ff60) the IMMORTAL flag
+  // (oCNpc+0x1b4 bit1) blocks EVERY HITPOINTS change regardless of sign -- damage AND
+  // heals/regeneration -- except the val==-999 kill sentinel, which scripts/cutscenes use to
+  // force-kill an immortal NPC. OpenGothic only checked the flag on val<0, so positive heals
+  // and natural regen leaked through and raised an immortal NPC's HP.
+  if(a==ATR_HITPOINTS && isImmortal() && val!=-999)
+    return;
 
   hnpc->attribute[a]+=val;
   if(hnpc->attribute[a]<0)
@@ -4470,6 +4472,7 @@ Npc::JumpStatus Npc::tryJump() {
     return ret;
     }
 
+  const float stepH   = float(g.step_height[gl]);
   const float jumpLow = float(g.jumplow_height[gl]);
   const float jumpMid = float(g.jumpmid_height[gl]);
   const float jumpUp  = float(g.jumpup_height[gl]);
@@ -4537,6 +4540,15 @@ Npc::JumpStatus Npc::tryJump() {
     }
 
   if(dY<=jumpLow) {
+    // NOTE: in original-game oCAniCtrl_Human::JumpForward @0x006b21ed the JUMPUPLOW climb band
+    // is (step_height, jumplow_height]; a ledge at or below step_height resolves to a plain
+    // forward jump, not the hands-free climb-up-low pull. OpenGothic omitted the step_height
+    // floor, so knee-high ledges played a spurious climb animation.
+    if(dY<=stepH) {
+      ret.anim    = Anim::Jump;
+      ret.noClimb = true;
+      return ret;
+      }
     // Without using the hands, just big footstep. Height: 50-100cm
     ret.anim   = Anim::JumpUpLow;
     ret.height = jumpY;
