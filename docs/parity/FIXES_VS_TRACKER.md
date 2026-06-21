@@ -10,6 +10,7 @@ in-game pass is the recommended next step before merge.
 | [#647](https://github.com/Try/OpenGothic/issues/647) Throne NPC offset | preserve NPC Y at mobsi slots | direct |
 | [#585](https://github.com/Try/OpenGothic/issues/585) NPC walk-teleport misalignment | exact-snap on goto arrival | direct |
 | [#920](https://github.com/Try/OpenGothic/issues/920) `time.slw` stacking | single-instance slow-time | direct |
+| [#656](https://github.com/Try/OpenGothic/issues/656) isMonster keys off live guild | isMonster/isHuman use trueGuild | direct |
 
 ## Partially addresses / likely relevant
 | Issue | Fix | Note |

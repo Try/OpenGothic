@@ -28,3 +28,4 @@ internal/
 
 #os
 .DS_Store
+log.txt
