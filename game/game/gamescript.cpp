@@ -1699,7 +1699,9 @@ void GameScript::wld_setguildattitude(int gil1, int att, int gil2) {
 
 int GameScript::wld_getguildattitude(int gil1, int gil2) {
   if(gil1<0 || gil2<0 || gil1>=int(gilCount) || gil2>=int(gilCount))
-    return ATT_HOSTILE; // error
+    // NOTE: in original-game oCGuilds::GetAttitude (Gothic2.exe 0x00700d40) returns ATT_NEUTRAL
+    // for an out-of-range guild, not ATT_HOSTILE (OpenGothic had the polarity inverted).
+    return ATT_NEUTRAL; // error
   return gilAttitudes[size_t(gil1)*gilCount+size_t(gil2)];
   }
 
@@ -2697,8 +2699,17 @@ int GameScript::npc_getpermattitude(std::shared_ptr<zenkit::INpc> aRef, std::sha
   auto b = findNpc(bRef);
 
   if(a!=nullptr && b!=nullptr){
-    auto att=personAttitude(*a,*b);
-    return att;
+    // NOTE: in original-game oCNpc::GetPermAttitude (Gothic2.exe 0x0072fb30) is PERM-only and
+    // never consults the temp attitude (that is Npc_GetAttitude/personAttitude's job). Routing
+    // this through the now temp-aware personAttitude wrongly returned a temp-angered NPC's temp
+    // attitude here, so resolve perm + guild fallback directly.
+    if(!a->isPlayer() && !b->isPlayer())
+      return guildAttitude(*a,*b);
+    const Npc& npc = a->isPlayer() ? *b : *a;
+    Attitude att = npc.attitude();
+    if(att!=ATT_NULL)
+      return att;
+    return guildAttitude(*a,*b);
     }
   return ATT_NEUTRAL;
   }
