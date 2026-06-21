@@ -33,7 +33,7 @@ class SaveGameHeader;
 class Serialize {
   public:
     enum Version : uint16_t {
-      Current    = 55,
+      Current    = 56, // 56: persist Npc::aiOutputBarrier
       MinVersion = 36,
 
       Last_2025  = 53,

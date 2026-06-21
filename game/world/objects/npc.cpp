@@ -334,6 +334,7 @@ void Npc::postValidate() {
 
 void Npc::saveAiState(Serialize& fout) const {
   fout.write(aniWaitTime,waitTime,faiWaitTime,outWaitTime);
+  fout.write(aiOutputBarrier); // v56: SVM-overlay output barrier was lost on reload
   fout.write(uint8_t(aiPolicy));
   fout.write(aiState.funcIni,aiState.funcLoop,aiState.funcEnd,aiState.sTime,aiState.eTime,aiState.started,aiState.loopNextTime);
   fout.write(aiPrevState);
@@ -351,6 +352,8 @@ void Npc::loadAiState(Serialize& fin) {
   fin.read(aniWaitTime);
   fin.read(waitTime,faiWaitTime);
   fin.read(outWaitTime);
+  if(fin.version()>55)
+    fin.read(aiOutputBarrier); // v56: persist the AI-output barrier (overlay-SVM path)
   fin.read(reinterpret_cast<uint8_t&>(aiPolicy));
   fin.read(aiState.funcIni,aiState.funcLoop,aiState.funcEnd,aiState.sTime,aiState.eTime,aiState.started,aiState.loopNextTime);
   fin.read(aiPrevState);
