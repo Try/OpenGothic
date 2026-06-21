@@ -50,6 +50,12 @@ patch with a `// NOTE: in original-game …` citation.
 | GetAttitude(hero,npc) | returned the NPC's temp/perm; original returns guild value when subject is player | `gamescript.cpp` `personAttitude` |
 | Magic camera | spell-casting used the ranged (bow) camera instead of the magic camera | `mainwindow.cpp` `solveCameraMode` |
 | Footstep in water | swim/dive emitted ground (`_WATER`) footstep sounds; original suppresses them | `animation.cpp` `processSfx` |
+| Guild attitude | table default was HOSTILE; original fills with FRIENDLY (uncovered guilds 64/65) | `gamescript.cpp` guild table init |
+| SVM overlay | global barrier dropped other NPCs' concurrent overlay voices; original is per-NPC | `gamescript.cpp` `aiOutputSvm` |
+| Timed overlay | Mdl_ApplyOverlayMdsTimed skipped overlays with ticks<=0; original applies one frame | `gamescript.cpp` `mdl_applyoverlaymdstimed` |
+| Item drop yaw | dropped item kept the hand-bone rotation; original resets to world-aligned | `npc.cpp` `dropItem` |
+| Mover easing | keyframe easing used polynomials vs original sinusoidal (mid-travel ~9% off) | `movetrigger.cpp` `calcProgress` |
+| Combo lockout | a mistimed combo press permanently broke the chain; original ignores it | `pose.cpp` `continueCombo` |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
