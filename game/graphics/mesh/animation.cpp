@@ -370,7 +370,11 @@ void Animation::Sequence::processSfx(uint64_t barrier, uint64_t sTime, uint64_t 
         mob->emitSoundEffect(i.name,i.range,i.empty_slot);
       }
     }
-  if(npc!=nullptr && !npc->isInAir()) {
+  // NOTE: in original-game oCAIHuman::CreateFootStepSound @0x0069b180 footstep activity is only
+  // raised while IsWalking() and the AI water-mode field is not the dive/swim value -- no ground
+  // footstep sounds while in water. Npc::isInAir() alone covers only MoveAlgo::InAir, so Swim/Dive
+  // would otherwise emit <gfx>_WATER footsteps even deep underwater.
+  if(npc!=nullptr && !npc->isInAir() && !npc->isSwim() && !npc->isDive()) {
     for(auto& i:d.gfx){
       uint64_t fr = frameClamp(i.frame,d.firstFrame,d.numFrames,d.lastFrame);
       if((frameA<=fr && fr<frameB) ^ invert)
