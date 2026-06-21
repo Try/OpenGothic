@@ -4685,7 +4685,12 @@ bool Npc::canRayHitPoint(const Tempest::Vec3 self, const Tempest::Vec3 pos, floa
   if(qDistTo(pos)>range*range)
     return false;
 
-  static const double ref = std::cos(100*M_PI/180.0); // spec requires +-100 view angle range
+  // NOTE: in original-game oCNpc::CanSee (Gothic2.exe 0x00741c10) accepts a target as
+  // visible when |azimuth| < 91 degrees (the 0x5b constant). Here `da` is measured from the
+  // reversed (target->self) direction, so the forward half-angle is (180 - refAngle):
+  // cos(100) gave only a +-80 degree cone (NPCs too short-sighted laterally); cos(89) yields
+  // the original's +-91 degree forward cone.
+  static const double ref = std::cos(89*M_PI/180.0);
   const DynamicWorld* w   = owner.physic();
   bool freeLos = angOverride>=180.f;
   if(freeLos) {
@@ -4732,7 +4737,12 @@ SensesBit Npc::canSenseNpc(const Tempest::Vec3 pos, bool freeLos, bool isNoisy, 
   }
 
 bool Npc::canSeeItem(const Item& it, bool freeLos) const {
-  static const double ref = std::cos(100*M_PI/180.0); // spec requires +-100 view angle range
+  // NOTE: in original-game oCNpc::CanSee (Gothic2.exe 0x00741c10) accepts a target as
+  // visible when |azimuth| < 91 degrees (the 0x5b constant). Here `da` is measured from the
+  // reversed (target->self) direction, so the forward half-angle is (180 - refAngle):
+  // cos(100) gave only a +-80 degree cone (NPCs too short-sighted laterally); cos(89) yields
+  // the original's +-91 degree forward cone.
+  static const double ref = std::cos(89*M_PI/180.0);
 
   const auto  itMid = it.midPosition();
   const auto  cen   = visual.mapHeadBone();

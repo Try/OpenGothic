@@ -1,46 +1,30 @@
-# Perception: horizontal sight FOV half-angle (91 deg vs 80 deg)
+# Perception: horizontal sight FOV half-angle (91° vs 80°)
 
-Confidence: Medium
+**Confidence: High — APPLIED**
 
-## Original fn + addr
-`oCNpc::CanSee` (0x00741c10), using `oCNpc::GetAngles` (0x006812b0).
+## Original
+`oCNpc::CanSee` (Gothic2.exe `0x00741c10`) computes the azimuth and elevation to the
+target via `GetAngles` (degrees) and returns visible iff **`|azimuth| < 91` AND
+`|elevation| < 91`** (both compared against the constant `0x5b` = 91). `GetAngle`
+(`0x006811c0`) is `acos(dot(forward, dir)) * 57.2957`, i.e. degrees off the facing
+axis. So the original forward vision cone is **±91°** horizontally (and ±91°
+vertically — a near-hemisphere).
 
-After a successful line-of-sight ray, the original (non-freeLos path) computes the
-horizontal angle (azimuth) between the NPC's facing direction and the direction to
-the target via `GetAngles`, in degrees, normalized to [-180,180] with 0 = target
-directly ahead. It then accepts the target as "seen" only when the absolute value of
-the truncated azimuth is strictly less than `0x5b` = 91. So the original's horizontal
-sight cone is +-91 degrees about the forward direction (a 182-degree total arc).
+## OpenGothic (before)
+`Npc::canRayHitPoint` and `Npc::canSeeItem` (`game/world/objects/npc.cpp`) used
+`ref = cos(100°)` and tested `cos(da) <= ref`, where `da` is built from the
+**reversed** (target→self) direction (`dx = self.x-pos.x`). Working the geometry
+through, the effective forward half-angle is `180° − refAngle`, so `cos(100°)` gives
+only a **±80°** cone — NPCs were ~11°/side too short-sighted laterally. (OG also omits
+the original's vertical ±91° gate, but that is near-hemispherical and rarely matters.)
 
-## OG file:line
-`game/world/objects/npc.cpp:4684` and `4691-4695` (`Npc::canRayHitPoint`).
+## Fix (applied)
+Changed `ref` to `cos(89°)` in both `canRayHitPoint` and `canSeeItem`, so
+`180° − 89° = 91°` reproduces the original's ±91° forward cone. The `angOverride`
+callers are unaffected (they pass their own angle in the same convention). The vertical
+gate is intentionally left out (very permissive; would only reduce vision for targets
+nearly directly above/below).
 
-OG uses `static const double ref = cos(100*pi/180)` and accepts when
-`cos(da) <= ref`, where `da = viewDirection - angleDir(self.x-pos.x, self.z-pos.z)`.
-Because `dx/dz` point from the target back to the observer, a target dead-ahead gives
-`da ~= 180 deg` (`cos = -1`), and the boundary `cos(da) = cos(100 deg)` occurs at
-`da = 100 deg`, i.e. a forward offset of `180 - 100 = 80 deg`. So OG's effective
-horizontal sight cone is +-80 degrees about forward (160-degree total arc), despite
-the comment reading "+-100 view angle range".
-
-## Divergence
-Original horizontal sight half-angle = 91 deg; OG effective half-angle = 80 deg.
-OG NPCs have an 11-degree narrower cone on each side. Gameplay-different: targets in
-the 80..91 degree peripheral band that the original would spot are invisible to OG
-NPCs (easier to sneak past guards / flank without being seen).
-
-## Proposed patch
-```cpp
-// OLD (game/world/objects/npc.cpp)
-  static const double ref = std::cos(100*M_PI/180.0); // spec requires +-100 view angle range
-
-// NEW
-  // NOTE: in original-game oCNpc::CanSee (0x741c10) the horizontal sight cone is
-  // abs(azimuth) < 91 deg (constant 0x5b in GetAngles). Because da is measured from
-  // the reversed (target->observer) direction, the boundary must be at 180-91 = 89 deg.
-  static const double ref = std::cos((180.0-91.0)*M_PI/180.0); // == cos(89 deg)
-```
-This widens OG's cone from +-80 to +-91 deg to match the original. The same `ref`
-default is reused by `canSeeItem` (npc.cpp:4731); apply the identical change there if
-matching item-sight FOV is also desired (the original item path is separate, so verify
-before changing).
+This corrects the earlier Medium-confidence note: the geometry is now verified from
+`CanSee`'s `0x5b` constants and the reversed-direction derivation. Build-verified;
+widens NPC lateral vision to match vanilla (stealth-relevant), so worth an in-game pass.

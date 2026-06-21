@@ -19,12 +19,12 @@ patch with a `// NOTE: in original-game …` citation.
 | Perception | default scan interval ~1ms vs original 5000ms | `npc.h` `perceptionTime` |
 | Music | day/night theme threshold 04:00-21:00 vs 06:30-18:30 | `worldsound.cpp` |
 | Music zones | overlapping zones picked by load order, not priority | `worldsound.cpp` `tickSoundZone` |
+| Sight FOV | NPC horizontal vision cone ±80° vs original ±91° | `npc.cpp` `canRayHitPoint`/`canSeeItem` |
 | Equip | ring/amulet/belt wrongly gated on attribute requirement | `inventory.cpp` `setSlot` |
 
 ## Deferred (analyzed, not applied — need runtime or larger work)
 | Area | Why |
 |---|---|
-| Sight FOV cone (`percept-fov-angle`) | ~±80° vs ~±91°; broad stealth impact, subtle angle math |
 | Fight range 2D vs 3D (`fight-range-2d-vs-3d`) | original uses horizontal range + height gate; shared-helper change |
 | Multi-type immune damage (`damage-immune-multitype`) | original's invincibility decision is bit-order-dependent |
 | Periodic perc fighter/item (`aistate-perc-fighter-item-missing`) | PERC_ASSESSFIGHTER/ITEM not raised; needs new helpers |
