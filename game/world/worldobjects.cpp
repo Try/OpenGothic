@@ -870,7 +870,10 @@ Interactive *WorldObjects::availableMob(const Npc &pl, std::string_view dest) {
 
   float curDist=dist*dist;
   interactiveObj.find(pl.position(),dist,[&](Interactive& i){
-    if(i.isAvailable() && i.checkMobName(dest)) {
+    // NOTE: in original-game oCMobInter::IsAvailable (@0x00720ec0) a mob reserved by another NPC
+    // (player exempt) during its walk-to-mob phase is not an available candidate -- prevents two
+    // NPCs racing to the same bench/bed before either has attached.
+    if(i.isAvailable() && !i.isReservedForOther(pl) && i.checkMobName(dest)) {
       float d = pl.qDistTo(i);
       if(d<curDist){
         ret    = &i;

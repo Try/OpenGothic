@@ -173,6 +173,8 @@ void Interactive::postValidate() {
   for(auto& i:attPos)
     if(i.user!=nullptr && i.user->interactive()!=this)
       i.user = nullptr;
+  if(reservedBy!=nullptr && world.tickCount()>=reservedUntil)
+    reservedBy = nullptr;
   if(visual.updateAnimation(nullptr,this,world,0,true))
     animChanged = true;
   }
@@ -761,6 +763,24 @@ bool Interactive::isAvailable() const {
     if(i.user!=nullptr)
       return false;
   return findFreePos()!=nullptr;
+  }
+
+void Interactive::reserveFor(Npc& npc) {
+  // NOTE: in original-game oCMobInter::MarkAsUsed (Gothic2.exe @0x00720f20) the reservation is
+  // (re)set to currentTime+20000ms each time an NPC commits to walking toward the mob.
+  reservedBy    = &npc;
+  reservedUntil = world.tickCount() + 20000;
+  }
+
+bool Interactive::isReservedForOther(const Npc& npc) const {
+  // NOTE: in original-game oCMobInter::CanInteractWith/IsAvailable (@0x00720f40/0x00720ec0) the
+  // player is exempt from the reservation, and a live reservation by a different NPC blocks the
+  // candidate. An expired reservation is ignored (and lazily cleared in postValidate).
+  if(npc.isPlayer())
+    return false;
+  if(reservedBy==nullptr || reservedBy==&npc)
+    return false;
+  return world.tickCount() < reservedUntil;
   }
 
 bool Interactive::isStaticState() const {

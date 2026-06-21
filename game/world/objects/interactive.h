@@ -79,6 +79,8 @@ class Interactive : public Vob {
     Tempest::Vec3       nearestPoint(const Npc& to) const;
 
     bool                isAvailable() const;
+    void                reserveFor(Npc& npc);
+    bool                isReservedForOther(const Npc& npc) const;
     bool                isStaticState() const;
     bool                isDetachState(const Npc& npc) const;
     bool                canQuitAtState(const Npc& npc, int32_t state) const;
@@ -182,4 +184,13 @@ class Interactive : public Vob {
 
     std::vector<Pos>    attPos;
     ObjVisual           visual;
+
+    // NOTE: in original-game oCMobInter::MarkAsUsed (Gothic2.exe @0x00720f20) the mob stores a
+    // "reserved by NPC until time" pair (+0x22c/+0x230); EV_UseMob (@0x00754290) sets it to 20s
+    // when an NPC starts walking toward the mob, and CanInteractWith/IsAvailable
+    // (@0x00720f40/0x00720ec0) reject a *different* NPC (player exempt) while it is live. The
+    // pointer is only ever compared (never dereferenced) and is re-validated in postValidate;
+    // the original does not archive it, so it is intentionally not serialized.
+    Npc*                reservedBy    = nullptr;
+    uint64_t            reservedUntil = 0;
   };
