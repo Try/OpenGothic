@@ -15,11 +15,13 @@ QuestLog::Quest &QuestLog::add(std::string_view name, Section s) {
   }
 
 void QuestLog::setStatus(std::string_view name, QuestLog::Status s) {
+  // NOTE: in original-game Log_SetTopicStatus (Gothic2.exe 0x006e3f10) only updates the status
+  // of an EXISTING topic and creates nothing when the name isn't found. OpenGothic add()-ed a
+  // missing topic as a Mission, spawning an empty phantom quest that also persisted into saves.
   auto m = find(name);
-  if(m==nullptr && s==Status::Obsolete)
+  if(m==nullptr)
     return;
-  auto& q  = add(name,Mission);
-  q.status = s;
+  m->status = s;
   }
 
 void QuestLog::addEntry(std::string_view name, std::string_view entry) {
