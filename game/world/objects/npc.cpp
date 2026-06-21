@@ -2333,7 +2333,11 @@ void Npc::tickAnimationTags() {
 
   for(auto& i:ev.morph)
     visual.startMMAnim(*this,i.anim,i.node);
-  if(ev.groundSounds>0 && isPlayer() && bodyStateMasked()!=BodyState::BS_SNEAK)
+  // NOTE: in original-game the quiet-sound footstep perception is suppressed by the
+  // persistent sneak walk-mode, not the transient body-state: during a mobsi interaction
+  // (e.g. lock-picking) the body-state leaves BS_SNEAK, which wrongly let footstep sounds
+  // wake nearby NPCs while still sneaking (#639). Key it off the WM_Sneak walk-flag.
+  if(ev.groundSounds>0 && isPlayer() && (wlkMode&WalkBit::WM_Sneak)!=WalkBit::WM_Sneak)
     world().sendImmediatePerc(*this,*this,*this,PERC_ASSESSQUIETSOUND);
   if(ev.def_opt_frame>0)
     commitDamage();
