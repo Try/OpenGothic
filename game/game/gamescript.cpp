@@ -1144,15 +1144,16 @@ int GameScript::invokeManaRelease(Npc &npc, Npc* target, int mana) {
   return vm.call_function<int>(fn,mana);
   }
 
-void GameScript::invokeSpell(Npc &npc, Npc* target, Item &it) {
+void GameScript::invokeSpell(Npc &npc, Npc* target, Item &it, int32_t splLevel) {
   auto&      tag = spellFxInstanceNames->get_string(uint16_t(it.spellId()));
   string_frm name("Spell_Cast_",tag);
   auto       fn = vm.find_symbol_by_name(name);
   if(fn==nullptr)
     return;
 
-  // FIXME: actually set the spell level!
-  int32_t  splLevel = 0;
+  // NOTE: in original-game oCMag_Book::Spell_Cast (Gothic2.exe 0x004767a0) passes
+  // oCSpell::GetLevel() -- the invested spell level (0-based) -- to Spell_Cast_<tag>(var
+  // int level). OpenGothic hardcoded 0, so leveled/invest spell scripts never scaled.
   ScopeVar self (*vm.global_self(),  npc.handlePtr());
   ScopeVar other(*vm.global_other(), target != nullptr ? target->handlePtr() : nullptr);
   try {
@@ -1382,6 +1383,14 @@ Attitude GameScript::personAttitude(const Npc &p0, const Npc &p1) const {
 
   Attitude att=ATT_NULL;
   const Npc& npc = p0.isPlayer() ? p1 : p0;
+  // NOTE: in original-game oCNpc::GetAttitude (Gothic2.exe 0x0072fab0) the temp attitude
+  // (Npc_SetTempAttitude — e.g. a guard reacting to a crime) overrides perm when it has been
+  // set differently, for attitude toward the player. OpenGothic ignored tmpAttitude here
+  // (there was a "//TODO: temp attitudes"), so temporarily angered/pacified NPCs were still
+  // judged by their permanent attitude. Npc_GetPermAttitude stays perm-only.
+  att = npc.tempAttitude();
+  if(att!=ATT_NULL && att!=npc.attitude())
+    return att;
   att = npc.attitude();
   if(att!=ATT_NULL)
     return att;
