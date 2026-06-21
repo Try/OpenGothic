@@ -40,6 +40,7 @@ struct WorldSound::WSound final {
 struct WorldSound::Zone final {
   Tempest::Vec3 bbox[2]={};
   std::string   name;
+  int32_t       priority=0;   // higher wins when zones overlap (see #zone-priority)
   bool          checkPos(const Tempest::Vec3& v) const { return checkPos(v.x, v.y, v.z); }
   bool          checkPos(float x, float y, float z) const {
     return
@@ -73,6 +74,7 @@ void WorldSound::setDefaultZone(const zenkit::VZoneMusic &vob) {
   def->bbox[0] = {vob.bbox.min.x, vob.bbox.min.y, vob.bbox.min.z};
   def->bbox[1] = {vob.bbox.max.x, vob.bbox.max.y, vob.bbox.max.z};
   def->name    = vob.vob_name;
+  def->priority = vob.priority;
   }
 
 void WorldSound::addZone(const zenkit::VZoneMusic &vob) {
@@ -80,6 +82,7 @@ void WorldSound::addZone(const zenkit::VZoneMusic &vob) {
   z.bbox[0] = {vob.bbox.min.x, vob.bbox.min.y, vob.bbox.min.z};
   z.bbox[1] = {vob.bbox.max.x, vob.bbox.max.y, vob.bbox.max.z};
   z.name    = vob.vob_name;
+  z.priority = vob.priority;
 
   zones.emplace_back(std::move(z));
   }
@@ -226,14 +229,18 @@ void WorldSound::tickSoundZone(Npc& player) {
     return;
   nextSoundUpdate = owner.tickCount()+5*1000;
 
-  Zone* zone = def.get();
-  if(currentZone!=nullptr && currentZone->checkPos(plPos)){
-    zone = currentZone;
-    } else {
-    for(auto& z:zones) {
-      if(z.checkPos(plPos)) {
-        zone = &z;
-        }
+  // NOTE: in original-game oCZoneMusic::BuildTempZoneList (Gothic2.exe 0x00641530) builds
+  // the active-zone list sorted by priority and uses the highest-priority overlapping zone
+  // (GetPriority @0x006410b0; higher value wins, camera-weight as tiebreak), falling back to
+  // the default zone only when inside none. OpenGothic took the last bbox match in vector
+  // order, so overlapping zones (e.g. a city district nested in a region) picked the wrong
+  // theme. Select the highest-priority containing zone.
+  Zone*   zone     = def.get();
+  int32_t bestPrio = -1;
+  for(auto& z:zones) {
+    if(z.checkPos(plPos) && z.priority>bestPrio) {
+      zone     = &z;
+      bestPrio = z.priority;
       }
     }
 
