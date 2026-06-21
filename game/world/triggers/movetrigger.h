@@ -70,4 +70,5 @@ class MoveTrigger : public AbstractTrigger {
     uint64_t                             frameTime   = 0;
     uint32_t                             frame       = 0;
     uint32_t                             targetFrame = uint32_t(-1);
+    int                                  triggerCount= 0;   // #mover-trigger-control ref count
   };

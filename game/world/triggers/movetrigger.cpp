@@ -159,6 +159,11 @@ void MoveTrigger::onTrigger(const TriggerEvent& e) {
       break;
       }
     case zenkit::MoverBehavior::TRIGGER_CONTROL: {
+      // NOTE: in original-game zCMover::TriggerMover (Gothic2.exe 0x00612cb0) each OnTrigger
+      // increments a ref count; the mover closes (OnUntrigger) only once all sources have
+      // untriggered. (Not persisted across save/load here: on load the count resets to 0,
+      // degrading to close-on-first-untrigger, which matches prior behavior — no stuck state.)
+      ++triggerCount;
       if(frame==0 && state==Idle)
         state = Open;
       break;
@@ -185,6 +190,13 @@ void MoveTrigger::onUntrigger(const TriggerEvent& e) {
     return;
   if(behavior!=zenkit::MoverBehavior::TRIGGER_CONTROL)
     return;
+  // NOTE: in original-game zCMover::OnUntrigger (Gothic2.exe 0x00613170) the close begins
+  // only when the trigger ref count drops below 1; a single untrigger must not close a mover
+  // that several triggers opened.
+  if(triggerCount>0)
+    --triggerCount;
+  if(triggerCount>0)
+    return;
   if(frame>0 && state==Idle) {
     state       = Close;
     targetFrame = 0;
@@ -204,10 +216,14 @@ void MoveTrigger::onGotoMsg(const TriggerEvent& evt) {
   state = SingleKey;
   switch(evt.move.msg) {
     case zenkit::MoverMessageType::NEXT:
-      targetFrame = nextFrame(frame);
+      // NOTE: in original-game zCMover::OnMessage (Gothic2.exe 0x00613450) NEXT on a
+      // SINGLE_KEYS mover wraps: target = (curFrame+1) % keyframeCount (nextFrame only wraps
+      // for LOOP behavior, so it got stuck on the last keyframe).
+      targetFrame = (frame + 1) % uint32_t(keyframes.size());
       break;
     case zenkit::MoverMessageType::PREVIOUS:
-      targetFrame = prevFrame(frame);
+      // NOTE: original PREVIOUS wraps: target = curFrame-1, or keyframeCount-1 if negative.
+      targetFrame = (frame + uint32_t(keyframes.size()) - 1) % uint32_t(keyframes.size());
       break;
     case zenkit::MoverMessageType::FIXED_DIRECT:
     case zenkit::MoverMessageType::FIXED_ORDER:
