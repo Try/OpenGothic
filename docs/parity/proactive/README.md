@@ -56,6 +56,10 @@ patch with a `// NOTE: in original-game …` citation.
 | Item drop yaw | dropped item kept the hand-bone rotation; original resets to world-aligned | `npc.cpp` `dropItem` |
 | Mover easing | keyframe easing used polynomials vs original sinusoidal (mid-travel ~9% off) | `movetrigger.cpp` `calcProgress` |
 | Combo lockout | a mistimed combo press permanently broke the chain; original ignores it | `pose.cpp` `continueCombo` |
+| Log_AddEntry | appended duplicate journal lines; original suppresses byte-identical entries | `questlog.cpp` `addEntry` |
+| Sub-choice removal | erased all choices sharing a handler fn; original removes one by text | `gamescript.cpp` `exec` |
+| Godmode scope | only shielded HP; original blocks every negative attribute for godmode player | `npc.cpp` `changeAttribute` |
+| Fire defaults | empty vobtree/slot → no flames on default-templated fires; original defaults them | `fireplace.cpp` |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
@@ -82,4 +86,6 @@ patch with a `// NOTE: in original-game …` citation.
 | `ext-getinvitembyslot-category-flat-index` | original Npc_GetInvItemBySlot ignores the category arg and uses a flat 0-based slot index; OG filters by category with a 1-based index. Upstream quirk with no stock-G2 callers; flat-index rewrite needs caller analysis — agent-deferred |
 | `aimove-gotofp-arrival-heading` | AI_GotoFP should re-orient the NPC to the freepoint's facing on arrival; Medium confidence, movement-behavior change, the original couples turn into EV_GotoFP while OG splits goto/align (AI_AlignToFP can mask it), and the proposed implTurnTo(float,float,…) overload is unverified — needs runtime |
 | `rune-deplete-reswitch-bookwide` | after a scroll's last charge, the original re-selects another known spell book-wide (stays in mage mode); OG only searches the 8 hotbar slots. Storage models aren't 1:1 and there's no grep-verified book order to mirror — agent-deferred |
+| `ta-equal-window-routine-active-all-day` | the routine-side counterpart to the Wld_IsTime zero-width fix: a start==stop TA entry should be active ~all day, but matching it inside currentRoutine's per-entry loop risks a start==0 Rtn_Start shadowing all real routine windows (NPCs frozen at spawn) depending on iteration/first-vs-last-match order — needs routine-order analysis + runtime |
+| `face-morph-frame-rate` | morph-ani frame rate should always be 1/speed (not duration/frame_count for non-loop anis); a clear formula fix but it changes ALL morph animations (faces/effects/creatures) visually with no runtime check, and its speed==0 edge (clamp-to-1) diverges from the original's frozen frame — needs on-screen validation + speed==0 handling |
 
