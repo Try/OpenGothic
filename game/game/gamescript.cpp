@@ -2846,13 +2846,17 @@ int GameScript::npc_getdisttoplayer(std::shared_ptr<zenkit::INpc> npcRef) {
   }
 
 int GameScript::npc_getactivespellcat(std::shared_ptr<zenkit::INpc> npcRef) {
+  // NOTE: in original-game oCNpc::GetActiveSpellCategory (Gothic2.exe 0x0073cfa0) returns -1
+  // when the NPC is not in magic mode / has no selected spell. OpenGothic returned
+  // SPELL_GOOD(0), which collides with the real SPELL_GOOD category, so a script test like
+  // `Npc_GetActiveSpellCat(self)==SPELL_GOOD` wrongly matched an NPC that is not casting.
   auto npc = findNpc(npcRef);
   if(npc==nullptr)
-    return SPELL_GOOD;
+    return -1;
 
   const Item* w = npc->activeWeapon();
   if(w==nullptr || !w->isSpellOrRune())
-    return SPELL_GOOD;
+    return -1;
 
   const int id    = w->spellId();
   auto&     spell = spellDesc(id);
