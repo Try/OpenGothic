@@ -232,8 +232,33 @@ void FightAlgo::onTakeHit() {
   queueId = zenkit::FightAiMove::NOP;
   }
 
+// NOTE: in original-game oCNpc::IsSameHeight (Gothic2.exe 0x00737be0) two combatants count
+// as "at the same height" when their collision bboxes overlap vertically, allowing a gap of
+// up to 0.25 * target-height. NPCs only yaw-rotate, so the model-space bboxCol Y extents map
+// to world Y by adding position().y.
+static bool fightSameHeight(const Npc& a, const Npc& b) {
+  const Tempest::Vec3* ba = a.bBoxCol();
+  const Tempest::Vec3* bb = b.bBoxCol();
+  if(ba==nullptr || bb==nullptr)
+    return true;
+  const float aMin = a.position().y + ba[0].y, aMax = a.position().y + ba[1].y;
+  const float bMin = b.position().y + bb[0].y, bMax = b.position().y + bb[1].y;
+  const float tol  = 0.25f*(bMax-bMin);
+  if(a.position().y <= b.position().y)
+    return aMax - tol >= bMin;
+  return bMax - tol >= aMin;
+  }
+
 float FightAlgo::qDistTo(const Npc& npc, const Npc& tg) const {
-  return npc.fightDistanceTo(tg).quadLength();
+  // NOTE: in original-game oCNpc::IsInFightRange (oNpc_Fight.cpp) measures the HORIZONTAL
+  // distance sqrt(dx^2+dz^2) and gates melee on IsSameHeight; OpenGothic folded Y into a 3D
+  // distance, so NPCs mis-judged range on slopes/stairs (vertical offset pushed an otherwise
+  // in-range target out of range). Use horizontal distance, and treat a not-same-height
+  // target as out of range so a target far above/below is not hit.
+  if(!fightSameHeight(npc,tg))
+    return 1e30f;
+  const auto d = npc.fightDistanceTo(tg);
+  return d.x*d.x + d.z*d.z;
   }
 
 float FightAlgo::baseDistance(const Npc& npc, const Npc& tg,  GameScript &owner) const {

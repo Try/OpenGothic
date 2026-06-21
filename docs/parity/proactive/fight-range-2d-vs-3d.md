@@ -1,6 +1,22 @@
 # Fight range uses 3D (with height) distance instead of original 2D horizontal distance
 
-**Confidence:** High
+**Confidence: High — APPLIED**
+
+## Resolution (applied)
+Verified the original `oCNpc::IsInFightRange` (Gothic2.exe `0x0067cb60`) sets
+`dist = sqrt(dx*dx + dz*dz)` (horizontal only) and gates melee on `IsSameHeight`
+(`0x00737be0`) — a vertical collision-bbox overlap allowing a `0.25 * target-height`
+gap. OpenGothic routed every range check through the single `FightAlgo::qDistTo`,
+which used the 3D `quadLength`. Fixed there: `qDistTo` now returns the **horizontal**
+squared distance and returns "out of range" when a faithful `fightSameHeight` (ported
+from `IsSameHeight` via `Npc::bBoxCol()` + `position().y`) fails — so a target far
+above/below is not hit. Build-verified. (The original's secondary bbox trace-ray that
+refines the distance by the target's body size is not replicated; OpenGothic's range
+values are tuned to center distance, so it is left as-is.)
+
+---
+
+**Original analysis (Confidence: High):**
 
 ## Original function + address
 `oCNpc::IsInFightRange` (0x0067cb60) and `oCNpc::IsInDoubleFightRange` (0x0067c9a0),
