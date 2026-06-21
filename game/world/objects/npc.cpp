@@ -1245,12 +1245,13 @@ void Npc::changeAttribute(Attribute a, int32_t val, bool allowUnconscious) {
   if(a>=ATR_MAX || val==0)
     return;
 
-  if(val<0 && a==ATR_HITPOINTS) {
-    if(isPlayer() && Gothic::inst().isGodMode())
-      return;
-    if(isPlayer() && owner.currentCs()!=nullptr)
-      return;
-    }
+  // NOTE: in original-game oCNpc::ChangeAttribute (Gothic2.exe 0x0072ff60) the godmode guard has
+  // no attribute-index test: for the godmode player EVERY negative delta is rejected (HP, MANA,
+  // STRENGTH, ...), not just HITPOINTS. (The cutscene clause is OpenGothic-only, kept HP-scoped.)
+  if(val<0 && isPlayer() && Gothic::inst().isGodMode())
+    return;
+  if(val<0 && a==ATR_HITPOINTS && isPlayer() && owner.currentCs()!=nullptr)
+    return;
 
   // NOTE: in original-game oCNpc::ChangeAttribute (Gothic2.exe 0x0072ff60) the IMMORTAL flag
   // (oCNpc+0x1b4 bit1) blocks EVERY HITPOINTS change regardless of sign -- damage AND
