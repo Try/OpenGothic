@@ -48,6 +48,14 @@ void TouchDamage::tick(uint64_t dt) {
     mask[zenkit::DamageType::FALL]    = fall;
 
     auto& hnpc = npc->handle();
+    // NOTE: in original-game oCNpc::OnDamage_Hit (Gothic2.exe 0x00666610) a DAM_BARRIER hit on a
+    // victim that is swimming/diving (water level > 1) overrides the damage with the victim's
+    // full current HP -- an instant kill (the magic barrier over deep water drowns you). Land
+    // hits keep the normal flat trigger damage.
+    if(mask[zenkit::DamageType::BARRIER] && npc->isSwim()) {
+      npc->changeAttribute(ATR_HITPOINTS,-hnpc.attribute[ATR_HITPOINTS],false);
+      continue;
+      }
     for(size_t i=0; i<zenkit::DamageType::NUM; ++i) {
       if(!mask[i])
         continue;
