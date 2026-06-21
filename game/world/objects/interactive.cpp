@@ -703,18 +703,24 @@ bool Interactive::checkUseConditions(Npc& npc) {
       return false;
       }
 
-    if(!conditionFunc.empty()) {
-      const int check = sc.invokeCond(npc,conditionFunc);
-      if(check==0)
-        return false;
-      }
+    }
 
-    if(!useWithItem.empty()) {
-      size_t it = sc.findSymbolIndex(useWithItem);
-      if(it!=size_t(-1) && npc.itemCount(it)==0) {
+  // NOTE: in original-game oCMobInter::CanInteractWith (Gothic2.exe 0x00720f40) evaluates
+  // the condition-function and use-with-item gate for ANY NPC, not just the player; only the
+  // HUD messages are player-only. OpenGothic had this block under if(isPlayer), so
+  // script/routine-driven NPCs bypassed conditionFunc/useWithItem entirely.
+  if(!conditionFunc.empty()) {
+    const int check = sc.invokeCond(npc,conditionFunc);
+    if(check==0)
+      return false;
+    }
+
+  if(!useWithItem.empty()) {
+    size_t it = sc.findSymbolIndex(useWithItem);
+    if(it!=size_t(-1) && npc.itemCount(it)==0) {
+      if(isPlayer)
         sc.printMobMissingItem(npc);
-        return false;
-        }
+      return false;
       }
     }
   return true;
