@@ -3436,8 +3436,14 @@ void GameScript::exitsession() {
   }
 
 void GameScript::sort(std::vector<GameScript::DlgChoice> &dlg) {
-  std::sort(dlg.begin(),dlg.end(),[](const GameScript::DlgChoice& l,const GameScript::DlgChoice& r){
-    return std::tie(l.sort,l.scriptFn)<std::tie(r.sort,r.scriptFn); // small hack with scriptfn to reproduce behavior of original game
+  // NOTE: in original-game oCInfoManager::oCInfoManager @0x007023f0 the info list is built by a
+  // stable insertion sort using oCInfoManager::CompareInfos @0x007026f0, which compares only `nr`
+  // and keeps registration (instance-symbol) order for equal `nr`. dialogsInfo is enumerated in
+  // registration order, so a stable sort by `sort` (=nr) alone reproduces that exactly; the prior
+  // scriptFn (information-function index) tie-break could reorder equal-nr infos when an _Info
+  // function is declared in a different order than its C_INFO instance.
+  std::stable_sort(dlg.begin(),dlg.end(),[](const GameScript::DlgChoice& l,const GameScript::DlgChoice& r){
+    return l.sort<r.sort;
     });
   }
 
