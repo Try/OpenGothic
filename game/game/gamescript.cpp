@@ -1720,7 +1720,13 @@ bool GameScript::wld_istime(int hour0, int min0, int hour1, int min1) {
   gtime now = owner.time();
   now = gtime(0,now.hour(),now.minute());
 
-  if(begin<=end && begin<=now && now<end)
+  // NOTE: in original-game oCWorldTimer::IsTimeBetween @0x00781190 the end-minute is decremented
+  // (making the upper bound exclusive) only when begin!=end. For a zero-width window begin==end the
+  // original returns true exactly when now==begin, not always false (Wld_IsTime(8,0,8,0) is true
+  // for the 08:00 minute).
+  if(begin==end)
+    return now==begin;
+  if(begin<end && begin<=now && now<end)
     return true;
   else if(end<begin && (now<end || begin<=now))
     return true;
