@@ -95,6 +95,7 @@ class Inventory final {
     void   updateShieldView(Npc& owner);
     void   updateRuneView  (Npc& owner);
     void   updateView      (Npc& owner);
+    void   updateView      (Interactive& owner, World& world);
 
     const Item*  activeWeapon() const;
     Item*  activeWeapon();

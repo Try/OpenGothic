@@ -147,8 +147,13 @@ void Inventory::load(Serialize &s, Npc& owner) {
   implLoad(&owner,owner.world(),s);
   }
 
-void Inventory::load(Serialize& s, Interactive&, World& w) {
+void Inventory::load(Serialize& s, Interactive& owner, World& w) {
   implLoad(nullptr,w,s);
+  // NOTE: in original-game a mobsi's placed slot item is part of the persisted VOB visual
+  // and is restored automatically on load; OpenGothic tracks it in mdlSlots, so the slot
+  // visual must be re-attached explicitly here -- otherwise it stays invisible after a
+  // save/reload (e.g. the stone on a pedestal, #907). updateView(Npc&) does this for NPCs.
+  updateView(owner,w);
   }
 
 void Inventory::save(Serialize &fout) const {
@@ -478,6 +483,15 @@ void Inventory::updateView(Npc& owner) {
   if(stateSlot.item!=nullptr) {
     auto  vitm   = world.addView(stateSlot.item->handle());
     owner.setStateItem(std::move(vitm),stateSlot.slot);
+    }
+  }
+
+void Inventory::updateView(Interactive& owner, World& world) {
+  // Re-attach mobsi slot visuals (e.g. a stone placed on a pedestal) after load; the
+  // Npc overload above does the same for NPC-held mdlSlots. See #907.
+  for(auto& i:mdlSlots) {
+    auto  vbody  = world.addView(i.item->handle());
+    owner.setSlotItem(std::move(vbody),i.slot);
     }
   }
 
