@@ -1296,13 +1296,16 @@ bool Npc::isMonster() const {
   const bool g2 = owner.version().game==2;
   const auto SEPERATOR_ORC = g2 ? GIL_SEPERATOR_ORC : GIL_G1_SEPERATOR_ORC;
   const auto SEPERATOR_HUM = g2 ? GIL_SEPERATOR_HUM : GIL_G1_SEPERATOR_HUM;
-  return SEPERATOR_HUM<guild() && guild()<SEPERATOR_ORC;
+  // NOTE: in original-game oCNpc::IsMonster/IsHuman (Gothic2.exe 0x742600/0x742640) classify on
+  // the TRUE guild (field 0x766), not the live script-mutable C_Npc.guild; OG read the live
+  // guild, so a runtime guild change (disguise) wrongly flipped monster/human status. (#656)
+  return SEPERATOR_HUM<trueGuild() && trueGuild()<SEPERATOR_ORC;
   }
 
 bool Npc::isHuman() const {
   const bool g2 = owner.version().game==2;
   const auto SEPERATOR_HUM = g2 ? GIL_SEPERATOR_HUM : GIL_G1_SEPERATOR_HUM;
-  return guild() < SEPERATOR_HUM;
+  return trueGuild() < SEPERATOR_HUM; // #656: classify on true guild, not live C_Npc.guild
   }
 
 void Npc::setTrueGuild(int32_t g) {
@@ -2037,8 +2040,12 @@ void Npc::takeDamage(Npc &other, const Bullet* b) {
   assert(b==nullptr || !b->isSpell());
   const auto& pose    = visual.pose();
   const bool  isJumpb = pose.isJumpBack(owner.tickCount()) && fghAlgo.isInJumpBackAngle(*this,other);
+  // NOTE: in original-game oCNpc::CanParade (Gothic2.exe 0x006b15b0) blocks an incoming strike
+  // when the attacker is within a +-90-degree front cone of the defender (not the 30-degree
+  // attack focus cone). OpenGothic used the 30-degree isInFocusAngle, so off-axis (30-90deg)
+  // attacks against a parrying NPC were unblockable and dealt full damage.
   const bool  isBlock = (!other.isMonster() || other.inventory().activeWeapon()!=nullptr) &&
-                         fghAlgo.isInFocusAngle(*this,other) &&
+                         fghAlgo.isInFocusAngle(*this,other,90) &&
                          pose.isDefence(owner.tickCount());
 
   lastHit = &other;
