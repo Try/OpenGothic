@@ -857,7 +857,10 @@ void WorldObjects::drawVobBoxNpcNear(DbgPainter& p) const {
   }
 
 Interactive *WorldObjects::availableMob(const Npc &pl, std::string_view dest) {
-  const float  dist = MOBSI_SEARCH_DISTANCE;
+  // NOTE: in original-game oCNpc::FindMobInter (Gothic2.exe) collects candidates from a
+  // +-500 box; OpenGothic searched a 1000-unit radius (MOBSI_SEARCH_DISTANCE, shared with a
+  // physics ray), so NPCs found mobs available from ~2x farther than vanilla. Use 500 here.
+  const float  dist = 500;
   Interactive* ret  = nullptr;
 
   if(auto i = pl.interactive()){
