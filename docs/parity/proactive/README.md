@@ -30,10 +30,15 @@ patch with a `// NOTE: in original-game …` citation.
 | Music-zone priority (`sound-zone-priority`) | OG ignores zone priority; priority-direction needs runtime confirm |
 
 ## Swept clean (no divergence found — verified faithful)
-Dialog/info pipeline, melee hit/parry/combo/stagger, steal/swim/sleep/regen.
+- Dialog/info pipeline, melee hit/parry/combo/stagger, steal/swim/sleep/regen.
+- **Triggers** (`zCTrigger`): activation-count, retrigger-cooldown and fire-delay match
+  the original — non-mover `maxActivationCount = uint32_t(max_activation_count)` reproduces
+  the original's "0 = never, N = N times, -1 = infinite" (negative count never decrements
+  past 0). Only minor edge-case: OG updates the retrigger timestamp on enable/disable too.
+- **Projectiles**: Bullet-engine physics (realistic gravity, 30 m/s); the original
+  `oCAIArrow` is a different physics model — architectural, no clean constant divergence.
 
-## Not yet swept (cut off by a session usage limit — resume next)
-Triggers (`zCTrigger`/`zCMover`/`zCCodeMaster` fireDelay/counts), XP/leveling/learn,
-projectile/bullet flight.
+## Not yet swept (resume next)
+XP/leveling/learn (mostly script-side), food/potion effect application, torch/fire.
 
 All applied fixes are build- and boot-verified, **not** gameplay-verified (no playtest from this headless setup).
