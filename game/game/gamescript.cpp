@@ -1837,7 +1837,13 @@ bool GameScript::wld_detectitem(std::shared_ptr<zenkit::INpc> npcRef, int flags)
   Item* ret =nullptr;
   float dist=std::numeric_limits<float>::max();
   world().detectItem(npc->position(), float(npc->handle().senses_range), [npc,&ret,&dist,flags](Item& it) {
-    if((it.handle().main_flag&flags)==0)
+    // NOTE: in original-game oCNpc::DetectItem (Gothic2.exe 0x0073fd40) tests the mask against
+    // (main_flag | flags) -- category bits live in main_flag, weapon/wear subtype bits (SWD,
+    // BOW, TORCH, RING, ...) live in flags -- and skips items carrying the 0x800000 no-detect
+    // flag. OpenGothic checked only main_flag, so subtype-mask detections never matched.
+    if((uint32_t(it.handle().flags) & 0x800000u)!=0)
+      return;
+    if(((uint32_t(it.handle().main_flag)|uint32_t(it.handle().flags)) & uint32_t(flags))==0)
       return;
     float d = (npc->position()-it.position()).quadLength();
     if(d<dist) {
