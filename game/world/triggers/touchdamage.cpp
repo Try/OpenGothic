@@ -1,5 +1,7 @@
 #include "touchdamage.h"
 
+#include <limits>
+
 #include "world/objects/npc.h"
 #include "world/world.h"
 #include "game/serialize.h"
@@ -23,6 +25,8 @@ void TouchDamage::onTrigger(const TriggerEvent&/*evt*/) {
 
 void TouchDamage::onIntersect(Npc& n) {
   AbstractTrigger::onIntersect(n);
+  if(intersections().size()==1) // first occupant after being empty: allow the entry hit
+    repeatTimeout = 0;
   enableTicks();
   }
 
@@ -51,7 +55,13 @@ void TouchDamage::tick(uint64_t dt) {
       }
     }
 
-  repeatTimeout = world.tickCount() + uint64_t(repeatDelaySec*1000);
+  // NOTE: in original-game zCTouchDamage::OnTouch/OnTimer (Gothic2.exe 0x615b70/0x615c70)
+  // the repeat timer is armed only when repeatDelaySec>0; with repeatDelaySec==0 (also the
+  // ctor default) damage is dealt exactly once per entry, not every frame.
+  if(repeatDelaySec>0)
+    repeatTimeout = world.tickCount() + uint64_t(repeatDelaySec*1000);
+  else
+    repeatTimeout = std::numeric_limits<uint64_t>::max();
 
   if(intersections().empty())
     disableTicks();
