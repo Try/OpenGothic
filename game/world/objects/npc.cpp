@@ -3658,6 +3658,11 @@ void Npc::unequipItem(size_t item) {
 bool Npc::canSwitchWeapon() const {
   if(isUnconscious())
     return false;
+  // NOTE: in original-game oCNpc::CanDrawWeapon (Gothic2.exe 0x006805c0) permits a weapon
+  // draw during a mob interaction (GetInteractMob()!=NULL); the draw helpers exit the mobsi.
+  // OG's body-state allow-list omits BS_MOBINTERACT, so drawing at a forge/bench was ignored.
+  if(interactive()!=nullptr)
+    return true;
   auto bs = bodyStateMasked();
   if(bs==BS_STAND || bs==BS_WALK || bs==BS_RUN || bs==BS_SNEAK || bs==BS_NONE)
     return true;
