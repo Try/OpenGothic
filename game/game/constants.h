@@ -138,6 +138,15 @@ enum {
   MaxFightRange       = 4500,
   };
 
+enum {
+  // NOTE: in original-game oCAIArrow::ReportCollisionToAI @0x006a18a2 the ranged hit-chance
+  // distance falloff reads RANGED_CHANCE_MINDIST / RANGED_CHANCE_MAXDIST from Daedalus; stock
+  // G2 scripts omit them, so the binary defaults apply: near/reference 1000cm (_DAT_008b1158),
+  // far/max 10000cm (_DAT_008b115c). The chance decays to 0 only at 10000cm -- no 4500cm cutoff.
+  RangedChanceMinDist = 1000,
+  RangedChanceMaxDist = 10000,
+  };
+
 enum BodyState:uint32_t {
   BS_NONE                  = 0,
 

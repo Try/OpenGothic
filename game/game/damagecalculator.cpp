@@ -85,8 +85,12 @@ DamageCalculator::Val DamageCalculator::rangeDamage(Npc& nsrc, Npc& nother, cons
     float hitChance = float(script.rand(100))/100.f;
     float hitCh     = 0;
     bool  g2        = Gothic::inst().version().game==2;
-    float refRange  = g2 ? ReferenceBowRangeG2 : ReferenceBowRangeG1;
-    float maxRange  = float(MaxBowRange);
+    // NOTE: in original-game oCAIArrow::ReportCollisionToAI @0x006a18a2 the G2 falloff uses the
+    // RANGED_CHANCE_MINDIST(1000)/RANGED_CHANCE_MAXDIST(10000) defaults, so the hit chance
+    // decays to 0 only at 10000cm with no hard cutoff at 4500cm. The G1 path is left on the
+    // prior 2000/4500 ranges (not analyzed against Gothic1.exe).
+    float refRange  = g2 ? float(RangedChanceMinDist) : float(ReferenceBowRangeG1);
+    float maxRange  = g2 ? float(RangedChanceMaxDist) : float(MaxBowRange);
     float chance    = b.hitChance();
 
     if(dist<refRange)
@@ -96,7 +100,7 @@ DamageCalculator::Val DamageCalculator::rangeDamage(Npc& nsrc, Npc& nother, cons
     else
       hitCh = 0;
 
-    noHit = (dist>float(MaxBowRange) || hitCh<=hitChance);
+    noHit = (dist>maxRange || hitCh<=hitChance);
 
     if(!g2 && !noHit && !invincible) {
       const int32_t mul        = script.criticalDamageMultiplyer();
