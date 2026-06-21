@@ -42,6 +42,10 @@ patch with a `// NOTE: in original-game …` citation.
 | Daytime sound | zCVobSoundDaytime window crossing midnight never played the primary sound | `worldsound.cpp` `tick` |
 | Dialog order | equal-`nr` choices reordered by a non-stable scriptFn tie-break vs declaration order | `gamescript.cpp` `sort` |
 | Spell FX node | TARGET-mode FX attached to emTrjOriginNode instead of emTrjTargetNode | `effect.cpp` `syncAttachesSingle` |
+| Wld_IsTime | zero-width window [t,t] returned false all day vs true at exactly minute t | `gamescript.cpp` `wld_istime` |
+| Talent "%" | stats menu used hitchance for all G2 talents; only 4 combat skills should | `gamemenu.cpp` |
+| PERC_DRAWWEAPON | declared but never sent; guards never reacted to player drawing a weapon | `npc.cpp` `implSetFightMode` |
+| Mob reservation | NPC walking to a bench didn't reserve it, so a 2nd NPC raced for the same mob | `interactive.cpp` / `worldobjects.cpp` |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
@@ -64,4 +68,6 @@ patch with a `// NOTE: in original-game …` citation.
 | `monster-getnexttarget-sticky` | Npc_GetNextTarget should keep the current enemy if still valid (sticky) rather than flip to nearest every call; the original's validity check also re-acquires on flee-state (-4/-5) and charm/sleep/freeze, which have no grep-verified 1:1 OG equivalent — an isDown()-only sticky path would wrongly lock onto a controlled/fleeing foe. Combat AI, needs runtime |
 | `perc-passive-range-senses-fallback` | passive perception uses percRange.at(perc, senses_range) fallback vs original's static percRange[] table; removing the fallback depends on the unconfirmable static default + whether scripts always Perc_SetRange — agent-deferred |
 | `hitreact-ondamage-processinfos-dialog-guard` | original skips hit-reaction/damage while an EV_PROCESSINFOS dialog transition is queued; OG models dialog via AiQueue/outputPipe with no grep-verifiable per-Npc oCMsgConversation equivalent to gate on — agent-deferred |
+| `death-corpse-physics-disabled` | original keeps the dead-NPC collision body enabled (corpses block projectiles/movement); OG disables physic on death, but OG's capsule may not track the prone pose so re-enabling risks an upright invisible wall — needs in-game check |
+| `ext-getinvitembyslot-category-flat-index` | original Npc_GetInvItemBySlot ignores the category arg and uses a flat 0-based slot index; OG filters by category with a 1-based index. Upstream quirk with no stock-G2 callers; flat-index rewrite needs caller analysis — agent-deferred |
 
