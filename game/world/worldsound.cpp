@@ -183,12 +183,15 @@ void WorldSound::tick(Npc& player) {
     auto time = owner.time();
     time = gtime(0,time.hour(),time.minute());
 
-    const SoundFx* snd = nullptr;
-    if(i.sndStart<= time && time<i.sndEnd) {
-      snd = i.eff0;
-      } else {
-      snd = i.eff1;
-      }
+    // NOTE: in original-game zCVobSoundDaytime::DoSoundUpdate (Gothic2.exe 0x0063ef50) the
+    // daytime window is treated modulo 24h: a window whose start is later than its end
+    // (e.g. 20:00..06:00) wraps across midnight and is active across midnight. A plain
+    // start<=t<end test is never true for such a window, so OpenGothic played the secondary
+    // sound all day and never the intended windowed primary sound.
+    const bool inWindow = (i.sndStart<=i.sndEnd)
+                            ? (i.sndStart<=time && time<i.sndEnd)
+                            : (i.sndStart<=time || time<i.sndEnd);
+    const SoundFx* snd = inWindow ? i.eff0 : i.eff1;
 
     if(snd==nullptr)
       continue;
