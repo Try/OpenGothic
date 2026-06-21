@@ -85,4 +85,13 @@ at initiation:
 ```
 
 ## Status
-analysis only — not applied
+**Deferred — not applied (intentionally).** The correct fix is event-driven: stop removing
+the world vob in `Npc::takeItem` and instead remove it at the take animation's contact
+event. But `Npc::takeItem` returns the taken `Item*` synchronously and its callers depend on
+that contract — the AI queue (`npc.cpp:2856`, `if(takeItem(*act.item)==nullptr) ...`) and
+player control (`playercontrol.cpp:369`). Deferring removal means the result is no longer
+known at call time, so this requires reworking the take into a pending/animation-completion
+state across the AI queue and `PlayerControl`. That is a gameplay-critical change that needs
+in-game testing (which can't be done from this headless setup) to avoid regressing all item
+pickup — so it is left as a scoped follow-up rather than a half-applied refactor (per the
+repo's no-workarounds rule). Analysis above stands as the implementation guide.
