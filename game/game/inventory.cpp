@@ -796,6 +796,14 @@ bool Inventory::putState(Npc& owner, size_t cls, int state) {
   if(!owner.setAnimItem(it->handle().scheme_name,state))
     return false;
 
+  // NOTE: in original-game oCNpc::EV_UseItemToState invokes the item's on_state[reached_state]
+  // (via oCItem::GetStateEffectFunc) once per state arrival; OpenGothic never ran on_state on
+  // the AI_UseItemToState path (only use() fired on_state[0]), so per-state item scripts were
+  // dead. Fire on_state[state] for the reached target state.
+  if(state>=0 && state<4 && it->handle().on_state[size_t(state)]!=0) {
+    owner.world().script().invokeItem(&owner,uint32_t(it->handle().on_state[size_t(state)]));
+    }
+
   setCurrentItem(0);
   setStateItem(cls);
   return true;
