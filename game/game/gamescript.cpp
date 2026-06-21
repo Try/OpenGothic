@@ -385,7 +385,12 @@ void GameScript::initCommon() {
 
   auto* tblSz = vm.find_symbol_by_name("TAB_ANZAHL");
   gilTblSize = tblSz!=nullptr ? size_t(std::sqrt(tblSz->get_int())) : 0;
-  gilAttitudes.resize(gilCount*gilCount,ATT_HOSTILE);
+  // NOTE: in original-game oCGuilds::oCGuilds (Gothic2.exe 0x00700c30) the full gilCount*gilCount
+  // (66x66) attitude table is byte-filled with 3 (ATT_FRIENDLY) before the GIL_ATTITUDES overlay,
+  // which only covers the 64x64 TAB_ANZAHL block -- so guild pairs involving index 64/65 keep the
+  // friendly default. OpenGothic used ATT_HOSTILE (0), making those high-index guilds spuriously
+  // hostile.
+  gilAttitudes.resize(gilCount*gilCount,ATT_FRIENDLY);
   wld_exchangeguildattitudes("GIL_ATTITUDES");
 
   auto id = vm.find_symbol_by_name("Gil_Values");
@@ -1284,10 +1289,16 @@ bool GameScript::aiOutput(Npc &npc, std::string_view outputname, bool overlay) {
   }
 
 bool GameScript::aiOutputSvm(Npc &npc, std::string_view outputname, bool overlay) {
+  // NOTE: in original-game oCNpc::EV_OutputSVM_Overlay @0x00756a60 an overlay SVM is dropped only
+  // when *this speaker's* own SVM module is still running (zCCSManager::LibIsSvmModuleRunning
+  // @0x00419e80, keyed per NPC voice/module), not by a process-global timer. OpenGothic gated the
+  // overlay with a single GameScript-wide svmBarrier, so while one NPC's overlay line played every
+  // other NPC's overlay SVM was swallowed. Use a per-NPC barrier so concurrent overlays play.
   if(overlay) {
-    if(tickCount()<svmBarrier)
+    if(npc.aiOutputSvmBarrier()>tickCount())
       return true;
-    svmBarrier = tickCount()+messageTime(outputname);
+    if(!outputname.empty())
+      npc.setAiOutputSvmBarrier(tickCount()+messageTime(outputname));
     }
 
   if(!outputname.empty())
@@ -1937,10 +1948,16 @@ void GameScript::mdl_applyoverlaymds(std::shared_ptr<zenkit::INpc> npcRef, std::
   }
 
 void GameScript::mdl_applyoverlaymdstimed(std::shared_ptr<zenkit::INpc> npcRef, std::string_view overlayname, int ticks) {
+  // NOTE: in original-game Mdl_ApplyOverlayMdsTimed (Gothic2.exe FUN_006f9fd0) the overlay is
+  // applied unconditionally; oCNpcTimedOverlay::Process (0x0075f4a0) removes it only once its
+  // remaining time goes strictly below zero, so ticks<=0 still applies the overlay for one frame.
+  // Clamp non-positive durations to 1 tick so a timed (non-permanent) overlay is added and expires
+  // next update, instead of being skipped entirely (the old `ticks>0` guard) or made permanent
+  // (addOverlay with time==0).
   auto npc = findNpc(npcRef);
-  if(npc!=nullptr && ticks>0) {
+  if(npc!=nullptr) {
     auto skelet = Resources::loadSkeleton(overlayname);
-    npc->addOverlay(skelet,uint64_t(ticks));
+    npc->addOverlay(skelet,uint64_t(ticks>0 ? ticks : 1));
     }
   }
 

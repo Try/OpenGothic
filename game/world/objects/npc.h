@@ -404,6 +404,8 @@ class Npc final {
 
     bool      haveOutput() const;
     void      setAiOutputBarrier(uint64_t dt, bool overlay);
+    uint64_t  aiOutputSvmBarrier() const { return svmBarrier; }
+    void      setAiOutputSvmBarrier(uint64_t t) { svmBarrier = t; }
 
     bool      doAttack(Anim anim, BodyState bs);
     void      commitSpell();
@@ -605,6 +607,10 @@ class Npc final {
     uint64_t                       outWaitTime=0;
 
     uint64_t                       aiOutputBarrier=0;
+    // NOTE: per-NPC AI_OutputSVM_Overlay barrier. The original (oCNpc::EV_OutputSVM_Overlay
+    // @0x00756a60) drops an overlay only when *this* speaker's own SVM module is still running,
+    // so it must not be process-global. Transient (sub-second), hence not serialized.
+    uint64_t                       svmBarrier=0;
     NpcProcessPolicy               aiPolicy=NpcProcessPolicy::AiNormal;
     AiState                        aiState;
     ScriptFn                       aiPrevState;
