@@ -472,6 +472,13 @@ std::string_view Interactive::displayName() const {
   if(s==nullptr)
     return "";
 
+  // NOTE: in original-game oCMOB::GetName (Gothic2.exe 0x0071bc30) yields a STRING
+  // symbol's value, else an empty name. A same-named non-string symbol (e.g. the VOB
+  // instance CHEST_LOBART) must not be used as the display name, otherwise the raw
+  // identifier leaks onto the HUD; fall back to the generic mob name instead (#92).
+  if(s->type()!=zenkit::DaedalusDataType::STRING)
+    return "";
+
   return s->get_string();
   }
 
