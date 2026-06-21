@@ -1022,7 +1022,10 @@ Camera::Mode MainWindow::solveCameraMode() const {
       case WeaponState::CBow:
         return g2 ? Camera::Ranged : Camera::Normal;
       case WeaponState::Mage:
-        return g2 ? Camera::Ranged : Camera::Melee;
+        // NOTE: in original-game oCAIHuman::ChangeCamModeBySituation @0x0069cd00 weapon mode 7
+        // (spell) selects CamModMagic, not CamModRanged -- spell casting got the bow/crossbow
+        // camera distances and rotation instead of the dedicated magic camera.
+        return g2 ? Camera::Magic : Camera::Melee;
       case WeaponState::NoWeapon:
         return Camera::Normal;
       }
