@@ -337,7 +337,17 @@ int32_t Item::cost() const {
   }
 
 int32_t Item::sellCost() const {
-  return int32_t(std::ceil(world.script().tradeValueMultiplier()*float(cost())));
+  // NOTE: in original-game oCViewDialogTrade::OnTransferLeft (Gothic2.exe 0x0068b840) the
+  // per-unit sell payout is round-to-nearest(tradeValueMultiplier*value), clamped to a
+  // minimum of 1 when value>=1 (value 0 pays nothing). OpenGothic used std::ceil, overpaying
+  // the player on most sales.
+  const int32_t v = cost();
+  if(v<=0)
+    return 0;
+  int32_t price = int32_t(std::lround(world.script().tradeValueMultiplier()*float(v)));
+  if(price<1)
+    price = 1;
+  return price;
   }
 
 bool Item::checkCond(const Npc &other) const {
