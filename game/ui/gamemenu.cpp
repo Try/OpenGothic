@@ -1251,7 +1251,13 @@ void GameMenu::setPlayer(const Npc &pl) {
       continue;
 
     const int sk  = pl.talentSkill(Talent(i));
-    const int val = g2 ? pl.hitChance(Talent(i)) : pl.talentValue(Talent(i));
+    // NOTE: in original-game OpenScreen_Status @0x0073de12 the talent "%" column is the per-NPC
+    // hitchance ONLY for the four combat talents (1H/2H/BOW/CBOW, ids 1..4); every other talent
+    // row shows the stored talent value (oCNpc::SetTalentValue), not hitchance -- OpenGothic used
+    // hitchance for all G2 talents, so non-combat rows displayed 0.
+    const bool combat = (Talent(i)==TALENT_1H  || Talent(i)==TALENT_2H ||
+                         Talent(i)==TALENT_BOW || Talent(i)==TALENT_CROSSBOW);
+    const int val = (g2 && combat) ? pl.hitChance(Talent(i)) : pl.talentValue(Talent(i));
 
     set(string_frm("MENU_ITEM_TALENT_",i,"_TITLE"), str);
     set(string_frm("MENU_ITEM_TALENT_",i,"_SKILL"), strEnum(talV->get_string(i),sk,textBuf));
