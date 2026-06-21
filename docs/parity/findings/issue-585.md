@@ -1,7 +1,7 @@
 # Issue #585 — NPC walk-teleport misalignment
 
 Upstream: https://github.com/Try/OpenGothic/issues/585
-Type: explicit deviation-from-original (vanilla) bug. **Status: analysis only — not applied.**
+Type: explicit deviation-from-original (vanilla) bug. **Status: arrival-snap applied (see below).**
 
 ## Issue
 When an NPC walks to a waypoint / freepoint and stops, vanilla Gothic II snaps the NPC
@@ -90,4 +90,18 @@ addition to the current heading turn, mirroring `EV_AlignToFP`.
 
 Keep Y resolution via the existing gravity/ground path; only correct X/Z to avoid floating/clipping.
 
-Status: analysis only — not applied.
+## Status
+**Partially applied.** The arrival exact-reposition is implemented in
+`game/world/objects/npc.cpp` `Npc::implGoTo`, in the `if(finished)` block before
+`clearGoTo()`: when not chasing an NPC (`go2.npc==nullptr`) it snaps X/Z onto the
+destination captured in the local `target` (the value read *before* the waypath pop, so it
+is the real destination, not the post-pop stale `go2.target()`), keeps Y for the ground
+path, and reverts via `setPosition(prev)` if `hasCollision()` — mirroring the original's
+`SearchNpcPosition` geometry guard and the existing `Interactive::setPos` pattern. Builds
+clean.
+
+Deferred (lower priority, more speculative): the `EV_AlignToFP` position re-snap in the
+`AI_AlignToFp`/`AI_AlignToWp` handler (npc.cpp:2802) — it still only turns to the FP
+direction. The arrival snap above already removes the up-to-radius offset that caused the
+reported misalignment. Behavioral verification (walk an NPC to a WP/FP and check final
+position) needs a playtest.

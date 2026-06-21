@@ -1527,6 +1527,18 @@ bool Npc::implGoTo(uint64_t dt, float destDist) {
     if(finished) {
       if(go2.flag==Npc::GT_NextFp && implTurnTo(go2.wp,AnimationSolver::TurnType::Std,dt))
         return true;
+      // NOTE: in original-game oCNpc::RbtMoveToExactPosition @0x686880 (oNpc_Move.cpp)
+      // hard-SetPositionWorld's the NPC onto the (SearchNpcPosition-validated) target on
+      // arrival rather than leaving it wherever the radius test first tripped --
+      // closeToPointThreshold is only a trigger, not the final pose. Snap X/Z onto the
+      // waypoint/freepoint, keep Y for the existing ground path, and revert on collision
+      // (mirrors the original's geometry guard, like Interactive::setPos). #585
+      if(go2.npc==nullptr) {
+        auto prev = position();
+        setPosition(target.x, prev.y, target.z);
+        if(hasCollision())
+          setPosition(prev);
+        }
       clearGoTo();
       }
     }
