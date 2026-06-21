@@ -42,7 +42,11 @@ void FightAlgo::fillQueue(Npc &npc, Npc &tg, GameScript& owner) {
 
   const bool focus = isInFocusAngle(npc,tg);
 
-  if(tg.isPrehit() && isInWRange(tg,npc,owner) && isInFocusAngle(tg,npc) && focus){
+  // NOTE: in original-game oCNpc::FindNextFightAction (Gothic2.exe 0x0067d680) gates the
+  // enemy_prehit parry/dodge reaction on a ~90-degree front cone (GetAngles yaw<90), not the
+  // 30-degree focus cone used for attacks. OpenGothic reused the 30-degree `focus`, so an NPC
+  // attacked from 30-90 degrees off its facing failed to react and just ate the hit.
+  if(tg.isPrehit() && isInWRange(tg,npc,owner) && isInFocusAngle(tg,npc) && isInFocusAngle(npc,tg,90)){
     if(tg.bodyStateMasked()==BS_RUN)
       if(fillQueue(owner,ai.enemy_stormprehit))
         return;
