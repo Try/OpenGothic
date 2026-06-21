@@ -3189,8 +3189,12 @@ void Npc::commitSpell() {
   const int32_t splId = active->spellId();
   const auto&   spl   = owner.script().spellDesc(splId);
 
-  if(owner.version().game==2)
-    owner.script().invokeSpell(*this,currentTarget,*active);
+  if(owner.version().game==2) {
+    // NOTE: the original passes oCSpell::GetLevel() (0-based invested level); here castLevel
+    // is in the CS_Emit_* range, so the 0-based level is castLevel-CS_Emit_0.
+    const int32_t splLevel = int(castLevel) - int(CS_Emit_0);
+    owner.script().invokeSpell(*this,currentTarget,*active,splLevel);
+    }
 
   if(active->isSpellShoot()) {
     const int lvl = (castLevel-CS_Emit_0)+1;

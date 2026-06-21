@@ -136,7 +136,7 @@ class GameScript final {
     void invokeItem (Npc* npc, ScriptFn fn);
     int  invokeMana (Npc& npc, Npc* target, int mana);
     int  invokeManaRelease (Npc& npc, Npc* target, int mana);
-    void invokeSpell(Npc& npc, Npc *target, Item&  fn);
+    void invokeSpell(Npc& npc, Npc *target, Item&  fn, int32_t splLevel);
     int  invokeCond (Npc& npc, std::string_view func);
     void invokePickLock(Npc& npc, int bSuccess, int bBrokenOpen);
     void invokeRefreshAtInsert(Npc& npc);
