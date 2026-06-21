@@ -177,8 +177,16 @@ void Effect::syncAttachesSingle(const Matrix4x4& inPos) {
   auto p = inPos;
   if((emTrjMode & VisualFx::Trajectory::Target)==VisualFx::Trajectory::Target && target!=nullptr) {
     // NOTE: needed for shrink-spell, light-spell
+    // NOTE: in original-game oCVisualFX::CalcTrajectory @0x0048f620 the TARGET endpoint resolves
+    // against the target model's emTrjTargetNode (cached at this+0x4a0/this+0x4b0), not the
+    // origin node. OpenGothic reused nodeSlot (= emTrjOriginNode), so an FX whose target node
+    // differs attached to the wrong bone (or fell back to body center). Fall back to nodeSlot
+    // only when emTrjTargetNode is empty, preserving prior behavior for those FX.
+    std::string_view tgtNode = (root!=nullptr && !root->emTrjTargetNode.empty())
+                                 ? std::string_view(root->emTrjTargetNode)
+                                 : nodeSlot;
     p.identity();
-    p.translate(target->mapBone(nodeSlot));
+    p.translate(target->mapBone(tgtNode));
     }
   else if(true || emTrjMode != VisualFx::Trajectory::TrajectoryNone) {
     if(pose!=nullptr && boneId<pose->boneCount())
