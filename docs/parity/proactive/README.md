@@ -46,6 +46,10 @@ patch with a `// NOTE: in original-game …` citation.
 | Talent "%" | stats menu used hitchance for all G2 talents; only 4 combat skills should | `gamemenu.cpp` |
 | PERC_DRAWWEAPON | declared but never sent; guards never reacted to player drawing a weapon | `npc.cpp` `implSetFightMode` |
 | Mob reservation | NPC walking to a bench didn't reserve it, so a 2nd NPC raced for the same mob | `interactive.cpp` / `worldobjects.cpp` |
+| RemoveInvItem(s) | always returned 0; should return 1 when the item was present (script gates) | `gamescript.cpp` `npc_removeinvitem(s)` |
+| GetAttitude(hero,npc) | returned the NPC's temp/perm; original returns guild value when subject is player | `gamescript.cpp` `personAttitude` |
+| Magic camera | spell-casting used the ranged (bow) camera instead of the magic camera | `mainwindow.cpp` `solveCameraMode` |
+| Footstep in water | swim/dive emitted ground (`_WATER`) footstep sounds; original suppresses them | `animation.cpp` `processSfx` |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
@@ -70,4 +74,6 @@ patch with a `// NOTE: in original-game …` citation.
 | `hitreact-ondamage-processinfos-dialog-guard` | original skips hit-reaction/damage while an EV_PROCESSINFOS dialog transition is queued; OG models dialog via AiQueue/outputPipe with no grep-verifiable per-Npc oCMsgConversation equivalent to gate on — agent-deferred |
 | `death-corpse-physics-disabled` | original keeps the dead-NPC collision body enabled (corpses block projectiles/movement); OG disables physic on death, but OG's capsule may not track the prone pose so re-enabling risks an upright invisible wall — needs in-game check |
 | `ext-getinvitembyslot-category-flat-index` | original Npc_GetInvItemBySlot ignores the category arg and uses a flat 0-based slot index; OG filters by category with a 1-based index. Upstream quirk with no stock-G2 callers; flat-index rewrite needs caller analysis — agent-deferred |
+| `aimove-gotofp-arrival-heading` | AI_GotoFP should re-orient the NPC to the freepoint's facing on arrival; Medium confidence, movement-behavior change, the original couples turn into EV_GotoFP while OG splits goto/align (AI_AlignToFP can mask it), and the proposed implTurnTo(float,float,…) overload is unverified — needs runtime |
+| `rune-deplete-reswitch-bookwide` | after a scroll's last charge, the original re-selects another known spell book-wide (stays in mage mode); OG only searches the 8 hotbar slots. Storage models aren't 1:1 and there's no grep-verified book order to mirror — agent-deferred |
 
