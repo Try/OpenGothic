@@ -336,27 +336,36 @@ float MoveTrigger::calcProgress(uint32_t f1, uint32_t f2) const {
     a = 1 - a;
   bool start = (f1==0 && state!=Loop);
   bool end   = (f2==moverKeyFrames.size()-1 && state!=Loop);
+  // NOTE: in original-game zCMover::InterpolateKeyframes_KF (Gothic2.exe 0x00611900) the
+  // intra-segment easing is sinusoidal, not polynomial: smoothstep = 0.5*(1-cos(a*PI)),
+  // slow-start = 1-cos(a*PI/2), slow-end = sin(a*PI/2). zSinApprox/zCosApprox are LUT sin/cos, so
+  // std::sin/std::cos reproduce the curves. The old polynomials matched at the endpoints but
+  // diverged mid-segment (slow-start/slow-end by up to ~9%), giving wrong partway platform/door
+  // positions (relevant to the move-trigger glide complaints, issues #637/#623).
+  const float smoothStep = 0.5f*(1.f - std::cos(a*float(M_PI)));
+  const float slowStart  = 1.f - std::cos(a*float(M_PI)*0.5f);
+  const float slowEnd    = std::sin(a*float(M_PI)*0.5f);
   switch(speedType) {
     case zenkit::MoverSpeedType::CONSTANT:
       break;
     case zenkit::MoverSpeedType::SLOW_START_END:
     case zenkit::MoverSpeedType::SEGMENT_SLOW_START_END:
       if((start && end) || speedType==zenkit::MoverSpeedType::SEGMENT_SLOW_START_END)
-        a = (3 - 2*a) * a*a;
+        a = smoothStep;
       else if(start)
-        a = (2 - a) * a*a;
+        a = slowStart;
       else if(end)
-        a = ((1 - a)*a + 1)*a;
+        a = slowEnd;
       break;
     case zenkit::MoverSpeedType::SLOW_START:
     case zenkit::MoverSpeedType::SEGMENT_SLOW_START:
       if(start || speedType==zenkit::MoverSpeedType::SEGMENT_SLOW_START)
-        a = (2 - a) * a*a;
+        a = slowStart;
       break;
     case zenkit::MoverSpeedType::SLOW_END:
     case zenkit::MoverSpeedType::SEGMENT_SLOW_END:
       if(end || speedType==zenkit::MoverSpeedType::SEGMENT_SLOW_END)
-        a = ((1 - a)*a + 1)*a;
+        a = slowEnd;
       break;
     }
   return std::clamp(a,0.f,1.f);
