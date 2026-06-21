@@ -3208,9 +3208,13 @@ void Npc::commitSpell() {
   const auto&   spl   = owner.script().spellDesc(splId);
 
   if(owner.version().game==2) {
-    // NOTE: the original passes oCSpell::GetLevel() (0-based invested level); here castLevel
-    // is in the CS_Emit_* range, so the 0-based level is castLevel-CS_Emit_0.
-    const int32_t splLevel = int(castLevel) - int(CS_Emit_0);
+    // NOTE: in original-game oCMag_Book::Spell_Cast @0x004767a0 passes oCSpell::GetLevel()
+    // (@0x00486620, field 0x4c) to Spell_Cast_<tag>(var int level). That field is initialized to
+    // 1 by oCSpell::InitByScript @0x00484550 and incremented per SPL_NEXTLEVEL in oCSpell::Invest
+    // @0x0048525e, so the script level is 1-based. castLevel is in the CS_Emit_* range here, so
+    // the 1-based level is castLevel-CS_Emit_0+1 -- matching the shoot-damage path below and
+    // activeSpellLevel() (Npc_GetActiveSpellLevel), which were already 1-based.
+    const int32_t splLevel = int(castLevel) - int(CS_Emit_0) + 1;
     owner.script().invokeSpell(*this,currentTarget,*active,splLevel);
     }
 

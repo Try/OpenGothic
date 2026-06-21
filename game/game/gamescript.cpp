@@ -1152,8 +1152,8 @@ void GameScript::invokeSpell(Npc &npc, Npc* target, Item &it, int32_t splLevel) 
     return;
 
   // NOTE: in original-game oCMag_Book::Spell_Cast (Gothic2.exe 0x004767a0) passes
-  // oCSpell::GetLevel() -- the invested spell level (0-based) -- to Spell_Cast_<tag>(var
-  // int level). OpenGothic hardcoded 0, so leveled/invest spell scripts never scaled.
+  // oCSpell::GetLevel() -- the 1-based invested spell level -- to Spell_Cast_<tag>(var
+  // int level). The caller (Npc::commitSpell) supplies splLevel already 1-based.
   ScopeVar self (*vm.global_self(),  npc.handlePtr());
   ScopeVar other(*vm.global_other(), target != nullptr ? target->handlePtr() : nullptr);
   try {
