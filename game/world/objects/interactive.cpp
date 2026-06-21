@@ -779,6 +779,13 @@ bool Interactive::attach(Npc& npc, Interactive::Pos& to) {
   Tempest::Vec3 mv = {};
   mat.project(mv);
 
+  // NOTE: in original-game oCMobInter::SetIdealPosition (Gothic2.exe 0x71e240), the
+  // non-DIST slot branch does SetPositionWorld(slot.x, npc.currentY, slot.z): X/Z come
+  // from the ZS_POS node, but the NPC keeps its own world Y. ZS_POS nodes are authored
+  // at seat/model height, so taking the node Y directly floats or sinks the NPC (#647).
+  if(!to.isDistPos())
+    mv.y = npc.position().y;
+
   if((npc.centerPosition()-mv).quadLength()>MAX_AI_USE_DISTANCE*MAX_AI_USE_DISTANCE) {
     if(npc.isPlayer()) {
       auto& sc = npc.world().script();

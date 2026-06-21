@@ -91,4 +91,7 @@ back and yaw-aligns). No ground-ray snap should be added — the original does n
 perform one in this path.
 
 ## Status
-analysis only — not applied
+**Applied** in `game/world/objects/interactive.cpp` (`Interactive::attach`, right after
+`mat.project(mv)`): for non-DIST slots, `mv.y = npc.position().y` so the NPC keeps its own
+world Y and only X/Z snap to the slot. Builds clean. Behavioral verification (sit on a
+throne in-game and check height) still needs a playtest.
