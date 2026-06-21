@@ -793,7 +793,12 @@ bool Interactive::attach(Npc& npc, Interactive::Pos& to) {
   if(!to.isDistPos())
     mv.y = npc.position().y;
 
-  if((npc.centerPosition()-mv).quadLength()>MAX_AI_USE_DISTANCE*MAX_AI_USE_DISTANCE) {
+  // NOTE: in original-game oCMobInter::SearchFreePosition (Gothic2.exe 0x71dfc0), called
+  // from CanInteractWith/GetFreePosition, uses a free-slot search distance of 150.0 (a slot
+  // is rejected once npc->slot exceeds 150) -- not MAX_AI_USE_DISTANCE (165). Using 165 let
+  // NPCs/the player start using mobsis ~10% farther than vanilla.
+  static const float MOBSI_USE_DISTANCE = 150.f;
+  if((npc.centerPosition()-mv).quadLength()>MOBSI_USE_DISTANCE*MOBSI_USE_DISTANCE) {
     if(npc.isPlayer()) {
       auto& sc = npc.world().script();
       sc.printMobTooFar(npc);
