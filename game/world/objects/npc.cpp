@@ -1963,6 +1963,13 @@ void Npc::implSetFightMode(const Animation::EvCount& ev) {
   dropTorch();
   visual.stopDlgAnim(*this);
   updateWeaponSkeleton();
+  // NOTE: in original-game oCNpc::EV_DrawWeapon2 @0x0074d580 fires
+  // CreatePassivePerception(self, 24=PERC_DRAWWEAPON, self, NULL) when a draw transition
+  // completes -- the mirror of EV_RemoveWeapon2 @0x0074e630 / PERC_ASSESSREMOVEWEAPON, which
+  // OpenGothic already sends from closeWeapon. PERC_DRAWWEAPON was declared but never sent, so
+  // "sheathe your weapon" guard reactions never ran. Player-guarded to match the remove path.
+  if(ev.weaponCh!=zenkit::MdsFightMode::NONE && isPlayer())
+    owner.sendPassivePerc(*this,*this,PERC_DRAWWEAPON);
   }
 
 bool Npc::implAiFlee(uint64_t dt) {
@@ -2671,6 +2678,9 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       if(inter!=nullptr) {
         auto pos = inter->nearestPoint(*this);
         if(currentInteract==nullptr && !MoveAlgo::isClose(*this, pos, MAX_AI_USE_DISTANCE)) { // too far
+          // NOTE: in original-game oCNpc::EV_UseMob (@0x00754290) calls MarkAsUsed(mob,20000ms,npc)
+          // as the NPC starts walking to the mob, reserving it so other NPCs don't also target it.
+          inter->reserveFor(*this);
           go2.set(pos);
           // go to MOBSI and then complete AI_UseMob
           queue.pushFront(std::move(act));
