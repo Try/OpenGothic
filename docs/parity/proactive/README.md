@@ -36,6 +36,9 @@ patch with a `// NOTE: in original-game …` citation.
 | Ranged falloff | G2 hit-chance cut off at 45m vs original 100m decay | `damagecalculator.cpp` `rangeDamage` |
 | Trade gold | billed/paid for requested count, not units actually transferred | `inventory.cpp` `transfer` |
 | GetHeightToNpc | returned 0 (not INT_MAX) for an invalid NPC, unlike GetDistToNpc & the original | `gamescript.cpp` `npc_getheighttonpc` |
+| Immortal heal | immortal guard only checked val<0, so heals/regen raised immortal NPC HP | `npc.cpp` `changeAttribute` |
+| Climb-up ledge | JUMPUPLOW band lacked the step_height floor (knee-high ledge played climb anim) | `npc.cpp` `tryJump` |
+| Pick-lock progress | combination index was per-player & reset on detach, not per-mob & persistent | `interactive.h` / `playercontrol.cpp` |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
@@ -52,4 +55,7 @@ patch with a `// NOTE: in original-game …` citation.
 | `bow-multi-munition` | UNSAFE as written: ITM_MULTI flag conflation would make all arrows infinite |
 | `focus-elevation-cone` | adds a vertical elevdo/elevup focus gate; the elevation reference frame (player at-vector vs atan2-from-position) is approximated, and a wrong frame could reject legitimate item/lever focus — needs in-game validation |
 | `anim-wounded-overlay-lowhp` | HP-driven `_WOUNDED` locomotion overlay (CheckModelOverlays @0x007301d0); visual-only, triggers only at HP≤2, needs exact MDS overlay-name construction + OG overlay API + on-screen check |
+| `theft-assesstheft-isplayer-gate` | dropping the `isPlayer()` guard so NPC item-pickups broadcast PERC_ASSESSTHEFT adds new NPC-vs-NPC witness reactions; AI-behavior risk, needs runtime |
+| `aistate-startstate-unconditional-queue-clear` | gating AI-queue clear to the hard-interrupt path; OG models hard/soft state switches differently and existing workarounds assume an always-cleared queue — needs in-game verification (agent-deferred) |
+| `lock-picklock-progress` (save/load part) | persisting the in-progress combination index across save/load needs a serialization-version bump (the per-mob relocation itself is applied) |
 
