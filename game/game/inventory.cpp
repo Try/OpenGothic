@@ -314,7 +314,11 @@ void Inventory::delItem(Item *it, size_t count, Npc& owner) {
       }
   }
 
-void Inventory::transfer(Inventory &to, Inventory &from, Npc* fromNpc, size_t itemSymbol, size_t count, World &wrld) {
+size_t Inventory::transfer(Inventory &to, Inventory &from, Npc* fromNpc, size_t itemSymbol, size_t count, World &wrld) {
+  // NOTE: in original-game oCViewDialogTrade::OnTransferRight/OnTransferLeft (Gothic2.exe
+  // 0x0068bb40 / 0x0068b840) move trade items one unit at a time and settle gold only for units
+  // actually removed; a request beyond stock simply stops. Return the count truly moved so the
+  // sell/buy callers never bill or pay for items that were not transferred.
   for(size_t i=0;i<from.items.size();++i){
     auto& it = *from.items[i];
     if(it.clsId()!=itemSymbol)
@@ -330,7 +334,7 @@ void Inventory::transfer(Inventory &to, Inventory &from, Npc* fromNpc, size_t it
       if(it.isEquipped()) {
         if(fromNpc==nullptr){
           Log::e("Inventory: invalid transfer call");
-          return; // error
+          return 0; // error
           }
         from.unequip(&it,*fromNpc);
         }
@@ -340,7 +344,9 @@ void Inventory::transfer(Inventory &to, Inventory &from, Npc* fromNpc, size_t it
       it.setCount(it.count()-count);
       to.addItem(itemSymbol,count,wrld);
       }
+    return count;
     }
+  return 0;
   }
 
 Item *Inventory::getItem(size_t instance) {

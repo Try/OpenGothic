@@ -64,7 +64,7 @@ class Inventory final {
     size_t       goldCount() const;
     size_t       itemCount(const size_t id) const;
 
-    static void  transfer(Inventory& to, Inventory& from, Npc *fromNpc, size_t cls, size_t count, World &wrld);
+    static size_t transfer(Inventory& to, Inventory& from, Npc *fromNpc, size_t cls, size_t count, World &wrld);
 
     Item*  getItem(size_t instance);
     Item*  addItem(std::unique_ptr<Item>&& p);

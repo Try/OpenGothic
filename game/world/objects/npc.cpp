@@ -3493,7 +3493,7 @@ void Npc::sellItem(size_t id, Npc &to, size_t count) {
   if(id==owner.script().goldId()->index())
     return;
   int32_t price = invent.sellPriceOf(id);
-  Inventory::transfer(to.invent,invent,this,id,count,owner);
+  count = Inventory::transfer(to.invent,invent,this,id,count,owner);
   invent.addItem(owner.script().goldId()->index(),size_t(price)*count,owner);
   }
 
@@ -3510,7 +3510,7 @@ void Npc::buyItem(size_t id, Npc &from, size_t count) {
     return;
     }
 
-  Inventory::transfer(invent,from.invent,nullptr,id,count,owner);
+  count = Inventory::transfer(invent,from.invent,nullptr,id,count,owner);
   if(price>=0)
     invent.delItem(owner.script().goldId()->index(),size_t( price)*count,*this); else
     invent.addItem(owner.script().goldId()->index(),size_t(-price)*count,owner);
