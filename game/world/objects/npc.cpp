@@ -2582,6 +2582,10 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       break;
       }
     case AI_Wait:
+      // NOTE: in original-game oCNpc::EV_Wait (Gothic2.exe 0x00756820) the wait handler stops
+      // walking and cancels any in-progress turn animation before counting down, so the NPC
+      // idles in place rather than drifting/rotating through the wait.
+      stopWalkAnimation();
       implAiWait(uint64_t(act.i0));
       break;
     case AI_StandUp:
@@ -4186,6 +4190,16 @@ bool Npc::isImmortal() const {
   }
 
 void Npc::setPerceptionTime(uint64_t time) {
+  // NOTE: in original-game oCNpc::SetPerceptionTime (Gothic2.exe 0x0075dba0) also reduces the
+  // pending perception wait so a freshly-lowered perc time takes effect this cycle: it clamps
+  // the remaining wait to (remaining mod new-interval). OG left the already-armed deadline
+  // untouched, so an NPC could wait out up to a full old interval before reacting.
+  const uint64_t now = owner.tickCount();
+  if(time>0 && perceptionNextTime>now) {
+    uint64_t remaining = perceptionNextTime - now;
+    if(remaining>time)
+      perceptionNextTime = now + (remaining % time);
+    }
   perceptionTime = time;
   }
 
