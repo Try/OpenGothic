@@ -38,7 +38,15 @@ void TriggerList::onTrigger(const TriggerEvent&) {
       break;
       }
     case zenkit::TriggerBatchMode::RANDOM: {
-      auto& i = targets[world.script().rand(uint32_t(targets.size()))];
+      // NOTE: in original-game zCTriggerList::DoTriggering (Gothic2.exe 0x00615190) RANDOM mode
+      // re-rolls while the new index equals the previously fired one, so the same target is
+      // never fired twice in a row. OpenGothic rolled once with no exclusion.
+      uint32_t idx = world.script().rand(uint32_t(targets.size()));
+      if(targets.size()>1)
+        while(idx==next)
+          idx = world.script().rand(uint32_t(targets.size()));
+      next = idx;
+      auto& i = targets[idx];
 
       uint64_t time = world.tickCount()+uint64_t(i.delay*1000);
       TriggerEvent ex(i.name,vobName,time,TriggerEvent::T_Trigger);
