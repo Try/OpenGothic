@@ -356,7 +356,14 @@ void Animation::Sequence::processSfx(uint64_t barrier, uint64_t sTime, uint64_t 
   auto& d = *data;
   for(auto& i:d.sfx) {
     uint64_t fr = frameClamp(i.frame,d.firstFrame,d.numFrames,d.lastFrame);
-    if(((frameA<=fr && fr<frameB) ^ invert) || i.frame==int32_t(d.lastFrame)) {
+    // NOTE: in original-game zCModel::DoAniEvents @0x0057b890 each anim event (incl. an SFX on
+    // the last frame) fires exactly once as the playback cursor crosses its frame; the cursor
+    // (zCModelAniActive+0x10) is advanced once per event and never revisited. For a non-looping
+    // anim the ordinary window already fires a last-frame SFX once (frameB reaches numFrames on
+    // the final step), so the last-frame fallback must only cover the looping case -- where
+    // frameB wraps modulo numFrames and could miss the event -- else it re-fires every tick.
+    if(((frameA<=fr && fr<frameB) ^ invert) ||
+       (animCls==Animation::Loop && i.frame==int32_t(d.lastFrame))) {
       if(npc!=nullptr)
         npc->emitSoundEffect(i.name,i.range,i.empty_slot);
       if(mob!=nullptr)
