@@ -1207,7 +1207,11 @@ int32_t Npc::talentValue(Talent t) const {
   }
 
 int32_t Npc::hitChance(Talent t) const {
-  if(t<=zenkit::INpc::hitchance_count)
+  // NOTE: the hit-chance array has exactly hitchance_count (5) slots, indexed only by combat
+  // talents (1H/2H/bow/crossbow); the bound must be strict. `<=` read one past the array end
+  // for t==hitchance_count (TALENT_PICKLOCK=5), an out-of-bounds read reachable from the stats
+  // menu that printed a garbage "%" for the picklock row.
+  if(t<zenkit::INpc::hitchance_count)
     return hnpc->hitchance[t];
   return 0;
   }
