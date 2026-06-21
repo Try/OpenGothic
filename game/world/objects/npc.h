@@ -570,7 +570,10 @@ class Npc final {
     Attitude                       tmpAttitude =ATT_NULL;
 
     // perception
-    uint64_t                       perceptionTime    =0;
+    // NOTE: in original-game the oCNpc ctor (Gothic2.exe 0x0072d950) sets the perception
+    // interval to 5000ms; an NPC scans every 5s until its script calls Npc_SetPercTime.
+    // Defaulting to 0 made it scan every tick (~1ms) until then -- 5000x too aggressive.
+    uint64_t                       perceptionTime    =5000;
     uint64_t                       perceptionNextTime=0;
     Perc                           perception[PERC_Count];
 
