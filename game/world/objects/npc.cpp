@@ -755,7 +755,8 @@ Tempest::Vec3 Npc::fightDistanceTo(const Npc& tg) const {
 
   if(auto sk = tg.visual.visualSkeleton()) {
     tgCen = sk->rootTr;
-    transform().project(tgCen);
+    tg.transform().project(tgCen);   // NOTE: target's root-bone must use the target's
+                                     // transform, not the attacker's (#fight-distance bug)
     }
   tgCen += tg.position();
   return (cen-tgCen);
@@ -1242,7 +1243,11 @@ void Npc::changeAttribute(Attribute a, int32_t val, bool allowUnconscious) {
       return;
     if(isPlayer() && owner.currentCs()!=nullptr)
       return;
-    if(isImmortal())
+    // NOTE: in original-game oCNpc::ChangeAttribute (Gothic2.exe 0x0072ff60) the IMMORTAL
+    // flag is bypassed for the sentinel val==-999, so scripts/cutscenes can force-kill an
+    // immortal NPC via Npc_ChangeAttribute(self,ATR_HITPOINTS,-999). Blocking it silently
+    // dropped those scripted deaths.
+    if(isImmortal() && val!=-999)
       return;
     }
 
