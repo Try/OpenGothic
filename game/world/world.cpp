@@ -389,16 +389,14 @@ uint64_t World::tickCount() const {
   }
 
 void World::setDayTime(int32_t h, int32_t min) {
-  gtime now     = game.time();
-  auto  day     = now.day();
-  gtime dayTime = now.timeInDay();
-  gtime next    = gtime(h,min);
-
-  if(dayTime<=next){
-    game.setTime(gtime(day,h,min));
-    } else {
-    game.setTime(gtime(day+1,h,min));
-    }
+  // NOTE: in original-game oCGame::SetTime (Gothic2.exe 0x6c4de0) keeps the current day and sets
+  // the clock to (hour%24, min%60); the day advances only via hour/24. Setting an earlier
+  // time-of-day moves the clock backward within the same day (the wait-menu script pre-adds 24h
+  // when it wants the next day). OG bumped to day+1 whenever the new time was earlier, gaining a
+  // spurious extra day on every wait/Wld_SetTime to an earlier hour.
+  gtime now = game.time();
+  auto  day = now.day();
+  game.setTime(gtime(int(day) + h/24, h%24, min%60));
   wobj.resetPositionToTA();
   }
 
