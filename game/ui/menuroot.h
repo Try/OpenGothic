@@ -35,9 +35,11 @@ class MenuRoot : public Tempest::Widget {
   protected:
     void mouseDownEvent (Tempest::MouseEvent& event) override;
     void mouseUpEvent   (Tempest::MouseEvent& event) override;
+    void focusEvent     (Tempest::FocusEvent& event) override;
 
   private:
     void initSettings();
+    bool ignoreNextClick = false;  // #772: swallow the first menu click after a refocus
 
     std::unique_ptr<zenkit::DaedalusVm>    vm;
     int32_t                                vmLang = -1;

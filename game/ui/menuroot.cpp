@@ -126,8 +126,22 @@ bool MenuRoot::hasVersionLine() const {
   return showVersionHint;
   }
 
+void MenuRoot::focusEvent(FocusEvent& event) {
+  // NOTE: the OS delivers focus-in before the restoring mouseDown (issue #772), so a
+  // taskbar/refocus click would otherwise be read as a menu confirm (e.g. start new game,
+  // overwrite a save). Mark the next left click to be swallowed.
+  if(event.in)
+    ignoreNextClick = true;
+  }
+
 void MenuRoot::mouseDownEvent(MouseEvent& event) {
   if(current!=nullptr) {
+    if(ignoreNextClick && event.button!=Event::ButtonRight) {
+      ignoreNextClick = false;
+      event.accept();
+      return;
+      }
+    ignoreNextClick = false;
     if(event.button==Event::ButtonRight) {
       popMenu();
       } else {
