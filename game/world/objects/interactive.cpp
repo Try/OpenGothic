@@ -649,12 +649,22 @@ float Interactive::qDistTo(const Npc &npc, const Interactive::Pos &to) const {
   }
 
 void Interactive::implAddItem(std::string_view name) {
+  // NOTE: in original-game oCMobContainer::CreateContents (Gothic2.exe 0x00726190) tokenizes
+  // the contains-string via zSTRING::PickWordPos with a whitespace skip-set, so spaces around
+  // each "Item:count" entry are ignored. Shipped data uses ", " separators (e.g.
+  // "ItFo_Fish:3, ItMi..."); without trimming, the leading space fails the symbol lookup and
+  // the item is silently dropped. The original also clamps a count<1 up to 1.
+  while(!name.empty() && (name.front()==' ' || name.front()=='\t'))
+    name.remove_prefix(1);
+  while(!name.empty() && (name.back()==' ' || name.back()=='\t'))
+    name.remove_suffix(1);
   size_t sep = name.find(':');
   if(sep!=std::string::npos) {
-    auto itm = name.substr(0,sep);
+    auto itm   = name.substr(0,sep);
     long count = std::strtol(name.data()+sep+1,nullptr,10);
-    if(count>0)
-      invent.addItem(itm,size_t(count),world);
+    if(count<1)
+      count = 1;
+    invent.addItem(itm,size_t(count),world);
     } else {
     invent.addItem(name,1,world);
     }
