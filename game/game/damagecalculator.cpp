@@ -30,7 +30,11 @@ DamageCalculator::Val DamageCalculator::damageValue(Npc& src, Npc& other, const 
   ret.value = MinDamage;
 #endif
 
-  if(ret.hasHit && !ret.invincible && Gothic::inst().version().game==2)
+  // NOTE: in original-game oCNpc::OnDamage_Hit (Gothic2.exe 0x00666610) applies the
+  // NPC_MINIMAL_DAMAGE (5) floor only to non-magic hits (the damage-descriptor magic vob is
+  // null); spell damage is NOT floored, so a resisted/weak spell can deal < 5. Flooring
+  // spells too made weak spells hit for a spurious minimum.
+  if(ret.hasHit && !ret.invincible && !isSpell && Gothic::inst().version().game==2)
     ret.value = std::max<int32_t>(ret.value,MinDamage);
   return ret;
   }
@@ -48,7 +52,11 @@ DamageCalculator::Val DamageCalculator::damageFall(Npc& npc, float speed) {
 
   Val ret;
   ret.invincible = (prot<0);
-  ret.value      = int32_t(dmgPerMeter*(height-h0)/100.f - float(prot));
+  // NOTE: in original-game oCNpc::CreateFallDamage (Gothic2.exe 0x00681da0) computes
+  // damage from (fallDist + 50 - falldown_height): a fixed +50cm tolerance is added to the
+  // fall distance. Omitting it under-counted every fall (less damage, higher no-damage
+  // threshold).
+  ret.value      = int32_t(dmgPerMeter*(height+50.f-h0)/100.f - float(prot));
   if(ret.value<=0 || ret.invincible) {
     ret.value = 0;
     return ret;
