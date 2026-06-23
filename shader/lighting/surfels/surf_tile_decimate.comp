@@ -1,0 +1,153 @@
+#version 460
+
+#include "lighting/surfels/surf_common.glsl"
+
+layout(local_size_x = 128) in;
+
+const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
+const int  MaxSurfels = 2048;
+const int  Quota      = 3;
+
+struct Item {
+  float weight;
+  uint  idx;
+  };
+
+layout(binding = 4, std430)            buffer SB0 { uvec4 count; Surfel surfels[]; };
+layout(binding = 5, std430) readonly   buffer SB1 { uvec4 count; Candidate candidate[]; } alloc;
+layout(binding = 6, std430) readonly   buffer SB2 { uint  surfelList[]; };
+layout(binding = 7, r32ui) uniform uimage2D surfCnts;
+layout(binding = 8, r32ui) uniform uimage2D surfBins;
+layout(binding = 9, r32f)  uniform image2D  surfPdf;
+
+shared uint wId;
+shared Item data[128];
+
+uint nextPowerOfTwo(uint x) {
+  if(x <= 1u)
+    return 1u;
+  return 1u << (findMSB(x - 1u) + 1);
+  }
+
+void swap(inout Item a, inout Item b) {
+  Item t = a;
+  a = b;
+  b = t;
+  }
+
+void bitonicSort(uint count) {
+  uint laneID = gl_LocalInvocationIndex;
+
+  count = nextPowerOfTwo(count);
+
+  for(uint k = 2; k <= count; k <<= 1) {
+    for(uint j = k >> 1; j > 0; j >>= 1) {
+      uint ixj = laneID ^ j;
+
+      if(ixj > laneID) {
+        bool ascending = !((laneID & k) == 0);
+
+        float a = data[laneID].weight;
+        float b = data[ixj   ].weight;
+
+        const bool swapNeeded = ascending ? (a > b) : (a < b);
+        if(swapNeeded)
+          swap(data[laneID], data[ixj]);
+        }
+
+      barrier();
+      }
+    }
+  }
+
+void allocateAll() {
+  const uint laneID = gl_LocalInvocationIndex;
+
+  const ivec2 tileId   = ivec2(gl_WorkGroupID.xy);
+  const uint  cnt      = imageLoad(surfCnts, tileId).x;
+  const uint  ptr      = imageLoad(surfBins, tileId).x;
+
+  wId = 0;
+  barrier();
+
+  for(uint i=laneID; i<cnt; i+=NumThreads) {
+    const uint      sId   = surfelList[ptr+i];
+    const Candidate p     = alloc.candidate[sId];
+    const ivec2     sTile = (p.fragCoord)/DefaultCoverage;
+    if(sTile!=tileId)
+      continue;
+
+    const uint surfelId = atomicAdd(count.x, 1);
+    if(surfelId>=surfels.length())
+      continue;
+
+    Surfel sx;
+    sx.pos        = p.pos;
+    sx.norm       = encodeNormal(p.norm);
+    sx.radius     = p.radius;
+    sx.radiusPix  = DefaultCoverage;
+    sx.irradiance = vec3(p.weight); // surfDebugColor(p.pos, surfelId);
+
+    surfels[surfelId] = sx;
+    }
+  }
+
+void main() {
+  const uint  laneID     = gl_LocalInvocationIndex;
+  const ivec2 imgSize    = imageSize(surfPdf);
+  const int   numTiles   = imgSize.x*imgSize.y;
+  const int   maxSurfels = max(MaxSurfels-numTiles*Quota, 0);
+
+  const ivec2 tileId   = ivec2(gl_WorkGroupID.xy);
+  const uint  cnt      = imageLoad(surfCnts, tileId).x;
+  const uint  ptr      = imageLoad(surfBins, tileId).x;
+
+  const int   cntAlloc = int(imageLoad(surfPdf, tileId).x * maxSurfels) + Quota;
+  //allocateAll();
+  //return;
+
+  wId = 0;
+  for(uint i=laneID; i<data.length(); i+=NumThreads) {
+    data[i].weight = -1;
+    data[i].idx    = 0;
+    }
+  barrier();
+
+  for(uint i=laneID; i<cnt; i+=NumThreads) {
+    const uint      sId   = surfelList[ptr+i];
+    const Candidate p     = alloc.candidate[sId];
+    const ivec2     sTile = (p.fragCoord)/DefaultCoverage;
+
+    if(sTile!=tileId)
+      continue;
+    const uint num = atomicAdd(wId, 1);
+    if(num>=data.length())
+      continue;
+
+    data[num].weight = p.weight;
+    data[num].idx    = sId;
+    }
+  barrier();
+
+  bitonicSort(min(wId, data.length()));
+  barrier();
+
+  for(uint i=laneID; i< cnt && i<cntAlloc; i+=NumThreads) {
+    if(data[i].weight<0)
+      continue;
+
+    const uint surfelId = atomicAdd(count.x, 1);
+    if(surfelId>=surfels.length())
+      continue;
+
+    const Candidate p = alloc.candidate[data[i].idx];
+    Surfel sx;
+    sx.pos        = p.pos;
+    sx.norm       = encodeNormal(p.norm);
+    sx.radius     = p.radius;
+    sx.radiusPix  = DefaultCoverage;
+    sx.irradiance = vec3(p.weight); // surfDebugColor(p.pos, surfelId);
+
+    surfels[surfelId] = sx;
+    }
+  }

@@ -1,0 +1,49 @@
+#version 460
+
+#include "lighting/surfels/surf_common.glsl"
+
+layout(local_size_x = 256) in;
+
+const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
+
+layout(binding = 7, r32ui) uniform uimage2D surfCnts;
+layout(binding = 8, r32ui) uniform uimage2D surfBins;
+layout(binding = 9, r32f)  uniform image2D  surfPdf;
+
+shared float reduction[NumThreads];
+
+void reducePdf(float w) {
+  uint laneID = gl_LocalInvocationIndex;
+
+  reduction[laneID] = w;
+  barrier();
+
+  for(uint stride = NumThreads/2; stride > 0; stride >>= 1) {
+    if(laneID < stride) {
+      reduction[laneID] += reduction[laneID + stride];
+      }
+    barrier();
+    }
+  }
+
+void main() {
+  const ivec2 imgSize  = imageSize(surfPdf);
+  const int   numTiles = imgSize.x*imgSize.y;
+
+  float pdfSum = 0;
+  for(uint i=gl_LocalInvocationIndex; i<numTiles; i+=NumThreads) {
+    const ivec2 tileId = ivec2(i%imgSize.x, i/imgSize.x);
+    pdfSum += imageLoad(surfPdf, tileId).x;
+    }
+
+  reducePdf(pdfSum);
+  barrier();
+
+  pdfSum = reduction[0];
+  for(uint i=gl_LocalInvocationIndex; i<numTiles; i+=NumThreads) {
+    const ivec2 tileId = ivec2(i%imgSize.x, i/imgSize.x);
+    const float p      = imageLoad(surfPdf, tileId).x / pdfSum;
+    imageStore(surfPdf, tileId, vec4(p));
+    // imageStore(surfCnts, tileId, uvec4(p*MaxSurfels));
+    }
+  }

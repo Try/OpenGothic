@@ -199,7 +199,7 @@ void Shaders::compileShaders() {
     rtPathtrace = device.pipeline(Triangles,state,vs,fs);
     }
 
-  if(Gothic::options().doRayQuery) {
+  if(isGi1Supported()) {
     RenderState state;
     state.setCullFaceMode(RenderState::CullMode::NoCull);
     state.setZTestMode   (RenderState::ZTestMode::Less);
@@ -237,7 +237,7 @@ void Shaders::compileShaders() {
     probeAmbient = device.pipeline(Triangles,state,vs,fs);
     }
 
-  if(true) {
+  if(isGi2Supported()) {
     RenderState state;
     state.setCullFaceMode(RenderState::CullMode::NoCull);
     state.setZTestMode   (RenderState::ZTestMode::Less);
@@ -254,7 +254,15 @@ void Shaders::compileShaders() {
     surfAlloc    = computeShader("surf_alloc.comp.sprv");
     surfApply    = computeShader("surf_apply.comp.sprv");
 
-    surfBinning  = computeShader("surf_binning.comp.sprv");
+    surfInit2      = computeShader("surf_init2.comp.sprv");
+    surfSpawn      = computeShader("surf_spawn.comp.sprv");
+    surfWeight     = computeShader("surf_weight.comp.sprv");
+    surfTileWeight = computeShader("surf_tile_weight.comp.sprv");
+    surfTileNorm   = computeShader("surf_tile_normalize.comp.sprv");
+    surfTileDecim  = computeShader("surf_tile_decimate.comp.sprv");
+
+    surfBinningS = computeShader("surf_binning_s.comp.sprv");
+    surfBinningA = computeShader("surf_binning_a.comp.sprv");
     surfBinClear = computeShader("surf_bin_clear.comp.sprv");
     surfBinAlloc = computeShader("surf_bin_alloc.comp.sprv");
 
@@ -397,6 +405,8 @@ bool Shaders::isGi2Supported() {
   if(!gpu.raytracing.rayQuery)
     return false;
   if(gpu.compute.maxInvocations<256 || !gpu.descriptors.nonUniformIndexing)
+    return false;
+  if(!gpu.hasStorageFormat(R11G11B10UF) || !gpu.hasStorageFormat(R32F))
     return false;
   return true;
   }

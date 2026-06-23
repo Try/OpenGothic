@@ -66,7 +66,8 @@ class Renderer final {
     void prepareEpipolar  (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview);
 
     void prepareSurfels   (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview);
-    void surfelsBinning   (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview, int32_t tileSize);
+    void prepareSurfels2  (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview);
+    void surfelsBinning   (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview, int32_t tileSize, bool alloc);
 
     void drawHiZ          (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& view);
     void buildHiZ         (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
@@ -213,11 +214,11 @@ class Renderer final {
 
     struct {
       const uint32_t            maxSurfels = 16*1024;
-      Tempest::StorageBuffer    surfels;
+      Tempest::StorageBuffer    surfels, surfAlloc;
 
       Tempest::StorageImage     irrImage;
-      Tempest::StorageImage     surfCnts, surfBins;
-      Tempest::StorageBuffer    surfList, surfAlloc, surfDedup;
+      Tempest::StorageImage     surfCnts, surfBins, surfPdf;
+      Tempest::StorageBuffer    surfList, surfDedup;
 
       Tempest::StorageImage     dbgImage;
       } surf;

@@ -23,6 +23,15 @@ struct SurfelAlloc {
   uint  reuseId;
   };
 
+struct Candidate {
+  vec3  pos;
+  float radius;
+  vec3  norm;
+  float weight;
+  ivec2 fragCoord;
+  ivec2 padd0;
+  };
+
 bool isSurfelVisible(const Surfel s, ivec2 bboxMin, ivec2 bboxMax) {
   const ivec2 at     = s.fragCoord;
   const int   radius = s.radiusPix;
