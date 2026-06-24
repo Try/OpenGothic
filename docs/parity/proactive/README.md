@@ -68,6 +68,9 @@ patch with a `// NOTE: in original-game …` citation.
 | Amulet/belt equip | equipping a 2nd amulet/belt silently swapped; original refuses when occupied | `inventory.cpp` `use` |
 | Untrigger react | untrigger/untouch ignored the react flags; original drops when both are off | `abstracttrigger.cpp` |
 | Key-locked chest | key-locked container opened without the key; original gates on CanOpen | `interactive.h` / `playercontrol.cpp` |
+| InsertNpcAndRespawn | external was unbound (NPC never spawned + VM stack corruption); now spawns + records delay | `gamescript.cpp` |
+| Trade multiplier | missing TRADE_VALUE_MULTIPLIER defaulted to 1.0 (full value); original 0.3 + clamp ≤0 | `gamescript.cpp` |
+| Storm-prehit AI | enemy_stormprehit nested under isPrehit() was dead; original is an independent band | `fightalgo.cpp` `fillQueue` |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
@@ -98,4 +101,7 @@ patch with a `// NOTE: in original-game …` citation.
 | `face-morph-frame-rate` | morph-ani frame rate should always be 1/speed (not duration/frame_count for non-loop anis); a clear formula fix but it changes ALL morph animations (faces/effects/creatures) visually with no runtime check, and its speed==0 edge (clamp-to-1) diverges from the original's frozen frame — needs on-screen validation + speed==0 handling |
 | `blood-hitfx-zero-damage-gate` | gating the flesh hit-FX on value>0 (no blood on immune/absorbed hits) also mutes the collision *sound*, which OG conflates into the same addWeaponHitEffect call but the original emits separately — needs a sound/particle split refactor to avoid an audio regression |
 | `steer-avoidance-turn-rate-360` | avoidance side-step turn rate (hardcoded 360°/s) should be guild turn_speed capped 100°/s; but onMoveFailed is an explicit "emulate bouncing" approximation, not a Rbt reimpl, so matching the raw scalar may not reproduce the original's behavior — movement-feel, needs runtime tuning |
+| `turn-faiturn-2x-combat-rate` | combat turn-to-enemy (implTurnToFai) applies a ×2 multiplier the original AI path lacks (only the player target-lock uses ×4); a deliberate OG feel change — needs runtime validation |
+| `spellproj-landscape-shadows-npc-hit` | spell bullet detonates on landscape even when an NPC is closer along the same tick step (physics resolves wall/NPC in exclusive branches); fix sweeps NPC within the truncated segment — physics collision-ordering change, needs runtime |
+| `mobanim-animnpc-wrong-postag-multiseat` | multi-seat mobsi transition anim uses the last occupied seat's position tag, not the animating NPC's; routing through posSchemeName (first slot) is a partial fix — full per-NPC threading + on-screen check deferred |
 
