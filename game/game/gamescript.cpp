@@ -116,6 +116,7 @@ void GameScript::initCommon() {
   bindExternal("hlp_getinstanceid",              &GameScript::hlp_getinstanceid);
 
   bindExternal("wld_insertnpc",                  &GameScript::wld_insertnpc);
+  bindExternal("wld_insertnpcandrespawn",        &GameScript::wld_insertnpcandrespawn);
   bindExternal("wld_removenpc",                  &GameScript::wld_removenpc);
   bindExternal("wld_insertitem",                 &GameScript::wld_insertitem);
   bindExternal("wld_settime",                    &GameScript::wld_settime);
@@ -354,8 +355,14 @@ void GameScript::initCommon() {
       auto item = vm.init_instance<zenkit::IItem>(itMi_Gold);
       goldTxt = item->name;
       }
+    // NOTE: in original-game oCItemContainer::GetValueMultiplier @0x007046f0 a missing
+    // TRADE_VALUE_MULTIPLIER symbol -- and any value <= 0 -- is coerced to the hard default 0.3
+    // (0x3e99999a); only a strictly-positive script value is used as-is. OpenGothic defaulted a
+    // missing symbol to 1.0 (paying full item value, no merchant margin) with no non-positive clamp.
     auto* tradeMul = vm.find_symbol_by_name("TRADE_VALUE_MULTIPLIER");
-    tradeValMult   = tradeMul != nullptr ? tradeMul->get_float() : 1.0f;
+    tradeValMult   = tradeMul != nullptr ? tradeMul->get_float() : 0.3f;
+    if(tradeValMult <= 0.f)
+      tradeValMult = 0.3f;
 
     auto* vtime     = vm.find_symbol_by_name("VIEW_TIME_PER_CHAR");
     viewTimePerChar = vtime != nullptr ? vtime->get_float() : 550.f;
@@ -2033,6 +2040,23 @@ void GameScript::wld_insertnpc(int npcInstance, std::string_view spawnpoint) {
   auto npc = world().addNpc(size_t(npcInstance),spawnpoint);
   if(npc!=nullptr)
     fixNpcPosition(*npc,0,0);
+  }
+
+void GameScript::wld_insertnpcandrespawn(int npcInstance, std::string_view spawnpoint, int spawnDelay) {
+  // NOTE: in original-game the Wld_InsertNpcAndRespawn handler (FUN_006e0190) spawns the NPC at the
+  // spawnpoint (oCSpawnManager::SpawnNpc @00778ba0) exactly like Wld_InsertNpc, stores spawnDelay
+  // (npc+0x27c) and sets the respawn flag (npc.flags |= 0x10). OpenGothic never bound this external,
+  // so a script call was a default-external no-op: the NPC was never spawned and the 3 pushed args
+  // were left on the Daedalus stack unbalanced. This binding spawns the NPC and records spawn_delay;
+  // the cull-and-respawn-timer half (no oCSpawnManager equivalent in OpenGothic) is deferred.
+  if(npcInstance<=0)
+    return;
+
+  auto npc = world().addNpc(size_t(npcInstance),spawnpoint);
+  if(npc!=nullptr) {
+    npc->handlePtr()->spawn_delay = spawnDelay;
+    fixNpcPosition(*npc,0,0);
+    }
   }
 
 void GameScript::wld_removenpc(int npcInstance) {

@@ -240,6 +240,7 @@ class GameScript final {
 
     void wld_insertitem      (int itemInstance, std::string_view spawnpoint);
     void wld_insertnpc       (int npcInstance, std::string_view spawnpoint);
+    void wld_insertnpcandrespawn(int npcInstance, std::string_view spawnpoint, int spawnDelay);
     void wld_removenpc       (int npcInstance);
     void wld_settime         (int hour, int minute);
     int  wld_getday          ();
