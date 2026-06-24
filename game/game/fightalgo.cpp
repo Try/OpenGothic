@@ -46,12 +46,19 @@ void FightAlgo::fillQueue(Npc &npc, Npc &tg, GameScript& owner) {
   // enemy_prehit parry/dodge reaction on a ~90-degree front cone (GetAngles yaw<90), not the
   // 30-degree focus cone used for attacks. OpenGothic reused the 30-degree `focus`, so an NPC
   // attacked from 30-90 degrees off its facing failed to react and just ate the hit.
-  if(tg.isPrehit() && isInWRange(tg,npc,owner) && isInFocusAngle(tg,npc) && isInFocusAngle(npc,tg,90)){
+  // NOTE: in original-game oCNpc::FindNextFightAction (Gothic2.exe 0x0067d680) enemy_stormprehit
+  // and enemy_prehit are two independent priority bands. Band 1 (storm) fires when the target's
+  // situation is "charging" (BS_RUN, code 0x10) and does NOT require a prehit pose; band 0 (prehit)
+  // fires on the prehit situation (code 0xc). The two target states are mutually exclusive, so
+  // nesting stormprehit under isPrehit() made the dedicated anti-storm reaction unreachable. Both
+  // bands share the same range/focus/front-cone gate.
+  if(isInWRange(tg,npc,owner) && isInFocusAngle(tg,npc) && isInFocusAngle(npc,tg,90)){
     if(tg.bodyStateMasked()==BS_RUN)
       if(fillQueue(owner,ai.enemy_stormprehit))
         return;
-    if(fillQueue(owner,ai.enemy_prehit))
-      return;
+    if(tg.isPrehit())
+      if(fillQueue(owner,ai.enemy_prehit))
+        return;
     }
 
   if(ws==WeaponState::Fist || ws==WeaponState::W1H || ws==WeaponState::W2H) {
