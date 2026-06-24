@@ -71,6 +71,7 @@ patch with a `// NOTE: in original-game …` citation.
 | InsertNpcAndRespawn | external was unbound (NPC never spawned + VM stack corruption); now spawns + records delay | `gamescript.cpp` |
 | Trade multiplier | missing TRADE_VALUE_MULTIPLIER defaulted to 1.0 (full value); original 0.3 + clamp ≤0 | `gamescript.cpp` |
 | Storm-prehit AI | enemy_stormprehit nested under isPrehit() was dead; original is an independent band | `fightalgo.cpp` `fillQueue` |
+| Spell-FX invest | high invest level snapped the on-weapon FX to base; original holds the last invest key | `visualfx.cpp` `key` |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
@@ -104,4 +105,9 @@ patch with a `// NOTE: in original-game …` citation.
 | `turn-faiturn-2x-combat-rate` | combat turn-to-enemy (implTurnToFai) applies a ×2 multiplier the original AI path lacks (only the player target-lock uses ×4); a deliberate OG feel change — needs runtime validation |
 | `spellproj-landscape-shadows-npc-hit` | spell bullet detonates on landscape even when an NPC is closer along the same tick step (physics resolves wall/NPC in exclusive branches); fix sweeps NPC within the truncated segment — physics collision-ordering change, needs runtime |
 | `mobanim-animnpc-wrong-postag-multiseat` | multi-seat mobsi transition anim uses the last occupied seat's position tag, not the animating NPC's; routing through posSchemeName (first slot) is a partial fix — full per-NPC threading + on-screen check deferred |
+| `bsint-player-weapon-stumble-guard` | armed player is hard-interrupted/stumbled on hit; original suppresses the interrupt for an armed player (queues a non-interrupting T_GOTHIT). High-value combat-parity but changes every armed-player hit reaction and the surgical patch only restores the no-interrupt half (OG can't model the queued reaction) — needs runtime validation |
+| `ladder-mid-climb-detach-fall` | letting go mid-climb should drop the player (S_FALLDN); OG detaches cleanly in place. Needs a verified physics+Anim::Fall handoff + rung off-by-one — agent-deferred |
+| `flee-waypoint-selection-distance-adaptive` | flee TRIGGER is pure Daedalus (no engine divergence); the engine flee waypoint pick differs wholesale (away-trace at ~2× enemy dist vs fixed 5m radius) with no 1:1 fields — agent-deferred |
+| `pickpocket-steal-container-missing` | engine-side steal-container + "victim aware of theft" detection (oCNpc::OpenSteal/IsVictimAwareOfTheft) is unimplemented; OG pickpocket is dialog-only. Whole-feature gap across player-control/NPC/inventory/UI — agent-deferred |
+| `hitsnd-parry-tag-order` | original canonicalizes (sorts) the two participants' tags in parry/collision FX names; OG uses fixed attacker→defender order. Different naming family (material vs weapon-type) + asset availability unverifiable from the exe — agent-deferred |
 
