@@ -151,10 +151,17 @@ const VisualFx::Key* VisualFx::key(SpellFxKey type, int32_t keyLvl) const {
     return nullptr;
 
   if(type==SpellFxKey::Invest && keyLvl>0) {
-    keyLvl--;
-    if(size_t(keyLvl)<investKeys.size())
-      return &investKeys[size_t(keyLvl)];
-    return nullptr;
+    // NOTE: in original-game oCVisualFX::InvestNext @0x00492830, when the
+    // <instance>_KEY_INVEST_<level> key is not found the active emitter key is left unchanged, so
+    // the FX holds the last defined invest key rather than reverting to the spell base visual.
+    // OpenGothic returned nullptr past investKeys.size(), so high invest levels snapped the
+    // on-weapon FX back to its base appearance. Clamp to the last available INVEST key instead.
+    if(investKeys.empty())
+      return nullptr;
+    size_t idx = size_t(keyLvl-1);
+    if(idx>=investKeys.size())
+      idx = investKeys.size()-1;
+    return &investKeys[idx];
     }
 
   if(!hasKey[int(type)])
