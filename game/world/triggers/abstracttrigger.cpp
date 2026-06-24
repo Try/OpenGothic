@@ -109,6 +109,13 @@ void AbstractTrigger::implProcessEvent(const TriggerEvent& evt) {
     case TriggerEvent::T_Untrigger:
       if(disabled || !sendUntrigger)
         return;
+      // NOTE: in original-game zCTrigger::OnUntrigger @0x00610600 (and OnUntouch @0x00610660) the
+      // event is dropped unless the matching react flag is set: OnUntrigger requires
+      // react_to_on_trigger, OnUntouch requires react_to_on_touch. OpenGothic merges both into
+      // T_Untrigger and never consulted the react flags; drop only when both are off (the case the
+      // original always suppresses), forwarding whenever either OnUntrigger/OnUntouch would.
+      if(!reactToOnTrigger && !reactToOnTouch)
+        return;
       onUntrigger(evt);
       break;
     case TriggerEvent::T_Enable:
