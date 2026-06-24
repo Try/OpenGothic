@@ -56,10 +56,25 @@ void TouchDamage::tick(uint64_t dt) {
       npc->changeAttribute(ATR_HITPOINTS,-hnpc.attribute[ATR_HITPOINTS],false);
       continue;
       }
-    for(size_t i=0; i<zenkit::DamageType::NUM; ++i) {
-      if(!mask[i])
-        continue;
-      takeDamage(*npc,int32_t(damage),hnpc.protection[i]);
+    // NOTE: in original-game oCNpc::OnDamage_Hit @0x00666610 -> ApplyDamages @0x0065e5a0, a touch
+    // zone provides a single scalar `damage` plus a multi-bit type mask; the engine splits the
+    // damage evenly across the set types (damage/numSetTypes, truncated), subtracts per-type
+    // protection, floors each share at 0, sums them and applies ONE HP change. OpenGothic applied
+    // the full `damage` to every set type as a separate deduction, over-damaging multi-type zones
+    // by up to numSetTypes-fold.
+    int32_t nTypes = 0;
+    for(size_t i=0; i<zenkit::DamageType::NUM; ++i)
+      if(mask[i])
+        ++nTypes;
+    if(nTypes>0) {
+      const int32_t share = int32_t(damage)/nTypes;
+      int32_t total = 0;
+      for(size_t i=0; i<zenkit::DamageType::NUM; ++i) {
+        if(!mask[i] || hnpc.protection[i]<0) // skip unset & immune (-1 protection) types
+          continue;
+        total += std::max(share-hnpc.protection[i],0);
+        }
+      npc->changeAttribute(ATR_HITPOINTS,-total,false);
       }
     }
 
