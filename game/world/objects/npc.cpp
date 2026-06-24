@@ -3289,7 +3289,17 @@ void Npc::commitSpell() {
 
     owner.script().initializeInstanceNpc(hnpc, size_t(spellInfo));
     spellInfo  = 0;
-    hnpc->level = transformSpl->hnpc->level;
+    // NOTE: in original-game oCSpell::CastSpecificSpell @0x00486960 the transform path calls
+    // oCNpc::CopyTransformSpellInvariantValuesTo @0x0073d3d0, which keeps exp/exp_next/level/lp
+    // (oCNpc offsets 0x234/0x42c/0x430/0x434, confirmed via OpenScreen_Status @0x0073d980)
+    // invariant across the transform -- not just level. initializeInstanceNpc re-ran the
+    // creature instance ctor, zeroing exp/exp_next/lp; OpenGothic restored only level, so the
+    // status screen and XP/level math were wrong while transformed and TransformBack::undo then
+    // carried the corrupted base back onto the character.
+    hnpc->exp      = transformSpl->hnpc->exp;
+    hnpc->exp_next = transformSpl->hnpc->exp_next;
+    hnpc->lp       = transformSpl->hnpc->lp;
+    hnpc->level    = transformSpl->hnpc->level;
     }
   }
 
