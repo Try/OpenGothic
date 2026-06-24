@@ -1128,8 +1128,11 @@ bool Inventory::less(const Item &il, const Item &ir) {
     rV = ir.cost();
     }
 
-  return std::make_tuple(il.mainFlag(), -il.handle().damage_total, -lV, -il.clsId())
-      <  std::make_tuple(ir.mainFlag(), -ir.handle().damage_total, -rV, -ir.clsId());
+  // NOTE: in original-game inventory sort comparator @0x00705B80 every category branch falls
+  // through to the universal tie-break @0x00705EB0, which orders items equal on all preceding
+  // keys alphabetically (ascending) by display name (oCItem::GetText), not by instance index.
+  return std::make_tuple(il.mainFlag(), -il.handle().damage_total, -lV, il.displayName())
+      <  std::make_tuple(ir.mainFlag(), -ir.handle().damage_total, -rV, ir.displayName());
   }
 
 int Inventory::orderId(const Item& i) {
