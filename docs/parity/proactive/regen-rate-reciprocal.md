@@ -36,3 +36,22 @@ For `ATR_REGENERATEHP = N`: original heals `1/N` HP/s; OpenGothic heals `N` HP/s
 Resolving needs the actual `ATR_REGENERATEHP/MANA` values used by retail and mod scripts
 (and an in-game check) to confirm which interpretation the data assumes. Documented here
 as a suspected divergence rather than a speculative reciprocal patch.
+
+## Update — decompile re-confirmed (still DEFERRED)
+Re-decompiled `oCNpc::Regenerate` @0x00741fd0 to confirm: the accumulator reset constant is
+`0x447a0000` = **1000.0**, so the timer is set to `regenField * 1000` ms and the engine adds
+exactly **+1** point per fire — i.e. **+1 every `regenField` seconds**, the reciprocal of
+OpenGothic's `chg` points/second. Two confirmed divergences:
+1. **Reciprocal rate** (as above).
+2. **Positive-only guard** — the original gates each branch on `0 < regenField`, so a
+   `regenField <= 0` does nothing. OpenGothic's `tickRegen` only early-outs on `chg==0` and
+   otherwise applies a **negative** `chg` as a drain (its `std::max(0,…)` + "negative chg"
+   `checkHealth`), a behavior the original never performs via this path.
+
+A faithful, *stateless* port is possible without new serialized timer state: gate on
+`chg>0`, then add `tick/(chg*1000) - (tick-dt)/(chg*1000)` points (fires +1 each time the
+absolute tick crosses a multiple of `chg*1000` ms — rate-faithful; only the phase differs
+from the original's per-NPC countdown, which is unobservable for regen). Still DEFERRED:
+the rate flip is orders-of-magnitude, the negative-drain removal could regress OG content
+that leans on it, and the field is near-dead in vanilla — needs the retail/mod
+`ATR_REGENERATE*` values and an in-game check before landing.
