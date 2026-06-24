@@ -710,7 +710,13 @@ void PlayerControl::implMove(uint64_t dt) {
     }
 
   if(casting) {
-    if(!actrl[ActForward] || (Gothic::inst().version().game==1 && pl.attribute(ATR_MANA)==0)) {
+    // NOTE: in original-game oCSpell::Invest @0x004850d0 the per-frame invest tick releases the
+    // spell (SetReleaseStatus @0x00486670 -> Spell_ProcessMana_Release, casting at the reached
+    // level) whenever the caster's mana drops below 1 and mana was already invested. That gate has
+    // no game-version branch, so it applies to Gothic 2 too -- OpenGothic only released on zero
+    // mana for Gothic 1, so a G2 held cast kept ticking Spell_ProcessMana at zero mana instead of
+    // firing. endCastSpell(true) already no-ops when no level was invested.
+    if(!actrl[ActForward] || pl.attribute(ATR_MANA)==0) {
       casting = false;
       pl.endCastSpell(true);
       }
