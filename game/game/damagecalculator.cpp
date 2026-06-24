@@ -157,6 +157,7 @@ DamageCalculator::Val DamageCalculator::swordDamage(Npc& nsrc, Npc& nother) {
   const int dtype      = damageTypeMask(nsrc);
   Talent    tal        = TALENT_UNKNOWN;
   int       str        = nsrc.attribute(Attribute::ATR_STRENGTH);
+  int       dex        = nsrc.attribute(Attribute::ATR_DEXTERITY);
   int       critChance = int(script.rand(100));
 
   int value = 0;
@@ -177,7 +178,11 @@ DamageCalculator::Val DamageCalculator::swordDamage(Npc& nsrc, Npc& nother) {
     for(unsigned int i=0; i<zenkit::DamageType::NUM; ++i) {
       if((dtype & (1<<i))==0)
         continue;
-      int vd = std::max(str + src.damage[i] - other.protection[i],0);
+      // NOTE: in original-game oCNpc::OnDamage_Hit (Gothic2.exe 0x00666610) the per-type melee
+      // attribute boni adds STRENGTH to BLUNT/EDGE but DEXTERITY to POINT (GetAttribute(5)=DEX
+      // feeds the point accumulator @desc+0x44, GetAttribute(4)=STR feeds blunt/edge @+0x30/+0x34).
+      const int atr = (i==zenkit::DamageType::POINT) ? dex : str;
+      int vd = std::max(atr + src.damage[i] - other.protection[i],0);
       if(src.hitchance[tal]<=critChance)
         vd = (vd-1)/10;
       if(other.protection[i]>=0) { // Filter immune
