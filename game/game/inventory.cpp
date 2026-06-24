@@ -906,11 +906,23 @@ bool Inventory::use(size_t cls, Npc &owner, uint8_t slotHint, bool force) {
   if(mainflag & ITM_CAT_ARMOR)
     return setSlot(armor,it,owner,force);
 
-  if(flag & ITM_BELT)
+  if(flag & ITM_BELT) {
+    // NOTE: in original-game oCNpc::Equip (Gothic2.exe 0x00739c90) the belt branch scans the
+    // inventory and refuses (returns) when a belt is already equipped -- it never swaps (only
+    // EquipArmor swaps). Mirror the ring branch: refuse when the single belt slot is occupied.
+    // (Clicking the worn belt to remove it routes through the UI's unequip path, not use().)
+    if(belt!=nullptr)
+      return false;
     return setSlot(belt,it,owner,force);
+    }
 
-  if(flag & ITM_AMULET)
+  if(flag & ITM_AMULET) {
+    // NOTE: in original-game oCNpc::Equip (Gothic2.exe 0x00739c90) the amulet branch refuses
+    // (returns) when an amulet is already equipped; it does not swap. Refuse when occupied.
+    if(amulet!=nullptr)
+      return false;
     return setSlot(amulet,it,owner,force);
+    }
 
   if(flag & ITM_RING) {
     if(ringL==nullptr)
