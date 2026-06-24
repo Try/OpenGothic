@@ -60,6 +60,10 @@ patch with a `// NOTE: in original-game …` citation.
 | Sub-choice removal | erased all choices sharing a handler fn; original removes one by text | `gamescript.cpp` `exec` |
 | Godmode scope | only shielded HP; original blocks every negative attribute for godmode player | `npc.cpp` `changeAttribute` |
 | Fire defaults | empty vobtree/slot → no flames on default-templated fires; original defaults them | `fireplace.cpp` |
+| TouchDamage split | multi-type zone applied full damage per type; original splits scalar across types | `touchdamage.cpp` `tick` |
+| Inventory sort tie | ties broke by instance index; original ties alphabetically by display name | `inventory.cpp` `less` |
+| Ambient delay | random-sound reschedule was one-sided; original is symmetric delay±delayVar | `worldsound.cpp` `tick` |
+| Spell out-of-mana | G2 held invest-cast didn't auto-release at zero mana (only G1 did); original does both | `playercontrol.cpp` |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
@@ -88,4 +92,6 @@ patch with a `// NOTE: in original-game …` citation.
 | `rune-deplete-reswitch-bookwide` | after a scroll's last charge, the original re-selects another known spell book-wide (stays in mage mode); OG only searches the 8 hotbar slots. Storage models aren't 1:1 and there's no grep-verified book order to mirror — agent-deferred |
 | `ta-equal-window-routine-active-all-day` | the routine-side counterpart to the Wld_IsTime zero-width fix: a start==stop TA entry should be active ~all day, but matching it inside currentRoutine's per-entry loop risks a start==0 Rtn_Start shadowing all real routine windows (NPCs frozen at spawn) depending on iteration/first-vs-last-match order — needs routine-order analysis + runtime |
 | `face-morph-frame-rate` | morph-ani frame rate should always be 1/speed (not duration/frame_count for non-loop anis); a clear formula fix but it changes ALL morph animations (faces/effects/creatures) visually with no runtime check, and its speed==0 edge (clamp-to-1) diverges from the original's frozen frame — needs on-screen validation + speed==0 handling |
+| `blood-hitfx-zero-damage-gate` | gating the flesh hit-FX on value>0 (no blood on immune/absorbed hits) also mutes the collision *sound*, which OG conflates into the same addWeaponHitEffect call but the original emits separately — needs a sound/particle split refactor to avoid an audio regression |
+| `steer-avoidance-turn-rate-360` | avoidance side-step turn rate (hardcoded 360°/s) should be guild turn_speed capped 100°/s; but onMoveFailed is an explicit "emulate bouncing" approximation, not a Rbt reimpl, so matching the raw scalar may not reproduce the original's behavior — movement-feel, needs runtime tuning |
 
