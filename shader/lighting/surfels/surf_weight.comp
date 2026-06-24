@@ -32,6 +32,12 @@ void reduceWeights(float w) {
     }
   }
 
+float wangHashNoise(uvec2 uv, uint s) {
+  uint seed = (uv.x*1664525u + uv.y) + s;
+  uint hash = wangHash(seed) & 0xFFFF;
+  return float(hash) / float(0xFFFF);
+  }
+
 void main() {
   const uint      surfelId = gl_WorkGroupID.x;
   const Candidate p        = alloc.candidate[surfelId];
@@ -49,11 +55,29 @@ void main() {
       continue;
 
     const Candidate s = alloc.candidate[sId];
-    wSum += calculteWeight(s.pos, s.norm, /*s.radiusMean*/ s.radius, s.radius, wpos, norm);
+    //const float w = calculteWeight(s.pos, s.norm, /*s.radiusMean*/ s.radius, s.radius, wpos, norm);
+    //wSum += clamp(w,0,1);
+    vec3  ldir   = wpos - s.pos;
+    float dist   = length(ldir);
+    float dotN   = dot(norm, s.norm);
+
+    float rMax  = s.radius*0.5;
+    float rEff  = min(rMax, rMax*0.5);
+    float q     = max(min(dist,rMax)-rEff, 0)/(rMax-rEff);
+    float wPos  = pow(1-q, 4.0)*(4.0*q + 1.0);
+    float wNorm = pow(max(dotN, 0.0), 2.0);
+    float wOccl = 1.0 - max(dot((ldir/dist), s.norm), 0.0);
+    //float wPos  = 1;
+
+    wSum += wPos * wNorm * wOccl;
+    //wSum += pow(max(dot(s.norm,norm), 0.0), 2.0);
     }
   reduceWeights(wSum);
 
   if(gl_LocalInvocationIndex==0) {
-    alloc.candidate[surfelId].weight = exp(-reduction[0]/64.0);
+    float w = reduction[0];
+    alloc.candidate[surfelId].weight = exp(-w/64.0) + 0.25;
+    // alloc.candidate[surfelId].weight = w;
+    // alloc.candidate[surfelId].weight = 1.0/max(w, 1.0);
     }
   }

@@ -571,7 +571,7 @@ void Renderer::draw(Encoder<CommandBuffer>& cmd, uint8_t cmdId, size_t imgId,
   }
 
 void Renderer::dbgDraw(Tempest::Painter& p) {
-  static bool dbg = false;
+  static bool dbg = true;
   if(!dbg)
     return;
 
@@ -1945,7 +1945,7 @@ void Renderer::prepareEpipolar(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wo
   cmd.dispatch(uint32_t(epTrace.h()));
   }
 
-void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview) {
+void Renderer::prepareSurfels2(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview) {
   static bool enable = true;
   if(!enable)
     return;
@@ -1986,8 +1986,8 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
     //TODO: apply pass 1
     }
 
-  static bool alloc = true;
-  if(alloc) {
+  static bool spawn = true;
+  if(spawn) {
     //alloc = false;
     cmd.setPushData(push);
     cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
@@ -2008,7 +2008,8 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
 
   surfelsBinning(cmd, wview, tileSize, true);
 
-  if(true) {
+  static bool alloc = true;
+  if(alloc) {
     cmd.setPushData(push);
     cmd.setBinding(4, surfels);
     cmd.setBinding(5, surfAlloc);
@@ -2029,6 +2030,26 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
     cmd.dispatch(binCount);
     }
 
+  static bool rays = false;
+  if(rays) {
+    cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
+    cmd.setBinding(1, surfels);
+    cmd.setBinding(2, sky.viewCldLut);
+    //
+    cmd.setBinding(6, scene.rtScene.tlas);
+    cmd.setBinding(7, Sampler::trillinear());
+    cmd.setBinding(8, scene.rtScene.tex);
+    cmd.setBinding(9, scene.rtScene.vbo);
+    cmd.setBinding(10,scene.rtScene.ibo);
+    cmd.setBinding(11,scene.rtScene.rtDesc);
+
+    cmd.setPipeline(shaders.surfPathtrace);
+    //cmd.dispatchThreads(maxSurfels);
+    cmd.dispatchIndirect(surfels, 0);
+    }
+
+  surfelsBinning(cmd, wview, tileSize, false);
+
   if(apply) {
     cmd.setPushData(push);
     cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
@@ -2048,7 +2069,7 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
     }
   }
 
-void Renderer::prepareSurfels2(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview) {
+void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview) {
   static bool enable = true;
   if(!enable)
     return;
@@ -2144,7 +2165,7 @@ void Renderer::prepareSurfels2(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wo
     surfelsBinning(cmd, wview, tileSize, false);
     }
 
-  static bool apply = false;
+  static bool apply = true;
   if(apply) {
     //cmd.setDebugMarker("Surfels: resolve");
     cmd.setPushData(push);

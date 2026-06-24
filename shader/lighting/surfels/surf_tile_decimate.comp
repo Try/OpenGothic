@@ -6,7 +6,7 @@ layout(local_size_x = 128) in;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
 const int  MaxSurfels = 2048;
-const int  Quota      = 3;
+const int  Quota      = 16;
 
 struct Item {
   float weight;
@@ -20,7 +20,7 @@ layout(binding = 7, r32ui) uniform uimage2D surfCnts;
 layout(binding = 8, r32ui) uniform uimage2D surfBins;
 layout(binding = 9, r32f)  uniform image2D  surfPdf;
 
-shared uint wId;
+shared uint dataSize;
 shared Item data[128];
 
 uint nextPowerOfTwo(uint x) {
@@ -67,9 +67,6 @@ void allocateAll() {
   const uint  cnt      = imageLoad(surfCnts, tileId).x;
   const uint  ptr      = imageLoad(surfBins, tileId).x;
 
-  wId = 0;
-  barrier();
-
   for(uint i=laneID; i<cnt; i+=NumThreads) {
     const uint      sId   = surfelList[ptr+i];
     const Candidate p     = alloc.candidate[sId];
@@ -92,6 +89,13 @@ void allocateAll() {
     }
   }
 
+float stableWeight(float w, uvec2 uv) {
+  uint seed = (uv.x*1664525u + uv.y);
+  uint hash = wangHash(seed) & 0xFFFF;
+
+  return uintBitsToFloat((floatBitsToUint(w) & 0xFFFF0000) | hash);
+  }
+
 void main() {
   const uint  laneID     = gl_LocalInvocationIndex;
   const ivec2 imgSize    = imageSize(surfPdf);
@@ -103,10 +107,16 @@ void main() {
   const uint  ptr      = imageLoad(surfBins, tileId).x;
 
   const int   cntAlloc = int(imageLoad(surfPdf, tileId).x * maxSurfels) + Quota;
-  //allocateAll();
-  //return;
+#if 0
+  if(tileId!=ivec2(10,4))
+    return;
+#endif
+#if 0
+  allocateAll();
+  return;
+#endif
 
-  wId = 0;
+  dataSize = 0;
   for(uint i=laneID; i<data.length(); i+=NumThreads) {
     data[i].weight = -1;
     data[i].idx    = 0;
@@ -120,19 +130,23 @@ void main() {
 
     if(sTile!=tileId)
       continue;
-    const uint num = atomicAdd(wId, 1);
+    const uint num = atomicAdd(dataSize, 1);
     if(num>=data.length())
       continue;
 
-    data[num].weight = p.weight;
+    data[num].weight = stableWeight(p.weight, p.fragCoord);
     data[num].idx    = sId;
     }
   barrier();
 
-  bitonicSort(min(wId, data.length()));
+  if(laneID==0)
+    dataSize = min(dataSize, data.length());
   barrier();
 
-  for(uint i=laneID; i< cnt && i<cntAlloc; i+=NumThreads) {
+  bitonicSort(dataSize);
+  barrier();
+
+  for(uint i=laneID; i<dataSize && i<cntAlloc; i+=NumThreads) {
     if(data[i].weight<0)
       continue;
 
