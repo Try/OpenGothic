@@ -72,6 +72,8 @@ patch with a `// NOTE: in original-game …` citation.
 | Trade multiplier | missing TRADE_VALUE_MULTIPLIER defaulted to 1.0 (full value); original 0.3 + clamp ≤0 | `gamescript.cpp` |
 | Storm-prehit AI | enemy_stormprehit nested under isPrehit() was dead; original is an independent band | `fightalgo.cpp` `fillQueue` |
 | Spell-FX invest | high invest level snapped the on-weapon FX to base; original holds the last invest key | `visualfx.cpp` `key` |
+| Transform exp/LP | transform restored only level; original keeps exp/exp_next/lp/level invariant | `npc.cpp` transform path |
+| Focus HP bar | bar gated on isDead() (ZS_DEAD) vs the original's current-hitpoints>0 gate | `mainwindow.cpp` |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
@@ -110,4 +112,7 @@ patch with a `// NOTE: in original-game …` citation.
 | `flee-waypoint-selection-distance-adaptive` | flee TRIGGER is pure Daedalus (no engine divergence); the engine flee waypoint pick differs wholesale (away-trace at ~2× enemy dist vs fixed 5m radius) with no 1:1 fields — agent-deferred |
 | `pickpocket-steal-container-missing` | engine-side steal-container + "victim aware of theft" detection (oCNpc::OpenSteal/IsVictimAwareOfTheft) is unimplemented; OG pickpocket is dialog-only. Whole-feature gap across player-control/NPC/inventory/UI — agent-deferred |
 | `hitsnd-parry-tag-order` | original canonicalizes (sorts) the two participants' tags in parry/collision FX names; OG uses fixed attacker→defender order. Different naming family (material vs weapon-type) + asset availability unverifiable from the exe — agent-deferred |
+| `sleep-regen-rate-inverted` | independent re-confirmation of [[regen-rate-reciprocal]] via the ZS_Sleep path — same root cause (REGENERATE* is seconds-per-point, OG treats it points-per-second). Still deferred for the same reasons (orders-of-magnitude flip, negative-drain removal, near-dead in vanilla, needs the retail values + runtime check) |
+| `onstate-multistate-walk-count` | item on_state[] fires once per command for a single state; original fires each on_state[i] once per state actually reached as the anim arrives. Faithful fix is cross-subsystem (pose state machine has no Npc/VM access) — agent-deferred |
+| `waynet-wayto-early-termination` | route search settles `begin` waypoints when merely reached, not when settled (no priority-queue), so non-uniform edge weights can lock a non-shortest path; correct fix is an algorithm-level Dijkstra/A* port entangled with the deferred edge-cost metric — agent-deferred |
 
