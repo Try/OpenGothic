@@ -64,6 +64,10 @@ patch with a `// NOTE: in original-game …` citation.
 | Inventory sort tie | ties broke by instance index; original ties alphabetically by display name | `inventory.cpp` `less` |
 | Ambient delay | random-sound reschedule was one-sided; original is symmetric delay±delayVar | `worldsound.cpp` `tick` |
 | Spell out-of-mana | G2 held invest-cast didn't auto-release at zero mana (only G1 did); original does both | `playercontrol.cpp` |
+| POINT melee bonus | POINT damage added STRENGTH; original adds DEXTERITY to the POINT type | `damagecalculator.cpp` `swordDamage` |
+| Amulet/belt equip | equipping a 2nd amulet/belt silently swapped; original refuses when occupied | `inventory.cpp` `use` |
+| Untrigger react | untrigger/untouch ignored the react flags; original drops when both are off | `abstracttrigger.cpp` |
+| Key-locked chest | key-locked container opened without the key; original gates on CanOpen | `interactive.h` / `playercontrol.cpp` |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
