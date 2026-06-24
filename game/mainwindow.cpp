@@ -597,7 +597,11 @@ void MainWindow::paintFocus(Painter& p, const Focus& focus, const Matrix4x4& vp)
     iy = h();
   fnt.drawText(p,ix,iy,focus.displayName());
 
-  if(focus.npc!=nullptr && !focus.npc->isDead()) {
+  // NOTE: in original-game oCGame::UpdatePlayerStatus @0x006c3140 the focus HP bar is gated purely
+  // on the focused NPC's current hitpoints (GetAttribute(ATR_HITPOINTS) > 0), not on the scripted
+  // ZS_DEAD life-state. OpenGothic gated on isDead(), which disagrees in transient/edge cases
+  // (HP at 0 before the AI enters ZS_DEAD, or a scripted-dead actor that still has positive HP).
+  if(focus.npc!=nullptr && focus.npc->attribute(ATR_HITPOINTS)>0) {
     float hp = float(focus.npc->attribute(ATR_HITPOINTS))/float(focus.npc->attribute(ATR_HITPOINTSMAX));
     drawBar(p,barHp, w()/2,10, hp, AlignHCenter|AlignTop);
     }
