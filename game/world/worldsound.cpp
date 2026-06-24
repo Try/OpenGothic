@@ -202,9 +202,19 @@ void WorldSound::tick(Npc& player) {
       i.current.play();
       }
 
-    i.restartTimeout = owner.tickCount() + i.delay;
-    if(i.delayVar>0)
-      i.restartTimeout += uint64_t(std::rand())%i.delayVar;
+    // NOTE: in original-game zCVobSound::DoSoundUpdate (Gothic2.exe 0x0063e210) the next random
+    // delay is drawn symmetrically from [delay-delayVar, delay+delayVar] (rand() remapped to
+    // [-1,+1] scaled by delayVar), mean == delay. OpenGothic used a one-sided rand()%delayVar ->
+    // [delay, delay+delayVar), biasing every ambient repeat ~delayVar/2 ms late and halving the
+    // spread.
+    int64_t next = int64_t(i.delay);
+    if(i.delayVar>0) {
+      const double r = 2.0*double(std::rand())/double(RAND_MAX) - 1.0; // [-1,+1]
+      next += int64_t(r*double(i.delayVar));
+      }
+    if(next<0)
+      next = 0;
+    i.restartTimeout = owner.tickCount() + uint64_t(next);
 
     if(!i.loop)
       i.active = false;
