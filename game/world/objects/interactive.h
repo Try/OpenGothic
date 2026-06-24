@@ -69,6 +69,12 @@ class Interactive : public Vob {
     uint32_t            lockProgress() const          { return pickLockProgress; }
     void                setLockProgress(uint32_t p)   { pickLockProgress = p; }
     bool                needToLockpick(const Npc& pl) const;
+    // NOTE: in original-game oCMobLockable::CanOpen (Gothic2.exe 0x007244f0) a locked container
+    // opens only when the player owns the key, or owns a lockpick AND has the picklock talent;
+    // else it refuses. Containers take the early inv.open path and never reach the mobsi attach
+    // gate, so expose the existing key/lock condition for the open path (key-only chests must not
+    // open without the key).
+    bool                canOpen(Npc& npc) { return checkUseConditions(npc); }
 
     Inventory&          inventory();
     void                setSlotItem(MeshObjects::Mesh&& itm, std::string_view slot);

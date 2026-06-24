@@ -324,6 +324,11 @@ bool PlayerControl::interact(Interactive &it) {
   if(!canInteract())
     return false;
   if(it.isContainer()){
+    // NOTE: in original-game oCMobLockable::CanOpen (Gothic2.exe 0x007244f0) a key-locked
+    // container refuses to open without the key (or a usable lockpick). OpenGothic opened the
+    // container UI unconditionally; gate it on the same key/lock condition.
+    if(!it.canOpen(*pl))
+      return true; // locked: canOpen printed the missing-key/lockpick hint
     inv.open(*pl,it);
     return true;
     }
