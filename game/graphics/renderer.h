@@ -67,6 +67,7 @@ class Renderer final {
 
     void prepareSurfels   (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview);
     void prepareSurfels2  (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview);
+    void prepareSurfels3  (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview);
     void surfelsBinning   (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview, int32_t tileSize, bool alloc);
 
     void drawHiZ          (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& view);

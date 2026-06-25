@@ -266,6 +266,10 @@ void Shaders::compileShaders() {
     surfBinClear = computeShader("surf_bin_clear.comp.sprv");
     surfBinAlloc = computeShader("surf_bin_alloc.comp.sprv");
 
+    surfAlloc2   = computeShader("surf_alloc2.comp.sprv");
+    surfApply2   = computeShader("surf_apply2.comp.sprv");
+    surfCompact  = computeShader("surf_compact.comp.sprv");
+
     surfPathtrace = computeShader("surf_pathtrace.comp.sprv");
     }
 

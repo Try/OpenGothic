@@ -330,6 +330,10 @@ add_shader(surf_tile_weight.comp     lighting/surfels/surf_tile_weight.comp)
 add_shader(surf_tile_normalize.comp  lighting/surfels/surf_tile_normalize.comp)
 add_shader(surf_tile_decimate.comp   lighting/surfels/surf_tile_decimate.comp)
 
+add_shader(surf_alloc2.comp          lighting/surfels/surf_alloc2.comp)
+add_shader(surf_apply2.comp          lighting/surfels/surf_apply2.comp)
+add_shader(surf_compact.comp         lighting/surfels/surf_compact.comp)
+
 add_shader(surf_pathtrace.comp       lighting/surfels/surf_pathtrace.comp)
 
 # Pathtracing
