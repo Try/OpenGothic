@@ -44,11 +44,8 @@ void main(void) {
     ;//discard;
 
   //vec3 clr = surfDebugColor(p, instanceIndex) * (1.0-qDist);
-  //vec3 clr = vec3(1.0 / max(p.irradiance.r,1)) * (1.0-qDist);
-  const float weight = p.irradiance.r; //exp(-p.irradiance.r/64.0);
-  vec3 clr = vec3(mix(vec3(1,1,1), vec3(0,0,1), weight)) * (1.0-qDist);
-  //vec3 clr = vec3(mix(vec3(1,1,1), vec3(0,0,1), 64.0 / max(p.irradiance.r,0.1))) * (1.0-qDist);
   //vec3 clr = 3.0 * p.irradiance * (1.0-qDist) * scene.exposure;
+  vec3 clr = p.irradiance * (1.0-qDist);
   outColor = vec4(clr,1.0);
   // outColor = vec4(1,0,0,1.0);
   }

@@ -1,0 +1,79 @@
+#version 450
+
+layout(local_size_x = 256) in;
+
+const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
+
+layout(binding = 3, r32ui) uniform uimage2D surfCnts;
+layout(binding = 4, r32ui) uniform uimage2D surfBins;
+layout(binding = 5, std430) buffer SB2 { uint surfelList[]; };
+
+shared uint data[512];
+
+uint nextPowerOfTwo(uint x) {
+  if(x <= 1u)
+    return 1u;
+  return 1u << (findMSB(x - 1u) + 1);
+  }
+
+void swap(inout uint a, inout uint b) {
+  uint t = a;
+  a = b;
+  b = t;
+  }
+
+void bitonicSort(uint count) {
+  uint laneID = gl_LocalInvocationIndex;
+
+  //count = nextPowerOfTwo(count);
+
+  for(uint k = 2; k <= count; k <<= 1) {
+    for(uint j = k >> 1; j > 0; j >>= 1) {
+      for (uint i = laneID; i < count; i += NumThreads) {
+        uint ixj = i ^ j;
+
+        if(ixj > i) {
+          bool ascending = ((i & k) == 0);
+
+          uint a = data[i  ];
+          uint b = data[ixj];
+
+          const bool swapNeeded = ascending ? (a > b) : (a < b);
+          if(swapNeeded)
+            swap(data[i], data[ixj]);
+          }
+        }
+      barrier();
+      }
+    }
+  }
+
+void main() {
+  const uint  laneID   = gl_LocalInvocationIndex;
+
+  const ivec2 tileId   = ivec2(gl_WorkGroupID.xy);
+  const uint  ptr      = imageLoad(surfBins, tileId).x;
+  const uint  cnt      = imageLoad(surfCnts, tileId).x;
+  const uint  cntM     = min(cnt, data.length());
+  const uint  cntPow2  = nextPowerOfTwo(cntM);
+
+  for(uint i=laneID; i<data.length(); i+=NumThreads) {
+    data[i] = 0xFFFFFFFF;
+    }
+  barrier();
+
+  for(uint i=laneID; i<cntM; i+=NumThreads) {
+    data[i] =  surfelList[ptr+i];
+    }
+  barrier();
+
+  bitonicSort(cntPow2);
+  barrier();
+
+  for(uint i=laneID; i<cntM; i+=NumThreads) {
+    surfelList[ptr+i] = data[i];
+    }
+
+  if(cnt>cntM)
+    imageStore(surfCnts, tileId, uvec4(cntM));
+  }

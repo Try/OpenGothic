@@ -93,6 +93,7 @@ void storeSurfels() {
   if(laneID==0) {
     pointQueueSize = min(pointQueueSize, pointQueue.length());
     fragVote       = atomicAdd(surf.count.x, pointQueueSize);
+    atomicAdd(surf.count.w, pointQueueSize);
     }
   barrier();
 
@@ -105,9 +106,9 @@ void storeSurfels() {
       Surfel sx;
       sx.pos        = p.pos.xyz;
       sx.norm       = encodeNormal(p.norm);
-      sx.radius     = r; //p.pos.w;
-      sx.radiusMean = r; //p.pos.w;
-      sx.irradiance = surfDebugColor(p.pos.xyz, ptr);
+      sx.radius     = r;
+      sx.radiusMean = p.pos.w;
+      sx.irradiance = debugColors[(gl_WorkGroupID.x*32+gl_WorkGroupID.y)%debugColors.length()]; //surfDebugColor(p.pos.xyz, ptr);
       sx.radiusPix  = DefaultCoverage;
       surf.surfels[ptr] = sx;
       }
@@ -181,7 +182,7 @@ ivec2 remap(ivec2 subtile, ivec2 tileCnt) {
 
 void main() {
 #if 0
-  if(gl_WorkGroupID.xy!=uvec2(8,5) && gl_WorkGroupID.xy!=uvec2(8,6))
+  if(gl_WorkGroupID.xy!=uvec2(10,6))
     return;
 #endif
 

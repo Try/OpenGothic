@@ -2,10 +2,10 @@
 
 layout(local_size_x = 8, local_size_y = 8) in;
 
-layout(binding = 1, std430) buffer SB0 { uvec4 count; };
-layout(binding = 2, r32ui) uniform uimage2D surfCnts;
-layout(binding = 3, r32ui) uniform uimage2D surfBins;
-layout(binding = 4, std430) readonly buffer SB1 { uint surfelIds[]; };
+layout(binding = 1, std430) buffer SB0 { uint binAlloc; };
+layout(binding = 3, r32ui) uniform uimage2D surfCnts;
+layout(binding = 4, r32ui) uniform uimage2D surfBins;
+layout(binding = 5, std430) readonly buffer SB1 { uint surfelIds[]; };
 
 void main() {
   const ivec2 tile = ivec2(gl_GlobalInvocationID.xy);
@@ -14,7 +14,7 @@ void main() {
     return;
 
   const uint v   = imageLoad(surfCnts, tile).x;
-  const uint ptr = atomicAdd(count.w, v);
+  const uint ptr = atomicAdd(binAlloc, v);
 
   imageStore(surfCnts, tile, uvec4(0));
   imageStore(surfBins, tile, uvec4(ptr));

@@ -2,13 +2,13 @@
 
 layout(local_size_x = 8, local_size_y = 8) in;
 
-layout(binding = 1, std430) buffer SB0 { uvec4 count; };
-layout(binding = 2, r32ui) uniform uimage2D surfCnts;
-layout(binding = 3, r32ui) uniform uimage2D surfBins;
+layout(binding = 1, std430) buffer SB0 { uint binAlloc; };
+layout(binding = 3, r32ui) uniform uimage2D surfCnts;
+layout(binding = 4, r32ui) uniform uimage2D surfBins;
 
 void main() {
   if(gl_GlobalInvocationID.xy==uvec2(0))
-    count.w = 0;
+    binAlloc = 0;
 
   const ivec2 tile = ivec2(gl_GlobalInvocationID.xy);
   const ivec2 sz   = imageSize(surfBins);

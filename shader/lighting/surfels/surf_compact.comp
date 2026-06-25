@@ -21,19 +21,20 @@ void main() {
 
   Surfel sx;
   for(uint ix=0; ix<count.x; ix+=NumThreads) {
-    const uint i   = ix+laneID;
-    const uint bit = (1u << (i % 32));
-    if(i<count.x && (usage[i/32] & bit)!=0) {
+    const uint i    = ix+laneID;
+    const uint bit  = (1u << (i % 32));
+    const bool keep = i<count.x && (usage[i/32] & bit)!=0;
+    if(keep) {
       sx = surfels[i];
       }
     barrier();
 
-    if(i<count.x && (usage[i/32] & bit)!=0) {
+    if(keep) {
       const uint w = atomicAdd(wPtr, 1);
       surfels[w] = sx;
       }
+    barrier();
     }
-  barrier();
 
   if(laneID==0) {
     count = uvec4(wPtr,1,1,0);

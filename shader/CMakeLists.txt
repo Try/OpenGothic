@@ -322,6 +322,7 @@ add_shader(surf_bin_clear.comp       lighting/surfels/surf_bin_clear.comp)
 add_shader(surf_bin_alloc.comp       lighting/surfels/surf_bin_alloc.comp)
 add_shader(surf_binning_s.comp       lighting/surfels/surf_binning.comp -DSURFEL)
 add_shader(surf_binning_a.comp       lighting/surfels/surf_binning.comp -DALLOC)
+add_shader(surf_bin_sort.comp        lighting/surfels/surf_bin_sort.comp)
 
 add_shader(surf_init2.comp           lighting/surfels/surf_init2.comp)
 add_shader(surf_spawn.comp           lighting/surfels/surf_spawn.comp)

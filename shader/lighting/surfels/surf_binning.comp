@@ -14,16 +14,17 @@ layout(binding = 0, std140) uniform UboScene {
   SceneDesc scene;
   };
 
+layout(binding = 1, std430) buffer SB0 { uint binAlloc; };
 #if defined(SURFEL)
-layout(binding = 1, std430) buffer SB0 { uvec4 count; Surfel surfels[]; };
+layout(binding = 2, std430)  buffer SB1 { uvec4 count; Surfel surfels[]; };
 #elif defined(ALLOC)
-layout(binding = 1, std430) readonly buffer SB0 { uvec4 count; Candidate surfels[]; };
+layout(binding = 2, std430) readonly buffer SB1 { uvec4 count; Candidate surfels[]; };
 #else
 #error "Unknown shader varriant"
 #endif
-layout(binding = 2, r32ui)  uniform uimage2D          surfCnts;
-layout(binding = 3, r32ui)  uniform readonly uimage2D surfBins;
-layout(binding = 4, std430) buffer SB1 { uint surfelIds[]; };
+layout(binding = 3, r32ui)  uniform uimage2D          surfCnts;
+layout(binding = 4, r32ui)  uniform readonly uimage2D surfBins;
+layout(binding = 5, std430) buffer SB2 { uint surfelIds[]; };
 
 vec4 projectSphere(const vec3 pos, float R) {
   // https://jcgt.org/published/0002/02/05/paper.pdf
@@ -84,6 +85,7 @@ void main() {
   const float  rMax       = pixelToWorld(DefaultCoverage, pos4.z/pos4.w);
   const float  radiusMean = max(rMin, min(p.radiusMean, rMax));
   const int    radiusPix  = DefaultCoverage; //min(worldToPixel(p.pos, p.radiusMean), DefaultCoverage);
+
   surfels[surfelId].fragCoord  = fragCoord;
   surfels[surfelId].radiusPix  = radiusPix;
   surfels[surfelId].radius     = rMax;

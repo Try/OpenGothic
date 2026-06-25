@@ -43,9 +43,13 @@ void applyBatch(inout vec4 clr, const vec3 wpos, const vec3 norm, const uint sur
   for(int i=0; i<surfCount; ++i) {
     const float w     = calculteWeight(surfelsPos[i].xyz, surfelsNorm[i].xyz, surfelsIrr[i].w, surfelsNorm[i].w, wpos, norm);
     const vec3  color = surfelsIrr[i].rgb;
-    if(w <= 0)
+    if(w <= 0.0)
       continue;
+
+    const bool crowd = (clr.a>=1.0 || w<0.02);
     clr += vec4(color*w, w);
+    if(crowd)
+      continue;
 
     const uint sId = surfelsUse[i];
     atomicOr(usage[sId/32], 1u<<sId%32);
@@ -53,6 +57,10 @@ void applyBatch(inout vec4 clr, const vec3 wpos, const vec3 norm, const uint sur
   }
 
 void main() {
+#if 0
+  if(gl_WorkGroupID.xy/8!=uvec2(10,6))
+    return;
+#endif
   const uint laneID = gl_LocalInvocationIndex;
 
   const ivec2 fragCoord  = ivec2(gl_GlobalInvocationID.xy);
@@ -79,9 +87,9 @@ void main() {
     if(i+laneID < cnt) {
       const uint   sId = surfelList[ptr+i+laneID];
       const Surfel s   = surfels[sId];
-
+      //TODO: Preserve order!
       if(isSurfelVisible(s, bboxMin, bboxMax)) {
-        const uint   id  = atomicAdd(surfelCount, 1);
+        const uint id = atomicAdd(surfelCount, 1);
         surfelsPos [id] = vec4(s.pos, uintBitsToFloat(sId));
         surfelsNorm[id] = vec4(decodeNormal(s.norm), s.radius);
         surfelsIrr [id] = vec4(s.irradiance, s.radiusMean);
