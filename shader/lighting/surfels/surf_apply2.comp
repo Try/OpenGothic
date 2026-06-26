@@ -46,7 +46,7 @@ void applyBatch(inout vec4 clr, const vec3 wpos, const vec3 norm, const uint sur
     if(w <= 0.0)
       continue;
 
-    const bool crowd = (clr.a>=1.0 || w<0.02);
+    const bool crowd = (clr.a>=1.0 || w<0.05);
     clr += vec4(color*w, w);
     if(crowd)
       continue;

@@ -1,5 +1,7 @@
 #version 450
 
+#include "lighting/surfels/surf_common.glsl"
+
 layout(local_size_x = 256) in;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
@@ -8,7 +10,7 @@ layout(binding = 3, r32ui) uniform uimage2D surfCnts;
 layout(binding = 4, r32ui) uniform uimage2D surfBins;
 layout(binding = 5, std430) buffer SB2 { uint surfelList[]; };
 
-shared uint data[512];
+shared uint data[MaxInTile];
 
 uint nextPowerOfTwo(uint x) {
   if(x <= 1u)
