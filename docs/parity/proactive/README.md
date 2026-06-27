@@ -155,6 +155,8 @@ patch with a `// NOTE: in original-game …` citation.
 | Focus selection key | focus locked onto the nearest vob; original picks the most-centered (smallest azimuth) in the cone | `worldobjects.cpp` `testObj` |
 | Dialog status bars | HP/Mana/swim bars stayed up during conversations; original hides them for the whole dialog | `mainwindow.cpp` `paintEvent` |
 | Armor disguise guild | item disguise_guild was inert; original swaps live C_Npc.guild on equip (restores true guild on unequip) | `inventory.cpp` `applyArmor` |
+| Cast turn flag | a channeling NPC always rotated to target; original turns only when the spell's canTurnDuringInvest is set | `npc.cpp` `tickCast` |
+| Immortal HP regen | tickRegen wrote HP directly, regenerating immortal NPCs to full; original routes regen through the immortal-blocked ChangeAttribute | `npc.cpp` regen tick |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
@@ -274,4 +276,8 @@ patch with a `// NOTE: in original-game …` citation.
 | `knockback-flydamage-magnitude` | FLY throwback distance should scale with inflicted damage (StartFlyDamage @0x0069d940: clamp(CM_PER_POINT*points, MIN, MAX)); OG applies a fixed 0.75 impulse with no damage input. OG's per-frame fallSpeed velocity model has no 1:1 unit mapping to the original's centimetre ApplyImpulseCM, so an exact coefficient isn't derivable surgically — deferred |
 | `roam-fp-search-radius-shape` | ambient FP-roam uses an 800u sphere where the original FindSpot @0x007400e0 uses a 700u axis-aligned cube, shifting which FP_ROAM an idler wanders to. Same cube-vs-sphere class as the deferred wld-detectitem/noise findings, and roam selection is feel-adjacent — deferred |
 | `sleep-rest` | NO FINDING — the bed-sleep time-skip + heal is entirely Daedalus-driven (ZS_Sleep + Wld_SetTime); the only engine targets (SetTime day-roll, Regenerate rate, spawn-respawn) are already covered by existing docs or are missing-feature, not surgical bugs |
+| `infobox-row-count-gating` | the info-box value-column visibility is gated on cost()/sellCost() and empty-label rows are suppressed, vs the original DrawItemInfo @0x00706e40 gating each row's number on raw COUNT[i] and always printing labels. The two deviations cancel for realistic vanilla scripts (TEXT[5]/COUNT[5]=value) — Low confidence, unconfirmed edge case, deferred |
+| `stance-strafe-turn-weapon-prefix` | OG builds weapon-prefixed + RUN/SNEAK/WALK strafe/turn anim names; the binary references strafe/turn clips only as the weapon-mode-independent shallow-water T_WALKW{STRAFE,TURN}{L,R} family (SetWalkMode @0x006a9820). OG's empty-prefix fallback collapses missing prefixed clips to the unprefixed original, so no vanilla regression could be confirmed without the MDS table — deferred |
+| `faceatk-turn-to-attacker` | NO FINDING — the engine OnDamage path (OnDamage_Hit/Condition/Anim/Script @0x006660e0+) does not hard-code turn-to-attacker or set-attacker-as-enemy; those live in the script B_AssessDamage (Npc_SetTarget/AI_TurnToNpc), which OG correctly delegates to the VM. SetEnemy/TurnToEnemy belong to the focus/auto-aim system, already mirrored |
+| `steal-pickpocket` | NO FINDING — the pickpocket steal-from-living-NPC subsystem (OpenSteal @0x00762430 / oCStealContainer / G_CANSTEAL / caught-detection) is entirely unimplemented in OG (BS_PICKPOCKET/TALENT_PICKPOCKET defined but unreferenced); the one implemented adjacent path (ransack/loot-downed-NPC) already carries its armor-exclusion parity fix |
 
