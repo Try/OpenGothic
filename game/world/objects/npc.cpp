@@ -4599,10 +4599,19 @@ bool Npc::wasInState(ScriptFn stateFn) const {
   }
 
 uint64_t Npc::stateTime() const {
+  // NOTE: in original-game oCNpc_States::GetStateTime @0x0076c0a0 returns 0 unless an active script
+  // state is loaded (states+0x34 != 0). OpenGothic reported the entire elapsed world time for a
+  // stateless NPC. funcIni is invalid when no script state is active.
+  if(!aiState.funcIni.isValid())
+    return 0;
   return owner.tickCount()-aiState.sTime;
   }
 
 void Npc::setStateTime(int64_t time) {
+  // NOTE: in original-game oCNpc_States::SetStateTime @0x0076c0d0 is a no-op unless an active script
+  // state is loaded (states+0x34 != 0).
+  if(!aiState.funcIni.isValid())
+    return;
   aiState.sTime = owner.tickCount()-uint64_t(time);
   }
 
