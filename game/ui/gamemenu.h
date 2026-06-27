@@ -38,10 +38,14 @@ class GameMenu : public Tempest::Widget {
     void resizeEvent(Tempest::SizeEvent&  event) override;
 
   private:
+    // NOTE: in original-game oCMenu_Log::SetLogTopics @0x0047bf90 a MISSION topic with status 2
+    // (success) is inserted into the OLDMISSIONS listbox and status 3 (failed) into FAILEDMISSIONS.
+    // OpenGothic had these two mapped the other way round, so completed quests appeared under the
+    // "Failed Missions" tab and failed quests under "Old Missions".
     enum class QuestStat : uint8_t {
       Current   = uint8_t(QuestLog::Status::Running),
-      Old       = uint8_t(QuestLog::Status::Failed),
-      Failed    = uint8_t(QuestLog::Status::Success),
+      Old       = uint8_t(QuestLog::Status::Success),
+      Failed    = uint8_t(QuestLog::Status::Failed),
       Log       = uint8_t(5),
       };
 
