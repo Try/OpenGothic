@@ -3598,6 +3598,11 @@ void Npc::buyItem(size_t id, Npc &from, size_t count) {
   int32_t price = from.invent.priceOf(id);
   if(price>0 && size_t(price)*count>invent.goldCount()) {
     count = invent.goldCount()/size_t(price);
+    // NOTE: in original-game oCViewDialogTrade::OnTransferRight @0x0068bb40 every requested unit the
+    // player cannot pay for raises PLAYER_TRADE_NOT_ENOUGH_GOLD, even when the affordable units are
+    // still bought; a partial-stack buy must warn too, not only the buy-nothing case.
+    if(count!=0)
+      owner.script().printCannotBuyError(*this);
     }
   if(count==0) {
     owner.script().printCannotBuyError(*this);
