@@ -95,7 +95,13 @@ void FightAlgo::fillQueue(Npc &npc, Npc &tg, GameScript& owner) {
       return;
     }
 
-  if(isInWRange(npc,tg,owner) && focus)
+  // NOTE: in original-game oCNpc::FindNextFightAction @0x0067d680 the focused long-range table
+  // my_fk_focus_far is gated on the FK aim range (horizontal dist < 3000u, the 30m "FK" range) AND
+  // IsInFightFocus (@0x00735290, the aim cone) -- NOT on melee weapon-range. A bow/crossbow fighter
+  // engages from outside melee range, so the isInWRange gate made my_fk_focus_far unreachable and
+  // ranged NPCs always fell through to my_fk_nofocus_far even while aimed. Same class as the
+  // already-fixed my_fk_focus_mag gate; my_fk_nofocus_far is the unconditional fall-through after.
+  if(focus)
     if(fillQueue(owner,ai.my_fk_focus_far))
       return;
   if(fillQueue(owner,ai.my_fk_nofocus_far))
