@@ -1846,7 +1846,11 @@ bool GameScript::wld_detectnpcex(std::shared_ptr<zenkit::INpc> npcRef, int inst,
     if((inst ==-1 || int32_t(n.instanceSymbol())==inst) &&
        (state==-1 || n.isInState(uint32_t(state))) &&
        (guild==-1 || int32_t(n.guild())==guild) &&
-       (&n!=npc) && !n.isDead() &&
+       // NOTE: in original-game oCNpc::FindNpcEx @0x00740b80 the aliveOnly flag (always passed by
+       // Wld_DetectNpcEx) requires the target alive AND conscious: HP>0, not IsInState(-4)
+       // unconscious, not IsInState(-5) dead. OpenGothic only excluded the dead state, so knocked-out
+       // NPCs were wrongly detected. Use isDown() (= isUnconscious() || isDead()).
+       (&n!=npc) && !n.isDown() &&
        (player!=0 || !n.isPlayer())) {
       float d = n.qDistTo(*npc);
       if(d<dist){
