@@ -78,6 +78,9 @@ patch with a `// NOTE: in original-game …` citation.
 | NPC item-use gate | consumable cond_atr gate blocked NPCs too; original aborts only for the player | `inventory.cpp` `use` |
 | EquipBest tie | equal damage/protection ties broke by value; original ties by display name | `inventory.cpp` `bestItem` |
 | isMonster golems | Fire/Ice Golem + Dragon counted as monsters (auto-crit, minHp=0); original excludes them | `npc.cpp` `isMonster` |
+| IsDrawingWeapon | was an inverted copy of IsDrawingSpell (returned spells, not weapons) | `gamescript.cpp` `npc_isdrawingweapon` |
+| ASSESSBODY KO | body perception missed unconscious NPCs (dead-only); original is dead-or-unconscious | `npc.cpp` `updateNearestBody` |
+| SVM key trim | SVM voice-line key wasn't space-trimmed; original TrimLeft/Right before lookup | `svmdefinitions.cpp` `find` |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
@@ -123,4 +126,7 @@ patch with a `// NOTE: in original-game …` citation.
 | `dlgturn-processinfo-distance-gate` | OG drops AI_ProcessInfos when participants are >2000u apart; the original gates on both event queues being idle (no distance). Removing the constant is a behavioral redesign with soft-lock risk — needs runtime |
 | `aitick-checkangrytime-missing` | per-frame CheckAngryTime threat/angry decay (oCNpc fields 0x7e4/0x7e8/0x7ec) is absent in OG — a missing subsystem with no OG fields to patch against; AI-tick otherwise swept faithful — agent-deferred |
 | `monster2-ismonster-orc-upper-bound` (secondary) | the original IsMonster has no orc upper bound (orcs are monsters), OG clamps at SEPERATOR_ORC; flipping it changes orc death-handling + auto-crit — broader, deferred pending an orc-behavior pass |
+| `armor-disguise-guild` | armor should apply disguise_guild to the live guild on equip (restore true guild on unequip). DEFERRED: OG's `trGuild` is lazily seeded (GIL_NONE until Npc_SetTrueGuild), so the agent's patch swaps the live guild then trueGuild() returns the disguised value → unequip restores to the disguise = permanent disguise. Needs a trGuild-pinning redesign + runtime check |
+| `reach-melee-1ha2ha-guild-bonus` | weaponRange uses fight_range_1ha/2ha guild values where the original GetFightRange (@0x0067cd80) uses a single base field + itemRange; divergence is real but the correct base value is uncertain (the agent's "return just item.range" drops the base entirely, contradicting GetFightRange) and it's combat-feel, related to the deferred fai-grange — needs runtime |
+| `changelvl-revisit-daily-routine-reset-statedriven` | level re-entry resets ALL NPCs to their daily routine; the original (SetDailyRoutinePos with slot!=NEW) leaves AI-state-driven NPCs at their saved state. OG has no IsAIStateDriven analogue and resetPositionToTA is shared with Wld_SetTime — needs a verified predicate + flag-plumbing |
 
