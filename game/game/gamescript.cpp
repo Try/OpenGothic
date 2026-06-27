@@ -242,6 +242,7 @@ void GameScript::initCommon() {
   bindExternal("npc_getdetectedmob",             &GameScript::npc_getdetectedmob);
   bindExternal("npc_isdetectedmobownedbyguild",  &GameScript::npc_isdetectedmobownedbyguild);
   bindExternal("npc_ownedbynpc",                 &GameScript::npc_ownedbynpc);
+  bindExternal("npc_ownedbyguild",               &GameScript::npc_ownedbyguild);
   bindExternal("npc_canseesource",               &GameScript::npc_canseesource);
   bindExternal("npc_isincutscene",               &GameScript::npc_isincutscene);
   bindExternal("npc_getdisttoitem",              &GameScript::npc_getdisttoitem);
@@ -2909,7 +2910,15 @@ int GameScript::npc_settrueguild(std::shared_ptr<zenkit::INpc> npcRef, int gil) 
           Npc* n = w.npcById(i);
           if(n==nullptr || n==pl)
             continue;
-          Attitude att = guildAttitude(*n,*pl);
+          // NOTE: in original-game Npc_SetTrueGuild @0x006ee660 the player branch calls
+          // oCGame::InitNpcAttitudes @0x006c61d0, which keys the guild matrix on the TRUE guild
+          // (GetTrueGuild, field 0x766) of BOTH parties -- not the live C_Npc.guild. setTrueGuild
+          // leaves the live guild untouched, so guildAttitude() (live) re-baked from the stale
+          // pre-change guild (a no-op for the player, and a disguised witness from its disguise
+          // guild). Read trueGuild() like InitNpcAttitudes; same row/col order as guildAttitude(n,pl).
+          auto selfG = std::min<size_t>(gilCount-1, size_t(n->trueGuild()));
+          auto plG   = std::min<size_t>(gilCount-1, size_t(pl->trueGuild()));
+          Attitude att = Attitude(gilAttitudes[selfG*gilCount+plG]);
           n->setAttitude(att);
           n->setTempAttitude(att);
           }
@@ -2995,7 +3004,13 @@ bool GameScript::npc_hasbodyflag(std::shared_ptr<zenkit::INpc> npcRef, int bodyf
   auto npc = findNpc(npcRef);
   if(npc==nullptr)
     return false;
-  return npc->hasStateFlag(BodyState(bodyflag));
+  // NOTE: in original-game Npc_HasBodyFlag (Gothic2.exe FUN_006f38b0) returns
+  // (bodyflag & oCNpc::GetFullBodyState() @0x0075eaf0) > 0 -- a bitwise-overlap test, not an
+  // exact-equality compare. GetFullBodyState masks with 0xFFFFC07F (base + BS_FLAG_*, strips
+  // BS_MOD_*), which bodyStateMasked() reproduces. The old hasStateFlag() did an exact
+  // (bs & (BS_FLAG_MASK|BS_MOD_MASK))==flg compare, so querying one flag (e.g. BS_FLAG_INTERRUPTABLE)
+  // on a standing NPC that carries both flag bits wrongly returned false.
+  return (uint32_t(bodyflag) & uint32_t(npc->bodyStateMasked()))!=0;
   }
 
 int GameScript::npc_getlasthitspellid(std::shared_ptr<zenkit::INpc> npcRef) {
@@ -3081,6 +3096,16 @@ bool GameScript::npc_ownedbynpc(std::shared_ptr<zenkit::IItem> itmRef, std::shar
 
   auto* sym = vm.find_symbol_by_index(uint32_t(itm->handle().owner));
   return sym != nullptr && npc->handlePtr()==sym->get_instance();
+  }
+
+bool GameScript::npc_ownedbyguild(std::shared_ptr<zenkit::IItem> itmRef, int guild) {
+  auto itm = findItem(itmRef.get());
+  if(itm==nullptr)
+    return false;
+  // NOTE: in original-game Npc_OwnedByGuild @0x006e9ca0 -> oCItem::IsOwnedByGuild @0x007127c0 returns
+  // (guild > 0 && item.owner_guild == guild). OpenGothic left it unbound (default handler -> always
+  // false). Sibling of Npc_OwnedByNpc.
+  return guild>0 && itm->handle().owner_guild==guild;
   }
 
 bool GameScript::npc_canseesource(std::shared_ptr<zenkit::INpc> npcRef) {

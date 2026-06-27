@@ -365,6 +365,7 @@ class GameScript final {
     bool npc_isdetectedmobownedbynpc(std::shared_ptr<zenkit::INpc> usrRef, std::shared_ptr<zenkit::INpc> npcRef);
     std::string npc_getdetectedmob  (std::shared_ptr<zenkit::INpc> npcRef);
     bool npc_ownedbynpc      (std::shared_ptr<zenkit::IItem> itmRef, std::shared_ptr<zenkit::INpc> npcRef);
+    bool npc_ownedbyguild    (std::shared_ptr<zenkit::IItem> itmRef, int guild);
     bool npc_canseesource    (std::shared_ptr<zenkit::INpc> npcRef);
     bool npc_isincutscene    (std::shared_ptr<zenkit::INpc> npcRef);
     int  npc_getdisttoitem   (std::shared_ptr<zenkit::INpc> npcRef, std::shared_ptr<zenkit::IItem> itmRef);
