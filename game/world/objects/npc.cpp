@@ -2204,9 +2204,12 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
         owner.sendPassivePerc(*this,other,*this,PERC_ASSESSMURDER);
         }
       else {
-        if(owner.script().rand(2)==0) {
-          emitSoundSVM("SVM_%d_AARGH");
-          }
+        // NOTE: in original-game oCNpc::OnDamage_Sound (Gothic2.exe 0x0067a8a0), reached
+        // unconditionally from oCNpc::OnDamage (0x006660e0) on every registered alive hit, the hurt
+        // voice line is always emitted; its rand() only selects a voice variation
+        // (rand()%NPC_VOICE_VARIATION_MAX), never whether to play. OpenGothic gated it on a 50%
+        // coin-flip, silencing half of all pain reactions. Always emit.
+        emitSoundSVM("SVM_%d_AARGH");
         }
       }
     }
@@ -4143,7 +4146,12 @@ bool Npc::tickCast(uint64_t dt) {
       assert(attribute(ATR_MANA)>0);
     }
 
-  if(!isPlayer() && aiExpectedInvest<=manaInvested) {
+  // NOTE: in original-game oCNpc::EV_CastSpell @0x0067fb20 an NPC keeps investing while
+  // aiExpectedInvest >= manaInvested and releases only once manaInvested has *exceeded*
+  // aiExpectedInvest (strict `<`: branch at *(npc+0x574) < *(oCSpell+0x48), 0x574=aiExpectedInvest
+  // from oCNpc::ReadySpell @0x006802e0, 0x48=manaInvested from oCSpell::Invest @0x004850d0). Using
+  // `<=` released one invest tick early, so NPC spells were cast one invest level too low.
+  if(!isPlayer() && aiExpectedInvest<manaInvested) {
     endCastSpell();
     return true;
     }
