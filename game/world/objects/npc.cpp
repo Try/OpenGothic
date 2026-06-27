@@ -2116,7 +2116,12 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
   DamageCalculator::Damage dmg={};
   DamageCalculator::Val    hitResult;
   SpellCategory            splCat     = SpellCategory::SPELL_BAD;
-  const bool               dontKill   = ((b==nullptr && splId==0) || (bMask & COLL_DONTKILL)) && (!isSwim());
+  // NOTE: in original-game oCNpc::OnDamage_Condition @0x0066cf30 the drop-unconscious branch is
+  // gated on oCAniCtrl_Human::IsInWater(...)==0 (@0x006b8a40), which is true for water-level 1
+  // (swim) AND 2 (dive). OpenGothic's mutually-exclusive MoveAlgo states make isSwim() match only
+  // Swim, so a diving victim at <=0 HP slipped past the guard and dropped unconscious instead of
+  // dying; add !isDive() to cover water-level 2.
+  const bool               dontKill   = ((b==nullptr && splId==0) || (bMask & COLL_DONTKILL)) && (!isSwim() && !isDive());
   int32_t                  damageType = DamageCalculator::damageTypeMask(other);
 
   if(isSpell) {
