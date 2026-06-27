@@ -297,11 +297,14 @@ bool MoveAlgo::implTick(uint64_t dt, MvFlags moveFlg) {
       }
 
     const float gpos = std::max(npc.position().y, ground);
-    if(gpos + 3.f*chest <= water) {
-      // underwater walk bug-like case: can switch to dive here
-      // setState(Dive);
-      }
-    else if(gpos + chest <= water+0.01f && npc.hasSwimAnimations()) {
+    // NOTE: in original-game zCAIPlayer::CalcStateVars @0x0050e440 the water level (0=wade,1=swim,
+    // 2=dive) is assigned directly from geometry every tick, so entering water always yields a swim/
+    // dive state regardless of approach speed. The previously-here disabled `depth >= 3*chest`
+    // auto-dive placeholder (a dead, fully-commented branch) was the FIRST arm of this else-if chain,
+    // so a single-tick plunge straight into deep water (falling/teleporting from above) skipped the
+    // swim transition + splash and fell through to fall-damage + Run underwater. The inner
+    // state!=Swim&&state!=Dive guard already preserves an in-progress dive, so just enter swim here.
+    if(gpos + chest <= water+0.01f && npc.hasSwimAnimations()) {
       if(state!=Swim && state!=Dive) {
         const bool splash = grav || fallSpeed.quadLength() >= 1.f;
         setState(Swim);
