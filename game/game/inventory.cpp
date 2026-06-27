@@ -1114,8 +1114,23 @@ Item* Inventory::bestItem(Npc &owner, ItmFlags f) {
       for(size_t d=0; d<zenkit::DamageType::NUM; ++d)
         key += itData.protection[d];
       } else {
+      // NOTE: oCItem::InitByScript @0x00711bd0 -> ApplyDamages @0x0065e5a0 spreads damage_total
+      // evenly across the set damage types (damage_total/numSetTypes) into each typed slot still 0
+      // *before* the item enters inventory; GetFullDamage @0x00712500 (the equip-best rank key) then
+      // sums that spread damage[] array. Standard weapons author only damage_total and leave damage[]
+      // zero, so summing the raw handle array gave key==0 for every weapon, reducing selection to the
+      // alphabetical name tie-break instead of the strongest weapon. Reproduce the spread here.
+      int numTypes = 0;
       for(size_t d=0; d<zenkit::DamageType::NUM; ++d)
-        key += itData.damage[d];
+        if(itData.damage_type & (1<<d))
+          ++numTypes;
+      const int32_t spread = numTypes>0 ? itData.damage_total/numTypes : 0;
+      for(size_t d=0; d<zenkit::DamageType::NUM; ++d) {
+        int32_t dmg = itData.damage[d];
+        if((itData.damage_type & (1<<d)) && dmg==0)
+          dmg = spread;
+        key += dmg;
+        }
       }
     // NOTE: in original-game the inventory display-sort comparator @0x00705B80 (which
     // EquipBestWeapon @0x0074ef30 / EquipBestArmor @0x0074f0b0 walk to take the first usable item)
