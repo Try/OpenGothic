@@ -1138,10 +1138,12 @@ void Gothic::doc_printlines(int handle, int page, std::string_view text) {
   }
 
 void Gothic::doc_setmargins(int handle, int page, int left, int top, int right, int bottom, int mul) {
-  bottom *=  mul;
-  right  *=  mul;
-  top    *=  mul;
-  left   *=  mul;
+  // NOTE: in original-game oCViewDocument::SetMargins @0x68c7f0 the 7th Doc_SetMargins argument is a
+  // boolean apply-flag (checked != 0), not a multiplier; the left/top/right/bottom insets are stored
+  // verbatim. A zero flag is a no-op (the default/previous margins are retained). OpenGothic scaled
+  // every inset by it (zeroing the box at mul==0, doubling at mul==2) and always applied the result.
+  if(mul==0)
+    return;
 
   auto& doc = getDocument(handle);
   if(doc==nullptr)
