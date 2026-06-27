@@ -774,7 +774,16 @@ Sound World::addLandHitEffect(ItemMaterial src, zenkit::MaterialGroup reciver, c
 
 Sound World::addWeaponBlkEffect(ItemMaterial src, ItemMaterial reciver, const Tempest::Matrix4x4& pos) {
   // IAI - item attacks item
-  return addHitEffect(materialTag(src),materialTag(reciver),"IAI",pos);
+  // NOTE: in original-game oCAniCtrl_Human::StartParadeEffects @0x006b16f0 the two weapon materials
+  // are sorted via zSTRING::compare (smaller code first) before forming the CPFX_IAI_/sound token, so
+  // the parry FX name is independent of attacker-vs-defender order. OpenGothic passed them
+  // attacker-first unsorted, so a mixed-material parry (e.g. metal blade vs wooden club) resolved to a
+  // different (often undefined) SFX/PFX in one of the two matchup directions -> silent parry clang.
+  std::string_view a = materialTag(src);
+  std::string_view b = materialTag(reciver);
+  if(b < a)
+    std::swap(a,b);
+  return addHitEffect(a,b,"IAI",pos);
   }
 
 Sound World::addHitEffect(std::string_view src, std::string_view dst, std::string_view scheme, const Tempest::Matrix4x4& pos) {
