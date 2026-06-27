@@ -2657,6 +2657,15 @@ std::shared_ptr<zenkit::IItem> GameScript::npc_getreadiedweapon(std::shared_ptr<
     return 0;
     }
 
+  // NOTE: in original-game Npc_GetReadiedWeapon (Gothic2.exe FUN_006eda10) -> oCNpc::GetWeapon
+  // (0x007377a0) returns the in-hand weapon only when one is actually drawn (fight mode > FIST, i.e.
+  // 1 < mode); NoWeapon/Fist return null. OpenGothic returned activeWeapon() unconditionally, but
+  // switchActiveWeaponFist points the inventory `active` slot at the holstered melee weapon, so a
+  // brawler with a sword equipped wrongly reported a readied weapon.
+  const auto ws = npc->weaponState();
+  if(ws==WeaponState::NoWeapon || ws==WeaponState::Fist)
+    return nullptr;
+
   auto ret = npc->activeWeapon();
   if(ret!=nullptr) {
     makeCurrent(ret);
