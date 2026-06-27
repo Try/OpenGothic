@@ -157,6 +157,9 @@ patch with a `// NOTE: in original-game …` citation.
 | Armor disguise guild | item disguise_guild was inert; original swaps live C_Npc.guild on equip (restores true guild on unequip) | `inventory.cpp` `applyArmor` |
 | Cast turn flag | a channeling NPC always rotated to target; original turns only when the spell's canTurnDuringInvest is set | `npc.cpp` `tickCast` |
 | Immortal HP regen | tickRegen wrote HP directly, regenerating immortal NPCs to full; original routes regen through the immortal-blocked ChangeAttribute | `npc.cpp` regen tick |
+| Dialog gesture rate | NPCs gestured on 100% of lines (count=11); original rolls a fixed 1..20, so unresolved indices give ~55% | `versioninfo.h` `dialogGestureCount` |
+| Mdl_ null guard | Mdl_StartFaceAni/Mdl_SetModelScale guarded the handle but deref'd the resolved npc (crash); original no-ops on null | `gamescript.cpp` `mdl_*` |
+| PrintScreen stacking | same-coordinate prints stacked (overlapping/unbounded); original reuses the slot keyed by (x,y) | `dialogmenu.cpp` `printScreen` |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
@@ -280,4 +283,7 @@ patch with a `// NOTE: in original-game …` citation.
 | `stance-strafe-turn-weapon-prefix` | OG builds weapon-prefixed + RUN/SNEAK/WALK strafe/turn anim names; the binary references strafe/turn clips only as the weapon-mode-independent shallow-water T_WALKW{STRAFE,TURN}{L,R} family (SetWalkMode @0x006a9820). OG's empty-prefix fallback collapses missing prefixed clips to the unprefixed original, so no vanilla regression could be confirmed without the MDS table — deferred |
 | `faceatk-turn-to-attacker` | NO FINDING — the engine OnDamage path (OnDamage_Hit/Condition/Anim/Script @0x006660e0+) does not hard-code turn-to-attacker or set-attacker-as-enemy; those live in the script B_AssessDamage (Npc_SetTarget/AI_TurnToNpc), which OG correctly delegates to the VM. SetEnemy/TurnToEnemy belong to the focus/auto-aim system, already mirrored |
 | `steal-pickpocket` | NO FINDING — the pickpocket steal-from-living-NPC subsystem (OpenSteal @0x00762430 / oCStealContainer / G_CANSTEAL / caught-detection) is entirely unimplemented in OG (BS_PICKPOCKET/TALENT_PICKPOCKET defined but unreferenced); the one implemented adjacent path (ransack/loot-downed-NPC) already carries its armor-exclusion parity fix |
+| `ailoop-state-loop-reinvoke-interval` | OG gates the ZS_ state Loop re-invoke behind perceptionTime (loopNextTime += perceptionTimeClampt()), so non-combat state loops re-run only every ~1-5s; the original DoAIState @0x0076d1a0 re-invokes ZS_xxx_Loop every AI frame (perception is throttled separately). Removing the gate is a broad every-NPC behavioral/perf change needing runtime A/B — deferred |
+| `corpse-fade-despawn` | NO FINDING — corpses persist for normal NPCs in both engines; the differing fade/despawn/respawn all belong to the oCSpawnManager subsystem OG deliberately doesn't implement (no reachable trigger, no single OG symbol to patch). Every concrete divergence here is already covered by existing docs |
+| `snd-play3d-static-vs-npc-attached` | Snd_Play3D freezes the emitter at a one-time centerPosition() snapshot; the original parents it to the NPC vob so it follows for the playback duration. Marginal (Snd_Play3D is almost always short one-shots) and a faithful fix needs sound-to-vob attachment infrastructure — Low, deferred |
 
