@@ -2168,7 +2168,14 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
     }
 
   // throw enemy
-  if(hitResult.hasHit && (damageType & (1<<zenkit::DamageType::FLY))) {
+  // NOTE: in original-game oCNpc::OnDamage_Anim (Gothic2.exe 0x00675bd0) the FLY throwback
+  // (oCAIHuman::StartFlyDamage) is gated on the resolved collision mask carrying the victim-state
+  // bit (COLL_APPLYVICTIMSTATE or the catch-all COLL_DOEVERYTHING); a spell whose
+  // C_CanNpcCollideWithSpell mask omits it (incl. COLL_DONOTHING / COLL_APPLYDAMAGE-only) deals
+  // damage with no knockback. hitResult.hasHit is true even for value==0 / no-victim-state masks,
+  // so gate the throwback on the same flag the perception broadcasts above already use.
+  if(hitResult.hasHit && (damageType & (1<<zenkit::DamageType::FLY)) &&
+     (bMask&(COLL_APPLYVICTIMSTATE|COLL_DOEVERYTHING))) {
     mvAlgo.accessDamFly(x-other.x, z-other.z, lastHitType);
     }
 
