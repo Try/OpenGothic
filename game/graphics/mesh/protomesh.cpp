@@ -377,9 +377,12 @@ ProtoMesh::Morph ProtoMesh::mkAnimation(const zenkit::MorphAnimation& a) {
   ret.layer           = a.layer;
   ret.duration        = uint64_t(a.duration>0 ? a.duration : 0);
 
-  if(a.flags&0x2 || a.duration<=0)
-    ret.tickPerFrame = size_t(1.f/a.speed); else
-    ret.tickPerFrame = size_t(a.duration/float(a.frame_count));
+  // NOTE: in original-game zCMorphMesh::AdvanceAnis @0x005A6830 the morph frame cursor is always
+  // advanced by frametime*speed (zCMorphMeshAni field 0x38); the per-ani `duration` (field 0x30) is
+  // used only as the default hold-time in zCMorphMesh::StartAni @0x005A6F30, never for frame timing.
+  // Deriving the rate from duration/frame_count played non-looping face/morph anis whose authored
+  // duration differs from frame_count*(1/speed) at the wrong rate (e.g. S_RELAX: 40 vs 38 ms/frame).
+  ret.tickPerFrame = a.speed>0.f ? size_t(1.f/a.speed) : 0;
 
   if(ret.tickPerFrame==0)
     ret.tickPerFrame = 1;
