@@ -12,6 +12,15 @@ ZoneTrigger::ZoneTrigger(Vob* parent, World &world, const zenkit::VTriggerChange
   }
 
 void ZoneTrigger::onIntersect(Npc &n) {
-  if(n.isPlayer())
-    world.triggerChangeWorld(levelName, startVobName);
+  if(!n.isPlayer())
+    return;
+  // NOTE: in original-game oCTriggerChangeLevel::TriggerTarget @0x0043be20 the change-level is
+  // aborted when the player has an active shapeshift/timed-effect spell (ids 0x2f..0x3a): it ends
+  // the timed effect (transformBack) and returns WITHOUT calling oCGame::ChangeLevel. OpenGothic
+  // teleported a transformed player straight through the portal, arriving still transformed.
+  if(n.isTransformed()) {
+    n.transformBack();
+    return;
+    }
+  world.triggerChangeWorld(levelName, startVobName);
   }
