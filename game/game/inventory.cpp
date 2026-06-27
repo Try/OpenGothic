@@ -822,6 +822,9 @@ bool Inventory::putState(Npc& owner, size_t cls, int state) {
   // the AI_UseItemToState path (only use() fired on_state[0]), so per-state item scripts were
   // dead. Fire on_state[state] for the reached target state.
   if(state>=0 && state<4 && it->handle().on_state[size_t(state)]!=0) {
+    // NOTE: in original-game oCNpc::EV_UseItemToState @0x007558f0 binds the parser ITEM instance to
+    // the used item before invoking on_state[reached_state]; OpenGothic's invokeItem binds only self.
+    owner.world().script().getVm().global_item()->set_instance(it->handlePtr());
     owner.world().script().invokeItem(&owner,uint32_t(it->handle().on_state[size_t(state)]));
     }
 
@@ -979,6 +982,11 @@ bool Inventory::use(size_t cls, Npc &owner, uint8_t slotHint, bool force) {
   setCurrentItem(it->clsId());
   if(itData.on_state[0]!=0){
     auto& vm = owner.world().script();
+    // NOTE: in original-game oCNpc::EV_UseItemToState @0x007558f0 binds the parser ITEM instance to
+    // the used item (SetInstance("ITEM",interactItem)) before invoking on_state[state]; the
+    // on_equip path (AddItemEffects @0x007320f0) binds only SELF, so the item binding is specific to
+    // on_state. OpenGothic's invokeItem binds only self, leaving `item` stale. Mirror the binding.
+    vm.getVm().global_item()->set_instance(it->handlePtr());
     vm.invokeItem(&owner,uint32_t(itData.on_state[0]));
     }
 
