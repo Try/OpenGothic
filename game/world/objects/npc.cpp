@@ -2243,7 +2243,11 @@ Npc* Npc::updateNearestBody() {
   float dist = std::numeric_limits<float>::max();
 
   owner.detectNpcNear([this,&ret,&dist](Npc& n){
-    if(!n.isDead())
+    // NOTE: in original-game oCNpc::PerceptionCheck @0x0075dd30 classifies a vob as a "body" when
+    // IsDead() (hp<1) OR IsUnconscious() (oCNpc_States::IsInState(-4), see oCNpc::IsUnconscious
+    // @0x00736750); unconscious NPCs keep hp>0, so a dead-only test silently dropped them as
+    // PERC_ASSESSBODY candidates (guards never ran B_AssessBody on a knocked-out NPC/player).
+    if(!n.isDown())
       return;
 
     float d = qDistTo(n);
