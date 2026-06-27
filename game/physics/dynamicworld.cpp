@@ -919,8 +919,8 @@ void DynamicWorld::moveBullet(BulletBody &b, const Tempest::Vec3& dir, uint64_t 
   if(callback.matId != zenkit::MaterialGroup::NONE) {
     if(isSpell){
       if(b.cb!=nullptr)
-        b.cb->onCollide(callback.matId);
-      stopBullet = true;
+        stopBullet = b.cb->onCollide(callback.matId); else
+        stopBullet = true;
       } else {
       if(callback.matId==zenkit::MaterialGroup::METAL ||
          callback.matId==zenkit::MaterialGroup::STONE) {

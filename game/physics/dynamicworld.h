@@ -171,7 +171,7 @@ class DynamicWorld final {
       virtual ~BulletCallback()=default;
       virtual void onStop(){}
       virtual void onMove(){}
-      virtual void onCollide(zenkit::MaterialGroup matId){(void)matId;}
+      virtual bool onCollide(zenkit::MaterialGroup matId){(void)matId; return true;}
       virtual bool onCollide(Npc& other){(void)other; return true; }
       };
 

@@ -123,9 +123,22 @@ void Bullet::onMove() {
   updateMatrix();
   }
 
-void Bullet::onCollide(zenkit::MaterialGroup matId) {
+bool Bullet::onCollide(zenkit::MaterialGroup matId) {
   if(isFinished())
-    return;
+    return true;
+
+  // NOTE: in original-game oCVisualFX::ReportCollision @0x00494e80 the level-polygon
+  // (zCCollObjectLevelPolys) branch ends the flying FX (ResetToOldMovementState -> Collide
+  // @0x00493a00 -> EndEffect) only when emActionCollStat carries the COLLIDE bit (this+0x3a0 & 1).
+  // A spell FX whose emActionCollStat is CREATE/BOUNCE/NORESP/CREATEQUAD (no COLLIDE bit) passes
+  // through world geometry and keeps flying. OpenGothic always stopped a spell on the first
+  // level-mesh hit. Mirrors the emActionCollDyn pass-through in Bullet::onCollide(Npc&). Arrows stop.
+  const VisualFx* root = vfx.handle();
+  const bool stop = !isSpell() || root==nullptr ||
+                    (root->emActionCollStat & VisualFx::Collide)!=0;
+  if(!stop)
+    return false;
+
   if(matId != zenkit::MaterialGroup::NONE) {
     if(material < ItemMaterial::MAT_COUNT) {
       auto s = wrld->addLandHitEffect(ItemMaterial(material),matId,obj->matrix());
@@ -136,6 +149,7 @@ void Bullet::onCollide(zenkit::MaterialGroup matId) {
   vfx.setLooped(false);
   vfx.setPhysicsDisable();
   wrld->runEffect(std::move(vfx));
+  return true;
   }
 
 bool Bullet::onCollide(Npc& npc) {
