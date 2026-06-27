@@ -351,7 +351,13 @@ void GameScript::initCommon() {
   if(owner.version().game==2) {
     auto* currency = vm.find_symbol_by_name("TRADE_CURRENCY_INSTANCE");
     itMi_Gold      = currency!=nullptr ? vm.find_symbol_by_name(currency->get_string()) : nullptr;
-    if(itMi_Gold!=nullptr){ // FIXME
+    // NOTE: in original-game oCItemContainer::GetCurrencyInstanceName @0x00704810 a missing or empty
+    // TRADE_CURRENCY_INSTANCE symbol is coerced to the hard-coded literal "ITMI_GOLD", so the
+    // currency instance is always resolvable. OpenGothic left itMi_Gold==nullptr in that case,
+    // breaking goldCount() and null-deref'ing isGold()/sell/buy on any gold operation.
+    if(itMi_Gold==nullptr)
+      itMi_Gold = vm.find_symbol_by_name("ItMi_Gold");
+    if(itMi_Gold!=nullptr){
       auto item = vm.init_instance<zenkit::IItem>(itMi_Gold);
       goldTxt = item->name;
       }
