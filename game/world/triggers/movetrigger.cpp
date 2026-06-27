@@ -175,8 +175,13 @@ void MoveTrigger::onTrigger(const TriggerEvent& e) {
       break;
       }
     case zenkit::MoverBehavior::OPEN_TIME: {
+      // NOTE: in original-game zCMover::TriggerMover (Gothic2.exe @0x00612cb0) a re-trigger of a
+      // fully-open OPEN_TIME mover collapses the stay-open countdown (field_0x19c) to ~1ms so the
+      // mover closes on the next tick (OnTick @0x00612f80), instead of restarting the full duration.
+      // Setting frameTime=stayOpenTime makes the next tick()'s OpenTimed branch transition to Close
+      // immediately, reproducing "re-trigger closes" (OG kept it open, indefinitely under a repeater).
       if(state==OpenTimed)
-        frameTime = 0; else
+        frameTime = stayOpenTime; else
         state     = Open;
       break;
       }
