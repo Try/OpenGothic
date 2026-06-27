@@ -140,6 +140,11 @@ patch with a `// NOTE: in original-game …` citation.
 | KnowsInfo permanent | Npc_KnowsInfo reported a permanent info as known after first use; original masks permanent → never known | `gamescript.cpp` `npc_knowsinfo` |
 | Gold instance fallback | itMi_Gold left null when TRADE_CURRENCY_INSTANCE unresolved (null-deref); original falls back to ItMi_Gold | `gamescript.cpp` currency init |
 | Unconscious walk-through | a KO'd NPC kept a blocking collision capsule; original treats unconscious bodies as walk-through corpses (like dead) | `npc.cpp` `onNoHealth` |
+| MOBSI use-with-item NPC | refined a prior fix: the item-refusal is player-only; the original auto-supplies a non-player NPC the item | `interactive.cpp` `checkUseConditions` |
+| Equip-best weapon | best-weapon key summed the zero raw damage[] (alphabetical tie-break); original ranks by the spread GetFullDamage | `inventory.cpp` `bestItem` |
+| Follow stop distance | AI_GotoNpc used weapon/fight range; original follows to a fixed 200 units | `npc.cpp` `implGoTo` |
+| AI_Teleport interrupt | teleport left the NPC sliding/animating; original's BeamTo→ResetPos interrupts to idle | `npc.cpp` `AI_Teleport` |
+| Trade info value | merchant-side info-box showed full value; original discounts both trade columns (mode 5) | `inventorymenu.cpp` `drawInfo` |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
@@ -243,4 +248,5 @@ patch with a `// NOTE: in original-game …` citation.
 | `spellaim-projectile-no-homing` | spell projectiles fly a fixed straight ray; the original re-sets the trajectory terminal key to the live target's position every frame (oCVisualFX::CalcTrajectory @0x0048f620), so TARGET-mode spells home onto moving targets. A faithful fix crosses the game/physics boundary (new bullet target state + per-tick steer + spline easing) — deferred |
 | `snd3d-vobsound-volume-scale` | world VobSounds ignore the per-vob sndVolume (0-100%) the original scales by (CalcVolumeScale @0x0063dde0). Attempted but reverted: OG's Effect{occ,vol} re-applies occ*vol every frame in tickSlot, so a post-hoc Sound::setVolume is overwritten; a correct fix must thread sndVolume into the Effect base vol, not surgical here — deferred |
 | `summon-lifetime` | NO FINDING — summon lifetime/count/despawn/attitude are pure Daedalus (the original Wld_SpawnNpcRange/SummonNpc discard the lifeTime arg exactly like OG); Npc_IsSummoned/SetSummoned don't exist in vanilla G2. Only summon spawn-placement geometry differs (cosmetic, deferred) |
+| `combo-advance-snap-target` | a timed in-window combo press should fast-forward the swing to the DEF_WINDOW end frame (HitCombo @0x006b0260, record +0x1d8); OG snaps to defHitEnd[combo.len()] (the distinct DEF_HIT_END tag). OG's isFinished/atkTotalTime are keyed on defHitEnd, so re-targeting the snap could trip a premature combo-finish — needs runtime verification, deferred |
 
