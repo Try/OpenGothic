@@ -902,6 +902,24 @@ void Inventory::applyArmor(Item &it, Npc &owner, int32_t sgn) {
     if(atr>0)
       owner.changeAttribute(Attribute(atr), it.handle().change_value[i]*sgn, false);
     }
+
+  // NOTE: in original-game oCNpc::AddItemEffects (Gothic2.exe 0x007320f0) / RemoveItemEffects
+  // (0x00732270) an equipped item with a non-zero disguise_guild (oCItem::GetDisguiseGuild
+  // 0x007127e0) overwrites the live C_Npc.guild: on equip to the disguise guild (only if it differs
+  // from the true guild), on unequip back to the true guild. This is how worn faction armor changes
+  // guild attitudes while monster/human classification stays on the true guild (#656). OpenGothic
+  // serialized disguise_guild but never applied it. trueGuild() is seeded with the real guild at NPC
+  // creation (npc.cpp:199) and serialized, so this restores correctly on unequip and across save/load.
+  const int32_t disguise = it.handle().disguise_guild;
+  if(disguise!=0) {
+    auto& hnpc = owner.handle();
+    if(sgn>0) {
+      if(disguise!=owner.trueGuild())
+        hnpc.guild = disguise;
+      } else {
+      hnpc.guild = owner.trueGuild();
+      }
+    }
   }
 
 bool Inventory::use(size_t cls, Npc &owner, uint8_t slotHint, bool force) {
