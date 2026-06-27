@@ -183,7 +183,12 @@ DamageCalculator::Val DamageCalculator::swordDamage(Npc& nsrc, Npc& nother) {
       // feeds the point accumulator @desc+0x44, GetAttribute(4)=STR feeds blunt/edge @+0x30/+0x34).
       const int atr = (i==zenkit::DamageType::POINT) ? dex : str;
       int vd = std::max(atr + src.damage[i] - other.protection[i],0);
-      if(src.hitchance[tal]<=critChance)
+      // NOTE: in original-game oCNpc::OnDamage_Hit (Gothic2.exe 0x00666610) the glancing-blow roll
+      // (hitchance < rand%100+1) runs only for WeaponMode 3 (1H, GetHitChance(1)) and 4 (2H,
+      // GetHitChance(2)); an unarmed/fist attack uses the FIST mode and skips it, dealing full damage.
+      // tal stays TALENT_UNKNOWN for fists, and hitchance[0] (unused slot) is ~0 so the roll fired on
+      // nearly every player fist hit, cutting it to (vd-1)/10. Guard the roll on a melee weapon.
+      if(tal!=TALENT_UNKNOWN && src.hitchance[tal]<=critChance)
         vd = (vd-1)/10;
       if(other.protection[i]>=0) { // Filter immune
         value += vd;
