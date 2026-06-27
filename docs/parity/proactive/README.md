@@ -123,6 +123,9 @@ patch with a `// NOTE: in original-game …` citation.
 | Doc_SetMargins flag | 7th arg multiplied margins; original is a boolean apply-flag (0 = no-op, insets verbatim) | `gothic.cpp` `doc_setmargins` |
 | Ranged-hit FX pos | arrow hit spark/sound spawned at shooter-victim midpoint (mid-air); original at the victim impact | `world.cpp` `addWeaponHitEffect` |
 | Never-open chest | a locked container with no key & no pick-combination opened freely; original refuses (NEVER_OPEN) | `interactive.cpp` `checkUseConditions` |
+| Downed re-hit polarity | onNoHealth got the non-lethal flag as `death`; fists killed downed NPCs, arrows revived corpses | `npc.cpp` `takeDamage` |
+| G2 invest mana | channeling/invest spells drained no mana in G2; original drains 1/tick on SPL_RECEIVEINVEST | `npc.cpp` `tickCast` |
+| Corpse armour loot | unequipped armour in a body was lootable; original never lists ITM_CAT_ARMOR in corpse loot | `inventory.cpp` `skipHidden` |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
@@ -208,4 +211,7 @@ patch with a `// NOTE: in original-game …` citation.
 | `spellinfo-setactivespellinfo-unconditional` | Npc_SetActiveSpellInfo stores the transform-instance unconditionally; original only stores it while a spell is selected (magic mode). Medium + unreachable from vanilla scripts; gating the store risks dropping a legitimate mid-cast store (breaking a vanilla transform) if activeWeapon() state differs at the call moment — deferred |
 | `flee-los-gate` | original flee-steering (oCNpc::Fleeing @0x006820c0) re-steers only with free line-of-sight to the enemy; OG's stateless per-tick implAiFlee has no LoS gate. A naive early-return on lost LoS could freeze a fleeing NPC in open ground (OG flee lacks the original's committed-trace state machine) — needs a keep-moving fallback + runtime validation — agent-deferred |
 | `turn-combat-facing-speed-multiplier` | OG combat-facing turn uses step*=2 (flagged in-source as a guess) where the original TurnToEnemy @0x00737cd0 uses 4x base; could not prove the two per-frame turn-time globals are equal (data-xref/MCP unavailable) and turn rate is tuning-sensitive — deferred |
+| `trade-sold-items-persist-in-merchant-inventory` | items sold to a merchant join its persistent serialized inventory and survive close/reopen+save; the original drops sold goods into a throwaway session oCStealContainer freed on trade-close (merchants aren't storage). Fix needs a genuine session-temp trade-container model, not a one-line edit — structural, deferred |
+| `mobstate-trigger-onstate-state-index` | MOBSI on_state_S{k}/trigger may fire at the source vs destination state index; trigger-bearing mobs (switches/doors) use an un-decompiled OnEndStateChange override and the OG-vs-original state base wasn't pinned — blind re-keying risks regressing working doors/switches — Low-Medium, deferred |
+| `sky-weather-subsystem` | NO FINDING — OG's sky is a clean custom PBR renderer (not a value-for-value zCSkyState reimplementation) and rain/weather is unimplemented (Wld_IsRaining stubbed false), so there is no original constant to diff against; setDayTime already matches |
 
