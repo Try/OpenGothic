@@ -2172,12 +2172,19 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
     mvAlgo.accessDamFly(x-other.x, z-other.z, lastHitType);
     }
 
+  // NOTE: in original-game oCNpc::AssessDamage_S (Gothic2.exe 0x0075c280) the witness broadcast
+  // CreatePassivePerception(PERC_ASSESSOTHERSDAMAGE) fires together with the self PERC_ASSESSDAMAGE
+  // whenever the hit lands, with no dependency on the net damage value -- so a blow fully absorbed
+  // by armour (value==0) still alerts nearby NPCs. OpenGothic nested it under value>0, suppressing
+  // that witness reaction. The value-dependent DEFEAT/MURDER/AARGH reactions stay under value>0.
+  if(hitResult.hasHit && (bMask&(COLL_APPLYVICTIMSTATE|COLL_DOEVERYTHING)))
+    owner.sendPassivePerc(*this,other,*this,PERC_ASSESSOTHERSDAMAGE);
+
   if(hitResult.value>0) {
     currentOther = &other;
     changeAttribute(ATR_HITPOINTS,-hitResult.value,dontKill);
 
     if(bMask&(COLL_APPLYVICTIMSTATE|COLL_DOEVERYTHING)) {
-      owner.sendPassivePerc(*this,other,*this,PERC_ASSESSOTHERSDAMAGE);
       if(isUnconscious()){
         owner.sendPassivePerc(*this,other,*this,PERC_ASSESSDEFEAT);
         }
