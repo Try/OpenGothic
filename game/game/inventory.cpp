@@ -575,13 +575,19 @@ void Inventory::updateRuneView(Npc &owner) {
 
 void Inventory::equipBestMeleeWeapon(Npc &owner) {
   auto a = bestMeleeWeapon(owner);
-  if(a!=nullptr)
+  // NOTE: in original-game oCNpc::EquipBestWeapon @0x0074ef30 returns without re-equipping when the
+  // best usable item already carries the equipped flag (HasFlag 0x40000000); setSlot has no
+  // next==slot guard, so re-equipping the same item re-fires its on_unequip/on_equip callbacks on
+  // every world re-insert (resetPositionToTA runs this for all NPCs). Only swap to a different item.
+  if(a!=nullptr && !a->isEquipped())
     setSlot(melee,a,owner,false);
   }
 
 void Inventory::equipBestRangedWeapon(Npc &owner) {
   auto a = bestRangedWeapon(owner);
-  if(a!=nullptr)
+  // NOTE: in original-game oCNpc::EquipBestWeapon @0x0074ef30 returns without re-equipping the
+  // already-equipped best item (avoids re-firing on_un/on_equip); see equipBestMeleeWeapon.
+  if(a!=nullptr && !a->isEquipped())
     setSlot(range,a,owner,false);
   }
 
@@ -1031,7 +1037,10 @@ void Inventory::equipArmor(int32_t cls, Npc &owner) {
 
 void Inventory::equipBestArmor(Npc &owner) {
   auto a = bestArmor(owner);
-  if(a!=nullptr)
+  // NOTE: in original-game oCNpc::EquipBestArmor @0x0074f0b0 returns without re-equipping the
+  // already-equipped best armor (avoids re-firing on_un/on_equip on every re-insert); see
+  // equipBestMeleeWeapon.
+  if(a!=nullptr && !a->isEquipped())
     setSlot(armor,a,owner,false);
   }
 
