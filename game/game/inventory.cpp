@@ -238,9 +238,11 @@ Item* Inventory::addItem(std::unique_ptr<Item> &&p) {
     items.emplace_back(std::move(p));
     return items.back().get();
     } else {
+    // NOTE: in original-game oCNpcInventory::Insert @0x0070c730 a stack-merge only sums the count
+    // and destroys the incoming item; it never copies owner/owner_guild onto the surviving stack,
+    // so the existing stack keeps its ownership. OpenGothic retagged the whole stack with the
+    // incoming (e.g. NPC-owned) item's owner, flipping later Npc_OwnedByNpc theft results.
     it->setCount(it->count()+p->count());
-    it->handle().owner       = p->handle().owner;
-    it->handle().owner_guild = p->handle().owner_guild;
     return p.get();
     }
   }
@@ -943,15 +945,17 @@ bool Inventory::use(size_t cls, Npc &owner, uint8_t slotHint, bool force) {
       }
     }
 
-  // NOTE: in original-game oCNpc::UseItem (Gothic2.exe 0x0073bc10) gates EVERY item category
-  // through CanUse, which fails (G_CANNOTUSE) when any cond_value[i] > self.attribute[cond_atr[i]].
-  // OpenGothic only gated the equip/setSlot path, so a food/potion with an unmet attribute
-  // requirement was consumed anyway.
+  // NOTE: in original-game oCNpc::UseItem (Gothic2.exe 0x0073bc10) calls CanUse (0x007319b0),
+  // which on an unmet cond_atr requirement invokes G_CANNOTUSE for every NPC and returns 0. But
+  // UseItem aborts (returns, item not used) ONLY when "this == player"; an NPC whose CanUse fails
+  // falls through and uses the item anyway. So the attribute gate blocks the player only (e.g. a
+  // combat NPC scripted to AI_UseItem a potion it does not "qualify" for still drinks it).
   if(!force) {
     int32_t atr=0,nValue=0;
     if(!it->checkCondUse(owner,atr,nValue)) {
       owner.world().script().printCannotUseError(owner,atr,nValue);
-      return false;
+      if(owner.isPlayer())
+        return false;
       }
     }
 
@@ -1051,7 +1055,6 @@ Item* Inventory::findByFlags(ItmFlags f, uint32_t num) const {
 
 Item* Inventory::bestItem(Npc &owner, ItmFlags f) {
   Item*   ret    = nullptr;
-  int32_t value  = std::numeric_limits<int32_t>::min();
   int32_t damage = std::numeric_limits<int32_t>::min();
   for(auto& i:items) {
     auto& itData = i->handle();
@@ -1076,10 +1079,14 @@ Item* Inventory::bestItem(Npc &owner, ItmFlags f) {
       for(size_t d=0; d<zenkit::DamageType::NUM; ++d)
         key += itData.damage[d];
       }
-    if(std::make_tuple(key, itData.value)>std::make_tuple(damage, value)){
+    // NOTE: in original-game the inventory display-sort comparator @0x00705B80 (which
+    // EquipBestWeapon @0x0074ef30 / EquipBestArmor @0x0074f0b0 walk to take the first usable item)
+    // breaks an equal full-damage/protection tie on display name (oCItem::GetText) ascending
+    // @0x00705eb0 -- there is no value/cost key. OG tie-broke by value, equipping the costliest
+    // candidate; mirror the name tie-break instead.
+    if(ret==nullptr || key>damage || (key==damage && i->displayName()<ret->displayName())){
       ret    = i.get();
       damage = key;
-      value  = itData.value;
       }
     }
   return ret;
