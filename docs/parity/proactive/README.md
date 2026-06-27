@@ -112,6 +112,8 @@ patch with a `// NOTE: in original-game …` citation.
 | DetectNpcEx KO | Wld_DetectNpcEx detected unconscious NPCs; original aliveOnly requires alive+conscious | `gamescript.cpp` `wld_detectnpcex` |
 | Spell pass-through | every spell stopped on the first NPC; original passes through unless emActionCollDyn has COLLIDE | `bullet.cpp` `onCollide` |
 | Partial-buy warning | a partial-affordability buy was silent; original warns "not enough gold" too | `npc.cpp` `buyItem` |
+| IsInRoutine state | Npc_IsInRoutine returned false during combat/dialog; original checks the routine schedule only | `npc.cpp` `isInRoutine` |
+| PFX scale-key step | non-smooth PFX emit-rate key sampled nearest (half-step early); original holds the floor key | `particlefx.cpp` `fetchScaleKey` |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
@@ -190,4 +192,8 @@ patch with a `// NOTE: in original-game …` citation.
 | `usewith-interactitem-inventory-removal` | a mob's useWithItem should pull the required item out of inventory into a held interact-item (owned vob); OG records only a non-owning curItem view. The restore/destroy lifecycle is scheme-dependent — a decrement-on-attach half-fix risks item loss — agent-deferred |
 | `vobanim-starton-ontrigger-ignored` | zCVobAnimate's start_on flag and OnTrigger/OnUntrigger animation toggle are ignored (OG loads it as an always-animating StaticObj); needs a trigger-routed vob class + morph-start gating — a start_on-only half-fix would freeze such vobs — agent-deferred |
 | `restock-tradelist-flag-0x10-hide` | the original trade list hides items with item-flag 0x10 (a bit absent from ZenKit's ItemFlag enum, no confirmed standard usage) — left out to avoid a false positive |
+| `visbody-armor-visual-skin` | equipped armor mesh should use the item's visual_skin variant (currently uses the wearer's body-tex); a clear ignored-field bug, but OG's flattened single-texVar mesh can't separate the BODY/ARMOR nodes the original textures separately, so exposed-skin submeshes would shift — visual trade-off, needs on-screen validation |
+| `dodge-strafe-space-gating` | AI strafe direction + jump-back go/no-go should be gated on a free-space collision sweep (original CanStrafe/CanJumpBack); OG picks the strafe side with rand(2) and jump-backs unconditionally. Needs the original's swept-box fight-movement collision OG lacks — agent-deferred |
+| `saveglob-daedalus-global-scope` | OG persists FLOAT/STRING/INSTANCE .dat globals the original never saves (only non-const INT globals); restricting saveSym to INT-only matches the original but removes persisted state with low base-game impact and OG/mod-regression risk — agent-deferred |
+| `spellspawn-notarget-ignores-origin-node` | an untargeted spell cast spawns from the weapon bone, ignoring the FX emTrjOriginNode the targeted branch honors; Medium + config-dependent (only matters when the origin node differs from the weapon bone) — visual, deferred |
 
