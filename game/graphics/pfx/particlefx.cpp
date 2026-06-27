@@ -309,7 +309,10 @@ float ParticleFx::fetchScaleKey(uint64_t time, const KeyList& keys, float fps, b
   float k1 = keys[frameB];
   if(smooth)
     return k0+alpha*(k1-k0);
-  if(alpha<0.5)
-    return k0; else
-    return k1;
+  // NOTE: in original-game zCParticleFX::GetNumParticlesThisFrame @0x005b1a90 and
+  // GetShapeScaleThisFrame @0x005b1920 a non-smooth scale key holds key[floor(phase)] (a step
+  // function) for the whole key interval and never rounds to the nearest key. OpenGothic sampled
+  // the nearest key (k1 once alpha>=0.5), advancing half a key-step early and shifting the whole
+  // emit-rate/shape profile forward (emission ramped down/stopped earlier). Hold the floor key.
+  return k0;
   }
