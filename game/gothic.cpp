@@ -1039,7 +1039,16 @@ int Gothic::hlp_random(int max) {
   }
 
 bool Gothic::hlp_strcmp(std::string_view a, std::string_view b) {
-  return a == b;
+  // NOTE: in original-game Hlp_StrCmp @0x6eebe0 both operands are passed through zSTRING::Upper()
+  // before comparison, so the test is case-INsensitive and returns TRUE when the strings are equal.
+  // OpenGothic returned a byte-exact a==b (case-sensitive), so e.g. Hlp_StrCmp("Adanos","ADANOS")
+  // wrongly returned false.
+  if(a.size()!=b.size())
+    return false;
+  for(size_t i=0; i<a.size(); ++i)
+    if(std::tolower((unsigned char)a[i]) != std::tolower((unsigned char)b[i]))
+      return false;
+  return true;
   }
 
 void Gothic::introducechapter(std::string_view title, std::string_view subtitle, std::string_view img, std::string_view sound, int time) {
