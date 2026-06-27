@@ -280,7 +280,10 @@ void MainWindow::paintEvent(PaintEvent& event) {
       auto hour = world->time().hour();
       auto min  = world->time().minute();
       auto& fnt = Resources::font(scale);
-      string_frm clockT(int(hour),":",int(min));
+      // NOTE: in original-game oCWorldTimer::GetTimeString @0x00780ec0 the clock is formatted "H:MM"
+      // -- hour unpadded, minute zero-padded to two digits. OpenGothic printed both with %d, so a
+      // minute below 10 rendered as "8:5"/"13:7" instead of "8:05"/"13:07".
+      string_frm clockT(int(hour),":",(min<10 ? "0" : ""),int(min));
       fnt.drawText(p,w()-fnt.textSize(clockT).w-5,fnt.pixelSize()+5,clockT);
       }
 
