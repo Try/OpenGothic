@@ -109,6 +109,9 @@ patch with a `// NOTE: in original-game …` citation.
 | on_state item bind | a consumable's on_state ran with a stale `item` global; original binds ITEM first | `inventory.cpp` `use`/`putState` |
 | Rune sort | runes were ordered by value; original sorts the rune category alphabetically (name only) | `inventory.cpp` `less` |
 | Inventory cursor | cursor stepped back to the previous item after a consume; original keeps the slot index | `inventorymenu.cpp` `onItemAction` |
+| DetectNpcEx KO | Wld_DetectNpcEx detected unconscious NPCs; original aliveOnly requires alive+conscious | `gamescript.cpp` `wld_detectnpcex` |
+| Spell pass-through | every spell stopped on the first NPC; original passes through unless emActionCollDyn has COLLIDE | `bullet.cpp` `onCollide` |
+| Partial-buy warning | a partial-affordability buy was silent; original warns "not enough gold" too | `npc.cpp` `buyItem` |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
@@ -183,4 +186,8 @@ patch with a `// NOTE: in original-game …` citation.
 | `quake-trigger-stub-no-camera-tremor` | zCEarthquake::OnTrigger is a stub; original applies a positional camera tremor (radius/falloff/decay). OG's only shake (GlobalEffects::shake) is global/non-positional — needs a new positional tremor subsystem — agent-deferred |
 | `hitframe-window-limb-cleave` | melee hit is a single-frame focus-only hit; the original opens a hit *window* polling weapon-limb model collision (cleave through every NPC in range). Needs the whole limb-collision subsystem OG lacks; a radius-cleave shortcut is feel-tuning — agent-deferred |
 | `rotate-completion-threshold-2x-step` | rotateTo snaps to target from within 2× the per-frame step; the original clamps each frame to one step (exact landing). One-line (step*2→step) but it changes NPC turn smoothness — turn-feel, needs on-screen validation |
+| `recover-standupquick-snap` | AI_StandUpQuick should snap to standing without the get-up transition or queue-block (the original passes a quick-flag); OG collapses both StandUp variants into the animated, queue-blocking handler. AI-queue-sensitive with an animation-resolution caveat — needs runtime |
+| `usewith-interactitem-inventory-removal` | a mob's useWithItem should pull the required item out of inventory into a held interact-item (owned vob); OG records only a non-owning curItem view. The restore/destroy lifecycle is scheme-dependent — a decrement-on-attach half-fix risks item loss — agent-deferred |
+| `vobanim-starton-ontrigger-ignored` | zCVobAnimate's start_on flag and OnTrigger/OnUntrigger animation toggle are ignored (OG loads it as an always-animating StaticObj); needs a trigger-routed vob class + morph-start gating — a start_on-only half-fix would freeze such vobs — agent-deferred |
+| `restock-tradelist-flag-0x10-hide` | the original trade list hides items with item-flag 0x10 (a bit absent from ZenKit's ItemFlag enum, no confirmed standard usage) — left out to avoid a false positive |
 
