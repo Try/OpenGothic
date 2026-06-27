@@ -1130,12 +1130,24 @@ Item *Inventory::bestRangedWeapon(Npc &owner) {
 
 void Inventory::applyWeaponStats(Npc& owner, const Item &weapon, int sgn) {
   auto& hnpc = owner.handle();
+  auto& h    = weapon.handle();
   //hnpc.damagetype = sgn>0 ? weapon.handle()->damageType : (1 << GEngineClasses::DAM_INDEX_BLUNT);
+  // NOTE: in original-game ApplyDamages (Gothic2.exe 0x0065e5a0, called from oCItem::InitByScript
+  // @0x00711bd0) the scalar damage_total is spread EVENLY across the set damage types: each set type
+  // gets damage_total/numSetTypes, and only into a per-type slot that is still 0 (an authored
+  // damage[i] is kept and the scalar is NOT added on top). Adding the full damage_total to every set
+  // type multiplied a multi-type weapon's damage by the number of types and double-counted explicit
+  // per-type values. The vanilla single-type / zero-per-type weapon is unchanged; symmetric under sgn.
+  int numTypes = 0;
+  for(size_t i=0; i<zenkit::DamageType::NUM; ++i)
+    if(h.damage_type & (1<<i))
+      ++numTypes;
+  const int32_t spread = numTypes>0 ? h.damage_total/numTypes : 0;
   for(size_t i=0; i<zenkit::DamageType::NUM; ++i){
-    hnpc.damage[i] += sgn*weapon.handle().damage[i];
-    if(weapon.handle().damage_type & (1<<i)) {
-      hnpc.damage[i] += sgn*weapon.handle().damage_total;
-      }
+    int32_t d = h.damage[i];
+    if((h.damage_type & (1<<i)) && d==0)
+      d = spread;
+    hnpc.damage[i] += sgn*d;
     }
 
   // assert inconsistent plus/minus
