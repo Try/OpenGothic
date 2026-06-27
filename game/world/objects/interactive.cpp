@@ -718,6 +718,14 @@ bool Interactive::checkUseConditions(Npc& npc) {
       sc.printMobMissingLockpick(npc);
       return false;
       }
+    else if(locked && !isLockCracked) {
+      // NOTE: in original-game oCMobLockable::CanOpen (Gothic2.exe 0x007244f0) a locked mob with
+      // neither a key-instance nor a pick-combination string is a permanently locked "never open"
+      // object: the player is refused and PLAYER_MOB_NEVER_OPEN is emitted. OpenGothic fell through
+      // the player branch and opened it freely. Gate on `locked` so plain mobs are unaffected.
+      sc.printMobNeverOpen(npc);
+      return false;
+      }
 
     }
 
