@@ -2463,7 +2463,13 @@ void Npc::tickAnimationTags() {
   // persistent sneak walk-mode, not the transient body-state: during a mobsi interaction
   // (e.g. lock-picking) the body-state leaves BS_SNEAK, which wrongly let footstep sounds
   // wake nearby NPCs while still sneaking (#639). Key it off the WM_Sneak walk-flag.
-  if(ev.groundSounds>0 && isPlayer() && (wlkMode&WalkBit::WM_Sneak)!=WalkBit::WM_Sneak)
+  // NOTE: in original-game oCAIHuman::CreateFootStepSound @0x0069b180 the quiet-sound perception
+  // (AssessQuietSound_S) only runs while IsWalking() and the AI water-mode is not the dive value --
+  // never airborne, swimming, or diving. The gfx ground-events driving ev.groundSounds still fire
+  // underwater (see the audible-footstep gate at animation.cpp processSfx), so without this gate a
+  // swimming/diving player kept broadcasting silent footstep perceptions; mirror the audible gate.
+  if(ev.groundSounds>0 && isPlayer() && (wlkMode&WalkBit::WM_Sneak)!=WalkBit::WM_Sneak &&
+     !isInAir() && !isSwim() && !isDive())
     world().sendImmediatePerc(*this,*this,*this,PERC_ASSESSQUIETSOUND);
   if(ev.def_opt_frame>0)
     commitDamage();
