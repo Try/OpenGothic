@@ -2178,7 +2178,13 @@ void GameScript::npc_exchangeroutine(std::shared_ptr<zenkit::INpc> npcRef, std::
 
 bool GameScript::npc_isdead(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
-  return npc==nullptr || isDead(*npc);
+  // NOTE: in original-game oCNpc::IsDead (Gothic2.exe 0x00736740, forwarded by the Npc_IsDead handler
+  // 0x006e8960) returns HITPOINTS<1 (HP<=0) -- a pure hitpoints test, NOT the ZS_Dead AI-state.
+  // OpenGothic's isDead() checks isInState(ZS_Dead), which disagrees when HP and the death state are
+  // out of sync (an HP-revived NPC still in ZS_Dead, or an NPC at HP<=0 that never ran onNoHealth). A
+  // null pointer is reported dead, matching the original handler's null-path return of 1. Scoped to
+  // the script external; the engine-internal isDead()/Npc::isDead() ZS_Dead bookkeeping is untouched.
+  return npc==nullptr || npc->attribute(ATR_HITPOINTS)<=0;
   }
 
 bool GameScript::npc_knowsinfo(std::shared_ptr<zenkit::INpc> npcRef, int infoinstance) {
