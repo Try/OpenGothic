@@ -11,6 +11,11 @@ class QuestLog final {
     QuestLog();
 
     enum class Status : uint8_t {
+      // NOTE: in original-game Log_CreateTopic @0x006e3ca0 a new oCLogTopic is initialized with
+      // status 0 (field +0x18), which oCMenu_Log::SetLogTopics @0x0047bf90 maps to NO mission tab
+      // until Log_SetTopicStatus sets RUNNING/SUCCESS/FAILED. OpenGothic defaulted to Running, so a
+      // mission topic created without an explicit status was wrongly shown as a current quest.
+      None     = 0,
       Running  = 1,
       Success  = 2,
       Failed   = 3,
@@ -25,7 +30,7 @@ class QuestLog final {
     struct Quest {
       std::string name;
       Section     section=Section::Mission;
-      Status      status =Status::Running;
+      Status      status =Status::None;
 
       std::vector<std::string> entry;
       };
