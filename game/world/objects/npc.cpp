@@ -3820,6 +3820,14 @@ bool Npc::canSwitchWeapon() const {
   // OG's body-state allow-list omits BS_MOBINTERACT, so drawing at a forge/bench was ignored.
   if(interactive()!=nullptr)
     return true;
+  // NOTE: in original-game oCNpc::CanDrawWeapon (Gothic2.exe 0x006805c0) also returns true when
+  // GetWeaponMode()==5 (bow) / ==6 (crossbow): a readied ranged weapon can always be switched, even
+  // from non-stand/walk states. IsStanding/IsWalking are false during the aim ani (BS_AIMNEAR/
+  // BS_AIMFAR), so without this clause OG could not switch off (or holster-redraw) a drawn bow while
+  // aiming -- every drawWeapon*/AI_DrawWeapon* path silently no-op'd.
+  auto ws = weaponState();
+  if(ws==WeaponState::Bow || ws==WeaponState::CBow)
+    return true;
   auto bs = bodyStateMasked();
   if(bs==BS_STAND || bs==BS_WALK || bs==BS_RUN || bs==BS_SNEAK || bs==BS_NONE)
     return true;
