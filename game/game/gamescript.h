@@ -300,6 +300,7 @@ class GameScript final {
     int  npc_getinvitembyslot(std::shared_ptr<zenkit::INpc> npcRef, int cat, int slotnr);
     int  npc_removeinvitem   (std::shared_ptr<zenkit::INpc> npcRef, int itemId);
     int  npc_removeinvitems  (std::shared_ptr<zenkit::INpc> npcRef, int itemId, int amount);
+    void npc_giveitem        (std::shared_ptr<zenkit::INpc> giverRef, int itemInstance, std::shared_ptr<zenkit::INpc> receiverRef);
     int  npc_getbodystate    (std::shared_ptr<zenkit::INpc> npcRef);
     std::shared_ptr<zenkit::INpc> npc_getlookattarget (std::shared_ptr<zenkit::INpc> npcRef);
     int  npc_getdisttonpc    (std::shared_ptr<zenkit::INpc> aRef, std::shared_ptr<zenkit::INpc> bRef);

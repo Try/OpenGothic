@@ -176,6 +176,7 @@ void GameScript::initCommon() {
   bindExternal("npc_getinvitembyslot",           &GameScript::npc_getinvitembyslot);
   bindExternal("npc_removeinvitem",              &GameScript::npc_removeinvitem);
   bindExternal("npc_removeinvitems",             &GameScript::npc_removeinvitems);
+  bindExternal("npc_giveitem",                   &GameScript::npc_giveitem);
   bindExternal("npc_getbodystate",               &GameScript::npc_getbodystate);
   bindExternal("npc_getlookattarget",            &GameScript::npc_getlookattarget);
   bindExternal("npc_getdisttonpc",               &GameScript::npc_getdisttonpc);
@@ -2314,6 +2315,21 @@ int GameScript::npc_removeinvitems(std::shared_ptr<zenkit::INpc> npcRef, int ite
   if(had && amount>0)
     npc->delItem(uint32_t(itemId),uint32_t(amount));
   return had ? 1 : 0;
+  }
+
+void GameScript::npc_giveitem(std::shared_ptr<zenkit::INpc> giverRef, int itemInstance,
+                              std::shared_ptr<zenkit::INpc> receiverRef) {
+  // NOTE: in original-game Npc_GiveItem @0x006e73e0 removes exactly one unit of the item from the
+  // giver (RemoveFromInv @0x007495f0, hard-coded count 1) and deposits it into the receiver
+  // (PutInInv @0x00749350). Declared arg order is (giver, item, receiver). OpenGothic left this
+  // external unbound, so the call hit the default not-implemented handler and transferred nothing.
+  auto giver    = findNpc(giverRef);
+  auto receiver = findNpc(receiverRef);
+  if(giver==nullptr || receiver==nullptr || itemInstance<0)
+    return;
+  if(giver->itemCount(uint32_t(itemInstance))==0)
+    return;
+  receiver->addItem(uint32_t(itemInstance),*giver,1);
   }
 
 int GameScript::npc_getbodystate(std::shared_ptr<zenkit::INpc> npcRef) {
