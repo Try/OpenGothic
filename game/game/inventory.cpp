@@ -1163,7 +1163,11 @@ bool Inventory::less(const Item &il, const Item &ir) {
     return false;
 
   int32_t lV = 0, rV = 0;
-  if(il.mainFlag() & (ItmFlags::ITM_CAT_FOOD | ItmFlags::ITM_CAT_POTION | ItmFlags::ITM_CAT_DOCS)) {
+  // NOTE: in original-game inventory sort comparator @0x00705B80 the rune branch (category id 3)
+  // falls straight to the name-only tie-break @0x00705EB0 -- value/cost is never a rune sort key,
+  // so vanilla runes are strictly alphabetical. OpenGothic applied the -cost tie-break to runes
+  // (they're not in the zeroing set), reordering the spell-book roughly "expensive first".
+  if(il.mainFlag() & (ItmFlags::ITM_CAT_FOOD | ItmFlags::ITM_CAT_POTION | ItmFlags::ITM_CAT_DOCS | ItmFlags::ITM_CAT_RUNE)) {
     lV = 0;
     rV = 0;
     } else {
