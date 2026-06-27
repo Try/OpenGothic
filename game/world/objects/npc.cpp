@@ -880,7 +880,17 @@ void Npc::dropTorch(bool burnout) {
   }
 
 Tempest::Vec3 Npc::animMoveSpeed(uint64_t dt) const {
-  return visual.pose().animMoveSpeed(owner.tickCount(),dt);
+  // NOTE: in original-game zCModel::GetTrafoNodeToModel @0x0057a9c0 post-multiplies the node-to-model
+  // trafo by Alg_Scaling3D(model_scale) when the scaled flag (zCModel::SetModelScale @0x0057dc30) is
+  // active, so anim-derived root motion is scaled by model_scale (in model-local space, before the
+  // model-to-world rotation). OpenGothic applied sz only to the render matrix, so a scaled NPC played
+  // its walk/run cycle stretched but translated at base speed. Scale the delta before applyRotation
+  // (the consumer rotates after this call); a no-op for the default sz=={1,1,1}.
+  auto dp = visual.pose().animMoveSpeed(owner.tickCount(),dt);
+  dp.x *= sz[0];
+  dp.y *= sz[1];
+  dp.z *= sz[2];
+  return dp;
   }
 
 void Npc::setVisual(const Skeleton* v) {
