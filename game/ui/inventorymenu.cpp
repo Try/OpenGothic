@@ -747,8 +747,14 @@ void InventoryMenu::drawInfo(Painter &p) {
     // prints oCItem::GetValue @0x00712650 (condition-scaled value, ceil(value*hp/hp_max)), not the
     // raw COUNT[5] -- COUNT[5] only gates the row's visibility. OpenGothic showed the raw value, so
     // a damaged item's non-trade info-box displayed its full un-scaled value.
+    // NOTE: in original-game oCItemContainer::DrawItemInfo @0x00706e40 the value row applies the
+    // TRADE_VALUE_MULTIPLIER for every container in display-mode 5. Both trade columns are mode 5 --
+    // the player's sell inventory (oCViewDialogInventory::StartSelection @0x00689270) and the
+    // merchant's buy goods (oCViewDialogStealContainer::StartSelection @0x0068a7c0) -- so the info box
+    // shows the discounted value round(mult*value) on BOTH sides while trading. OpenGothic discounted
+    // only the player's own page, leaving the merchant's items at full value.
     if(i+1==Item::MAX_UI_ROWS){
-      if(state==State::Trade && player!=nullptr && pg.is(&player->inventory()))
+      if(state==State::Trade && player!=nullptr)
         val = r.sellCost();
       else
         val = r.cost();
