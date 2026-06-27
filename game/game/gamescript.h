@@ -304,6 +304,7 @@ class GameScript final {
     int  npc_getbodystate    (std::shared_ptr<zenkit::INpc> npcRef);
     std::shared_ptr<zenkit::INpc> npc_getlookattarget (std::shared_ptr<zenkit::INpc> npcRef);
     int  npc_getdisttonpc    (std::shared_ptr<zenkit::INpc> aRef, std::shared_ptr<zenkit::INpc> bRef);
+    bool npc_isnear          (std::shared_ptr<zenkit::INpc> aRef, std::shared_ptr<zenkit::INpc> bRef);
     bool npc_hasequippedarmor(std::shared_ptr<zenkit::INpc> npcRef);
     void npc_setperctime     (std::shared_ptr<zenkit::INpc> npcRef, float sec);
     void npc_percenable      (std::shared_ptr<zenkit::INpc> npcRef, int pr, int fn);

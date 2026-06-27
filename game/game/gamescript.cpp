@@ -180,6 +180,7 @@ void GameScript::initCommon() {
   bindExternal("npc_getbodystate",               &GameScript::npc_getbodystate);
   bindExternal("npc_getlookattarget",            &GameScript::npc_getlookattarget);
   bindExternal("npc_getdisttonpc",               &GameScript::npc_getdisttonpc);
+  bindExternal("npc_isnear",                     &GameScript::npc_isnear);
   bindExternal("npc_hasequippedarmor",           &GameScript::npc_hasequippedarmor);
   bindExternal("npc_setperctime",                &GameScript::npc_setperctime);
   bindExternal("npc_percenable",                 &GameScript::npc_percenable);
@@ -2381,6 +2382,18 @@ int GameScript::npc_getdisttonpc(std::shared_ptr<zenkit::INpc> aRef, std::shared
   if(ret>float(std::numeric_limits<int32_t>::max()))
     return std::numeric_limits<int32_t>::max();
   return int(ret);
+  }
+
+bool GameScript::npc_isnear(std::shared_ptr<zenkit::INpc> aRef, std::shared_ptr<zenkit::INpc> bRef) {
+  auto a = findNpc(aRef);
+  auto b = findNpc(bRef);
+  if(a==nullptr || b==nullptr)
+    return false;
+  // NOTE: in original-game Npc_IsNear (Gothic2.exe FUN_006f1f70 -> oCNpc::IsNear @0x0073fcc0) returns
+  // TRUE when the squared 3D distance between the two NPCs is < 250000 (radius 500 units); FALSE when
+  // either handle is invalid. OpenGothic left it unbound (default handler -> always false). qDistTo()
+  // already returns the squared distance.
+  return a->qDistTo(*b) < 250000.f;
   }
 
 bool GameScript::npc_hasequippedarmor(std::shared_ptr<zenkit::INpc> npcRef) {
