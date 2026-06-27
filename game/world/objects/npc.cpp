@@ -4850,6 +4850,13 @@ void Npc::transformBack() {
 
   invent.updateView(*this);
   transformSpl.reset();
+
+  // NOTE: in original-game oCSpell::EndTimedEffect @0x00486e10 the final act of the transform revert
+  // is oCNpc::CreatePassivePerception(self,0x1e,self,NULL) @0x0075b270 -- a PERC_ASSESSSURPRISE (30)
+  // broadcast from the restored caster (OTHER=self, no VICTIM), so bystanders react with surprise
+  // when a shapeshifter morphs back to its true form. OpenGothic restored the npc but never emitted
+  // the perception.
+  owner.sendPassivePerc(*this,*this,PERC_ASSESSSURPRISE);
   }
 
 std::vector<GameScript::DlgChoice> Npc::dialogChoices(Npc& player,const std::vector<uint32_t> &except,bool includeImp) {
