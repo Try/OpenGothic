@@ -744,8 +744,16 @@ Sound World::addWeaponHitEffect(Npc& src, const Bullet* srcArrow, Npc& reciver) 
     }
 
   if(srcArrow!=nullptr && !srcArrow->isSpell()) {
+    // NOTE: in original-game oCAniCtrl_Human::CreateHit @0x006b0830 / OnDamage_Effects_Start
+    // @0x0066ee40 the hit FX is spawned at the impact point (the struck vob), never at the
+    // striker<->victim midpoint. For a flying arrow the striker is the projectile origin (the
+    // archer, often metres away), so the midpoint floats the spark/sound in mid-air; the impact
+    // is on the victim. Position the ranged-hit FX at the victim centre, not the midpoint.
+    Tempest::Matrix4x4 apos;
+    apos.identity();
+    apos.translate(p1);
     auto m = ItemMaterial(srcArrow->itemMaterial());
-    return addHitEffect(materialTag(m),armor,"IAM",pos);
+    return addHitEffect(materialTag(m),armor,"IAM",apos);
     }
 
   if(auto w = src.inventory().activeWeapon()) {
