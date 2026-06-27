@@ -141,7 +141,10 @@ void Inventory::implLoad(Npc* owner, World& world, Serialize &s) {
     active=&melee;
   else if(id==2)
     active=&range;
-  else if(3<=id && id<10)
+  // NOTE: the player has eight magic keys (3,4,5,6,7,8,9,0), mirrored as numslot[0..7] (ids 3..10);
+  // the save block writes id = 3+i up to 10, so the load bound must accept id==10 (the 8th magic
+  // slot). `id<10` dropped the highest readied spell on reload, leaving Inventory::active==nullptr.
+  else if(3<=id && id<11)
     active=&numslot[id-3];
   s.read(curItem,stateItem);
 
