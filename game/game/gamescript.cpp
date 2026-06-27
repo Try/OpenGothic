@@ -1066,6 +1066,17 @@ void GameScript::printMobMissingLockpick(Npc& npc) {
   vm.call_function<void>(id);
   }
 
+void GameScript::printMobNeverOpen(Npc& npc) {
+  auto id = vm.find_symbol_by_name("player_mob_never_open");
+  if(id==nullptr) {
+    if(owner.version().game==1)
+      owner.player()->playAnimByName("T_DONTKNOW", BS_NONE);
+    return;
+    }
+  ScopeVar self(*vm.global_self(), npc.handlePtr());
+  vm.call_function<void>(id);
+  }
+
 void GameScript::printMobTooFar(Npc& npc) {
   auto id = vm.find_symbol_by_name("player_mob_too_far_away");
   if(id==nullptr) {
@@ -1362,9 +1373,14 @@ uint32_t GameScript::messageTime(std::string_view id) const {
   if(s.timeLength()>0) {
     time = uint32_t(s.timeLength());
     } else {
+    // NOTE: in original-game oCMsgConversation::MD_GetMinTime @0x0076af50 the OUTPUT-message
+    // duration, when no voice sample is present, is hard-coded as (charCount/6.0 + 1.0) seconds
+    // with NO upper clamp (== charCount*166.667ms + 1000ms). The 1/6s per-char and 1s base are
+    // literals, NOT VIEW_TIME_PER_CHAR; VIEW_TIME_PER_CHAR (viewTimePerChar, 550ms) only governs
+    // zCView::PrintTimed auto-timed text, not the AI_Output line lifetime. OpenGothic used the
+    // 550ms print-timer constant plus a spurious 16s clamp, keeping voiceless subtitles up ~3x long.
     auto txt = messageByName(id);
-    time = uint32_t(float(txt.length())*viewTimePerChar);
-    time = std::min(time, 16000u);
+    time = uint32_t(float(txt.length())*(1000.f/6.f)) + 1000u;
     }
   return time;
   }
