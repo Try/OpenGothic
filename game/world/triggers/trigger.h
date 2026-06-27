@@ -7,4 +7,5 @@ class Trigger : public AbstractTrigger {
     Trigger(Vob* parent, World& world, const zenkit::VirtualObject& data, Flags flags);
 
     void onTrigger(const TriggerEvent& evt) override;
+    void onUntrigger(const TriggerEvent& evt) override;
   };
