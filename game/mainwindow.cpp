@@ -221,7 +221,12 @@ void MainWindow::paintEvent(PaintEvent& event) {
           float mp  = float(pl->attribute(ATR_MANA))     /float(pl->attribute(ATR_MANAMAX));
 
           bool showHealthBar = opt.showHealthBar;
-          bool showManaBar   = (opt.showManaBar==2) || (opt.showManaBar==1 && (pl->weaponState()==WeaponState::Mage || inventory.isActive()));
+          // NOTE: in original-game oCGame::UpdatePlayerStatus @0x006c3140 the mana bar is shown only
+          // when GetAttribute(player, ATR_MANAMAX) > 0 (in addition to the stance/inventory check); a
+          // MANAMAX==0 hero (default fresh start) never gets a mana bar, and gating here also avoids
+          // the MANA/MANAMAX == 0/0 == NaN fill fraction.
+          bool showManaBar   = (pl->attribute(ATR_MANAMAX)>0) &&
+                               ((opt.showManaBar==2) || (opt.showManaBar==1 && (pl->weaponState()==WeaponState::Mage || inventory.isActive())));
           bool showSwimBar   = (opt.showSwimBar==2) || (opt.showSwimBar==1 && pl->isDive());
 
           if(showHealthBar)
