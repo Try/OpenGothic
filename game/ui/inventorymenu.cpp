@@ -495,9 +495,21 @@ void InventoryMenu::onTakeStuff() {
     return;
   auto it = page.get(sel.sel);
   if(lootMode==LootMode::Normal) {
-    ++takeCount;
-    itemCount = uint32_t(std::pow(10,takeCount / 10));
-    if(it.count() <= itemCount) {
+    // NOTE: in original-game oCItemContainer::TransferCountToAmount @0x007046b0 maps the running
+    // transfer counter to a per-tick amount as a step function CAPPED at 10000 (1/10/100/1000/10000),
+    // and HandleEvent @0x0070a640 accumulates the counter BY THE AMOUNT (IncTransferCount: counter +=
+    // amount), resetting to 0 only when the stack empties. OpenGothic stepped takeCount by 1 and used
+    // an uncapped pow(10, takeCount/10), accelerating faster and never capping (grabbing a >10000
+    // stack whole in one tick instead of 10000/tick).
+    size_t amount = 1;
+    if(takeCount>=10000)     amount = 10000;
+    else if(takeCount>=1000) amount = 1000;
+    else if(takeCount>=100)  amount = 100;
+    else if(takeCount>=10)   amount = 10;
+    if(amount < it.count()) {
+      itemCount  = uint32_t(amount);
+      takeCount += amount;
+      } else {
       itemCount = uint32_t(it.count());
       takeCount = 0;
       }
