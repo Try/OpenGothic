@@ -4030,7 +4030,13 @@ Npc::BeginCastResult Npc::beginCastSpell() {
     return BeginCastResult::BC_No;
 
   setAnimRotate(0);
-  if(attribute(ATR_MANA)<=0) {
+  // NOTE: in original-game oCNpc::EV_CastSpell @0x0067fb20 has no engine-side mana<=0 pre-gate;
+  // the no-mana decision is left to the spell script. Scrolls (oCItem::MultiSlot, consumed by
+  // oCMag_Book::Spell_Cast @0x004767a0) bypass the mana-invest stage and cast via SPL_SENDCAST
+  // even at 0 mana -- that is the defining scroll mechanic. invokeMana() below already returns the
+  // correct status for runes, so skip the redundant pre-gate for scrolls (Item::isSpell() = the
+  // multi-slot scroll predicate) to avoid wrongly refusing a 0-mana scroll cast.
+  if(attribute(ATR_MANA)<=0 && !active->isSpell()) {
     setAnim(Anim::MagNoMana);
     return BeginCastResult::BC_NoMana;
     }
