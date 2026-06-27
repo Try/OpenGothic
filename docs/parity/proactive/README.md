@@ -93,6 +93,7 @@ patch with a `// NOTE: in original-game …` citation.
 | Fall damage 3D | fall damage scaled with 3D speed (horizontal inflates it); original uses vertical drop only | `npc.cpp` `takeFallDamage` |
 | World-start on load | zCTriggerWorldStart didn't fire on savegame load; original re-fires non-one-shot ones | `gamesession.cpp` |
 | Witness perception | PERC_ASSESSOTHERSDAMAGE gated on value>0; original fires it on any landed hit | `npc.cpp` `takeDamage` |
+| FLY throwback gate | FLY knockback fired without the victim-state collision flag; original requires it | `npc.cpp` `takeDamage` |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
@@ -154,4 +155,9 @@ patch with a `// NOTE: in original-game …` citation.
 | `heal-regen-rate-inverted` | THIRD re-confirmation of [[regen-rate-reciprocal]] (REGENERATE* is seconds-per-point, OG treats it points-per-second). Same deferral reasons: orders-of-magnitude flip, negative-drain removal risk, near-dead in vanilla, needs the retail values + runtime check |
 | `mobabort-hit-no-detach` | a non-fatal hit on an interruptable mob user should force-detach (Interrupt); OG gates the whole interrupt/stumble block behind interactive()==nullptr. Tangled with the deferred [[bsint-player-weapon-stumble-guard]] in the same block + movement-state change — needs runtime |
 | `ammo-infinite-munition-flag` | item-flag bit 25 (0x2000000) infinite-munition marker is unimplemented; full parity needs item-spawning plumbing for the empty-quiver case (non-surgical) and no confirmed vanilla item sets the bit — agent-deferred |
+| `important-chain-all` | important-info auto-play should chain ALL eligible important infos in one conversation; OG plays only the first (defers the rest to the next talk). High-value & well-reasoned but it's a 3-function dialog state-machine change (autoImportant flag) and stuck/looping dialogs are very visible — needs in-game dialog testing |
+| `statbar-divebar-never-drains` | the original's dive/breath bar renders permanently FULL (field 0x7d4 never decremented); OG drains it. Matching the original would REGRESS a useless bar into uselessness — OG's draining bar is a deliberate improvement, so intentionally not "fixed" |
+| `wait-standup-from-sit-no-queue-block` | AI_StandUp from a ground-sit (BS_SIT) should block the AI queue for the get-up anim (original keeps the msg at queue head); OG only does this for BS_LIE/UNCONSCIOUS. Residual uncertainty whether the sit model has a T_*_2_STAND transition — needs in-game check |
+| `craft-createitem-inventory-pollution` | DEF_CREATE_ITEM materializes the crafting work-piece as a real inventory item; the original spawns it as a slot-owned transient vob. OG's model slots are inventory-backed — a faithful match needs a new transient-view mechanism (non-surgical) + MDS create/remove pairing inspection — agent-deferred |
+| `itmidle-world-effect-glow` | world-item C_Item.effect glow/shimmer (oCItem::InsertEffect) is never spawned; purely visual and a faithful port needs Effect/PfxEmitter lifetime plumbing on Item — agent-deferred |
 
