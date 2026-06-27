@@ -14,6 +14,20 @@ TriggerList::TriggerList(Vob* parent, World &world, const zenkit::VTriggerList& 
   }
 
 void TriggerList::onTrigger(const TriggerEvent&) {
+  emitList(TriggerEvent::T_Trigger);
+  }
+
+void TriggerList::onUntrigger(const TriggerEvent&) {
+  // NOTE: in original-game zCTriggerList::UntriggerTarget @0x00615470 an untrigger runs the same
+  // zCTriggerList::DoTriggering @0x00615190 worker with the +0x200 direction flag cleared, so
+  // TriggerActTarget @0x00614f30 relays OnUntrigger to the selected target(s) using the same
+  // ALL/NEXT/RANDOM selection, per-target fire-delay, and shared list index as the trigger path.
+  // OpenGothic only overrode onTrigger, so untriggers hit the empty AbstractTrigger::onUntrigger
+  // and were dropped -- list-driven targets got the "on" half but never the "off" half.
+  emitList(TriggerEvent::T_Untrigger);
+  }
+
+void TriggerList::emitList(TriggerEvent::Type type) {
   if(targets.empty())
     return;
 
@@ -23,7 +37,7 @@ void TriggerList::onTrigger(const TriggerEvent&) {
       for(auto& i:targets) {
         offset += uint64_t(i.delay*1000);
         uint64_t time = world.tickCount()+offset;
-        TriggerEvent ex(i.name,vobName,time,TriggerEvent::T_Trigger);
+        TriggerEvent ex(i.name,vobName,time,type);
         world.execTriggerEvent(ex);
         }
       break;
@@ -33,7 +47,7 @@ void TriggerList::onTrigger(const TriggerEvent&) {
       next = (next+1)%uint32_t(targets.size());
 
       uint64_t time = world.tickCount()+uint64_t(i.delay*1000);
-      TriggerEvent ex(i.name,vobName,time,TriggerEvent::T_Trigger);
+      TriggerEvent ex(i.name,vobName,time,type);
       world.execTriggerEvent(ex);
       break;
       }
@@ -49,7 +63,7 @@ void TriggerList::onTrigger(const TriggerEvent&) {
       auto& i = targets[idx];
 
       uint64_t time = world.tickCount()+uint64_t(i.delay*1000);
-      TriggerEvent ex(i.name,vobName,time,TriggerEvent::T_Trigger);
+      TriggerEvent ex(i.name,vobName,time,type);
       world.execTriggerEvent(ex);
       break;
       }

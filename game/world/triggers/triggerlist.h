@@ -11,8 +11,10 @@ class TriggerList : public AbstractTrigger {
     TriggerList(Vob* parent, World &world, const zenkit::VTriggerList& data, Flags flags);
 
     void onTrigger(const TriggerEvent& evt) override;
+    void onUntrigger(const TriggerEvent& evt) override;
 
   private:
+    void emitList(TriggerEvent::Type type);
     void save(Serialize &fout) const override;
     void load(Serialize &fin) override;
 
