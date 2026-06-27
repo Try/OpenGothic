@@ -1700,14 +1700,17 @@ void GameScript::wld_playeffect(std::string_view visual, std::shared_ptr<zenkit:
 
   auto dstNpc = findNpcById(targetId);
   auto srcNpc = findNpcById(sourceId);
-
-  auto dstItm = findItemById(targetId);
   auto srcItm = findItemById(sourceId);
 
-  if(srcNpc!=nullptr && dstNpc!=nullptr) {
-    srcNpc->startEffect(*dstNpc,*vfx);
+  // NOTE: in original-game Wld_PlayEffect @0x006dfc20 only the *origin* (source) instance is
+  // null-checked ("Origin Script Instance is NULL!"); the target is optional and untyped, and the
+  // effect plays for any valid origin vob. OpenGothic required source and target to be both NPCs or
+  // both items, silently dropping null-target and mixed-type calls. Require only a valid origin and
+  // self-default a missing target (same self-default the spell-cast path uses at npc.cpp:3368).
+  if(srcNpc!=nullptr) {
+    srcNpc->startEffect((dstNpc!=nullptr) ? *dstNpc : *srcNpc, *vfx);
     } else
-  if(srcItm!=nullptr && dstItm!=nullptr){
+  if(srcItm!=nullptr){
     Effect e(*vfx,world(),srcItm->position());
     e.setActive(true);
     world().runEffect(std::move(e));
