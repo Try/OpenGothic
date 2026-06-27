@@ -145,6 +145,10 @@ patch with a `// NOTE: in original-game …` citation.
 | Follow stop distance | AI_GotoNpc used weapon/fight range; original follows to a fixed 200 units | `npc.cpp` `implGoTo` |
 | AI_Teleport interrupt | teleport left the NPC sliding/animating; original's BeamTo→ResetPos interrupts to idle | `npc.cpp` `AI_Teleport` |
 | Trade info value | merchant-side info-box showed full value; original discounts both trade columns (mode 5) | `inventorymenu.cpp` `drawInfo` |
+| Downed-player assess | PERC_ASSESSPLAYER fired on a dead/KO'd hero; original classifies a downed vob only as a body | `npc.cpp` `perceptionProcess` |
+| Mana-bar MANAMAX gate | mana bar drawn (NaN fill) for a MANAMAX==0 hero; original shows it only when MANAMAX>0 | `mainwindow.cpp` `showManaBar` |
+| Deep-water entry | a one-tick plunge into deep water gave fall damage + Run underwater; original always enters swim | `movealgo.cpp` water transition |
+| Npc_GiveItem binding | external was unbound (no transfer); bound to move one unit giver→receiver | `gamescript.cpp` `npc_giveitem` |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
@@ -249,4 +253,6 @@ patch with a `// NOTE: in original-game …` citation.
 | `snd3d-vobsound-volume-scale` | world VobSounds ignore the per-vob sndVolume (0-100%) the original scales by (CalcVolumeScale @0x0063dde0). Attempted but reverted: OG's Effect{occ,vol} re-applies occ*vol every frame in tickSlot, so a post-hoc Sound::setVolume is overwritten; a correct fix must thread sndVolume into the Effect base vol, not surgical here — deferred |
 | `summon-lifetime` | NO FINDING — summon lifetime/count/despawn/attitude are pure Daedalus (the original Wld_SpawnNpcRange/SummonNpc discard the lifeTime arg exactly like OG); Npc_IsSummoned/SetSummoned don't exist in vanilla G2. Only summon spawn-placement geometry differs (cosmetic, deferred) |
 | `combo-advance-snap-target` | a timed in-window combo press should fast-forward the swing to the DEF_WINDOW end frame (HitCombo @0x006b0260, record +0x1d8); OG snaps to defHitEnd[combo.len()] (the distinct DEF_HIT_END tag). OG's isFinished/atkTotalTime are keyed on defHitEnd, so re-targeting the snap could trip a premature combo-finish — needs runtime verification, deferred |
+| `noise-soundperc-bbox-cube-vs-sphere` | combat-noise/sound-perception recipients are gated by a sphere (dist²>range²) vs the original's axis-aligned CUBE (CollectVobsInBBox3D half-extent percRange), so corner allies (out to ~1.73× range) never hear the fight. Same cube-vs-sphere class as the deferred wld-detectitem; the fix also needs a downstream "pass 0" change to perceptionProcess so the shared active-path sphere doesn't re-reject corners — geometric + downstream risk, deferred |
+| `drop-freepos-settle` | dropped item placed at the raw hand position; the original DoDropVob @0x00744dd0 → oCVob::SearchFreePosition @0x0077ccb0 nudges it to the nearest reachable collision-free spot first (and gives a small throw velocity OG omits). A faithful grid-search port is large and Bullet already partly masks it — deferred |
 
