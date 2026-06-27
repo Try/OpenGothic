@@ -2973,14 +2973,15 @@ int GameScript::npc_getpermattitude(std::shared_ptr<zenkit::INpc> aRef, std::sha
   auto b = findNpc(bRef);
 
   if(a!=nullptr && b!=nullptr){
-    // NOTE: in original-game oCNpc::GetPermAttitude (Gothic2.exe 0x0072fb30) is PERM-only and
-    // never consults the temp attitude (that is Npc_GetAttitude/personAttitude's job). Routing
-    // this through the now temp-aware personAttitude wrongly returned a temp-angered NPC's temp
-    // attitude here, so resolve perm + guild fallback directly.
-    if(!a->isPlayer() && !b->isPlayer())
+    // NOTE: in original-game oCNpc::GetPermAttitude (Gothic2.exe 0x0072fb30) is a->GetPermAttitude(b):
+    // it returns subject a's PERM-attitude field ONLY when the OTHER argument b is the player, else the
+    // pure guild-matrix value guildAttitude(a,b). It never consults the temp attitude. Keying on
+    // "whichever is not the player" wrongly surfaced an NPC's perm attitude for
+    // Npc_GetPermAttitude(hero,npc) (subject=player), which the original answers from the guild matrix.
+    // Mirror personAttitude's "other is the player" gate.
+    if(!b->isPlayer())
       return guildAttitude(*a,*b);
-    const Npc& npc = a->isPlayer() ? *b : *a;
-    Attitude att = npc.attitude();
+    Attitude att = a->attitude();
     if(att!=ATT_NULL)
       return att;
     return guildAttitude(*a,*b);
