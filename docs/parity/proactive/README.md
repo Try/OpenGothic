@@ -88,6 +88,8 @@ patch with a `// NOTE: in original-game …` citation.
 | Spell damage split | multi-element spell wrote full damage per element (N×); original splits total across types | `npc.cpp` `commitSpell`/`takeDamage` |
 | FLY bypasses parry | a defender could block FLY (knockback) attacks; original makes them unblockable | `npc.cpp` `takeDamage` |
 | Info-box value | item info-box value row showed raw value; original shows the condition-scaled value | `inventorymenu.cpp` `drawInfo` |
+| GetReadiedWeapon | returned a holstered weapon while fist-fighting; original returns null in NoWeapon/Fist | `gamescript.cpp` `npc_getreadiedweapon` |
+| Mover refcount save | TRIGGER_CONTROL ref-count dropped on save/load (closed on first untrigger); now persisted (v57) | `serialize.h` / `movetrigger.cpp` |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
@@ -142,4 +144,8 @@ patch with a `// NOTE: in original-game …` citation.
 | `lookat-headturn-clamp-90deg` | head-look-at neutral-snap is 80° vs the original 90°; but OG uses maxRot as a direct head-bone-degree clamp while the original normalizes through a model-dependent head controller, so changing it alters the visual head-turn amount — cosmetic, needs on-screen validation |
 | `initstate-aistate-driven-ta-reset` / `changelvl-*` | AI-state-driven NPCs (monsters w/ start_aistate, no routine) shouldn't be teleported to spawn on Wld_SetTime/load/revisit; the original SetDailyRoutinePos skips them unless new-game. OG has no isAiStateDriven() method and resetPositionToTA is shared with Wld_SetTime — needs the predicate + new-game-flag plumbing + runtime check |
 | `ext3-wld-getmobstate-clamp` | Wld_GetMobState clamps the -1 "no state" sentinel to 0; original returns it raw. Low-impact + the success-path decompile evidence was incomplete (only the -1 failure path confirmed) — needs fuller verification |
+| `summon-tspawn-emerge-anim` | summoned creatures lack the T_SPAWN "rise from ground" emerge animation (they pop in standing); additive but the AI-gating during the emerge is unverified — visual/timing, needs on-screen check |
+| `finish-kill-credit-attribution` | finishing-move kill isn't attributed to the finisher (onNoHealth credits the last damager); Medium, interacts with the deferred news-assessmurder death-attribution work — needs runtime |
+| `wateract-swim-fist-no-autosheathe` | fists aren't auto-sheathed on entering water (original removes weapon for mode!=0, fists incl.), which also blocks water interactions; but OG has an explicit `ws!=Fist` exception suggesting a deliberate workaround — Medium, needs runtime |
+| `aggro-fk-farcombat-range-cap` | melee far-combat my_fk_* bands lack the original's hardcoded 30m cap; move lists are approach-style on both paths so impact is marginal and fillQueue structure differs too much for a 1:1 graft — agent-deferred |
 
