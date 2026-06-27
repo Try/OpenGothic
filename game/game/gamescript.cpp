@@ -1807,7 +1807,15 @@ bool GameScript::wld_ismobavailable(std::shared_ptr<zenkit::INpc> self, std::str
     return false;
     }
 
-  auto wp = world().availableMob(*npc, name);
+  // NOTE: in original-game Wld_IsMobAvailable @0x006f5e20 the mob-name argument is upper-cased
+  // (zSTRING::Upper) before FindMobInter; OpenGothic compares scheme names case-sensitively
+  // (Interactive::checkMobName), so a non-upper-case name never matched. (Wld_GetMobState @0x006ed880
+  // does NOT upper-case, so this normalisation is intentionally local to this external.)
+  std::string mob {name};
+  for(auto& c:mob)
+    c = char(std::toupper(c));
+
+  auto wp = world().availableMob(*npc, mob);
   return wp != nullptr;
   }
 
@@ -2752,9 +2760,13 @@ bool GameScript::npc_hasreadiedweapon(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   if(npc==nullptr)
     return false;
+  // NOTE: in original-game Npc_HasReadiedWeapon @0x006e6240 -> oCNpc::GetWeapon @0x007377a0 returns
+  // the in-hand item for every drawn mode incl. magic (mode 6 returns the readied rune/scroll), so a
+  // spellcaster with a spell drawn reports a readied weapon. OpenGothic omitted Mage state.
   auto ws = npc->weaponState();
   return (ws==WeaponState::W1H || ws==WeaponState::W2H ||
-          ws==WeaponState::Bow || ws==WeaponState::CBow);
+          ws==WeaponState::Bow || ws==WeaponState::CBow ||
+          ws==WeaponState::Mage);
   }
 
 bool GameScript::npc_hasreadiedmeleeweapon(std::shared_ptr<zenkit::INpc> npcRef) {
@@ -2822,8 +2834,28 @@ void GameScript::npc_stopani(std::shared_ptr<zenkit::INpc> npcRef, std::string_v
 
 int GameScript::npc_settrueguild(std::shared_ptr<zenkit::INpc> npcRef, int gil) {
   auto npc = findNpc(npcRef);
-  if(npc!=nullptr)
+  if(npc!=nullptr) {
     npc->setTrueGuild(gil);
+    // NOTE: in original-game Npc_SetTrueGuild @0x006ee660 calls oCGame::InitNpcAttitudes @0x006c61d0
+    // when the affected NPC is the player: every other NPC's perm AND temp attitude is re-baked from
+    // the guild matrix (oCGuilds::GetAttitude with both parties' true guilds). OpenGothic only stored
+    // the guild, so changing the hero's guild (joining a camp/guild) left every NPC's standing toward
+    // the hero stale -- angered/befriended NPCs were never reset.
+    if(npc->isPlayer()) {
+      auto* pl = owner.player();
+      auto& w  = world();
+      if(pl!=nullptr) {
+        for(uint32_t i=0; i<w.npcCount(); ++i) {
+          Npc* n = w.npcById(i);
+          if(n==nullptr || n==pl)
+            continue;
+          Attitude att = guildAttitude(*n,*pl);
+          n->setAttitude(att);
+          n->setTempAttitude(att);
+          }
+        }
+      }
+    }
   return 0;
   }
 
@@ -3012,7 +3044,13 @@ int GameScript::npc_getdisttoplayer(std::shared_ptr<zenkit::INpc> npcRef) {
     return std::numeric_limits<int32_t>::max();
     }
   auto dp = pl->position()-npc->position();
-  auto l  = dp.length();
+  // NOTE: in original-game Npc_GetDistToPlayer (Gothic2.exe 0x006f3180) the distance is computed with
+  // zCVob::GetDistanceToVobApprox (0x0061b970), an octagonal fast-distance approximation, NOT the
+  // exact Euclidean length: 0.375*(|dx|+|dy|+|dz|) + 0.5625*max(...), which underestimates by ~7%.
+  // (Npc_GetDistToNpc/Npc_GetDistToItem use the exact zCVob::GetDistanceToVob instead.)
+  const float ax = std::abs(dp.x), ay = std::abs(dp.y), az = std::abs(dp.z);
+  const float mx = std::max(ax,std::max(ay,az));
+  const float l  = 0.375f*(ax+ay+az) + 0.5625f*mx;
   if(l>float(std::numeric_limits<int32_t>::max())) {
     return std::numeric_limits<int32_t>::max();
     }
