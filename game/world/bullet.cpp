@@ -151,6 +151,18 @@ bool Bullet::onCollide(Npc& npc) {
         npc.takeDamage(*ow,this);
       }
     }
+
+  // NOTE: in original-game oCVisualFX::ProcessCollision @0x004958d0 returns (emActionCollDyn &
+  // COLLIDE); ProcessQueuedCollisions @0x00495830 ends the flying FX (Collide @0x00493a00 ->
+  // EndEffect) only when that bit is set. A spell FX whose emActionCollDyn is CREATE/CREATEONCE/
+  // BOUNCE/NORESP (no COLLIDE bit) passes through the NPC and keeps flying to further targets.
+  // OpenGothic always stopped on the first NPC. Non-spell bullets (arrows) keep stopping.
+  const VisualFx* root = vfx.handle();
+  const bool stop = !isSpell() || root==nullptr ||
+                    (root->emActionCollDyn & VisualFx::Collide)!=0;
+  if(!stop)
+    return false;
+
   vfx.setKey(*wrld,SpellFxKey::Collide);
   vfx.setLooped(false);
   vfx.setPhysicsDisable();
