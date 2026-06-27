@@ -74,6 +74,10 @@ patch with a `// NOTE: in original-game …` citation.
 | Spell-FX invest | high invest level snapped the on-weapon FX to base; original holds the last invest key | `visualfx.cpp` `key` |
 | Transform exp/LP | transform restored only level; original keeps exp/exp_next/lp/level invariant | `npc.cpp` transform path |
 | Focus HP bar | bar gated on isDead() (ZS_DEAD) vs the original's current-hitpoints>0 gate | `mainwindow.cpp` |
+| Stack-merge owner | stack-merge overwrote owner/owner_guild; original keeps the existing stack's owner | `inventory.cpp` `addItem` |
+| NPC item-use gate | consumable cond_atr gate blocked NPCs too; original aborts only for the player | `inventory.cpp` `use` |
+| EquipBest tie | equal damage/protection ties broke by value; original ties by display name | `inventory.cpp` `bestItem` |
+| isMonster golems | Fire/Ice Golem + Dragon counted as monsters (auto-crit, minHp=0); original excludes them | `npc.cpp` `isMonster` |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
@@ -116,4 +120,7 @@ patch with a `// NOTE: in original-game …` citation.
 | `onstate-multistate-walk-count` | item on_state[] fires once per command for a single state; original fires each on_state[i] once per state actually reached as the anim arrives. Faithful fix is cross-subsystem (pose state machine has no Npc/VM access) — agent-deferred |
 | `waynet-wayto-early-termination` | route search settles `begin` waypoints when merely reached, not when settled (no priority-queue), so non-uniform edge weights can lock a non-shortest path; correct fix is an algorithm-level Dijkstra/A* port entangled with the deferred edge-cost metric — agent-deferred |
 | `ext-unbound-externals-inventory` | reference: ZenKit balances the stack for unbound externals, so they are benign no-ops; the genuine unbound ones are engine-handled void AI actions (binding risks double-fire) or feature gaps (Hlp_CutscenePlayed needs a played-registry). DEFERRED; corrects the InsertNpcAndRespawn stack-corruption claim |
+| `dlgturn-processinfo-distance-gate` | OG drops AI_ProcessInfos when participants are >2000u apart; the original gates on both event queues being idle (no distance). Removing the constant is a behavioral redesign with soft-lock risk — needs runtime |
+| `aitick-checkangrytime-missing` | per-frame CheckAngryTime threat/angry decay (oCNpc fields 0x7e4/0x7e8/0x7ec) is absent in OG — a missing subsystem with no OG fields to patch against; AI-tick otherwise swept faithful — agent-deferred |
+| `monster2-ismonster-orc-upper-bound` (secondary) | the original IsMonster has no orc upper bound (orcs are monsters), OG clamps at SEPERATOR_ORC; flipping it changes orc death-handling + auto-crit — broader, deferred pending an orc-behavior pass |
 
