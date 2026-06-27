@@ -2878,8 +2878,24 @@ int GameScript::npc_getattitude(std::shared_ptr<zenkit::INpc> aRef, std::shared_
   auto b = findNpc(bRef);
 
   if(a!=nullptr && b!=nullptr){
-    auto att=personAttitude(*a,*b);
-    return att; //TODO: temp attitudes
+    // NOTE: in original-game oCNpc::GetAttitude @0x0072fab0 (the Npc_GetAttitude handler) the guild
+    // matrix is consulted ONLY when 'other' is not the player; toward the player it returns the
+    // subject's temp attitude (when it differs from perm) else perm, both defaulting to ATT_NEUTRAL
+    // (ctor @0x0072d950 inits the perm/temp fields to 2). It never falls back to the guild matrix
+    // toward the player, so an NPC with no explicit attitude reads NEUTRAL, not its guild stance.
+    // personAttitude keeps its guild fallback (it is the engine's combat hostility oracle for
+    // Npc::isEnemy etc.), so the script external is reproduced here directly instead.
+    if(!b->isPlayer())
+      return guildAttitude(*a,*b);
+    Attitude perm = a->attitude();
+    if(perm==ATT_NULL)
+      perm = ATT_NEUTRAL;
+    Attitude temp = a->tempAttitude();
+    if(temp==ATT_NULL)
+      temp = ATT_NEUTRAL;
+    if(temp!=perm)
+      return temp;
+    return perm;
     }
   return ATT_NEUTRAL;
   }
@@ -2956,9 +2972,14 @@ bool GameScript::npc_isdetectedmobownedbynpc(std::shared_ptr<zenkit::INpc> usrRe
   auto npc = findNpc(npcRef);
   auto usr = findNpc(usrRef);
 
-  if(npc!=nullptr && usr!=nullptr && usr->interactive()!=nullptr){
+  // NOTE: in original-game Npc_IsDetectedMobOwnedByNpc @0x006ed540 the mob is taken from
+  // GetInteractMob(user) with a fallback to the collided RbtObstacleVob; detectedMob() models both
+  // (currentInteract, else the move-collision moveMob). interactive() alone dropped the obstacle-vob
+  // fallback, so a user merely colliding with an owned bed/chest (not yet attached) wrongly failed
+  // the ownership/theft gate. Match the sibling Npc_IsDetectedMobOwnedByGuild (uses detectedMob()).
+  if(npc!=nullptr && usr!=nullptr && usr->detectedMob()!=nullptr){
     auto* inst = vm.find_symbol_by_index(npc->instanceSymbol());
-    auto  ow   = usr->interactive()->ownerName();
+    auto  ow   = usr->detectedMob()->ownerName();
     return inst->name() == ow;
     }
   return false;
