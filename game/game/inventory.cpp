@@ -984,6 +984,14 @@ bool Inventory::use(size_t cls, Npc &owner, uint8_t slotHint, bool force) {
   if(!owner.setAnimItem(itData.scheme_name,-1))
     return false;
 
+  // NOTE: in original-game oCNpc::UseItem (Gothic2.exe 0x0073bc10) a FOOD-category item (HasFlag
+  // 0x20, the mainflag FOOD bit folded into the runtime flags by InitByScript @0x00711bd0) is healed
+  // by the engine: ChangeAttribute(ATR_HITPOINTS, nutrition) @0x0072ff60, clamped up to
+  // ATR_HITPOINTSMAX. OpenGothic serialized `nutrition` but never applied it, so eating an
+  // apple/bread/stew restored no HP. (changeAttribute already performs the over-cap clamp.)
+  if(mainflag & ITM_CAT_FOOD)
+    owner.changeAttribute(Attribute::ATR_HITPOINTS, itData.nutrition, false);
+
   // owner.stopDlgAnim();
   setCurrentItem(it->clsId());
   if(itData.on_state[0]!=0){
