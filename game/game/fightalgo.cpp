@@ -84,7 +84,11 @@ void FightAlgo::fillQueue(Npc &npc, Npc &tg, GameScript& owner) {
     }
 
   if(ws==WeaponState::Mage) {
-    if(isInWRange(npc,tg,owner))
+    // NOTE: in original-game oCNpc::FindNextFightAction @0x0067d680 the magic branch gates
+    // my_fk_focus_mag on IsInFightFocus (the aiming cone), not on melee weapon-range; a caster
+    // fights from a distance and is almost never inside W-range, so the range gate made the
+    // focused-spell table effectively unreachable and the NPC fell through to nofocus_mag.
+    if(focus)
       if(fillQueue(owner,ai.my_fk_focus_mag))
         return;
     if(fillQueue(owner,ai.my_fk_nofocus_mag))
