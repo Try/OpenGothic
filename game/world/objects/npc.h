@@ -587,7 +587,10 @@ class Npc final {
     // last hit
     Npc*                           lastHit          = nullptr;
     char                           lastHitType      = 'A';
-    int32_t                        lastHitSpell     = 0;
+    // NOTE: in original-game oCNpc::oCNpc @0x0072d950 the last-hit-spell id field (+0x920) is
+    // initialized to -1, so Npc_GetLastHitSpellID (FUN_006e5660) returns -1 until a spell hits;
+    // OpenGothic defaulted 0, a valid C_Spell index that could spuriously match before any hit.
+    int32_t                        lastHitSpell     = -1;
 
     // spell cast
     CastState                      castLevel        = CS_NoCast;
