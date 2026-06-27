@@ -323,7 +323,9 @@ void Npc::load(Serialize &fin, size_t id, std::string_view directory) {
   updateTransform();
   if(isUsingTorch)
     visual.setTorch(true,owner);
-  if(isDead())
+  // NOTE: a downed NPC (dead OR unconscious) is a walk-through corpse for NPC-vs-NPC collision (see
+  // onNoHealth); an NPC saved while unconscious must also load non-blocking, so gate on isDown().
+  if(isDown())
     physic.setEnable(false);
   }
 
@@ -611,8 +613,13 @@ void Npc::onNoHealth(bool death, HitSound sndMask) {
   setInteraction(nullptr,true);
   invent.clearSlot(*this,"",false);
 
-  if(death)
-    physic.setEnable(false);
+  // NOTE: in original-game oCNpc::DropUnconscious @0x00735eb0 sets the same lying body-state as the
+  // dead path and never re-flags dynamic collision; a downed NPC (dead OR unconscious) is a
+  // walk-through corpse for NPC-vs-NPC movement. onNoHealth is only entered when the NPC goes down,
+  // so drop the soft npc capsule in both cases (checkHealth re-enables setEnable(true) only once the
+  // NPC is alive and no longer unconscious). OpenGothic dropped it on death only, so a fist-fight-KO'd
+  // body kept a standing-height capsule and blocked/deflected other NPCs.
+  physic.setEnable(false);
 
   if(death)
     setAnim(lastHitType=='A' ? Anim::DeadA        : Anim::DeadB); else
