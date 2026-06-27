@@ -1124,12 +1124,22 @@ bool WorldObjects::testObj(T &src, const Npc &pl, const WorldObjects::SearchOpt 
   auto dpos  = pos - pl.position();
   auto angle = std::atan2(dpos.z,dpos.x);
 
-  if(std::cos(plAng-angle)<ang && !bool(opt.flags&SearchFlg::NoAngle))
+  const float c = float(std::cos(double(plAng-angle)));
+  if(c<ang && !bool(opt.flags&SearchFlg::NoAngle))
     return false;
 
-  l = std::sqrt(l);
-  if(l<rlen && (bool(opt.flags&SearchFlg::NoRay) || canSee(pl,npc))){
-    rlen=l;
+  // NOTE: in original-game oCNpc::CollectFocusVob @0x00733a10 / oCNpc::FocusCheck @0x007331c0 the
+  // within-type focus candidate is selected by smallest absolute azimuth (most centered to the NPC
+  // facing, sentinel 181deg), not by nearest distance -- distance is only the range gate. OpenGothic
+  // tracked minimum distance, so it locked onto the nearest body rather than the one the player is
+  // facing. Use angular alignment (-cos, smaller==more aligned wins) as the key for focus searches;
+  // keep the distance key only for the NoAngle (vob-move) path. The callers seed rlen=rangeMax^2 (a
+  // large positive worst-case), valid for the -cos key range [-1,1].
+  float key = std::sqrt(l);
+  if(!bool(opt.flags&SearchFlg::NoAngle))
+    key = -c;
+  if(key<rlen && (bool(opt.flags&SearchFlg::NoRay) || canSee(pl,npc))){
+    rlen=key;
     return true;
     }
   return false;
