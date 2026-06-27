@@ -1,0 +1,70 @@
+#version 460
+
+#include "lighting/surfels/surf_common.glsl"
+#include "scene.glsl"
+#include "common.glsl"
+
+layout(local_size_x = 64) in;
+
+const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
+
+layout(std140, push_constant) uniform Push {
+  vec3 originLwc;
+  uint tileSize;
+  };
+layout(binding = 0, std140) uniform UboScene {
+  SceneDesc scene;
+  };
+layout(binding = 1) uniform texture2D irradiance;
+//
+layout(binding = 4, std430) readonly buffer SB0 { uvec4 count; Surfel surfels[]; };
+layout(binding = 5, std430)          buffer SB1 { uint usage[]; };
+//
+layout(binding = 6, r32ui)  uniform uimage2D surfCnts;
+layout(binding = 7, r32ui)  uniform uimage2D surfBins;
+layout(binding = 8, std430) readonly buffer SB2 { uint surfelList[]; };
+
+void main() {
+  const uint surfelId = gl_GlobalInvocationID.x;
+  if(surfelId >= count.x)
+    return;
+
+  const float  edge   = 2.0;
+  const Surfel p      = surfels[surfelId];
+  const ivec2  sz     = textureSize(irradiance, 0);
+
+  if(p.fragCoord.x < 0 || sz.x<=p.fragCoord.x)
+    return;
+  if(p.fragCoord.y < 0 || sz.y<=p.fragCoord.y)
+    return;
+
+  const vec3   wpos   = p.pos;
+  const vec3   norm   = decodeNormal(p.norm);
+
+  const ivec2  tileId  = p.fragCoord/int(tileSize);
+  const uint   cnt     = imageLoad(surfCnts, tileId).x;
+  const uint   ptr     = imageLoad(surfBins, tileId).x;
+  const ivec2  topLeft = tileId*int(tileSize);
+
+  float weight = 0;
+  for(uint i=0; i<cnt; ++i) {
+    const uint   sId = surfelList[ptr+i];
+    if(sId>=surfelId)
+      break;
+
+    const Surfel s = surfels[sId];
+    if(s.fragCoord.x<topLeft.x || s.fragCoord.y<topLeft.y)
+      continue;
+
+    const float  w = calculteWeight(s.pos, decodeNormal(s.norm), s.radiusMean, s.radius, wpos, norm);
+    weight += w;
+    //atomicOr(usage[sId/32], 1u << (sId%32));
+
+    if(weight>edge) {
+      // too dense
+      return;
+      }
+    }
+
+  atomicOr(usage[surfelId/32], 1u << (surfelId%32));
+  }

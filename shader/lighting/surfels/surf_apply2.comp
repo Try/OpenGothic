@@ -16,8 +16,8 @@ layout(binding = 0, std140) uniform UboScene {
   SceneDesc scene;
   };
 layout(binding = 1, rgba16f) uniform image2D irradiance;
-layout(binding = 2) uniform usampler2D gbufNormal;
-layout(binding = 3) uniform sampler2D  depth;
+layout(binding = 2) uniform utexture2D gbufNormal;
+layout(binding = 3) uniform texture2D  depth;
 layout(binding = 4, std430) readonly buffer SB0 { uvec4 count; Surfel surfels[]; };
 layout(binding = 5, std430)          buffer SB1 { uint usage[]; };
 layout(binding = 6, r32ui) uniform uimage2D surfCnts;
@@ -39,6 +39,40 @@ vec3 worldPos(float z, ivec2 fragCoord, ivec2 screenSize) {
   return pos.xyz/pos.w + originLwc;
   }
 
+void applyGlob(inout vec4 clr, const vec3 wpos, const vec3 norm, const uint ptr, const uint cnt) {
+  const uint laneID = gl_LocalInvocationIndex;
+
+  ivec2 bboxMin = ivec2(gl_WorkGroupID.xy*gl_WorkGroupSize.xy);
+  ivec2 bboxMax = bboxMin + ivec2(gl_WorkGroupSize.xy);
+
+  surfelCount = 0;
+  barrier();
+
+  for(uint i=laneID; i<cnt; i+=NumThreads) {
+    const uint   sId = surfelList[ptr+i];
+    const Surfel s   = surfels[sId];
+    if(!isSurfelVisible(s, bboxMin, bboxMax))
+      continue;
+    const uint id = atomicAdd(surfelCount, 1);
+    surfelsUse[id] = sId;
+    }
+  barrier();
+
+  for(uint i=0; i<surfelCount; ++i) {
+    const uint   sId = surfelsUse[i];
+    const Surfel s   = surfels[sId];
+    const float  w   = calculteWeight(s.pos, decodeNormal(s.norm), s.radiusMean, s.radius, wpos, norm);
+    const vec3  color = s.irradiance;
+    if(w <= 0.0)
+      continue;
+    const bool crowd = (clr.a>=1.0 || w<0.05);
+    clr += vec4(color*w, w);
+    if(crowd)
+      continue;
+    atomicOr(usage[sId/32], 1u<<sId%32);
+    }
+  }
+
 void applyBatch(inout vec4 clr, const vec3 wpos, const vec3 norm, const uint surfCount) {
   for(int i=0; i<surfCount; ++i) {
     const float w     = calculteWeight(surfelsPos[i].xyz, surfelsNorm[i].xyz, surfelsIrr[i].w, surfelsNorm[i].w, wpos, norm);
@@ -46,14 +80,36 @@ void applyBatch(inout vec4 clr, const vec3 wpos, const vec3 norm, const uint sur
     if(w <= 0.0)
       continue;
 
-    const bool crowd = (clr.a>=1.0 || w<0.05);
+    const bool crowd = (clr.a>=1.0 || w<0.005);
     clr += vec4(color*w, w);
     if(crowd)
       continue;
 
-    const uint sId = surfelsUse[i];
-    atomicOr(usage[sId/32], 1u<<sId%32);
+    //const uint sId = surfelsUse[i];
+    //atomicOr(usage[sId/32], 1u<<sId%32);
     }
+  }
+
+void pullSurfels(ivec2 bboxMin, ivec2 bboxMax, uint ptr, uint cnt, uint i) {
+  const uint laneID = gl_LocalInvocationIndex;
+
+  surfelCount = 0;
+  barrier();
+
+  if(i >= cnt)
+    return;
+
+  const uint   sId = surfelList[ptr+i];
+  const Surfel s   = surfels[sId];
+  //TODO: Preserve order!
+  if(!isSurfelVisible(s, bboxMin, bboxMax))
+    return;
+
+  const uint id = atomicAdd(surfelCount, 1);
+  surfelsPos [id] = vec4(s.pos, uintBitsToFloat(sId));
+  surfelsNorm[id] = vec4(decodeNormal(s.norm), s.radius);
+  surfelsIrr [id] = vec4(s.irradiance, s.radiusMean);
+  surfelsUse [id] = sId;
   }
 
 void main() {
@@ -80,32 +136,21 @@ void main() {
   ivec2 bboxMax = bboxMin + ivec2(gl_WorkGroupSize.xy);
 
   vec4 clr = vec4(0);
+#if 0
+  applyGlob(clr, wpos, norm, ptr, cnt);
+#else
   for(uint i=0; ; i+=NumThreads) {
-    surfelCount = 0;
-    barrier();
-
-    if(i+laneID < cnt) {
-      const uint   sId = surfelList[ptr+i+laneID];
-      const Surfel s   = surfels[sId];
-      //TODO: Preserve order!
-      if(isSurfelVisible(s, bboxMin, bboxMax)) {
-        const uint id = atomicAdd(surfelCount, 1);
-        surfelsPos [id] = vec4(s.pos, uintBitsToFloat(sId));
-        surfelsNorm[id] = vec4(decodeNormal(s.norm), s.radius);
-        surfelsIrr [id] = vec4(s.irradiance, s.radiusMean);
-        surfelsUse [id] = sId;
-        }
-      }
+    pullSurfels(bboxMin, bboxMax, ptr, cnt, i+laneID);
     barrier();
 
     if(!sky) {
       applyBatch(clr, wpos, norm, surfelCount);
       }
-
     if(i+NumThreads>=cnt)
       break;
     barrier();
     }
+#endif
 
   if(!valid || sky) {
     imageStore(irradiance, fragCoord, vec4(0,0,0,1));

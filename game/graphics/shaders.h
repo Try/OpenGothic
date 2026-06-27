@@ -95,7 +95,7 @@ class Shaders {
     Tempest::ComputePipeline surfApply;
     Tempest::ComputePipeline surfPathtrace;
 
-    Tempest::ComputePipeline surfAlloc2, surfApply2, surfCompact;
+    Tempest::ComputePipeline surfAlloc2, surfApply2, surfDecimate, surfCompact;
 
     // Epipolar
     Tempest::ComputePipeline fogEpipolarVsm;

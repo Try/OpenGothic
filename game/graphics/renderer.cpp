@@ -2010,6 +2010,9 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
     cmd.setPipeline(shaders.surfApply2);
     cmd.dispatchThreads(zbuffer.size());
 
+    cmd.setPipeline(shaders.surfDecimate);
+    cmd.dispatchThreads(maxSurfels);
+
     cmd.setPipeline(shaders.surfCompact);
     cmd.dispatch(1);
     }

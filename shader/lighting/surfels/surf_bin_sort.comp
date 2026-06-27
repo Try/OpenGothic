@@ -25,7 +25,7 @@ void swap(inout uint a, inout uint b) {
   }
 
 void bitonicSort(uint count) {
-  uint laneID = gl_LocalInvocationIndex;
+  const uint laneID = gl_LocalInvocationIndex;
 
   //count = nextPowerOfTwo(count);
 

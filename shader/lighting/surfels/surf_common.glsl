@@ -123,7 +123,7 @@ float calculteWeight(const vec3 spos, const vec3 snorm, float rEff, float rMax, 
   //float eOccl = (dot(ldir, snorm) > 0.1*dist) ? 0.1 : 1;
   return w*eOccl;
 #elif 1
-  // Wendland C2 enspired falloff
+  // Wendland C2 inspired falloff
   rEff = min(rEff, rMax*0.5);
   float q     = max(min(dist,rMax)-rEff, 0)/(rMax-rEff);
   float wPos  = pow(1-q, 4.0)*(4.0*q + 1.0);

@@ -14,7 +14,7 @@ void main() {
     return;
 
   const uint v   = imageLoad(surfCnts, tile).x;
-  const uint ptr = atomicAdd(binAlloc, v);
+  const uint ptr = v>0 ? atomicAdd(binAlloc, v) : 0;
 
   imageStore(surfCnts, tile, uvec4(0));
   imageStore(surfBins, tile, uvec4(ptr));
