@@ -1991,11 +1991,11 @@ void Npc::implSetFightMode(const Animation::EvCount& ev) {
       sfxWeapon.play();
       }
     }
-  else if(ev.weaponCh==zenkit::MdsFightMode::BOW || ev.weaponCh==zenkit::MdsFightMode::CROSSBOW) {
-    auto at = centerPosition();
-    sfxWeapon = ::Sound(owner,::Sound::T_Regular,"DRAWSOUND_BOW",at,2500,false);
-    sfxWeapon.play();
-    }
+  // NOTE: in original-game DoDoAniEvents @0x00742a20 the bow/crossbow draw sound is NOT
+  // engine-hardcoded like the melee DEF_DRAWSOUND path -- the bow/crossbow draw & holster transition
+  // anims (Humans_BowT*/CBowT*.mds) carry an ordinary *eventSFX "Drawsound_Bow" that the generic SFX
+  // path already plays (processSfx -> emitSoundEffect). OpenGothic ALSO hardcoded "DRAWSOUND_BOW"
+  // here, so the draw "shing" played twice on the same frame. Rely on the data-driven eventSFX only.
   dropTorch();
   visual.stopDlgAnim(*this);
   updateWeaponSkeleton();
