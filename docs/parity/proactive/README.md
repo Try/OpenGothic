@@ -85,6 +85,9 @@ patch with a `// NOTE: in original-game …` citation.
 | Spell undead target | Skeleton-Mage(33) wrongly in the UNDEAD auto-aim set; original excludes it | `npc.cpp` `isTargetableBySpell` |
 | Rune belt gate | belting a rune ran the circle/attr gate; original registers runes without CanUse | `inventory.cpp` `setSlot` |
 | Trigger enable/disable | enable/disable went through the fire-delay gate; original applies them immediately | `abstracttrigger.cpp` `processEvent` |
+| Spell damage split | multi-element spell wrote full damage per element (N×); original splits total across types | `npc.cpp` `commitSpell`/`takeDamage` |
+| FLY bypasses parry | a defender could block FLY (knockback) attacks; original makes them unblockable | `npc.cpp` `takeDamage` |
+| Info-box value | item info-box value row showed raw value; original shows the condition-scaled value | `inventorymenu.cpp` `drawInfo` |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
@@ -136,4 +139,7 @@ patch with a `// NOTE: in original-game …` citation.
 | `give-dropvob-owner-stamp` | OG stamps dropped items with the dropper's owner; the original never sets owner on drop (only a player-dropped flag). Wholesale ownership-model mismatch (OG dispatches Npc_OwnedByNpc as an item-field compare vs the original's NPC-side method) — agent-deferred |
 | `news-assessmurder-not-centralized-in-death` | PERC_ASSESSMURDER is emitted from 2 combat call-sites gated on collision flags; the original broadcasts it from the single DoDie routine for any cause of death. Touches 3 sites, needs single-fire + killer-attribution runtime check — agent-deferred |
 | `ctrl-sneak-talent-gate` (REJECTED — false positive) | claimed crouch shouldn't be SNEAK-talent-gated, but the original gates it via CanToggleWalkModeTo→HasTalent(8,1) where talent 8 IS TALENT_SNEAK — OG's canSneak() matches exactly. Verified faithful, not applied |
+| `lookat-headturn-clamp-90deg` | head-look-at neutral-snap is 80° vs the original 90°; but OG uses maxRot as a direct head-bone-degree clamp while the original normalizes through a model-dependent head controller, so changing it alters the visual head-turn amount — cosmetic, needs on-screen validation |
+| `initstate-aistate-driven-ta-reset` / `changelvl-*` | AI-state-driven NPCs (monsters w/ start_aistate, no routine) shouldn't be teleported to spawn on Wld_SetTime/load/revisit; the original SetDailyRoutinePos skips them unless new-game. OG has no isAiStateDriven() method and resetPositionToTA is shared with Wld_SetTime — needs the predicate + new-game-flag plumbing + runtime check |
+| `ext3-wld-getmobstate-clamp` | Wld_GetMobState clamps the -1 "no state" sentinel to 0; original returns it raw. Low-impact + the success-path decompile evidence was incomplete (only the -1 failure path confirmed) — needs fuller verification |
 
