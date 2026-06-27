@@ -3443,8 +3443,14 @@ gtime Npc::endTime(const Npc::Routine &r) const {
       return gtime(wtime.day()+1,r.end.hour(),r.end.minute()); else
       return gtime(wtime.day(),r.end.hour(),r.end.minute());
     }
-  if(r.start==r.end && r.end.toInt()==0) {
-    // for example Rtn_Start_1081 in NTR is filled with zeros
+  if(r.start==r.end) {
+    // NOTE: in original-game a routine slot with start==end (the common all-day wrappers
+    // TA_Stand_Guarding(8,0,8,0) / TA_Smalltalk(8,0,8,0), plus the all-zeros Rtn_Start_1081 in NTR)
+    // is NOT an error: oCWorldTimer::IsTimeBetween @0x00781190 reports it active at the start minute
+    // and oCRtnManager::FindRoutine @0x00775580 keeps it as the active/fallback routine for the rest
+    // of the day, so the state runs continuously. Treat it as a full-day window (same time next day).
+    // Previously only the all-zeros case was handled; a nonzero start==end slot fell through to
+    // `return wtime` (now), which forced an immediate LOOP_END and restarted the state every AI tick.
     return gtime(wtime.day()+1,r.end.hour(),r.end.minute());
     }
   // error - routine is not active now
