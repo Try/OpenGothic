@@ -3529,8 +3529,19 @@ void Npc::aiPush(AiQueue::AiAction&& a) {
   }
 
 void Npc::resumeAiRoutine() {
-  clearState(false);
   auto& r = currentRoutine();
+  if(r.callback.isValid() && aiState.funcIni==r.callback) {
+    // NOTE: in original-game oCNpc_States::ActivateRtnState @0x0076c330 the resume path (force-flag
+    // 0, reached via AI_ContinueRoutine -> EV_DoState @0x00756600 -> StartRtnState @0x0076c2e0)
+    // returns success WITHOUT re-entering when the active AI-state already equals the daily-routine
+    // state. OpenGothic unconditionally clearState(false)+startState, so re-issuing
+    // Npc_ContinueRoutine while already in the routine state re-ran ZS_<routine>_End then a fresh
+    // _Ini, re-equipping item-states and restarting the goto/ambient anim. No-op when already in it.
+    if(!r.wayPointName().empty())
+      hnpc->wp = r.wayPointName();
+    return;
+    }
+  clearState(false);
   if(r.callback.isValid()) {
     auto t = endTime(r);
     startState(r.callback,r.wayPointName(),t,false);
