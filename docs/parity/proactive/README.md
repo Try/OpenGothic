@@ -153,6 +153,8 @@ patch with a `// NOTE: in original-game …` citation.
 | Lockpick success event | a spurious G_PickLock(success) fired on the combination-complete press; original calls none there | `playercontrol.cpp` `processPickLock` |
 | Armor sort key | inventory display-sorted armor by -cost; original ranks by summed protection[] (most protective first) | `inventory.cpp` `less` |
 | Focus selection key | focus locked onto the nearest vob; original picks the most-centered (smallest azimuth) in the cone | `worldobjects.cpp` `testObj` |
+| Dialog status bars | HP/Mana/swim bars stayed up during conversations; original hides them for the whole dialog | `mainwindow.cpp` `paintEvent` |
+| Armor disguise guild | item disguise_guild was inert; original swaps live C_Npc.guild on equip (restores true guild on unequip) | `inventory.cpp` `applyArmor` |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
@@ -268,4 +270,8 @@ patch with a `// NOTE: in original-game …` citation.
 | `ext-npc-iswayblocked-unbound` | Npc_IsWayBlocked @0x006e9da0 is unbound (always returns "not blocked"); the original returns true when a radius-scaled forward ray-fan finds geometry ~1.3 collision radii ahead. OG only has a coarser testMove/tryMove, so an approximate binding risks a different wrong answer — all other swept query externals (IsInFightMode, HasEquippedWeapon, CanSee*, IsOnFP, GetStateTime, Mob_HasItems...) verified faithful — deferred |
 | `regen-mana-gated-on-regeneratehp` | the original Regenerate @0x00741fd0 gates MANA regen on ATR_REGENERATEHP (a field-offset quirk), so no mana regen when REGENERATEHP==0; OG gates on ATR_REGENERATEMANA. Low observability and entangled with the already-documented reciprocal-rate regen issue — deferred companion |
 | `npcflag-friends-ghost-immortal` | verified faithful — friend/hostile/friendly-fire resolved via the guild attitude matrix (not the FRIENDS bit), GHOST is render-only, IMMORTAL hit-reactions gate on the collision mask. Only a rare single-frame ghost render-toggle skip (setNpcEffect early-return) noted, deferred |
+| `time-midnight-refreshnpcs` | the original heals/re-equips/refills every NPC at the midnight day-rollover (oCWorldTimer::Timer → RefreshNpcs → RefreshNpc @0x00742110) + deletes dropped torches; OG has no day-change hook in World::tick. Multi-part feature (serialized day-change detection + RefreshNpc semantics + torch sweep); a heal-only partial would create an opposite divergence — deferred |
+| `knockback-flydamage-magnitude` | FLY throwback distance should scale with inflicted damage (StartFlyDamage @0x0069d940: clamp(CM_PER_POINT*points, MIN, MAX)); OG applies a fixed 0.75 impulse with no damage input. OG's per-frame fallSpeed velocity model has no 1:1 unit mapping to the original's centimetre ApplyImpulseCM, so an exact coefficient isn't derivable surgically — deferred |
+| `roam-fp-search-radius-shape` | ambient FP-roam uses an 800u sphere where the original FindSpot @0x007400e0 uses a 700u axis-aligned cube, shifting which FP_ROAM an idler wanders to. Same cube-vs-sphere class as the deferred wld-detectitem/noise findings, and roam selection is feel-adjacent — deferred |
+| `sleep-rest` | NO FINDING — the bed-sleep time-skip + heal is entirely Daedalus-driven (ZS_Sleep + Wld_SetTime); the only engine targets (SetTime day-roll, Regenerate rate, spawn-respawn) are already covered by existing docs or are missing-feature, not surgical bugs |
 
