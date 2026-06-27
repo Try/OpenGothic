@@ -2207,7 +2207,13 @@ void Npc::takeFallDamage(const Vec3& fallSpeed) {
       setAnim(lastHitType=='A' ? Anim::FallenA : Anim::FallenB);
       }
     }
-  auto dmg = DamageCalculator::damageFall(*this,fallSpeed.length());
+  // NOTE: in original-game oCNpc::CreateFallDamage (Gothic2.exe 0x00681da0) scales damage by the
+  // vertical fall-drop height only (the scalar passed by oCAniCtrl_Human::CheckFallStates
+  // @0x006b5810), never by horizontal speed. damageFall() reconstructs height = speed^2/(2g), which
+  // equals the vertical drop only when fed the vertical impact velocity; fallSpeed.length() adds
+  // horizontal jump/slide/bounce velocity and over-counts damage. Use the vertical component,
+  // consistent with the FallDeep animation test in MoveAlgo (fallSpeed.y/gravity).
+  auto dmg = DamageCalculator::damageFall(*this,std::abs(fallSpeed.y));
   if(!dmg.hasHit)
     return;
   int32_t hp = attribute(ATR_HITPOINTS);
