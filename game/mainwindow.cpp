@@ -220,14 +220,21 @@ void MainWindow::paintEvent(PaintEvent& event) {
           float hp  = float(pl->attribute(ATR_HITPOINTS))/float(pl->attribute(ATR_HITPOINTSMAX));
           float mp  = float(pl->attribute(ATR_MANA))     /float(pl->attribute(ATR_MANAMAX));
 
-          bool showHealthBar = opt.showHealthBar;
+          // NOTE: in original-game oCInformationManager::SetNpc @0x006609f0 calls SetShowPlayerStatus(0)
+          // at dialog start and OnTermination @0x006631a0 calls SetShowPlayerStatus(1) on dialog
+          // exit-cleanup; oCGame::UpdatePlayerStatus @0x006c3140 early-returns while that flag is 0, so
+          // the HP/Mana/swim bars are hidden for the whole conversation. dialogs.isActive() mirrors that
+          // flag's dialog-driven lifetime.
+          const bool inDialog = dialogs.isActive();
+
+          bool showHealthBar = opt.showHealthBar && !inDialog;
           // NOTE: in original-game oCGame::UpdatePlayerStatus @0x006c3140 the mana bar is shown only
           // when GetAttribute(player, ATR_MANAMAX) > 0 (in addition to the stance/inventory check); a
           // MANAMAX==0 hero (default fresh start) never gets a mana bar, and gating here also avoids
           // the MANA/MANAMAX == 0/0 == NaN fill fraction.
-          bool showManaBar   = (pl->attribute(ATR_MANAMAX)>0) &&
+          bool showManaBar   = !inDialog && (pl->attribute(ATR_MANAMAX)>0) &&
                                ((opt.showManaBar==2) || (opt.showManaBar==1 && (pl->weaponState()==WeaponState::Mage || inventory.isActive())));
-          bool showSwimBar   = (opt.showSwimBar==2) || (opt.showSwimBar==1 && pl->isDive());
+          bool showSwimBar   = !inDialog && ((opt.showSwimBar==2) || (opt.showSwimBar==1 && pl->isDive()));
 
           if(showHealthBar)
             drawBar(p,barHp, 10, h()-10, hp, AlignLeft | AlignBottom);
