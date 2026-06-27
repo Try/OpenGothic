@@ -105,6 +105,8 @@ patch with a `// NOTE: in original-game …` citation.
 | Plain trigger untrigger | a plain zCTrigger didn't forward untriggers to its target (relay opened, never closed) | `trigger.cpp` |
 | Auto-equip re-fire | equipBest re-equipped an already-equipped best item, re-firing on_un/on_equip each load | `inventory.cpp` `equipBest*` |
 | Trigger-script context | trigger-script ran with stale self/other/item; original clears SELF/OTHER/ITEM first | `triggerscript.cpp` |
+| MessageFilter touch | a zCMessageFilter fired its action on NPC touch; original OnTouch/OnUntouch are no-ops | `messagefilter.h` |
+| on_state item bind | a consumable's on_state ran with a stale `item` global; original binds ITEM first | `inventory.cpp` `use`/`putState` |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
@@ -173,4 +175,7 @@ patch with a `// NOTE: in original-game …` citation.
 | `itmidle-world-effect-glow` | world-item C_Item.effect glow/shimmer (oCItem::InsertEffect) is never spawned; purely visual and a faithful port needs Effect/PfxEmitter lifetime plumbing on Item — agent-deferred |
 | `voblight-range-anim-not-in-original` | OG animates light RANGE per-frame (torch/fire pulse + reach) but the original animates only COLOR; matching removes a visible OG feature and one D3D realtime path wasn't fully traced — deferred |
 | `trgscript-self-other-context` (SELF sub-case) | setting SELF to the touching NPC on a direct-NPC-touch trigger-script activation needs the Npc* threaded through TriggerEvent (onIntersect drops it); the OTHER/ITEM clear + non-NPC SELF is applied |
+| `warn-observeintruder-not-emitted` | PERC_OBSERVEINTRUDER (player stops walking unsneaking → guards notice) is declared but never sent; needs a once-per-stop move→stand edge latch in anim-driven PlayerControl (a naive per-frame emit would spam) — agent-deferred |
+| `movercarry-dropray-cache-stale-on-moving-platform` | a stationary NPC on a vertically-moving mover reads a stale cached ground height (#637 elevator floor-clip); fix needs either dropping the ground cache (perf) or a live-mover bit through RayLandResult (multi-subsystem) — agent-deferred |
+| `turnsound-unbound-soundsource-reaction` | AI_TurnToSound/AI_WhirlAroundToSource/Snd_GetDistToSource are unbound + no per-NPC sound-source position is stored; faithful bind needs new infrastructure (field + write site + turn-to-position AiAction + 3 binds) — agent-deferred |
 
