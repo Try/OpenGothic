@@ -1521,7 +1521,13 @@ bool Npc::implWhirlTo(const Npc &oth, uint64_t dt) {
 bool Npc::implGoTo(uint64_t dt) {
   float dist = 0;
   if(go2.npc) {
-    dist = fghAlgo.prefferedAttackDistance(*this,*go2.npc,owner.script());
+    // NOTE: in original-game oCNpc::EV_GotoVob @0x00685580 / RobustTrace @0x00686960 the AI_GotoNpc
+    // (oCMsgMovement sub-type 2) follow arrival radius is the fixed engine constant 200 units
+    // (reached when dist^2 < 40000.0); it does NOT use fight/weapon range. Enemy approach uses
+    // GT_Enemy + isInWRange (GoTo::isClose short-circuits), so go2.npc here is the AI_GotoNpc follow
+    // path only -- using prefferedAttackDistance made companions stop at a weapon/guild-dependent
+    // distance (too far with a 2H weapon) instead of the canonical fixed 200.
+    dist = 200.f;
     } else {
     // use smaller threshold, to avoid edge-looping in script
     dist = MoveAlgo::closeToPointThreshold*0.5f;
@@ -2804,6 +2810,13 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
     case AI_Teleport: {
       setPosition (act.point->position() );
       setDirection(act.point->direction());
+      // NOTE: in original-game AI_Teleport (FUN_006de400) always runs oCNpc::BeamTo @0x00736ee0,
+      // which after SetPositionWorld/SetHeadingAtWorld calls the virtual oCNpc::ResetPos @0x006824d0
+      // -> Interrupt + stop ani layers + restart idle + SetMovLock(0). OpenGothic only moved the NPC,
+      // so it kept sliding toward its old go-to target or finished its prior animation at the
+      // destination. Interrupt the in-progress locomotion/animation (the visible subset of ResetPos).
+      clearGoTo();
+      setAnim(Npc::Anim::Idle);
       if(isPlayer()) {
         updateTransform();
         Gothic::inst().camera()->reset(this);
