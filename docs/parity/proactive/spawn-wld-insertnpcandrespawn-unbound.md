@@ -37,9 +37,14 @@ Unbound externals are routed to the default handler at `game/gothic.cpp:964` →
 When a Gothic II script calls `Wld_InsertNpcAndRespawn` (used by mods and some vanilla spawn
 scripts), OpenGothic:
 1. **does not spawn the NPC at all** (the original spawns it at the waypoint), and
-2. routes through the default-external no-op, which neither pops the three pushed arguments
-   off the Daedalus data stack nor pushes a result — leaving the VM stack unbalanced for the
-   continuation of that script function.
+2. routes through the default-external no-op (only logs).
+
+   **CORRECTION (post-commit):** the original claim that the unbound call leaves the VM stack
+   unbalanced is WRONG. ZenKit's `register_default_external`
+   (`lib/ZenKit/src/DaedalusVm.cc:809-836`) pops all declared parameters and pushes a default
+   return per the symbol's signature, so the stack stays balanced. The *only* real divergence is
+   point 1 — the NPC is never spawned — which the applied fix resolves. See
+   `ext-unbound-externals-inventory.md` for the general analysis.
 
 The original instead places the NPC at the spawnpoint waypoint and enables the respawn flag.
 
