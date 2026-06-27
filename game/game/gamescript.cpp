@@ -3291,9 +3291,17 @@ void GameScript::ai_gotonpc(std::shared_ptr<zenkit::INpc> npcRef, std::shared_pt
   }
 
 void GameScript::ai_gotonextfp(std::shared_ptr<zenkit::INpc> npcRef, std::string_view to) {
+  // NOTE: in original-game AI_GotoNextFP (Gothic2.exe oGameExternal.cpp @0x006ec270) the free-point
+  // name argument is upper-cased (zSTRING::Upper) before the goto is queued. OpenGothic stores
+  // way/free-point names upper-cased and WayPoint::checkName matches case-sensitively, so a
+  // non-upper-case script name never matched and the NPC silently failed to move. Upper-case here.
   auto npc = findNpc(npcRef);
-  if(npc!=nullptr)
-    npc->aiPush(AiQueue::aiGoToNextFp(to));
+  if(npc==nullptr)
+    return;
+  std::string name {to};
+  for(auto& c:name)
+    c = char(std::toupper(c));
+  npc->aiPush(AiQueue::aiGoToNextFp(name));
   }
 
 void GameScript::ai_aligntofp(std::shared_ptr<zenkit::INpc> npcRef) {
