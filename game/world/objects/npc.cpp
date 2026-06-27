@@ -2088,6 +2088,17 @@ void Npc::takeDamage(Npc &other, const Bullet* b) {
     } else {
     if(invent.activeWeapon()!=nullptr)
       visual.emitBlockEffect(*this,other);
+    // NOTE: in original-game oCNpc::EV_Parade (Gothic2.exe 0x007522d0) a started parade ends with
+    // oCNpc::AssessDamage_S(defender, attacker, value=0) (Gothic2.exe 0x0075c280), which runs the
+    // defender's own PERC_ASSESSDAMAGE and unconditionally broadcasts PERC_ASSESSOTHERSDAMAGE
+    // (CreatePassivePerception perc 9, OTHER=attacker, VICTIM=defender) to nearby witnesses. So a
+    // blocked blow still makes the defender react and still recruits its guild-mates. OpenGothic ran
+    // neither on a pure block, so a perfectly-parried attacker stayed un-assessed and no allies were
+    // alerted. Mirror the damage-path calls (lines ~2145 / ~2193) for the parade (not isJumpb dodge).
+    if(isBlock) {
+      perceptionProcess(other,this,0,PERC_ASSESSDAMAGE);
+      owner.sendPassivePerc(*this,other,*this,PERC_ASSESSOTHERSDAMAGE);
+      }
     }
   }
 
