@@ -71,6 +71,26 @@ void AbstractTrigger::processDelayedEvents() {
   }
 
 void AbstractTrigger::processEvent(const TriggerEvent& evt) {
+  // NOTE: in original-game zCTrigger::OnMessage @0x006106e0 the enable/disable/toggle messages
+  // arrive as a zCEventCommon via the OnMessage vtable slot, separate from the OnTrigger path
+  // (ActivateTrigger @0x006104d0 / CanBeActivatedNow @0x00610220). They flip the enabled flag
+  // immediately, bypassing fire-delay/retrigger-delay/pending-event gating and without updating
+  // the last-trigger timestamp. OpenGothic funneled them through the activation gates (so a
+  // fire/retrigger-delayed trigger dropped or postponed an enable/disable) and through
+  // implProcessEvent (which poisons emitTimeLast). Apply them inline before the gates.
+  switch(evt.type) {
+    case TriggerEvent::T_Enable:
+      disabled = false;
+      return;
+    case TriggerEvent::T_Disable:
+      disabled = true;
+      return;
+    case TriggerEvent::T_ToggleEnable:
+      disabled = !disabled;
+      return;
+    default:
+      break;
+    }
   if(hasDelayedEvents()) {
     // discard, if already have pending
     return;
