@@ -1305,7 +1305,19 @@ bool Npc::isMonster() const {
   // NOTE: in original-game oCNpc::IsMonster/IsHuman (Gothic2.exe 0x742600/0x742640) classify on
   // the TRUE guild (field 0x766), not the live script-mutable C_Npc.guild; OG read the live
   // guild, so a runtime guild change (disguise) wrongly flipped monster/human status. (#656)
-  return SEPERATOR_HUM<trueGuild() && trueGuild()<SEPERATOR_ORC;
+  if(!(SEPERATOR_HUM<trueGuild() && trueGuild()<SEPERATOR_ORC))
+    return false;
+  // NOTE: in original-game oCNpc::IsMonster (Gothic2.exe 0x00742600) additionally excludes
+  // GIL_FIREGOLEM(0x28), GIL_ICEGOLEM(0x29) and GIL_DRAGON(0x2f) from monster classification:
+  // these talk/boss-capable creatures are NOT monsters, so they must not get the monster unarmed
+  // auto-crit (damagecalculator) nor the monster minHp=0 death path. (The original's missing orc
+  // upper bound is a separate, broader divergence, left deferred.)
+  if(g2) {
+    const auto tg = trueGuild();
+    if(tg==GIL_FIREGOLEM || tg==GIL_ICEGOLEM || tg==GIL_DRAGON)
+      return false;
+    }
+  return true;
   }
 
 bool Npc::isHuman() const {
