@@ -416,13 +416,20 @@ bool Inventory::setSlot(Item *&slot, Item* next, Npc& owner, bool force) {
     // equip with no attribute requirement (only slot-count limits). Skip the cond gate for
     // those slots so a ring/amulet/belt with a cond_value is not wrongly blocked.
     const bool ringAmuBelt = (uint32_t(next->itemFlag()) & (ITM_RING|ITM_AMULET|ITM_BELT))!=0;
+    // NOTE: in original-game oCNpc::Equip (Gothic2.exe 0x00739c90) a rune (main_flag ITM_CAT_RUNE
+    // -> GetCategory @0x0070c690 category 3) is registered in the magic book WITHOUT ever calling
+    // CanUse (0x007319b0); only weapons/armor and the ranged-weapon branch invoke it. checkCondRune
+    // (mageCycle>=mag_circle) is a rune-only gate, so applying it here wrongly blocked belting a
+    // higher-circle (or attribute-gated) rune the original lets you register and select (casting
+    // stays script/mana-gated). Skip the cond gate for runes too, like ring/amulet/belt.
+    const bool noCondGate  = ringAmuBelt || next->isSpellOrRune();
     int32_t atr=0,nValue=0,plMag=0,itMag=0;
-    if(!force && !ringAmuBelt && !next->checkCondUse(owner,atr,nValue)) {
+    if(!force && !noCondGate && !next->checkCondUse(owner,atr,nValue)) {
       vm.printCannotUseError(owner,atr,nValue);
       return false;
       }
 
-    if(!force && !ringAmuBelt && !next->checkCondRune(owner,plMag,itMag)) {
+    if(!force && !noCondGate && !next->checkCondRune(owner,plMag,itMag)) {
       vm.printCannotCastError(owner,plMag,itMag);
       return false;
       }
