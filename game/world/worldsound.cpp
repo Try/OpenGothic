@@ -272,6 +272,16 @@ void WorldSound::tickSoundZone(Npc& player) {
       mode = GameMusic::Fgt;
       }
     }
+  // NOTE: in original-game oCAIHuman::GetEnemyThreat (Gothic2.exe 0x00696950): when no enemy is
+  // actively attacking, the hero status is still forced to THREAT (1) if the hero is near death
+  // (GetAttribute(0)=ATR_HITPOINTS < 6) or standing in a sector whose name contains "WALD"
+  // (case-sensitive, via zCVob::GetSectorNameVobIsIn @0x00600ae0). OpenGothic only handled the
+  // active-attacker path, so forest/near-death threat music never played. Purely additive (THR,
+  // never FGT), so it cannot cause a false combat-music trigger.
+  else if(player.attribute(ATR_HITPOINTS) < 6 ||
+          player.portalName().find("WALD")!=std::string_view::npos) {
+    mode = GameMusic::Thr;
+    }
   GameMusic::Tags tags = GameMusic::mkTags(isDay ? GameMusic::Day : GameMusic::Ngt,mode);
 
   if(currentZone==zone && currentTags==tags)
