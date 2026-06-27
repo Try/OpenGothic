@@ -160,6 +160,9 @@ patch with a `// NOTE: in original-game …` citation.
 | Dialog gesture rate | NPCs gestured on 100% of lines (count=11); original rolls a fixed 1..20, so unresolved indices give ~55% | `versioninfo.h` `dialogGestureCount` |
 | Mdl_ null guard | Mdl_StartFaceAni/Mdl_SetModelScale guarded the handle but deref'd the resolved npc (crash); original no-ops on null | `gamescript.cpp` `mdl_*` |
 | PrintScreen stacking | same-coordinate prints stacked (overlapping/unbounded); original reuses the slot keyed by (x,y) | `dialogmenu.cpp` `printScreen` |
+| Hlp_StrCmp case | compared case-sensitively (a==b); original uppercases both operands (case-insensitive equality) | `gothic.cpp` `hlp_strcmp` |
+| StateTime active gate | Npc_GetStateTime returned elapsed world time for a stateless NPC; original returns 0 without an active state | `npc.cpp` `stateTime` |
+| Wld_PlayEffect origin | required matching-type source+target; original needs only a valid origin (target optional/untyped) | `gamescript.cpp` `wld_playeffect` |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
@@ -286,4 +289,7 @@ patch with a `// NOTE: in original-game …` citation.
 | `ailoop-state-loop-reinvoke-interval` | OG gates the ZS_ state Loop re-invoke behind perceptionTime (loopNextTime += perceptionTimeClampt()), so non-combat state loops re-run only every ~1-5s; the original DoAIState @0x0076d1a0 re-invokes ZS_xxx_Loop every AI frame (perception is throttled separately). Removing the gate is a broad every-NPC behavioral/perf change needing runtime A/B — deferred |
 | `corpse-fade-despawn` | NO FINDING — corpses persist for normal NPCs in both engines; the differing fade/despawn/respawn all belong to the oCSpawnManager subsystem OG deliberately doesn't implement (no reachable trigger, no single OG symbol to patch). Every concrete divergence here is already covered by existing docs |
 | `snd-play3d-static-vs-npc-attached` | Snd_Play3D freezes the emitter at a one-time centerPosition() snapshot; the original parents it to the NPC vob so it follows for the playback duration. Marginal (Snd_Play3D is almost always short one-shots) and a faithful fix needs sound-to-vob attachment infrastructure — Low, deferred |
+| `aiqueue-overlay-front-insert` | overlay/body-language messages (EV_LOOKAT/POINTAT/PLAYANI/PROCESSINFOS/OUTPUTSVM_OVERLAY) are front-inserted and run concurrently in the original (InsertInList @0x00787300 / IsOverlay @0x0076ab00); OG FIFO-queues everything except AI_OutputSvmOverlay, so look/point/play-ani wait for the blocking AI_Output. A correct fix needs a unified queue with per-action overlay flags + non-blocking continuation — too invasive, deferred |
+| `map-levelcoords-zero-worldbbox-fallback` | the original UpdatePosition @0x0068d7b0 uses script level-coords only when non-zero, else falls back to the world bbox; OG defaults wbounds to Rect(0,0,0,0) and divides by a zero rect (NaN marker). Stock G2's Doc_MapCoordinates wrapper always sets coords, so unobservable in shipped content — deferred |
+| `choice-info-addchoice` | NO FINDING — Info_AddChoice prepend-to-front (reverse-add display order) and Info_ClearChoices match the original (AddChoice @0x00703b20 / RemoveAllChoices @0x00703d70) exactly via zenkit's choices.insert(begin) |
 
