@@ -174,14 +174,29 @@ DamageCalculator::Val DamageCalculator::swordDamage(Npc& nsrc, Npc& nother) {
       critChance = -1;
       }
 
+    // NOTE: in original-game oCNpc::OnDamage_Hit (Gothic2.exe 0x00666610) the melee attribute boni
+    // is SPLIT across the active boni categories: it counts how many of BLUNT/EDGE/POINT are set and
+    // adds attribute/count (truncated) to each. A weapon dealing two damage types gives only STR/2
+    // (resp. DEX/2) per type. OpenGothic added the full attribute to every type, inflating multi-type
+    // weapon and monster hits (single-type EDGE swords, count==1, are unchanged).
+    int boniDiv = 0;
+    for(unsigned int i=0; i<zenkit::DamageType::NUM; ++i) {
+      if((dtype & (1<<i))==0)
+        continue;
+      if(i==zenkit::DamageType::BLUNT || i==zenkit::DamageType::EDGE || i==zenkit::DamageType::POINT)
+        ++boniDiv;
+      }
+    boniDiv = std::max(boniDiv,1);
+
     bool invincible = true;
     for(unsigned int i=0; i<zenkit::DamageType::NUM; ++i) {
       if((dtype & (1<<i))==0)
         continue;
       // NOTE: in original-game oCNpc::OnDamage_Hit (Gothic2.exe 0x00666610) the per-type melee
       // attribute boni adds STRENGTH to BLUNT/EDGE but DEXTERITY to POINT (GetAttribute(5)=DEX
-      // feeds the point accumulator @desc+0x44, GetAttribute(4)=STR feeds blunt/edge @+0x30/+0x34).
-      const int atr = (i==zenkit::DamageType::POINT) ? dex : str;
+      // feeds the point accumulator @desc+0x44, GetAttribute(4)=STR feeds blunt/edge @+0x30/+0x34),
+      // each divided by the number of active boni categories (boniDiv above).
+      const int atr = ((i==zenkit::DamageType::POINT) ? dex : str) / boniDiv;
       int vd = std::max(atr + src.damage[i] - other.protection[i],0);
       // NOTE: in original-game oCNpc::OnDamage_Hit (Gothic2.exe 0x00666610) the glancing-blow roll
       // (hitchance < rand%100+1) runs only for WeaponMode 3 (1H, GetHitChance(1)) and 4 (2H,
