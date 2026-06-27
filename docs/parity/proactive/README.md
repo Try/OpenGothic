@@ -126,6 +126,10 @@ patch with a `// NOTE: in original-game …` citation.
 | Downed re-hit polarity | onNoHealth got the non-lethal flag as `death`; fists killed downed NPCs, arrows revived corpses | `npc.cpp` `takeDamage` |
 | G2 invest mana | channeling/invest spells drained no mana in G2; original drains 1/tick on SPL_RECEIVEINVEST | `npc.cpp` `tickCast` |
 | Corpse armour loot | unequipped armour in a body was lootable; original never lists ITM_CAT_ARMOR in corpse loot | `inventory.cpp` `skipHidden` |
+| Fist glancing blow | unarmed hits rolled the glancing reduction on the unused hitchance[0]; original skips it for fists | `damagecalculator.cpp` `swordDamage` |
+| Sticky target | Npc_GetNextTarget re-acquired nearest every call (thrashing); original keeps the current alive foe | `gamescript.cpp` `npc_getnexttarget` |
+| Routine resume re-entry | AI_ContinueRoutine re-ran End+Ini when already in the routine state; original no-ops | `npc.cpp` `resumeAiRoutine` |
+| Passive threat music | near-death/forest hero never got THR music; original forces it with no attacker | `worldsound.cpp` `tickSoundZone` |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
@@ -214,4 +218,6 @@ patch with a `// NOTE: in original-game …` citation.
 | `trade-sold-items-persist-in-merchant-inventory` | items sold to a merchant join its persistent serialized inventory and survive close/reopen+save; the original drops sold goods into a throwaway session oCStealContainer freed on trade-close (merchants aren't storage). Fix needs a genuine session-temp trade-container model, not a one-line edit — structural, deferred |
 | `mobstate-trigger-onstate-state-index` | MOBSI on_state_S{k}/trigger may fire at the source vs destination state index; trigger-bearing mobs (switches/doors) use an un-decompiled OnEndStateChange override and the OG-vs-original state base wasn't pinned — blind re-keying risks regressing working doors/switches — Low-Medium, deferred |
 | `sky-weather-subsystem` | NO FINDING — OG's sky is a clean custom PBR renderer (not a value-for-value zCSkyState reimplementation) and rain/weather is unimplemented (Wld_IsRaining stubbed false), so there is no original constant to diff against; setDayTime already matches |
+| `theft-assesstheft-isplayer-gate` | Npc::takeItem sends PERC_ASSESSTHEFT only for the player; the original DoTakeVob @0x007449c0 broadcasts it for any taker (recipient eligibility filtered later). Removing the gate is a no-op for vanilla (stock B_AssessTheft early-outs unless other==player) but has a script-dependent mod-regression surface; the broader steal-from-NPC subsystem (OpenSteal/oCStealContainer) is unimplemented anyway — Medium, deferred |
+| `wld-detectitem-perception-volume` | Wld_DetectItem uses a sphere of radius senses_range; the original DetectItem @0x0073fd40 scans a perception CUBE (CollectVobsInBBox3D half-extent senses_range), so cube-corner items aren't detected. The fix is a broadphase-radius widen + box test with bbox-vs-center metric approximations on both sides — Medium, geometric approximation, deferred |
 
