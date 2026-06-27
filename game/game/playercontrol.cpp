@@ -1045,7 +1045,11 @@ void PlayerControl::processPickLock(Npc& pl, Interactive& inter, KeyCodec::Actio
     } else {
     prog++;
     if(prog>=cmp.size()) {
-      script.invokePickLock(pl,1,1);
+      // NOTE: in original-game oCMobLockable::Interact @0x00723cf0 the combination-complete branch
+      // only clears the in-progress flag and posts the unlock message -- it does NOT call G_PickLock
+      // (and never uses the (success=1, brokenOpen=1) pair). Calling it here raised an extra
+      // pick-success event (success sound, plus any per-success talent/XP the script grants) per
+      // cracked lock. Only mark the lock cracked.
       inter.setAsCracked(true);
       prog = 0;
       } else {
