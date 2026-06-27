@@ -2247,13 +2247,14 @@ bool GameScript::npc_hasspell(std::shared_ptr<zenkit::INpc> npcRef, int splId) {
   }
 
 int GameScript::npc_getinvitem(std::shared_ptr<zenkit::INpc> npcRef, int itemId) {
+  // NOTE: in original-game Npc_GetInvItem @0x006eef00 stores the found item in the global `item`
+  // instance and returns 1 when the item exists in the inventory, 0 otherwise (boolean via `setne`
+  // on the item pointer). OpenGothic returned the item's symbol index when found and -1 when absent;
+  // -1 is truthy in Daedalus, so `if(Npc_GetInvItem(self,it))` wrongly passed for items not owned.
   auto npc = findNpc(npcRef);
   auto itm = npc==nullptr ? nullptr : npc->getItem(uint32_t(itemId));
   storeItem(itm);
-  if(itm!=nullptr) {
-    return int(itm->handle().symbol_index());
-    }
-  return -1;
+  return itm!=nullptr ? 1 : 0;
   }
 
 // This seems specific to Gothic 1, where the inventory was grouped into categories.
@@ -2935,8 +2936,13 @@ int GameScript::npc_getlasthitspellcat(std::shared_ptr<zenkit::INpc> npcRef) {
   if(npc==nullptr)
     return SPELL_GOOD;
 
-  const int id    = npc->lastHitSpellId();
-  auto&     spell = spellDesc(id);
+  const int id = npc->lastHitSpellId();
+  // NOTE: in original-game Npc_GetLastHitSpellCat (FUN_006e5770) returns oCNpc+0x924, which the
+  // constructor @0x0072d950 initializes to -1; an NPC not yet hit by a spell yields -1 (and guarding
+  // here keeps spellDesc() from indexing out of range now that the id default is -1).
+  if(id<0)
+    return -1;
+  auto& spell = spellDesc(id);
   return spell.spell_type;
   }
 
