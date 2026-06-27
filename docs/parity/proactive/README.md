@@ -163,6 +163,11 @@ patch with a `// NOTE: in original-game …` citation.
 | Hlp_StrCmp case | compared case-sensitively (a==b); original uppercases both operands (case-insensitive equality) | `gothic.cpp` `hlp_strcmp` |
 | StateTime active gate | Npc_GetStateTime returned elapsed world time for a stateless NPC; original returns 0 without an active state | `npc.cpp` `stateTime` |
 | Wld_PlayEffect origin | required matching-type source+target; original needs only a valid origin (target optional/untyped) | `gamescript.cpp` `wld_playeffect` |
+| HasReadiedWeapon Mage | returned false for a readied spell; original's GetWeapon returns the in-hand rune in magic mode | `gamescript.cpp` `npc_hasreadiedweapon` |
+| GetDistToPlayer metric | returned exact Euclidean; original uses an octagonal approximation (~7% under) | `gamescript.cpp` `npc_getdisttoplayer` |
+| IsMobAvailable case | raw mob name failed a case-sensitive scheme compare; original upper-cases it first | `gamescript.cpp` `wld_ismobavailable` |
+| SetTrueGuild re-init | changing the hero's guild left NPC attitudes stale; original re-bakes all from the guild matrix | `gamescript.cpp` `npc_settrueguild` |
+| Scaled NPC speed | model_scale affected only the render matrix; original scales anim root-motion too | `npc.cpp` `animMoveSpeed` |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
@@ -292,4 +297,6 @@ patch with a `// NOTE: in original-game …` citation.
 | `aiqueue-overlay-front-insert` | overlay/body-language messages (EV_LOOKAT/POINTAT/PLAYANI/PROCESSINFOS/OUTPUTSVM_OVERLAY) are front-inserted and run concurrently in the original (InsertInList @0x00787300 / IsOverlay @0x0076ab00); OG FIFO-queues everything except AI_OutputSvmOverlay, so look/point/play-ani wait for the blocking AI_Output. A correct fix needs a unified queue with per-action overlay flags + non-blocking continuation — too invasive, deferred |
 | `map-levelcoords-zero-worldbbox-fallback` | the original UpdatePosition @0x0068d7b0 uses script level-coords only when non-zero, else falls back to the world bbox; OG defaults wbounds to Rect(0,0,0,0) and divides by a zero rect (NaN marker). Stock G2's Doc_MapCoordinates wrapper always sets coords, so unobservable in shipped content — deferred |
 | `choice-info-addchoice` | NO FINDING — Info_AddChoice prepend-to-front (reverse-add display order) and Info_ClearChoices match the original (AddChoice @0x00703b20 / RemoveAllChoices @0x00703d70) exactly via zenkit's choices.insert(begin) |
+| `ta-overlay-routine-relative-time` | TA_BeginOverlay/EndOverlay/RemoveOverlay are unbound (no-op); the original interprets TA slots between them as windows RELATIVE to the current time (now+start..now+stop), marked overlay (priority on equal start, removable), vs OG storing all TA as permanent absolute daily slots. Faithful fix spans 3 new externals + Npc/Routine overlay state + relative-time path + save/load — deferred (scope) |
+| `scale-collision-capsule` | DynamicWorld::NpcItem::setScale is a NOP, so a model-scaled NPC's collision capsule/bbox/reach/height ignore model_scale (the original rebuilds the scaled bbox in SetModelScale). Needs refitting the Bullet capsule + touching multiple bbox/height consumers — not surgical, deferred (companion to the applied anim-move-speed scale fix) |
 
