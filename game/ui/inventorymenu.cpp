@@ -471,10 +471,13 @@ void InventoryMenu::onItemAction(uint8_t slotHint) {
     if(it.isEquipped() && slotHint==Item::NSLOT) {
       player->unequipItem(clsId);
       } else {
+      // NOTE: in original-game oCNpcInventory::Remove @0x0070cbe0 re-validates the cursor via
+      // oCItemContainer::CheckSelectedItem @0x00709660, which PRESERVES the selection index when it
+      // still points at a valid item -- so after consuming the last of a mid-list stack the item
+      // that compacts up into the slot becomes highlighted, not the preceding one. OpenGothic
+      // stepped the cursor back to the previous item; drop that (adjustScroll() clamps the
+      // end-of-list case).
       player->useItem(clsId,slotHint,false);
-      auto it2 = page.get(sel.sel);
-      if((!it2.isValid() || it2->clsId()!=clsId) && sel.sel>0)
-        --sel.sel;
       }
     }
   else if(state==State::Chest || state==State::Trade || state==State::Ransack) {
