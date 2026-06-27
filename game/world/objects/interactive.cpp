@@ -729,21 +729,25 @@ bool Interactive::checkUseConditions(Npc& npc) {
 
     }
 
-  // NOTE: in original-game oCMobInter::CanInteractWith (Gothic2.exe 0x00720f40) evaluates
-  // the condition-function and use-with-item gate for ANY NPC, not just the player; only the
-  // HUD messages are player-only. OpenGothic had this block under if(isPlayer), so
-  // script/routine-driven NPCs bypassed conditionFunc/useWithItem entirely.
+  // NOTE: in original-game oCMobInter::CanInteractWith (Gothic2.exe 0x00720f40) evaluates the
+  // condition-function for ANY NPC (not just the player). OpenGothic had it under if(isPlayer), so
+  // script/routine-driven NPCs bypassed conditionFunc entirely.
   if(!conditionFunc.empty()) {
     const int check = sc.invokeCond(npc,conditionFunc);
     if(check==0)
       return false;
     }
 
-  if(!useWithItem.empty()) {
+  // NOTE: in original-game the use-with-item gate refuses ONLY the player (oCNpc::IsAPlayer
+  // @0x007425a0): the player must hold the item (in hand, as the interact-item, or in inventory)
+  // else it returns 0 with a T_DONTKNOW shrug. A non-player NPC NEVER fails this gate -- the engine
+  // removes the item from its inventory, or spawns a fresh instance via the spawn manager, and hands
+  // it over as the interact-item. So a routine-driven NPC on an item-gated MOBSI must pass even
+  // without carrying the item (OpenGothic does not model the held interact-item, so just don't block).
+  if(isPlayer && !useWithItem.empty()) {
     size_t it = sc.findSymbolIndex(useWithItem);
     if(it!=size_t(-1) && npc.itemCount(it)==0) {
-      if(isPlayer)
-        sc.printMobMissingItem(npc);
+      sc.printMobMissingItem(npc);
       return false;
       }
     }
