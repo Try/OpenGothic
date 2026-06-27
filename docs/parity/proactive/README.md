@@ -114,6 +114,11 @@ patch with a `// NOTE: in original-game …` citation.
 | Partial-buy warning | a partial-affordability buy was silent; original warns "not enough gold" too | `npc.cpp` `buyItem` |
 | IsInRoutine state | Npc_IsInRoutine returned false during combat/dialog; original checks the routine schedule only | `npc.cpp` `isInRoutine` |
 | PFX scale-key step | non-smooth PFX emit-rate key sampled nearest (half-step early); original holds the floor key | `particlefx.cpp` `fetchScaleKey` |
+| Room-entry sneak gate | ASSESSENTERROOM suppressed on transient BS_SNEAK; original uses the persistent WM_Sneak walk-mode (mirrors #639) | `movealgo.cpp` |
+| Mage focus tactic | my_fk_focus_mag gated on melee range (unreachable for a caster); original gates on the aiming cone | `fightalgo.cpp` `fillQueue` |
+| Free-point wildcard | empty fpName matched nothing; original treats empty as match-all (nearest available FP of any name) | `waymatrix.cpp` `findFpIndex` |
+| Parry witness recruit | a blocked/parried hit ran no AssessDamage/AssessOthersDamage; original's EV_Parade calls AssessDamage_S(value=0) | `npc.cpp` `takeDamage` |
+| Weapon damage spread | damage_total added to every type (N-times over); original spreads it evenly across set types | `inventory.cpp` `applyWeaponStats` |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
@@ -196,4 +201,5 @@ patch with a `// NOTE: in original-game …` citation.
 | `dodge-strafe-space-gating` | AI strafe direction + jump-back go/no-go should be gated on a free-space collision sweep (original CanStrafe/CanJumpBack); OG picks the strafe side with rand(2) and jump-backs unconditionally. Needs the original's swept-box fight-movement collision OG lacks — agent-deferred |
 | `saveglob-daedalus-global-scope` | OG persists FLOAT/STRING/INSTANCE .dat globals the original never saves (only non-const INT globals); restricting saveSym to INT-only matches the original but removes persisted state with low base-game impact and OG/mod-regression risk — agent-deferred |
 | `spellspawn-notarget-ignores-origin-node` | an untargeted spell cast spawns from the weapon bone, ignoring the FX emTrjOriginNode the targeted branch honors; Medium + config-dependent (only matters when the origin node differs from the weapon bone) — visual, deferred |
+| `spellinfo-setactivespellinfo-unconditional` | Npc_SetActiveSpellInfo stores the transform-instance unconditionally; original only stores it while a spell is selected (magic mode). Medium + unreachable from vanilla scripts; gating the store risks dropping a legitimate mid-cast store (breaking a vanilla transform) if activeWeapon() state differs at the call moment — deferred |
 
