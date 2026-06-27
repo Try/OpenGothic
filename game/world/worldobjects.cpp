@@ -448,6 +448,13 @@ bool WorldObjects::isTargetedBy(Npc& npc, Npc& dst) {
     return false;
   if(!npc.isAttack())
     return false;
+  // NOTE: in original-game oCAIHuman::GetEnemyThreat (Gothic2.exe @0x00696950) only enemies within
+  // ~1000 units of the hero raise the threat/fight music status; far-off attackers do not switch
+  // the music to THR/FGT. OpenGothic had no distance gate, so a distant aggroed archer/mage kept
+  // combat music going. (isTargetedBy feeds only the music trigger, so this is music-only.)
+  const float threatRange = 1000.f;
+  if((npc.position()-dst.position()).quadLength() > threatRange*threatRange)
+    return false;
   return true;
   }
 
