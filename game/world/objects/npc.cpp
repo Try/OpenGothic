@@ -2072,13 +2072,18 @@ void Npc::takeDamage(Npc &other, const Bullet* b) {
   const bool  isBlock = (!other.isMonster() || other.inventory().activeWeapon()!=nullptr) &&
                          fghAlgo.isInFocusAngle(*this,other,90) &&
                          pose.isDefence(owner.tickCount());
+  // NOTE: in original-game oCAniCtrl_Human::HitCombo (Gothic2.exe 0x006b0260) the parade path is
+  // reached only when oCNpc::GetDamageByType(attacker, DAM_FLY/0x10)==0; a FLY (knockback) attack
+  // skips CanParade entirely and can be neither parried nor jump-dodged. OpenGothic omitted this
+  // gate, so a defender could block FLY-type attacks.
+  const bool  flyAtk  = (DamageCalculator::damageTypeMask(other) & (1<<zenkit::DamageType::FLY))!=0;
 
   lastHit = &other;
   if(!isPlayer())
     setOther(&other);
   owner.sendPassivePerc(*this,other,*this,PERC_ASSESSFIGHTSOUND);
 
-  if(!(isBlock || isJumpb) || b!=nullptr) {
+  if(!(isBlock || isJumpb) || b!=nullptr || flyAtk) {
     takeDamage(other,b,COLL_DOEVERYTHING,0,false);
     } else {
     if(invent.activeWeapon()!=nullptr)
@@ -2118,9 +2123,17 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
     auto& spl  = owner.script().spellDesc(splId);
     splCat     = SpellCategory(spl.spell_type);
     damageType = spl.damage_type;
+    // NOTE: in original-game ApplyDamages (Gothic2.exe 0x0065e5a0) the spell total is split
+    // equally across its damage-type bits (round(total/numTypes)); see commitSpell.
+    int32_t splTypes = 0;
     for(size_t i=0; i<zenkit::DamageType::NUM; ++i)
       if((damageType&(1<<i))!=0)
-        dmg[i] = spl.damage_per_level;
+        ++splTypes;
+    const int32_t perType = (splTypes>0)
+      ? int32_t(float(spl.damage_per_level)/float(splTypes) + 0.5f) : 0;
+    for(size_t i=0; i<zenkit::DamageType::NUM; ++i)
+      if((damageType&(1<<i))!=0)
+        dmg[i] = perType;
     }
 
   if(!isSpell || splCat==SpellCategory::SPELL_BAD) {
@@ -3254,9 +3267,19 @@ void Npc::commitSpell() {
   if(active->isSpellShoot()) {
     const int lvl = (castLevel-CS_Emit_0)+1;
     DamageCalculator::Damage dmg={};
+    // NOTE: in original-game ApplyDamages (Gothic2.exe 0x0065e5a0, from oCVisualFX::ProcessCollision
+    // 0x004958d0) the spell's total damage is split equally across its selected damage-type bits:
+    // each element gets round(total/numTypes) (fild;fdiv;fadd 0.5;__ftol @0x0065e76c). OpenGothic
+    // wrote the full total into every element, dealing N-times damage for a multi-element spell.
+    int32_t splTypes = 0;
+    for(size_t i=0; i<zenkit::DamageType::NUM; ++i)
+      if((spl.damage_type&(1<<i))!=0)
+        ++splTypes;
+    const int32_t perType = (splTypes>0)
+      ? int32_t(float(spl.damage_per_level*lvl)/float(splTypes) + 0.5f) : 0;
     for(size_t i=0; i<zenkit::DamageType::NUM; ++i)
       if((spl.damage_type&(1<<i))!=0) {
-        dmg[i] = spl.damage_per_level*lvl;
+        dmg[i] = perType;
         }
 
     auto& b = owner.shootSpell(*active, *this, currentTarget);
