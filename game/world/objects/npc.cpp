@@ -4447,7 +4447,12 @@ bool Npc::perceptionProcess(Npc &pl) {
     }
 
   const float quadDist = pl.qDistTo(*this);
-  if(hasPerc(PERC_ASSESSPLAYER) && canSenseNpc(pl,false)!=SensesBit::SENSE_NONE) {
+  // NOTE: in original-game oCNpc::PerceptionCheck @0x0075dd30 a vob with hp<1 or IsUnconscious
+  // (@0x00736750) is classified EXCLUSIVELY as a body (AssessBody); the player/enemy/fighter
+  // (AssessPlayer) branch is the else-arm, so a downed player is never assessed via PERC_ASSESSPLAYER.
+  // OpenGothic ran B_AssessPlayer (greet/turn-to/aggro) against a knocked-out or dead hero; gate it
+  // on the same isDown() predicate the body/enemy branches already use.
+  if(hasPerc(PERC_ASSESSPLAYER) && !pl.isDown() && canSenseNpc(pl,false)!=SensesBit::SENSE_NONE) {
     if(perceptionProcess(pl,nullptr,quadDist,PERC_ASSESSPLAYER)) {
       ret = true;
       }
