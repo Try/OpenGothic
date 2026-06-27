@@ -4182,6 +4182,13 @@ Npc::BeginCastResult Npc::beginCastSpell() {
       if(!visual.startAnimSpell(*this,ani,true))
         Log::d("Couldn't start animation for spell '",currentSpellCast,"'");
       castLevel = CS_Invest_0;
+      // NOTE: in original-game oCAIHuman::MagicInvestSpell @0x00472160 -> oCNpc::AssessCaster_S
+      // @0x0075d200 -> CreatePassivePerception @0x0075b270 broadcasts PERC_ASSESSCASTER (0x1d) to
+      // nearby NPCs whenever a caster (NPC or player) is investing a spell, with OTHER=the caster and
+      // no VICTIM. OpenGothic never sent PERC_ASSESSCASTER, so bystanders could not react to a spell
+      // being charged near them. (The original re-sends each invest cycle; broadcast once at
+      // invest-start here -- receivers that did not Npc_PercEnable it are filtered out by hasPerc.)
+      owner.sendPassivePerc(*this,*this,PERC_ASSESSCASTER);
       return BeginCastResult::BC_Invest;
       }
     case SPL_SENDCAST: {
