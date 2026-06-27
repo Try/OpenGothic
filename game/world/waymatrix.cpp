@@ -253,7 +253,12 @@ const WayMatrix::FpIndex &WayMatrix::findFpIndex(std::string_view name) const {
   FpIndex id;
   id.key = name;
   for(auto& w:freePoints){
-    if(!w.checkName(name))
+    // NOTE: in original-game oCNpc::FindSpot @0x007400e0 the per-candidate name test is
+    // zSTRING::Search(spotName, fpName) @0x0046c920, which returns 0 (match at pos 0) for an EMPTY
+    // pattern -- so an empty fpName matches ANY free point and FindSpot returns the nearest available
+    // one. checkName() returns false on empty, so treat empty name as match-all to keep that wildcard
+    // (used by Wld_IsFPAvailable(self,"") and the "assign some point to all npc's" placement fallback).
+    if(!name.empty() && !w.checkName(name))
       continue;
     id.index.push_back(&w);
     }
