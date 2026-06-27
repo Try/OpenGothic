@@ -212,6 +212,7 @@ void GameScript::initCommon() {
   bindExternal("npc_settarget",                  &GameScript::npc_settarget);
   bindExternal("npc_gettarget",                  &GameScript::npc_gettarget);
   bindExternal("npc_getnexttarget",              &GameScript::npc_getnexttarget);
+  bindExternal("npc_isnexttargetavailable",      &GameScript::npc_isnexttargetavailable);
   bindExternal("npc_sendpassiveperc",            &GameScript::npc_sendpassiveperc);
   bindExternal("npc_sendsingleperc",             &GameScript::npc_sendsingleperc);
   bindExternal("npc_checkinfo",                  &GameScript::npc_checkinfo);
@@ -1855,7 +1856,11 @@ bool GameScript::wld_detectnpc(std::shared_ptr<zenkit::INpc> npcRef, int inst, i
   world().detectNpc(npc->position(), float(npc->handle().senses_range), [inst,state,guild,&ret,&dist,npc](Npc& n){
     if((inst ==-1 || int32_t(n.instanceSymbol())==inst) &&
        (state==-1 || n.isInState(uint32_t(state))) &&
-       (guild==-1 || int32_t(n.guild())==guild) &&
+       // NOTE: in original-game oCNpc::FindNpc @0x00740a80 (the Wld_DetectNpc handler) the guild
+       // filter compares the TRUE guild (field 0x766, GetTrueGuild), not the live C_Npc.guild (field
+       // 0x230) -- a disguised NPC is detected by its permanent guild. Same field distinction as
+       // IsMonster/IsHuman (#656).
+       (guild==-1 || n.trueGuild()==guild) &&
        (&n!=npc) && !n.isDead()) {
       float d = n.qDistTo(*npc);
       if(d<dist){
@@ -1880,7 +1885,11 @@ bool GameScript::wld_detectnpcex(std::shared_ptr<zenkit::INpc> npcRef, int inst,
   world().detectNpc(npc->position(), float(npc->handle().senses_range), [inst,state,guild,&ret,&dist,npc,player](Npc& n){
     if((inst ==-1 || int32_t(n.instanceSymbol())==inst) &&
        (state==-1 || n.isInState(uint32_t(state))) &&
-       (guild==-1 || int32_t(n.guild())==guild) &&
+       // NOTE: in original-game oCNpc::FindNpcEx @0x00740b80 (the Wld_DetectNpcEx handler) the guild
+       // filter compares the TRUE guild (field 0x766, GetTrueGuild @0x00730770), NOT the live
+       // C_Npc.guild (field 0x230, GetGuild @0x00730750) -- a disguised NPC is detected by its
+       // permanent guild. Same field distinction as IsMonster/IsHuman (#656).
+       (guild==-1 || n.trueGuild()==guild) &&
        // NOTE: in original-game oCNpc::FindNpcEx @0x00740b80 the aliveOnly flag (always passed by
        // Wld_DetectNpcEx) requires the target alive AND conscious: HP>0, not IsInState(-4)
        // unconscious, not IsInState(-5) dead. OpenGothic only excluded the dead state, so knocked-out
@@ -2683,6 +2692,37 @@ bool GameScript::npc_getnexttarget(std::shared_ptr<zenkit::INpc> npcRef) {
     s->set_instance(nullptr);
     return false;
     }
+  }
+
+bool GameScript::npc_isnexttargetavailable(std::shared_ptr<zenkit::INpc> npcRef) {
+  auto npc = findNpc(npcRef);
+  if(npc==nullptr)
+    return false;
+
+  // NOTE: in original-game Npc_IsNextTargetAvailable (Gothic2.exe 0x006ed090) -> oCNpc::GetNextEnemy
+  // @0x00734e30 returns the *current* enemy unchanged while it is still alive/conscious, otherwise
+  // re-acquires the nearest sensible foe and commits it via SetEnemy; the external returns whether
+  // such an enemy exists. Unlike Npc_GetNextTarget @0x006ecec0 it does NOT write the script `other`
+  // global. OpenGothic left it unbound (always false). Same sticky logic as npc_getnexttarget above.
+  Npc* ret = npc->target();
+  if(ret==nullptr || ret->isDown()) {
+    float dist = float(npc->handle().senses_range);
+    dist*=dist;
+    ret = nullptr;
+    world().detectNpc(npc->position(),float(npc->handle().senses_range),[&,npc](Npc& oth){
+      if(&oth!=npc && !oth.isDown() && oth.isEnemy(*npc) && npc->canSenseNpc(oth,true)!=SensesBit::SENSE_NONE){
+        float qd = oth.qDistTo(*npc);
+        if(qd<dist){
+          dist=qd;
+          ret = &oth;
+          }
+        }
+      return false;
+      });
+    npc->setTarget(ret);
+    }
+
+  return ret!=nullptr;
   }
 
 void GameScript::npc_sendpassiveperc(std::shared_ptr<zenkit::INpc> npcRef, int id, std::shared_ptr<zenkit::INpc> victimRef, std::shared_ptr<zenkit::INpc> otherRef) {

@@ -336,6 +336,7 @@ class GameScript final {
     void npc_settarget       (std::shared_ptr<zenkit::INpc> npcRef, std::shared_ptr<zenkit::INpc> otherRef);
     bool npc_gettarget       (std::shared_ptr<zenkit::INpc> npcRef);
     bool npc_getnexttarget   (std::shared_ptr<zenkit::INpc> npcRef);
+    bool npc_isnexttargetavailable(std::shared_ptr<zenkit::INpc> npcRef);
     void npc_sendpassiveperc (std::shared_ptr<zenkit::INpc> npcRef, int id, std::shared_ptr<zenkit::INpc> victimRef, std::shared_ptr<zenkit::INpc> otherRef);
     void npc_sendsingleperc  (std::shared_ptr<zenkit::INpc> npcRef, std::shared_ptr<zenkit::INpc> otherRef, int id);
     bool npc_checkinfo       (std::shared_ptr<zenkit::INpc> npcRef, int imp);
