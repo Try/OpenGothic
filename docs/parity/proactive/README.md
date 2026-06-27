@@ -168,6 +168,12 @@ patch with a `// NOTE: in original-game …` citation.
 | IsMobAvailable case | raw mob name failed a case-sensitive scheme compare; original upper-cases it first | `gamescript.cpp` `wld_ismobavailable` |
 | SetTrueGuild re-init | changing the hero's guild left NPC attitudes stale; original re-bakes all from the guild matrix | `gamescript.cpp` `npc_settrueguild` |
 | Scaled NPC speed | model_scale affected only the render matrix; original scales anim root-motion too | `npc.cpp` `animMoveSpeed` |
+| GetInvItem bool | returned symbol-index/-1 (−1 is truthy); original returns 1/0 found/not-found | `gamescript.cpp` `npc_getinvitem` |
+| FK-focus-far gate | ranged my_fk_focus_far gated on melee range (unreachable); original gates on the aim cone | `fightalgo.cpp` `fillQueue` |
+| Last-hit-spell -1 | id/cat defaulted to 0 (a valid spell); original inits to -1 until a spell hits | `npc.h` / `gamescript.cpp` |
+| AlignToWp source | AI_AlignToWp aligned to the current free-point; original aligns to the nearest waynet waypoint | `npc.cpp` `AI_AlignToWp` |
+| UseMob state clamp | AI_UseMob target above stateNum soft-locked (re-pushed forever); original clamps to stateNum | `npc.cpp` `AI_UseMob` |
+| Hurt-voice variants | always the bare SVM_<voice>_AARGH; original picks 1 of 5 variants (_1.._4) | `npc.cpp` `emitSoundSVM` |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
