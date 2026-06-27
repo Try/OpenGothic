@@ -295,6 +295,20 @@ void DialogMenu::printScreen(std::string_view msg, int x, int y, int time, const
   e.time = (time>0) ? uint32_t(time*1000) : 0u;
   e.x    = x;
   e.y    = y;
+  // NOTE: in original-game zCView::CreateText (reached via the PrintScreen external @0x6e2da0 and
+  // oCNpc::EV_PrintScreen) timed messages are keyed by their (x,y): a print at an already-occupied
+  // coordinate REUSES that slot (text+timer overwritten) instead of stacking, so at most one message
+  // occupies a coordinate. OpenGothic emplaced a new entry every call, so a script re-printing to a
+  // fixed coordinate (a HUD readout/counter) accumulated overlapping copies (garbled bold text,
+  // unbounded growth). Match the reuse for explicit coordinates; centered (-1) prints keep stacking.
+  if(x>=0 && y>=0) {
+    for(auto& it:pscreen)
+      if(it.x==x && it.y==y) {
+        it = std::move(e);
+        update();
+        return;
+        }
+    }
   pscreen.emplace(pscreen.begin(),std::move(e));
   update();
   }
