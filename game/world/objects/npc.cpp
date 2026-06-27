@@ -2163,7 +2163,13 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
     owner.addWeaponHitEffect(other,b,*this).play();
 
   if(isDown()) {
-    onNoHealth(dontKill,HS_NoSound);
+    // NOTE: in original-game oCNpc::OnDamage_Condition @0x0066cf30 a re-hit on a downed NPC goes to
+    // ZS_Dead only when the victim is already dead OR the blow is lethal (C_DropUnconscious==false);
+    // a non-lethal blow (fists) leaves an unconscious victim down (oCNpc::DropUnconscious @0x00735eb0
+    // early-returns while IsInState(-4)). 'dontKill' is OpenGothic's non-lethal / allow-unconscious
+    // flag (same role as the changeAttribute arg below), so the raw 'death=dontKill' was inverted: it
+    // killed knocked-out NPCs with fists and revived corpses hit by a stray arrow/spell.
+    onNoHealth(isDead() || !dontKill,HS_NoSound);
     return;
     }
 
@@ -4182,6 +4188,15 @@ bool Npc::tickCast(uint64_t dt) {
           castLevel = CastState(castLevel+1);
         visual.setMagicWeaponKey(owner,SpellFxKey::Invest,castLvl+1);
         }
+      // NOTE: in original-game oCSpell::Invest @0x004850d0, when Spell_ProcessMana returns
+      // SPL_RECEIVEINVEST and at least one mana was already invested (oCSpell+0x48 != 0), the engine
+      // itself drains one mana from the caster: oCNpc::ChangeAttribute(caster,ATR_MANA,-1) @0x0072ff60.
+      // SPL_NEXTLEVEL and SPL_STATUS_CANINVEST_NO_MANADEC do NOT drain (the latter's name means "no
+      // mana-dec": the opt-out a script uses when it deducts itself). G1 drains above (line 4165); the
+      // G2 RECEIVEINVEST path was missing, so G2 channeling/invest spells cost no mana. The first
+      // invest is BeginCast (manaInvested==0, no drain), so here manaInvested is always >=1.
+      if(owner.version().game==2 && code==SPL_RECEIVEINVEST && manaInvested>0)
+        changeAttribute(ATR_MANA,-1,false);
       auto& spl = owner.script().spellDesc(active->spellId());
       castNextTime += uint64_t(spl.time_per_mana);
       ++manaInvested;
