@@ -629,7 +629,18 @@ bool Pose::isDefWindow(uint64_t tickCount) const {
 
 bool Pose::isDefence(uint64_t tickCount) const {
   for(auto& i:lay) {
-    if(i.bs==BS_PARADE && i.seq->isDefWindow(tickCount-i.sAnim))
+    if(i.bs!=BS_PARADE)
+      continue;
+    // NOTE: in original-game oCNpc::CanParade @0x006b15b0 a strike is parried whenever the defender
+    // has an active "*PARADE*" (and non-"*JUMP*") animation and the attacker is in the +-90deg cone;
+    // there is NO DEF_WINDOW sub-gate, so the whole parade animation blocks (DEF_WINDOW on a parade
+    // is the cancel/combo window, not the block-active window -- per the MDS author's own comment).
+    // OpenGothic gated the block on isDefWindow ("0 12" of a 15-frame parade), so the recovery tail
+    // (frames 12-15) left the defender taking full damage. Sequence names are upper-cased at load.
+    if(i.seq->name.find("JUMP")==std::string::npos &&
+       i.seq->name.find("PARADE")!=std::string::npos)
+      return true;
+    if(i.seq->isDefWindow(tickCount-i.sAnim))
       return true;
     }
   return false;
