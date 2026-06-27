@@ -1207,11 +1207,23 @@ bool Inventory::less(const Item &il, const Item &ir) {
     return false;
 
   int32_t lV = 0, rV = 0;
+  // NOTE: in original-game inventory sort comparator @0x00705B80 the ARMOR branch (category id 2)
+  // ranks armor by oCItem::GetFullProtection @0x00712340 (the sum of the per-type protection[]
+  // array) DESCENDING; cost/value is never an armor sort key (neither the comparator nor its
+  // sub-comparators ever call oCItem::GetValue). OpenGothic ranked armor by -cost (most expensive
+  // first) instead of most-protective first. (The original's leading wear-slot key is constant for
+  // ITM_CAT_ARMOR.)
+  if(il.mainFlag() & ItmFlags::ITM_CAT_ARMOR) {
+    for(size_t d=0; d<zenkit::DamageType::NUM; ++d) {
+      lV += il.handle().protection[d];
+      rV += ir.handle().protection[d];
+      }
+    }
   // NOTE: in original-game inventory sort comparator @0x00705B80 the rune branch (category id 3)
   // falls straight to the name-only tie-break @0x00705EB0 -- value/cost is never a rune sort key,
   // so vanilla runes are strictly alphabetical. OpenGothic applied the -cost tie-break to runes
   // (they're not in the zeroing set), reordering the spell-book roughly "expensive first".
-  if(il.mainFlag() & (ItmFlags::ITM_CAT_FOOD | ItmFlags::ITM_CAT_POTION | ItmFlags::ITM_CAT_DOCS | ItmFlags::ITM_CAT_RUNE)) {
+  else if(il.mainFlag() & (ItmFlags::ITM_CAT_FOOD | ItmFlags::ITM_CAT_POTION | ItmFlags::ITM_CAT_DOCS | ItmFlags::ITM_CAT_RUNE)) {
     lV = 0;
     rV = 0;
     } else {
