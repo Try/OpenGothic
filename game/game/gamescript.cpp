@@ -2010,14 +2010,21 @@ void GameScript::mdl_removeoverlaymds(std::shared_ptr<zenkit::INpc> npcRef, std:
 }
 
 void GameScript::mdl_setmodelscale(std::shared_ptr<zenkit::INpc> npcRef, float x, float y, float z) {
+  // NOTE: in original-game Mdl_SetModelScale the external no-ops on a null resolved npc; guard the
+  // resolved npc, not the script handle (a non-null handle with a null user_ptr otherwise null-derefs).
   auto npc = findNpc(npcRef);
-  if(npcRef!=nullptr)
+  if(npc!=nullptr)
     npc->setScale(x,y,z);
   }
 
 void GameScript::mdl_startfaceani(std::shared_ptr<zenkit::INpc> npcRef, std::string_view ani, float intensity, float time) {
-  if(npcRef!=nullptr)
-    findNpc(npcRef.get())->startFaceAnim(ani,intensity,uint64_t(time*1000.f));
+  // NOTE: in original-game Mdl_StartFaceAni (Gothic2.exe FUN_006fae20) the external resolves the npc
+  // first and skips (script-error, no-op) when it is null, never dereferencing it. OpenGothic guarded
+  // the script handle but dereferenced the resolved pointer, crashing on a non-null handle whose
+  // user_ptr is null. Guard the resolved npc, matching every other Mdl_* external.
+  auto npc = findNpc(npcRef);
+  if(npc!=nullptr)
+    npc->startFaceAnim(ani,intensity,uint64_t(time*1000.f));
   }
 
 void GameScript::mdl_applyrandomani(std::shared_ptr<zenkit::INpc> npcRef, std::string_view s1, std::string_view s0) {
