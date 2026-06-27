@@ -165,6 +165,14 @@ GameSession::GameSession(Serialize &fin) {
   if(auto hero = wrld->player())
     vm->setInstanceNPC("HERO",*hero);
 
+  // NOTE: in original-game zCTriggerWorldStart::PostLoad @0x0061a4e0 runs on every load, including
+  // savegame loads, re-firing every fire_once==false world-start trigger; one-shot triggers stay
+  // suppressed. The new-game and level-change paths call triggerOnStart but the savegame-load ctor
+  // did not, so no world-start trigger fired on resume. The world is already started on resume, so
+  // pass firstTime=false: T_Startup re-fires non-one-shot triggers while fire_once ones self-skip
+  // (TriggerWorldStart::onTrigger), matching the original outcome.
+  wrld->triggerOnStart(false);
+
   fin.setEntry("game/camera");
   cam->load(fin,wrld->player());
   Gothic::inst().setLoadingProgress(96);
