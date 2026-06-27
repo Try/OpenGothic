@@ -740,8 +740,15 @@ void InventoryMenu::drawInfo(Painter &p) {
     if(txt.empty())
       continue;
 
-    if(i+1==Item::MAX_UI_ROWS && state==State::Trade && player!=nullptr && pg.is(&player->inventory())){
-      val = r.sellCost();
+    // NOTE: in original-game oCItemContainer::DrawItemInfo @0x00706e40 the last info row (index 5)
+    // prints oCItem::GetValue @0x00712650 (condition-scaled value, ceil(value*hp/hp_max)), not the
+    // raw COUNT[5] -- COUNT[5] only gates the row's visibility. OpenGothic showed the raw value, so
+    // a damaged item's non-trade info-box displayed its full un-scaled value.
+    if(i+1==Item::MAX_UI_ROWS){
+      if(state==State::Trade && player!=nullptr && pg.is(&player->inventory()))
+        val = r.sellCost();
+      else
+        val = r.cost();
       }
 
     string_frm vint(val);
