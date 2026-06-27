@@ -3211,10 +3211,14 @@ bool Npc::isTargetableBySpell(TargetType t) const {
   const bool g2 = owner.version().game==2;
   const auto SEPERATOR_ORC = g2 ? GIL_SEPERATOR_ORC : GIL_G1_SEPERATOR_ORC;
   const auto G1_UNDEAD = (gil == GIL_G1_ZOMBIE || gil == GIL_G1_UNDEADORC || gil == GIL_G1_SKELETON);
+  // NOTE: in original-game oCSpell::IsTargetTypeValid @0x00485fc0 the TARGET_TYPE_UNDEAD branch
+  // accepts only true-guilds {20,21,31,32,34,37}; GIL_SKELETON_MAGE(33) is NOT in that set
+  // (verified absent from the function's constants), so an undead-only spell must not auto-aim at
+  // a Skeleton-Mage.
   const auto G2_UNDEAD = (gil == GIL_GOBBO_SKELETON ||
-    gil == GIL_SUMMONED_GOBBO_SKELETON || gil == GIL_SKELETON      ||
-    gil == GIL_SUMMONED_SKELETON       || gil == GIL_SKELETON_MAGE ||
-    gil == GIL_SHADOWBEAST_SKELETON    || gil == GIL_ZOMBIE);
+    gil == GIL_SUMMONED_GOBBO_SKELETON || gil == GIL_SKELETON ||
+    gil == GIL_SUMMONED_SKELETON       || gil == GIL_ZOMBIE   ||
+    gil == GIL_SHADOWBEAST_SKELETON);
 
   if(bool(t&TARGET_TYPE_HUMANS) && isHuman())
     return true;
