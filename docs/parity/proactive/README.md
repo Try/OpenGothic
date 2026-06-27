@@ -134,6 +134,10 @@ patch with a `// NOTE: in original-game …` citation.
 | Switch weapon aiming | couldn't switch off a drawn bow/crossbow while aiming; original always allows it in ranged mode | `npc.cpp` `canSwitchWeapon` |
 | Change-level transform | a transformed player teleported through still transformed; original aborts + transforms back | `zonetrigger.cpp` `onIntersect` |
 | Morph/viseme rate | non-looping face morph rate from duration/frame_count; original always uses the authored speed | `protomesh.cpp` `mkAnimation` |
+| All-day routine | nonzero start==end routine slot restarted every AI tick; original keeps it active all day | `npc.cpp` `endTime` |
+| Quest-log tabs | completed/failed missions shown under swapped tabs; original maps success->OLD, failed->FAILED | `gamemenu.h` `QuestStat` |
+| Slope-slide bound | slide_angle2 measured from vertical (90-x), narrowing the slide band; original from horizontal | `movealgo.cpp` `slideAngle2` |
+| KnowsInfo permanent | Npc_KnowsInfo reported a permanent info as known after first use; original masks permanent → never known | `gamescript.cpp` `npc_knowsinfo` |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
@@ -231,4 +235,6 @@ patch with a `// NOTE: in original-game …` citation.
 | `anitag-def-swapmesh-noop` | the DEF_SWAPMESH anim event-tag is parsed but its dispatch arms are bare no-ops; the original DoDoAniEvents @0x00742a20 routes it to DoModelSwapMesh @0x00743dc0 (swaps the item-vobs on two named NPC slots). OG lacks a slot-to-slot visual-swap primitive (its attach API is bone-keyed/ownership-based), so a correct fix needs that helper first — deferred |
 | `camera-closein-shoulder-fallback` | OG's camera close-in pullback hard-snaps to range=150 + ~80deg pitch (bird's-eye); the original (zCAICamera::AI_Normal @0x004a4370) switches to an over-the-shoulder matrix (GetShoulderCamMat @0x004ba380) near eye level. The 80u threshold matches; only the response differs, and a faithful fix needs the shoulder-cam matrix reimplemented — deferred |
 | `brawl-fist-knockout-attitude-vs-weaponmode` | OG's checkHealth re-decides knockout-vs-death on attitude==HOSTILE, killing hostile-fist victims the original (OnDamage_Condition @0x0066cf30, decides purely on attacker fist-mode/C_DropUnconscious) would knock out. The attitude gate is a deliberate proxy protecting monster lethality (monster claws are also WeaponState::Fist), so the accurate fix (other.isHuman() && Fist) touches many checkHealth callers — regression surface, deferred |
+| `stack-merge-multislot-eligibility-gate` | the original oCNpcInventory::Insert @0x0070c730 folds an item into an existing slot only when oCItem::MultiSlot is nonzero for both items (so non-ITM_MULTI / equipped items get their own slot); OG's addItem merges any same-instance items via findByClass with no stackability/equip gate. OG's single-slot-per-class model can't represent two slots of one class without a multi-slot redesign — architectural, deferred |
+| `sneak-detection` | NO FINDING — verified both engine (oCNpc::CanSee @0x00741c10 / CanSense / PerceptionCheck) and OG apply no sneak-based sight/hearing range reduction or light-level detection; the real sneak behaviours (talent gate, quiet-sound suppression #639, room-entry) are already fixed |
 
