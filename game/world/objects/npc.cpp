@@ -2497,8 +2497,15 @@ void Npc::tick(uint64_t dt) {
     return;
 
   if(!isDead()) {
-    tickRegen(hnpc->attribute[ATR_HITPOINTS],hnpc->attribute[ATR_HITPOINTSMAX],
-              hnpc->attribute[ATR_REGENERATEHP],dt);
+    // NOTE: in original-game oCNpc::Regenerate @0x00741fd0 the per-tick HP regen is applied via
+    // oCNpc::ChangeAttribute(HITPOINTS,+1) @0x0072ff60, whose IMMORTAL guard rejects every HP change
+    // except the -999 kill sentinel -- so an immortal NPC never regenerates HP. MANA regen routes
+    // through ChangeAttribute(MANA,+1), which that guard does NOT block. OpenGothic's tickRegen writes
+    // the attribute directly, bypassing the guard (and the changeAttribute() immortal fix), so an
+    // immortal NPC left below max regenerated back to full. Gate only the HP regen on !isImmortal().
+    if(!isImmortal())
+      tickRegen(hnpc->attribute[ATR_HITPOINTS],hnpc->attribute[ATR_HITPOINTSMAX],
+                hnpc->attribute[ATR_REGENERATEHP],dt);
     tickRegen(hnpc->attribute[ATR_MANA],hnpc->attribute[ATR_MANAMAX],
               hnpc->attribute[ATR_REGENERATEMANA],dt);
     }
@@ -4165,7 +4172,13 @@ bool Npc::tickCast(uint64_t dt) {
       }
 
     if(!isPlayer() && currentTarget!=nullptr) {
-      implTurnTo(*currentTarget,AnimationSolver::TurnType::None,dt);
+      // NOTE: in original-game oCAIHuman::MagicMode @0x00472fd0 the caster turns toward its target
+      // during channeling only when the spell's canTurnDuringInvest flag is set (oCSpell field 0x90,
+      // gating the TurnToEnemy call). Spells authored with canTurnDuringInvest==0 (self-buffs /
+      // non-aimed control spells) are cast without rotating; OpenGothic turned unconditionally.
+      const auto& spl = owner.script().spellDesc(active->spellId());
+      if(spl.can_turn_during_invest!=0)
+        implTurnTo(*currentTarget,AnimationSolver::TurnType::None,dt);
       }
     }
 
