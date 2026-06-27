@@ -13,6 +13,7 @@ class TouchDamage : public AbstractTrigger {
     void onIntersect(Npc& n) override;
     void tick(uint64_t dt) override;
     void takeDamage(Npc& npc, int32_t val, int32_t prot);
+    void applyDamage(Npc& npc);
 
     uint64_t repeatTimeout = 0;
     bool     barrier = false;
