@@ -2165,7 +2165,17 @@ bool GameScript::npc_knowsinfo(std::shared_ptr<zenkit::INpc> npcRef, int infoins
   auto npc = (pl!=nullptr) ? pl : findNpc(npcRef);
   if(npc==nullptr)
     return false;
-  return doesNpcKnowInfo(npc->handle(), uint32_t(infoinstance));
+  if(!doesNpcKnowInfo(npc->handle(), uint32_t(infoinstance)))
+    return false;
+  // NOTE: in original-game oCInfoManager::InformationTold @0x007031a0 (and oCInfo::WasTold
+  // @0x00703900) mask the told flag with `permanent`: a permanent C_Info is never reported as
+  // known, even after it was played and SetTold @0x00703910 ran. OpenGothic stored permanent infos
+  // in the told set (exec() calls setNpcInfoKnown unconditionally), so Npc_KnowsInfo wrongly
+  // returned true for them. Mask the result with the info's permanent flag.
+  for(auto& info : dialogsInfo)
+    if(info->symbol_index()==uint32_t(infoinstance))
+      return !info->permanent;
+  return true;
   }
 
 void GameScript::npc_settalentskill(std::shared_ptr<zenkit::INpc> npcRef, int t, int lvl) {
