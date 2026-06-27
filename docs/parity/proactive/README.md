@@ -107,6 +107,8 @@ patch with a `// NOTE: in original-game …` citation.
 | Trigger-script context | trigger-script ran with stale self/other/item; original clears SELF/OTHER/ITEM first | `triggerscript.cpp` |
 | MessageFilter touch | a zCMessageFilter fired its action on NPC touch; original OnTouch/OnUntouch are no-ops | `messagefilter.h` |
 | on_state item bind | a consumable's on_state ran with a stale `item` global; original binds ITEM first | `inventory.cpp` `use`/`putState` |
+| Rune sort | runes were ordered by value; original sorts the rune category alphabetically (name only) | `inventory.cpp` `less` |
+| Inventory cursor | cursor stepped back to the previous item after a consume; original keeps the slot index | `inventorymenu.cpp` `onItemAction` |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
@@ -178,4 +180,7 @@ patch with a `// NOTE: in original-game …` citation.
 | `warn-observeintruder-not-emitted` | PERC_OBSERVEINTRUDER (player stops walking unsneaking → guards notice) is declared but never sent; needs a once-per-stop move→stand edge latch in anim-driven PlayerControl (a naive per-frame emit would spam) — agent-deferred |
 | `movercarry-dropray-cache-stale-on-moving-platform` | a stationary NPC on a vertically-moving mover reads a stale cached ground height (#637 elevator floor-clip); fix needs either dropping the ground cache (perf) or a live-mover bit through RayLandResult (multi-subsystem) — agent-deferred |
 | `turnsound-unbound-soundsource-reaction` | AI_TurnToSound/AI_WhirlAroundToSource/Snd_GetDistToSource are unbound + no per-NPC sound-source position is stored; faithful bind needs new infrastructure (field + write site + turn-to-position AiAction + 3 binds) — agent-deferred |
+| `quake-trigger-stub-no-camera-tremor` | zCEarthquake::OnTrigger is a stub; original applies a positional camera tremor (radius/falloff/decay). OG's only shake (GlobalEffects::shake) is global/non-positional — needs a new positional tremor subsystem — agent-deferred |
+| `hitframe-window-limb-cleave` | melee hit is a single-frame focus-only hit; the original opens a hit *window* polling weapon-limb model collision (cleave through every NPC in range). Needs the whole limb-collision subsystem OG lacks; a radius-cleave shortcut is feel-tuning — agent-deferred |
+| `rotate-completion-threshold-2x-step` | rotateTo snaps to target from within 2× the per-frame step; the original clamps each frame to one step (exact landing). One-line (step*2→step) but it changes NPC turn smoothness — turn-feel, needs on-screen validation |
 
