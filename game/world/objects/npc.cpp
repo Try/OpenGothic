@@ -4496,8 +4496,13 @@ bool Npc::isInState(ScriptFn stateFn) const {
   }
 
 bool Npc::isInRoutine(ScriptFn stateFn) const {
+  // NOTE: in original-game Npc_IsInRoutine @0x006e51c0 the result is purely
+  // GetLastRoutineState()==state (@0x0076e890): it inspects the active routine SLOT's state for
+  // the current time and does NOT require the NPC to be executing that state. OpenGothic ANDed in
+  // aiState.funcIni==stateFn, so an interrupting AI state (combat/dialog/perception) flipped the
+  // answer to false, breaking the common `if(Npc_IsInRoutine(self, ZS_X))` schedule check.
   auto& rout = currentRoutine();
-  return rout.callback==stateFn && aiState.funcIni==stateFn;
+  return rout.callback==stateFn;
   }
 
 bool Npc::wasInState(ScriptFn stateFn) const {
