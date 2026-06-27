@@ -90,6 +90,9 @@ patch with a `// NOTE: in original-game …` citation.
 | Info-box value | item info-box value row showed raw value; original shows the condition-scaled value | `inventorymenu.cpp` `drawInfo` |
 | GetReadiedWeapon | returned a holstered weapon while fist-fighting; original returns null in NoWeapon/Fist | `gamescript.cpp` `npc_getreadiedweapon` |
 | Mover refcount save | TRIGGER_CONTROL ref-count dropped on save/load (closed on first untrigger); now persisted (v57) | `serialize.h` / `movetrigger.cpp` |
+| Fall damage 3D | fall damage scaled with 3D speed (horizontal inflates it); original uses vertical drop only | `npc.cpp` `takeFallDamage` |
+| World-start on load | zCTriggerWorldStart didn't fire on savegame load; original re-fires non-one-shot ones | `gamesession.cpp` |
+| Witness perception | PERC_ASSESSOTHERSDAMAGE gated on value>0; original fires it on any landed hit | `npc.cpp` `takeDamage` |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
@@ -148,4 +151,7 @@ patch with a `// NOTE: in original-game …` citation.
 | `finish-kill-credit-attribution` | finishing-move kill isn't attributed to the finisher (onNoHealth credits the last damager); Medium, interacts with the deferred news-assessmurder death-attribution work — needs runtime |
 | `wateract-swim-fist-no-autosheathe` | fists aren't auto-sheathed on entering water (original removes weapon for mode!=0, fists incl.), which also blocks water interactions; but OG has an explicit `ws!=Fist` exception suggesting a deliberate workaround — Medium, needs runtime |
 | `aggro-fk-farcombat-range-cap` | melee far-combat my_fk_* bands lack the original's hardcoded 30m cap; move lists are approach-style on both paths so impact is marginal and fillQueue structure differs too much for a 1:1 graft — agent-deferred |
+| `heal-regen-rate-inverted` | THIRD re-confirmation of [[regen-rate-reciprocal]] (REGENERATE* is seconds-per-point, OG treats it points-per-second). Same deferral reasons: orders-of-magnitude flip, negative-drain removal risk, near-dead in vanilla, needs the retail values + runtime check |
+| `mobabort-hit-no-detach` | a non-fatal hit on an interruptable mob user should force-detach (Interrupt); OG gates the whole interrupt/stumble block behind interactive()==nullptr. Tangled with the deferred [[bsint-player-weapon-stumble-guard]] in the same block + movement-state change — needs runtime |
+| `ammo-infinite-munition-flag` | item-flag bit 25 (0x2000000) infinite-munition marker is unimplemented; full parity needs item-spawning plumbing for the empty-quiver case (non-surgical) and no confirmed vanilla item sets the bit — agent-deferred |
 
