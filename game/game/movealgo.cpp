@@ -162,7 +162,12 @@ void MoveAlgo::tick(uint64_t dt, MvFlags moveFlg) {
   if(cache.sector!=nullptr && portal!=cache.sector) {
     formerPortal = portal;
     portal       = cache.sector;
-    if(npc.isPlayer() && npc.bodyStateMasked()!=BS_SNEAK) {
+    // NOTE: in original-game sneaking is a persistent walk-mode flag (WM_Sneak), not a transient
+    // bodystate. The room-entry assessment (player room-change tracked by
+    // oCPortalRoomManager::HasPlayerChangedPortalRoom @0x00773070) stays suppressed while the player
+    // sneaks across a portal boundary, even when the bodystate momentarily leaves BS_SNEAK (anim
+    // transitions / MOBSI interactions). Mirrors the #639 ASSESSQUIETSOUND fix (npc.cpp:2426).
+    if(npc.isPlayer() && (npc.walkMode()&WalkBit::WM_Sneak)!=WalkBit::WM_Sneak) {
       auto& w = npc.world();
       w.sendImmediatePerc(npc,npc,npc,PERC_ASSESSENTERROOM);
       }
