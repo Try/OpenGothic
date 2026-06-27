@@ -81,6 +81,10 @@ patch with a `// NOTE: in original-game …` citation.
 | IsDrawingWeapon | was an inverted copy of IsDrawingSpell (returned spells, not weapons) | `gamescript.cpp` `npc_isdrawingweapon` |
 | ASSESSBODY KO | body perception missed unconscious NPCs (dead-only); original is dead-or-unconscious | `npc.cpp` `updateNearestBody` |
 | SVM key trim | SVM voice-line key wasn't space-trimmed; original TrimLeft/Right before lookup | `svmdefinitions.cpp` `find` |
+| Stack-merge owner | stack-merge overwrote owner/owner_guild; original keeps the existing stack's owner | `inventory.cpp` `addItem` |
+| Spell undead target | Skeleton-Mage(33) wrongly in the UNDEAD auto-aim set; original excludes it | `npc.cpp` `isTargetableBySpell` |
+| Rune belt gate | belting a rune ran the circle/attr gate; original registers runes without CanUse | `inventory.cpp` `setSlot` |
+| Trigger enable/disable | enable/disable went through the fire-delay gate; original applies them immediately | `abstracttrigger.cpp` `processEvent` |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
@@ -129,4 +133,7 @@ patch with a `// NOTE: in original-game …` citation.
 | `armor-disguise-guild` | armor should apply disguise_guild to the live guild on equip (restore true guild on unequip). DEFERRED: OG's `trGuild` is lazily seeded (GIL_NONE until Npc_SetTrueGuild), so the agent's patch swaps the live guild then trueGuild() returns the disguised value → unequip restores to the disguise = permanent disguise. Needs a trGuild-pinning redesign + runtime check |
 | `reach-melee-1ha2ha-guild-bonus` | weaponRange uses fight_range_1ha/2ha guild values where the original GetFightRange (@0x0067cd80) uses a single base field + itemRange; divergence is real but the correct base value is uncertain (the agent's "return just item.range" drops the base entirely, contradicting GetFightRange) and it's combat-feel, related to the deferred fai-grange — needs runtime |
 | `changelvl-revisit-daily-routine-reset-statedriven` | level re-entry resets ALL NPCs to their daily routine; the original (SetDailyRoutinePos with slot!=NEW) leaves AI-state-driven NPCs at their saved state. OG has no IsAIStateDriven analogue and resetPositionToTA is shared with Wld_SetTime — needs a verified predicate + flag-plumbing |
+| `give-dropvob-owner-stamp` | OG stamps dropped items with the dropper's owner; the original never sets owner on drop (only a player-dropped flag). Wholesale ownership-model mismatch (OG dispatches Npc_OwnedByNpc as an item-field compare vs the original's NPC-side method) — agent-deferred |
+| `news-assessmurder-not-centralized-in-death` | PERC_ASSESSMURDER is emitted from 2 combat call-sites gated on collision flags; the original broadcasts it from the single DoDie routine for any cause of death. Touches 3 sites, needs single-fire + killer-attribution runtime check — agent-deferred |
+| `ctrl-sneak-talent-gate` (REJECTED — false positive) | claimed crouch shouldn't be SNEAK-talent-gated, but the original gates it via CanToggleWalkModeTo→HasTalent(8,1) where talent 8 IS TALENT_SNEAK — OG's canSneak() matches exactly. Verified faithful, not applied |
 
