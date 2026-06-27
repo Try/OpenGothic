@@ -1245,12 +1245,22 @@ void GameMenu::setPlayer(const Npc &pl) {
 
   const bool g2        = Gothic::inst().version().game==2;
   const int  talentMax = g2 ? TALENT_MAX_G2 : TALENT_MAX_G1;
+  int        row       = 0;
   for(uint16_t i=0; i<talentMax; ++i) {
     auto& str = tal->get_string(i);
     if(str.empty())
       continue;
 
     const int sk  = pl.talentSkill(Talent(i));
+    // NOTE: in original-game oCMenu_Status::InitForDisplay @0x0047ddc0 a talent is shown only when
+    // talentSkill>0 OR its TXT_TALENTS_SKILLS entry is non-empty, and visible talents are packed into
+    // consecutive MENU_ITEM_TALENT_<n> rows (1-based, n = visible rank). OpenGothic mapped
+    // slot==talentId with no learned filter, so unlearned talents appeared and high-id talents could
+    // fall outside the menu's defined row set (silently dropped).
+    if(sk<=0 && talV->get_string(i).empty())
+      continue;
+    ++row;
+
     // NOTE: in original-game OpenScreen_Status @0x0073de12 the talent "%" column is the per-NPC
     // hitchance ONLY for the four combat talents (1H/2H/BOW/CBOW, ids 1..4); every other talent
     // row shows the stored talent value (oCNpc::SetTalentValue), not hitchance -- OpenGothic used
@@ -1259,8 +1269,8 @@ void GameMenu::setPlayer(const Npc &pl) {
                          Talent(i)==TALENT_BOW || Talent(i)==TALENT_CROSSBOW);
     const int val = (g2 && combat) ? pl.hitChance(Talent(i)) : pl.talentValue(Talent(i));
 
-    set(string_frm("MENU_ITEM_TALENT_",i,"_TITLE"), str);
-    set(string_frm("MENU_ITEM_TALENT_",i,"_SKILL"), strEnum(talV->get_string(i),sk,textBuf));
-    set(string_frm("MENU_ITEM_TALENT_",i),          string_frm(val,"%"));
+    set(string_frm("MENU_ITEM_TALENT_",row,"_TITLE"), str);
+    set(string_frm("MENU_ITEM_TALENT_",row,"_SKILL"), strEnum(talV->get_string(i),sk,textBuf));
+    set(string_frm("MENU_ITEM_TALENT_",row),          string_frm(val,"%"));
     }
   }
