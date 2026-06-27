@@ -2796,7 +2796,13 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
           }
         }
 
-      if(currentInteract==nullptr || currentInteract->stateId()!=act.i0) {
+      // NOTE: in original-game oCMobInter::AI_UseMobToState (Gothic2.exe 0x00721f00) clamps the
+      // requested target to the mob's top state index (target = min(target, stateNum)) before
+      // stepping toward it. Without the clamp an AI_UseMob target above stateNum saturates at
+      // stateNum but never equals act.i0, so OpenGothic re-pushed the command forever and the NPC
+      // soft-locked on the mob (the act.i0<0 detach is handled above).
+      const int32_t goal = (currentInteract!=nullptr) ? std::min(act.i0,currentInteract->stateCount()) : act.i0;
+      if(currentInteract==nullptr || currentInteract->stateId()!=goal) {
         queue.pushFront(std::move(act));
         return;
         }
@@ -2962,7 +2968,19 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
     case AI_ContinueRoutine:
       resumeAiRoutine();
       break;
-    case AI_AlignToWp:
+    case AI_AlignToWp:{
+      // NOTE: in original-game AI_AlignToWP external (Gothic2.exe @0x006ee3a0) aligns to the
+      // direction of the *nearest waynet waypoint* (zCWayNet::GetNearestWaypoint @0x007ad660), not
+      // to the current free-point. OpenGothic shared one body with AI_AlignToFp reading currentFp,
+      // which is a free-point (or null) after a prior goto -- the wrong heading source for AlignToWp.
+      if(auto wp = owner.findWayPoint(position())){
+        if(wp->dir.x!=0.f || wp->dir.z!=0.f){
+          if(implTurnTo(wp->dir.x,wp->dir.z,AnimationSolver::TurnType::Std,dt))
+            queue.pushFront(std::move(act));
+          }
+        }
+      break;
+      }
     case AI_AlignToFp:{
       if(auto fp = currentFp){
         if(fp->dir.x!=0.f || fp->dir.z!=0.f){
@@ -3277,8 +3295,21 @@ void Npc::emitSoundSVM(std::string_view svm) {
   char frm [32]={};
   std::snprintf(frm,sizeof(frm),"%.*s",int(svm.size()),svm.data());
 
-  char name[32]={};
-  std::snprintf(name,sizeof(name),frm,int(hnpc->voice));
+  char name[64]={};
+  int  len = std::snprintf(name,sizeof(name),frm,int(hnpc->voice));
+
+  // NOTE: in original-game oCNpc::OnDamage_Sound @0x0067a8a0 the non-lethal hurt voice line picks one
+  // of NPC_VOICE_VARIATION_MAX (default 5) variants: v = rand()%MAX, and when v!=0 it appends "_<v>"
+  // -> SVM_<voice>_AARGH_1 .. _4 (the bare SVM_<voice>_AARGH is used only when v==0; the lethal
+  // "_DEAD" line is never varied). OpenGothic always emitted the bare AARGH, so pain was monotone.
+  // emitSoundSVM is called only for the AARGH/DEAD hurt lines, so this is correctly scoped.
+  const bool death = (svm.find("DEAD")!=std::string_view::npos);
+  if(!death && len>0 && len<int(sizeof(name))) {
+    const uint32_t NPC_VOICE_VARIATION_MAX = 5;
+    const uint32_t v = owner.script().rand(NPC_VOICE_VARIATION_MAX);
+    if(v!=0)
+      std::snprintf(name+len,sizeof(name)-size_t(len),"_%u",v);
+    }
   emitSoundEffect(name,2500,true);
   }
 
