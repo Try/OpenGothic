@@ -100,6 +100,11 @@ patch with a `// NOTE: in original-game …` citation.
 | AI_GotoNextFP case | FP-name arg wasn't upper-cased, so case-sensitive checkName never matched | `gamescript.cpp` `ai_gotonextfp` |
 | TriggerList untrigger | untriggers weren't forwarded to list targets (only the "on" half worked) | `triggerlist.cpp` |
 | Scroll 0-mana cast | engine mana pre-gate wrongly blocked scrolls; original casts scrolls at 0 mana | `npc.cpp` `beginCastSpell` |
+| Hurt SVM coin-flip | the "aargh" pain SVM was 50%-gated; original always voices it on a registered hit | `npc.cpp` `takeDamage` |
+| NPC invest off-by-one | tickCast released a held NPC cast one invest tick early (`<=` vs `<`) | `npc.cpp` `tickCast` |
+| Plain trigger untrigger | a plain zCTrigger didn't forward untriggers to its target (relay opened, never closed) | `trigger.cpp` |
+| Auto-equip re-fire | equipBest re-equipped an already-equipped best item, re-firing on_un/on_equip each load | `inventory.cpp` `equipBest*` |
+| Trigger-script context | trigger-script ran with stale self/other/item; original clears SELF/OTHER/ITEM first | `triggerscript.cpp` |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
@@ -166,4 +171,6 @@ patch with a `// NOTE: in original-game …` citation.
 | `wait-standup-from-sit-no-queue-block` | AI_StandUp from a ground-sit (BS_SIT) should block the AI queue for the get-up anim (original keeps the msg at queue head); OG only does this for BS_LIE/UNCONSCIOUS. Residual uncertainty whether the sit model has a T_*_2_STAND transition — needs in-game check |
 | `craft-createitem-inventory-pollution` | DEF_CREATE_ITEM materializes the crafting work-piece as a real inventory item; the original spawns it as a slot-owned transient vob. OG's model slots are inventory-backed — a faithful match needs a new transient-view mechanism (non-surgical) + MDS create/remove pairing inspection — agent-deferred |
 | `itmidle-world-effect-glow` | world-item C_Item.effect glow/shimmer (oCItem::InsertEffect) is never spawned; purely visual and a faithful port needs Effect/PfxEmitter lifetime plumbing on Item — agent-deferred |
+| `voblight-range-anim-not-in-original` | OG animates light RANGE per-frame (torch/fire pulse + reach) but the original animates only COLOR; matching removes a visible OG feature and one D3D realtime path wasn't fully traced — deferred |
+| `trgscript-self-other-context` (SELF sub-case) | setting SELF to the touching NPC on a direct-NPC-touch trigger-script activation needs the Npc* threaded through TriggerEvent (onIntersect drops it); the OTHER/ITEM clear + non-NPC SELF is applied |
 
