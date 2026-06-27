@@ -1225,6 +1225,7 @@ bool Inventory::less(const Item &il, const Item &ir) {
     return false;
 
   int32_t lV = 0, rV = 0;
+  int32_t subL = 0, subR = 0;
   // NOTE: in original-game inventory sort comparator @0x00705B80 the ARMOR branch (category id 2)
   // ranks armor by oCItem::GetFullProtection @0x00712340 (the sum of the per-type protection[]
   // array) DESCENDING; cost/value is never an armor sort key (neither the comparator nor its
@@ -1236,6 +1237,22 @@ bool Inventory::less(const Item &il, const Item &ir) {
       lV += il.handle().protection[d];
       rV += ir.handle().protection[d];
       }
+    }
+  // NOTE: in original-game inventory sort comparator @0x00705B80 the MAGIC branch (category id 4,
+  // main_flag ITM_CAT_MAGIC == rings/amulets/belts) dispatches to the magic sub-comparator
+  // @0x00705fc0, which ranks ONLY by wear-slot flag -- amulet < ring < belt < other -- then breaks
+  // ties on display name; it never reads value/cost. OpenGothic let magic items fall into the cost
+  // branch, sorting them by price instead of grouping amulets-then-rings-then-belts.
+  else if(il.mainFlag() & ItmFlags::ITM_CAT_MAGIC) {
+    auto rank = [](const Item& it) -> int32_t {
+      const uint32_t f = uint32_t(it.itemFlag());
+      if(f & uint32_t(ItmFlags::ITM_AMULET)) return 0;
+      if(f & uint32_t(ItmFlags::ITM_RING))   return 1;
+      if(f & uint32_t(ItmFlags::ITM_BELT))   return 2;
+      return 3;
+      };
+    subL = rank(il);
+    subR = rank(ir);
     }
   // NOTE: in original-game inventory sort comparator @0x00705B80 the rune branch (category id 3)
   // falls straight to the name-only tie-break @0x00705EB0 -- value/cost is never a rune sort key,
@@ -1252,8 +1269,9 @@ bool Inventory::less(const Item &il, const Item &ir) {
   // NOTE: in original-game inventory sort comparator @0x00705B80 every category branch falls
   // through to the universal tie-break @0x00705EB0, which orders items equal on all preceding
   // keys alphabetically (ascending) by display name (oCItem::GetText), not by instance index.
-  return std::make_tuple(il.mainFlag(), -il.handle().damage_total, -lV, il.displayName())
-      <  std::make_tuple(ir.mainFlag(), -ir.handle().damage_total, -rV, ir.displayName());
+  // subL/subR carry the MAGIC wear-slot sub-rank (0 for every other category, so inert there).
+  return std::make_tuple(il.mainFlag(), -il.handle().damage_total, -lV, subL, il.displayName())
+      <  std::make_tuple(ir.mainFlag(), -ir.handle().damage_total, -rV, subR, ir.displayName());
   }
 
 int Inventory::orderId(const Item& i) {
