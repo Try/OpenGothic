@@ -2716,7 +2716,12 @@ int GameScript::npc_isdrawingweapon(std::shared_ptr<zenkit::INpc> npcRef) {
     return 0;
 
   auto ret = npc->activeWeapon();
-  if(ret==nullptr || !ret->isSpell())
+  // NOTE: in original-game Npc_IsDrawingWeapon @0x006f7be0 keys on the weapon draw message
+  // (oCMsgWeapon), unlike Npc_IsDrawingSpell @0x006f7d80 which keys on the magic message.
+  // OpenGothic had the spell test inverted here (a copy-paste of the spell handler), so this
+  // returned 0 for an actual weapon and the spell id for a spell -- backwards. Accept the active
+  // item only when it is NOT a spell.
+  if(ret==nullptr || ret->isSpell())
     return 0;
 
   makeCurrent(ret);
