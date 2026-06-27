@@ -131,6 +131,9 @@ patch with a `// NOTE: in original-game …` citation.
 | Routine resume re-entry | AI_ContinueRoutine re-ran End+Ini when already in the routine state; original no-ops | `npc.cpp` `resumeAiRoutine` |
 | Passive threat music | near-death/forest hero never got THR music; original forces it with no attacker | `worldsound.cpp` `tickSoundZone` |
 | Food heals HP | item `nutrition` was dead data; original heals ATR_HITPOINTS by nutrition on eating FOOD | `inventory.cpp` `use` |
+| Switch weapon aiming | couldn't switch off a drawn bow/crossbow while aiming; original always allows it in ranged mode | `npc.cpp` `canSwitchWeapon` |
+| Change-level transform | a transformed player teleported through still transformed; original aborts + transforms back | `zonetrigger.cpp` `onIntersect` |
+| Morph/viseme rate | non-looping face morph rate from duration/frame_count; original always uses the authored speed | `protomesh.cpp` `mkAnimation` |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
@@ -225,4 +228,7 @@ patch with a `// NOTE: in original-game …` citation.
 | `stagger-bodymod-interrupt-suppression` | the original IsBodyStateInterruptable @0x0075efa0 rejects a hit-victim when any BS_MOD_* bit (burning/drunk/nuts/controlled/transformed/hidden, mask 0x3F80) is set, suppressing the stumble; OG strips all BS_MOD_* bits at the pose layer before the gate, so those NPCs get the full StumbleA/B. Modifier bits are discarded too early to restore surgically at the single gate — Medium, deferred |
 | `headtrack-disengage-angle` | OG's head-track disengage gate is 80deg vs the original's 90deg (0x5a); but OG applies the angle directly to the BIP01_HEAD bone whereas the original blends a look-at ANIMATION, so porting the 90deg gate to OG's direct-bone mechanism risks visibly over-rotating the head — representation mismatch, deferred |
 | `breath-divebar` | NOT A BUG (corrects a prior claim) — the original dive/breath bar field oCNpc+0x7d4 IS drained every frame in the un-named breath handler @0x0073e480 (a region Ghidra never promoted to a function, so an earlier defined-function-only scan missed it). OpenGothic's draining `(v-t)/v` bar is faithful; the earlier "render 1.f / always-full" patch must NOT be applied |
+| `anitag-def-swapmesh-noop` | the DEF_SWAPMESH anim event-tag is parsed but its dispatch arms are bare no-ops; the original DoDoAniEvents @0x00742a20 routes it to DoModelSwapMesh @0x00743dc0 (swaps the item-vobs on two named NPC slots). OG lacks a slot-to-slot visual-swap primitive (its attach API is bone-keyed/ownership-based), so a correct fix needs that helper first — deferred |
+| `camera-closein-shoulder-fallback` | OG's camera close-in pullback hard-snaps to range=150 + ~80deg pitch (bird's-eye); the original (zCAICamera::AI_Normal @0x004a4370) switches to an over-the-shoulder matrix (GetShoulderCamMat @0x004ba380) near eye level. The 80u threshold matches; only the response differs, and a faithful fix needs the shoulder-cam matrix reimplemented — deferred |
+| `brawl-fist-knockout-attitude-vs-weaponmode` | OG's checkHealth re-decides knockout-vs-death on attitude==HOSTILE, killing hostile-fist victims the original (OnDamage_Condition @0x0066cf30, decides purely on attacker fist-mode/C_DropUnconscious) would knock out. The attitude gate is a deliberate proxy protecting monster lethality (monster claws are also WeaponState::Fist), so the accurate fix (other.isHuman() && Fist) touches many checkHealth callers — regression surface, deferred |
 
