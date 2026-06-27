@@ -33,7 +33,7 @@ class SaveGameHeader;
 class Serialize {
   public:
     enum Version : uint16_t {
-      Current    = 56, // 56: persist Npc::aiOutputBarrier
+      Current    = 57, // 57: persist MoveTrigger::triggerCount (TRIGGER_CONTROL ref count)
       MinVersion = 36,
 
       Last_2025  = 53,

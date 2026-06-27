@@ -71,6 +71,11 @@ MoveTrigger::MoveTrigger(Vob* parent, World& world, const zenkit::VMover& mover,
 void MoveTrigger::save(Serialize& fout) const {
   AbstractTrigger::save(fout);
   fout.write(pos0,uint8_t(state),frameTime,frame,targetFrame);
+  // NOTE: in original-game zCMover::Archive (Gothic2.exe @0x006137e0) the TRIGGER_CONTROL ref count
+  // (field_0x198, incremented in TriggerMover @0x00612cb0, decremented in OnUntrigger @0x00613170)
+  // is persisted in the savegame block; restore it so a mover opened by several sources still
+  // requires all of them to untrigger before closing.
+  fout.write(triggerCount);
   }
 
 void MoveTrigger::load(Serialize& fin) {
@@ -78,6 +83,8 @@ void MoveTrigger::load(Serialize& fin) {
   fin.read(pos0,reinterpret_cast<uint8_t&>(state),frameTime,frame);
   if(fin.version()>49)
     fin.read(targetFrame);
+  if(fin.version()>56)
+    fin.read(triggerCount);
   if(state!=Idle) {
     invalidateView();
     enableTicks();
@@ -161,8 +168,7 @@ void MoveTrigger::onTrigger(const TriggerEvent& e) {
     case zenkit::MoverBehavior::TRIGGER_CONTROL: {
       // NOTE: in original-game zCMover::TriggerMover (Gothic2.exe 0x00612cb0) each OnTrigger
       // increments a ref count; the mover closes (OnUntrigger) only once all sources have
-      // untriggered. (Not persisted across save/load here: on load the count resets to 0,
-      // degrading to close-on-first-untrigger, which matches prior behavior — no stuck state.)
+      // untriggered. Persisted across save/load (v57) to match zCMover::Archive @0x006137e0.
       ++triggerCount;
       if(frame==0 && state==Idle)
         state = Open;
