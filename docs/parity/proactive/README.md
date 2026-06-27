@@ -94,6 +94,12 @@ patch with a `// NOTE: in original-game …` citation.
 | World-start on load | zCTriggerWorldStart didn't fire on savegame load; original re-fires non-one-shot ones | `gamesession.cpp` |
 | Witness perception | PERC_ASSESSOTHERSDAMAGE gated on value>0; original fires it on any landed hit | `npc.cpp` `takeDamage` |
 | FLY throwback gate | FLY knockback fired without the victim-state collision flag; original requires it | `npc.cpp` `takeDamage` |
+| Mover OPEN_TIME | re-triggering an open OPEN_TIME mover extended the timer; original closes it | `movetrigger.cpp` `onTrigger` |
+| Dive death | a diving NPC at 0 HP dropped unconscious; original kills it (water guard missed Dive) | `npc.cpp` `takeDamage` |
+| Combat music range | combat music had no enemy-distance gate; original requires an attacker within ~1000u | `worldobjects.cpp` `isTargetedBy` |
+| AI_GotoNextFP case | FP-name arg wasn't upper-cased, so case-sensitive checkName never matched | `gamescript.cpp` `ai_gotonextfp` |
+| TriggerList untrigger | untriggers weren't forwarded to list targets (only the "on" half worked) | `triggerlist.cpp` |
+| Scroll 0-mana cast | engine mana pre-gate wrongly blocked scrolls; original casts scrolls at 0 mana | `npc.cpp` `beginCastSpell` |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
