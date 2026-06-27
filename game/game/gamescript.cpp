@@ -2577,21 +2577,32 @@ bool GameScript::npc_getnexttarget(std::shared_ptr<zenkit::INpc> npcRef) {
   Npc* ret = nullptr;
 
   if(npc!=nullptr){
-    float dist = float(npc->handle().senses_range);
-    dist*=dist;
+    // NOTE: in original-game oCNpc::GetNextEnemy @0x00734e30 (the Npc_GetNextTarget handler) returns
+    // the *current* enemy unchanged when it is still alive and conscious (enemy@+0x498, hp>0 &&
+    // !IsInState(-4/-5)) instead of re-acquiring the nearest foe on every call -- the target is
+    // sticky. Only when there is no valid current enemy does it scan and re-commit via SetEnemy
+    // (which also clears the enemy when nothing is found). OpenGothic re-scanned every call, so NPCs
+    // thrashed between attackers in a multi-enemy brawl. (The original also excludes a current enemy
+    // under a few disabling spells; OpenGothic does not model those, so !isDown() is the gate.)
+    Npc* cur = npc->target();
+    if(cur!=nullptr && !cur->isDown()) {
+      ret = cur;
+      } else {
+      float dist = float(npc->handle().senses_range);
+      dist*=dist;
 
-    world().detectNpc(npc->position(),float(npc->handle().senses_range),[&,npc](Npc& oth){
-      if(&oth!=npc && !oth.isDown() && oth.isEnemy(*npc) && npc->canSenseNpc(oth,true)!=SensesBit::SENSE_NONE){
-        float qd = oth.qDistTo(*npc);
-        if(qd<dist){
-          dist=qd;
-          ret = &oth;
+      world().detectNpc(npc->position(),float(npc->handle().senses_range),[&,npc](Npc& oth){
+        if(&oth!=npc && !oth.isDown() && oth.isEnemy(*npc) && npc->canSenseNpc(oth,true)!=SensesBit::SENSE_NONE){
+          float qd = oth.qDistTo(*npc);
+          if(qd<dist){
+            dist=qd;
+            ret = &oth;
+            }
           }
-        }
-      return false;
-      });
-    if(ret!=nullptr)
+        return false;
+        });
       npc->setTarget(ret);
+      }
     }
 
   auto s = vm.global_other();
