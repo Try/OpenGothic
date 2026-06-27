@@ -109,7 +109,6 @@ void AbstractTrigger::processEvent(const TriggerEvent& evt) {
   }
 
 void AbstractTrigger::implProcessEvent(const TriggerEvent& evt) {
-  emitTimeLast = world.tickCount();
   switch(evt.type) {
     case TriggerEvent::T_Startup:
     case TriggerEvent::T_StartupFirstTime:
@@ -123,6 +122,14 @@ void AbstractTrigger::implProcessEvent(const TriggerEvent& evt) {
         return;
       if(emitCount>=maxActivationCount)
         return;
+      // NOTE: in original-game zCTrigger the retrigger countdown (field_0x15c) is written only after
+      // a successful TriggerTarget, in zCTrigger::ActivateTrigger @0x006104d0 (immediate) and
+      // zCTrigger::OnTimer @0x00610750 (fire-delayed). OnUntrigger @0x00610600 / OnUntouch
+      // @0x00610660 and any event failing CanBeActivatedNow @0x00610220 never touch it, so the
+      // retrigger window is measured from the last real fire. OpenGothic stamped emitTimeLast at
+      // function entry for *every* event, so untriggers and dropped events shrank the window. Stamp
+      // it at the fire site instead.
+      emitTimeLast = world.tickCount();
       ++emitCount;
       onTrigger(evt);
       break;
