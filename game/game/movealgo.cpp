@@ -632,7 +632,12 @@ float MoveAlgo::slideAngle() const {
 float MoveAlgo::slideAngle2() const {
   auto  gl = npc.guild();
   float k  = float(M_PI)/180.f;
-  return std::sin(float(npc.world().script().guildVal().slide_angle2[gl])*k);
+  // NOTE: in original-game zCAIPlayer::CheckFloorSliding @0x0050d4d0 the slide band is
+  // slide_angle < acos(normal.y) < slide_angle2, with BOTH bounds measured from horizontal
+  // (SetScriptValues @0x006a5110 converts both guild columns deg->rad identically). slideAngle()
+  // maps its from-horizontal bound via sin(90-x)=cos(x); slideAngle2() omitted the 90- complement,
+  // so its upper bound was 90-slide_angle2 instead of slide_angle2, narrowing/emptying the band.
+  return std::sin((90.f-float(npc.world().script().guildVal().slide_angle2[gl]))*k);
   }
 
 float MoveAlgo::waterDepthKnee() const {
