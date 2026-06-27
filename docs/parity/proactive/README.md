@@ -119,6 +119,10 @@ patch with a `// NOTE: in original-game …` citation.
 | Free-point wildcard | empty fpName matched nothing; original treats empty as match-all (nearest available FP of any name) | `waymatrix.cpp` `findFpIndex` |
 | Parry witness recruit | a blocked/parried hit ran no AssessDamage/AssessOthersDamage; original's EV_Parade calls AssessDamage_S(value=0) | `npc.cpp` `takeDamage` |
 | Weapon damage spread | damage_total added to every type (N-times over); original spreads it evenly across set types | `inventory.cpp` `applyWeaponStats` |
+| Subtitle duration | voiceless line used 550ms/char + 16s clamp; original is charCount/6 + 1s, no clamp | `gamescript.cpp` `messageTime` |
+| Doc_SetMargins flag | 7th arg multiplied margins; original is a boolean apply-flag (0 = no-op, insets verbatim) | `gothic.cpp` `doc_setmargins` |
+| Ranged-hit FX pos | arrow hit spark/sound spawned at shooter-victim midpoint (mid-air); original at the victim impact | `world.cpp` `addWeaponHitEffect` |
+| Never-open chest | a locked container with no key & no pick-combination opened freely; original refuses (NEVER_OPEN) | `interactive.cpp` `checkUseConditions` |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
@@ -202,4 +206,6 @@ patch with a `// NOTE: in original-game …` citation.
 | `saveglob-daedalus-global-scope` | OG persists FLOAT/STRING/INSTANCE .dat globals the original never saves (only non-const INT globals); restricting saveSym to INT-only matches the original but removes persisted state with low base-game impact and OG/mod-regression risk — agent-deferred |
 | `spellspawn-notarget-ignores-origin-node` | an untargeted spell cast spawns from the weapon bone, ignoring the FX emTrjOriginNode the targeted branch honors; Medium + config-dependent (only matters when the origin node differs from the weapon bone) — visual, deferred |
 | `spellinfo-setactivespellinfo-unconditional` | Npc_SetActiveSpellInfo stores the transform-instance unconditionally; original only stores it while a spell is selected (magic mode). Medium + unreachable from vanilla scripts; gating the store risks dropping a legitimate mid-cast store (breaking a vanilla transform) if activeWeapon() state differs at the call moment — deferred |
+| `flee-los-gate` | original flee-steering (oCNpc::Fleeing @0x006820c0) re-steers only with free line-of-sight to the enemy; OG's stateless per-tick implAiFlee has no LoS gate. A naive early-return on lost LoS could freeze a fleeing NPC in open ground (OG flee lacks the original's committed-trace state machine) — needs a keep-moving fallback + runtime validation — agent-deferred |
+| `turn-combat-facing-speed-multiplier` | OG combat-facing turn uses step*=2 (flagged in-source as a guess) where the original TurnToEnemy @0x00737cd0 uses 4x base; could not prove the two per-frame turn-time globals are equal (data-xref/MCP unavailable) and turn rate is tuning-sensitive — deferred |
 
