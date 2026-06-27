@@ -74,7 +74,13 @@ void Inventory::Iterator::skipHidden() {
       ++at;
     }
   if(type==T_Ransack) {
-    while(at<it.size() && it[at]->isEquipped()) {
+    // NOTE: in original-game oCNpcContainer::CreateList (Gothic2.exe 0x0070b570) the corpse/
+    // unconscious loot list inserts an item only when HasFlag(0x10)==0 AND HasFlag(0x40000000)==0.
+    // In the merged item-flag field (mainflag OR'd into flags by oCItem::InitByScript @0x00711bd0)
+    // 0x10 == ITM_CAT_ARMOR and 0x40000000 == equipped. OpenGothic skipped only equipped items, so
+    // unequipped armour carried in a downed NPC's inventory became lootable; armour is never lootable
+    // from a body.
+    while(at<it.size() && (it[at]->isEquipped() || it[at]->isArmor())) {
       ++at;
       }
     }
