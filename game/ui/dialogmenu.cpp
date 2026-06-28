@@ -477,7 +477,12 @@ void DialogMenu::paintEvent(Tempest::PaintEvent &e) {
       x = (area.w*x)/100;
       }
     if(y<0){
-      y = (area.h-sz.h)/2;
+      // NOTE: in original-game zCView::PrintTimedCXY/CY @0x7a7fc0/0x7a7f00 the centered text TOP is
+      // (viewH-lineH)/2 so the one-line block is centered on viewH/2. GthFont::drawText anchors on the
+      // line bottom/baseline (y=by-h), so add sz.h to convert top->bottom; without it the centered
+      // block sat a full line too high (visual center at area.h/2-sz.h instead of area.h/2). This
+      // matches the +sz.h correction already applied to the explicit-posy branch below.
+      y = (area.h-sz.h)/2 + sz.h;
       } else {
       // NOTE: in original-game zCView::CreateText, posy is the text TOP at viewH*posy/100;
       // GthFont::drawText anchors on the baseline, so add sz.h to convert top->baseline without
