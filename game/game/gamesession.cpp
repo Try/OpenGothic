@@ -17,8 +17,11 @@
 
 using namespace Tempest;
 
-// rate 14.5 to 1
-const uint64_t GameSession::multTime=14500;
+// NOTE: in original-game oCWorldTimer::Timer @0x00780d80 advances the clock accumulator by the raw
+// real frame-time (ms) and oCWorldTimer::SetTime @0x00780e40 maps 1 game-hour to a round 250000 units,
+// so the rate is exactly 3,600,000 game-ms / 250,000 real-ms = 14.4 game-ms per real-ms (full day =
+// 6,000,000 real-ms = 100 min). OpenGothic's hand-picked 14.5 ran the clock ~0.69% fast.
+const uint64_t GameSession::multTime=14400;
 const uint64_t GameSession::divTime =1000;
 
 void GameSession::HeroStorage::save(Npc& npc) {
