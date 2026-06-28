@@ -249,6 +249,7 @@ patch with a `// NOTE: in original-game …` citation.
 | ASSESSFAKEGUILD on disguise | equipping disguise armor swapped the guild but never broadcast PERC_ASSESSFAKEGUILD; original fires it in AddItemEffects so nearby NPCs immediately re-assess the fake guild | `inventory.cpp` `applyArmor` |
 | ASSESSUSEMOB player-only | every routine NPC using a mob over-broadcast PERC_ASSESSUSEMOB; original AssessUseMob_S gates it on IsSelfPlayer (only the player's mob-use alerts nearby NPCs) | `interactive.cpp` `tick` |
 | Mob on_state ITEM context | a mob on_state script saw a stale ITEM VM-global from a prior call; original CallOnStateFunc binds ITEM=interactItem (null for scheme mobs), clearing it each call | `gamescript.cpp` `useInteractive` |
+| Dead NPC spell-target | a corpse passed the typed/NPCS spell-target gate; original IsTargetTypeValid gates NPCS/HUMANS/ORCS/UNDEAD on !IsDead (ALL still accepts corpses). Masked in G2 auto-aim, live in G1 | `npc.cpp` `isTargetableBySpell` |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
