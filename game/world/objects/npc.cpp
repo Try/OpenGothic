@@ -2502,7 +2502,14 @@ void Npc::tickTimedEvt(Animation::EvCount& ev) {
 
 void Npc::tickRegen(int32_t& v, const int32_t max, const int32_t chg, const uint64_t dt) {
   uint64_t tick = owner.tickCount();
-  if(tick<dt || chg==0)
+  // NOTE: in original-game oCNpc::Regenerate @0x00741fd0 a regen tick fires only while the regen rate
+  // is strictly positive (0 < ATR_REGENERATE*) AND current < max, and only ever adds toward the cap
+  // (ChangeAttribute(+1)). It never pulls a value that already sits at or above max back down, so a
+  // surplus left after unequipping a +HITPOINTSMAX/+MANAMAX item is preserved (regen to the boosted
+  // cap -> unequip -> keep the surplus). A negative regen rate is inert and never drains. OpenGothic's
+  // unconditional min(v+..,max) clamped the surplus down on the next tick, and a negative chg drained
+  // the pool. Gate on chg>0 && v<max; regen is then strictly additive so the checkHealth call is moot.
+  if(tick<dt || chg<=0 || v>=max)
     return;
   int32_t time0 = int32_t(tick%1000);
   int32_t time1 = time0+int32_t(dt);
@@ -2510,11 +2517,9 @@ void Npc::tickRegen(int32_t& v, const int32_t max, const int32_t chg, const uint
   int32_t val0 = (time0*chg)/1000;
   int32_t val1 = (time1*chg)/1000;
 
-  int32_t nextV = std::max(0,std::min(v+val1-val0,max));
+  int32_t nextV = std::min(v+val1-val0,max);
   if(v!=nextV) {
     v = nextV;
-    // check health, in case of negative chg
-    checkHealth(true,false);
     }
   }
 
