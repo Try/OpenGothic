@@ -243,6 +243,7 @@ patch with a `// NOTE: in original-game …` citation.
 | Npc_GetGuildAttitude bind | the external was unbound → always returned ATT_HOSTILE; original returns the guild attitude matrix value keyed on trueGuild() of both parties | `gamescript.cpp` `npc_getguildattitude` |
 | SPAWN_INSERTRANGE value | the direct-memory mod-compat shim exposed a 1000 (10m) placeholder; original SPAWN_INSERTRANGE defaults to 4500 (45m) | `directmemory.h` `spawnRange` |
 | Guild-owned mob theft gate | guild-owned decoration mobs never triggered the owning guild's use/theft reaction (owner_guild dropped, Npc_IsDetectedMobOwnedByGuild stubbed); implemented via a new persisted ownerGuild field (Serialize 57→58) | `interactive.cpp`, `gamescript.cpp` |
+| Lock-pick progress persist | partial lock-pick combination progress reset to 0 on save/load; original archives it on the mob — persisted (Serialize 58→59), completing the save-deferred half of the per-mob progress fix | `interactive.cpp` `load`/`save` |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
@@ -261,7 +262,7 @@ patch with a `// NOTE: in original-game …` citation.
 | `anim-wounded-overlay-lowhp` | HP-driven `_WOUNDED` locomotion overlay (CheckModelOverlays @0x007301d0); visual-only, triggers only at HP≤2, needs exact MDS overlay-name construction + OG overlay API + on-screen check |
 | `theft-assesstheft-isplayer-gate` | dropping the `isPlayer()` guard so NPC item-pickups broadcast PERC_ASSESSTHEFT adds new NPC-vs-NPC witness reactions; AI-behavior risk, needs runtime |
 | `aistate-startstate-unconditional-queue-clear` | gating AI-queue clear to the hard-interrupt path; OG models hard/soft state switches differently and existing workarounds assume an always-cleared queue — needs in-game verification (agent-deferred) |
-| `lock-picklock-progress` (save/load part) | persisting the in-progress combination index across save/load needs a serialization-version bump (the per-mob relocation itself is applied) |
+| `lock-picklock-progress` (save/load part) | RESOLVED → APPLIED: persisted pickLockProgress (Serialize 58→59, version-guarded). The per-mob relocation was already applied |
 | `monster-getnexttarget-sticky` | Npc_GetNextTarget should keep the current enemy if still valid (sticky) rather than flip to nearest every call; the original's validity check also re-acquires on flee-state (-4/-5) and charm/sleep/freeze, which have no grep-verified 1:1 OG equivalent — an isDown()-only sticky path would wrongly lock onto a controlled/fleeing foe. Combat AI, needs runtime |
 | `perc-passive-range-senses-fallback` | passive perception uses percRange.at(perc, senses_range) fallback vs original's static percRange[] table; removing the fallback depends on the unconfirmable static default + whether scripts always Perc_SetRange — agent-deferred |
 | `hitreact-ondamage-processinfos-dialog-guard` | original skips hit-reaction/damage while an EV_PROCESSINFOS dialog transition is queued; OG models dialog via AiQueue/outputPipe with no grep-verifiable per-Npc oCMsgConversation equivalent to gate on — agent-deferred |
