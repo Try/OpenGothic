@@ -3093,20 +3093,22 @@ bool GameScript::npc_isdetectedmobownedbynpc(std::shared_ptr<zenkit::INpc> usrRe
   }
 
 bool GameScript::npc_isdetectedmobownedbyguild(std::shared_ptr<zenkit::INpc> npcRef, int guild) {
-  static bool first=true;
-  if(first){
-    Log::e("not implemented call [npc_isdetectedmobownedbyguild]");
-    first=false;
-    }
-
   auto npc = findNpc(npcRef);
-  (void)guild;
-
+  // NOTE: in original-game Npc_IsDetectedMobOwnedByGuild (handler @0x006ed750) calls
+  // oCMOB::IsOwnedByGuild @0x0071c190 on the user's detected mob (GetInteractMob, else the collided
+  // obstacle vob -> detectedMob()), which resolves the mob's ownerGuild string (uppercased to its
+  // guild-constant symbol value in oCMOB::SetOwner @0x0071bf80) and returns ownerGuild>=0 &&
+  // ownerGuild==guild. OpenGothic stubbed this to always-false and dropped vob.owner_guild entirely,
+  // so a guild-owned decoration mob never triggered the owning guild's use/theft reaction. Mirror the
+  // working NPC-owner sibling, resolving the ownerGuild string to its constant value.
   if(npc!=nullptr && npc->detectedMob()!=nullptr) {
-    auto  ow   = npc->detectedMob()->ownerName();
-    (void)ow;
-    //vm.setReturn(inst.name==ow ? 1 : 0);
-    return false;
+    auto ow = npc->detectedMob()->ownerGuildName();
+    if(ow.empty())
+      return false;
+    auto* sym = vm.find_symbol_by_name(std::string(ow));
+    if(sym==nullptr)
+      return false;
+    return sym->get_int()==guild;
     }
   return false;
   }

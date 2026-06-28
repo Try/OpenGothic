@@ -43,6 +43,7 @@ class Interactive : public Vob {
     std::string_view    focusName() const;
     bool                checkMobName(std::string_view dest) const;
     std::string_view    ownerName() const;
+    std::string_view    ownerGuildName() const;
 
     bool                overrideFocus() const;
 
@@ -157,6 +158,7 @@ class Interactive : public Vob {
     std::string         mdlVisual;
     Tempest::Vec3       bbox[2]={};
     std::string         owner;
+    std::string         ownerGuild;
     bool                focOver=false;
     bool                showVisual=true;
     Tempest::Vec3       displayOffset;

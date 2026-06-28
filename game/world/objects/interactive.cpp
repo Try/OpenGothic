@@ -32,6 +32,7 @@ Interactive::Interactive(Vob* parent, World &world, const zenkit::VMovableObject
   bbox[0]       = {vob.bbox.min.x, vob.bbox.min.y, vob.bbox.min.z};
   bbox[1]       = {vob.bbox.max.x, vob.bbox.max.y, vob.bbox.max.z};
   owner         = vob.owner;
+  ownerGuild    = vob.owner_guild;
   focOver       = vob.focus_override;
   showVisual    = vob.show_visual;
 
@@ -50,6 +51,10 @@ Interactive::Interactive(Vob* parent, World &world, const zenkit::VMovableObject
     }
 
   for(auto& i:owner)
+    i = char(std::toupper(i));
+  // NOTE: in original-game oCMOB::SetOwner @0x0071bf80 uppercases the ownerGuild string before
+  // resolving it to its guild-constant symbol value.
+  for(auto& i:ownerGuild)
     i = char(std::toupper(i));
 
   if(vobType==zenkit::VirtualObjectType::oCMobDoor) {
@@ -110,6 +115,10 @@ void Interactive::load(Serialize &fin) {
 
   fin.read(vobName,focName,mdlVisual);
   fin.read(bbox[0],bbox[1],owner);
+  // NOTE: ownerGuild persisted since Serialize v58 (guild-owned mob theft gate); older saves load it
+  // from the .zen-derived ctor value, which is empty until re-parse -- harmless (no guild ownership).
+  if(fin.version()>=58)
+    fin.read(ownerGuild);
   fin.read(focOver,showVisual);
 
   fin.read(stateNum,triggerTarget,useWithItem,conditionFunc,onStateFunc);
@@ -149,6 +158,7 @@ void Interactive::save(Serialize &fout) const {
 
   fout.write(vobName,focName,mdlVisual);
   fout.write(bbox[0],bbox[1],owner);
+  fout.write(ownerGuild);
   fout.write(focOver,showVisual);
 
   fout.write(stateNum,triggerTarget,useWithItem,conditionFunc,onStateFunc);
@@ -452,6 +462,10 @@ bool Interactive::checkMobName(std::string_view dest) const {
 
 std::string_view Interactive::ownerName() const {
   return owner;
+  }
+
+std::string_view Interactive::ownerGuildName() const {
+  return ownerGuild;
   }
 
 bool Interactive::overrideFocus() const {

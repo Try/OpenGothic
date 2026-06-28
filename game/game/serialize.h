@@ -33,7 +33,8 @@ class SaveGameHeader;
 class Serialize {
   public:
     enum Version : uint16_t {
-      Current    = 57, // 57: persist MoveTrigger::triggerCount (TRIGGER_CONTROL ref count)
+      Current    = 58, // 58: persist Interactive::ownerGuild (guild-owned decoration-mob theft gate)
+                       // 57: persist MoveTrigger::triggerCount (TRIGGER_CONTROL ref count)
       MinVersion = 36,
 
       Last_2025  = 53,
