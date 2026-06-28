@@ -3420,7 +3420,12 @@ void Npc::runEffect(Effect&& e) {
   }
 
 bool Npc::isTargetableBySpell(TargetType t) const {
-  if(bool(t&(TARGET_TYPE_ALL|TARGET_TYPE_NPCS)))
+  // NOTE: in original-game oCSpell::IsTargetTypeValid @0x00485fc0 TARGET_TYPE_ALL accepts any vob
+  // (incl. corpses), but every typed NPC branch (NPCS/HUMANS/ORCS/UNDEAD) additionally gates on
+  // oCNpc::IsDead()==0 -- a dead NPC is not a valid typed spell target. OpenGothic accepted NPCS for a
+  // corpse and dropped the alive-test on the typed branches. (Masked in G2 by the auto-aim NoDeath
+  // pre-filter, but live in G1's canNpcCollideWithSpell, which has no death pre-filter.)
+  if(bool(t&TARGET_TYPE_ALL))
     return true;
 
   const Guild gil = Guild(trueGuild());
@@ -3437,13 +3442,15 @@ bool Npc::isTargetableBySpell(TargetType t) const {
     gil == GIL_SUMMONED_SKELETON       || gil == GIL_ZOMBIE   ||
     gil == GIL_SHADOWBEAST_SKELETON);
 
-  if(bool(t&TARGET_TYPE_HUMANS) && isHuman())
+  if(bool(t&TARGET_TYPE_NPCS) && !isDead())
     return true;
-  if(bool(t&TARGET_TYPE_ORCS) && gil>SEPERATOR_ORC)
+  if(bool(t&TARGET_TYPE_HUMANS) && isHuman() && !isDead())
     return true;
-  if(bool(t&TARGET_TYPE_UNDEAD) && g2 && G2_UNDEAD)
+  if(bool(t&TARGET_TYPE_ORCS) && gil>SEPERATOR_ORC && !isDead())
     return true;
-  if(bool(t&TARGET_TYPE_UNDEAD) && !g2 && G1_UNDEAD)
+  if(bool(t&TARGET_TYPE_UNDEAD) && g2 && G2_UNDEAD && !isDead())
+    return true;
+  if(bool(t&TARGET_TYPE_UNDEAD) && !g2 && G1_UNDEAD && !isDead())
     return true;
 
   return false;
