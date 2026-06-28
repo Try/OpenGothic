@@ -1258,7 +1258,39 @@ bool Inventory::less(const Item &il, const Item &ir) {
   // falls straight to the name-only tie-break @0x00705EB0 -- value/cost is never a rune sort key,
   // so vanilla runes are strictly alphabetical. OpenGothic applied the -cost tie-break to runes
   // (they're not in the zeroing set), reordering the spell-book roughly "expensive first".
-  else if(il.mainFlag() & (ItmFlags::ITM_CAT_FOOD | ItmFlags::ITM_CAT_POTION | ItmFlags::ITM_CAT_DOCS | ItmFlags::ITM_CAT_RUNE)) {
+  // NOTE: in original-game inventory sort comparator @0x00705B80 the FOOD branch (category id 5)
+  // dispatches to oCItem::GetHealMode @0x00712180 and ranks food by heal MODE ascending (0=HP via
+  // nutrition or change_atr ATR_HITPOINTS, 2=Mana, 4=Strength, 10=none) then heal AMOUNT descending,
+  // then name. OpenGothic lumped FOOD into the name-only branch with POTION/DOCS/RUNE (which really
+  // are name-only in the original), making the food tab strictly alphabetical instead of grouped by
+  // what is healed. Place the mode in the -lV slot (compared first, ascending) and the amount in subL.
+  else if(il.mainFlag() & ItmFlags::ITM_CAT_FOOD) {
+    auto healMode = [](const Item& it, int32_t& amount) -> int32_t {
+      auto& h = it.handle();
+      if(h.nutrition>0) { amount = h.nutrition; return 0; }
+      for(size_t k=0; k<zenkit::IItem::condition_count; ++k) {
+        const int32_t atr = h.change_atr[k];
+        const int32_t val = h.change_value[k];
+        if(val<=0)
+          continue;
+        if(atr==int32_t(Attribute::ATR_HITPOINTS)) { amount = val; return 0; }
+        if(atr==int32_t(Attribute::ATR_MANA))      { amount = val; return 2; }
+        if(atr==int32_t(Attribute::ATR_STRENGTH))  { amount = val; return 4; }
+        }
+      amount = 0;
+      return 10;
+      };
+    int32_t la = 0, ra = 0;
+    lV   = -healMode(il, la); // -lV = mode, compared first, ascending
+    rV   = -healMode(ir, ra);
+    subL = -la;               // -amount, compared next, ascending == amount descending
+    subR = -ra;
+    }
+  // NOTE: in original-game inventory sort comparator @0x00705B80 the rune branch (category id 3)
+  // falls straight to the name-only tie-break @0x00705EB0 -- value/cost is never a rune sort key,
+  // so vanilla runes are strictly alphabetical. OpenGothic applied the -cost tie-break to runes
+  // (they're not in the zeroing set), reordering the spell-book roughly "expensive first".
+  else if(il.mainFlag() & (ItmFlags::ITM_CAT_POTION | ItmFlags::ITM_CAT_DOCS | ItmFlags::ITM_CAT_RUNE)) {
     lV = 0;
     rV = 0;
     } else {
