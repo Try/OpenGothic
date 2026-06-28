@@ -1116,12 +1116,18 @@ bool WorldObjects::testObj(T &src, const Npc &pl, const WorldObjects::SearchOpt 
   if(!checkTargetType(npc,opt.collectType))
     return false;
 
-  float l = pl.qDistTo(npc);
+  // NOTE: in original-game oCNpc::FocusCheck @0x007331c0 (per-frame focus/auto-aim collector
+  // CollectFocusVob @0x00733a10) the range gate measures the horizontal (XZ-plane) distance between
+  // the player and target object origins -- the Y/elevation component is explicitly zeroed before
+  // squaring -- so a target on stairs/ledge/balcony stays in focus range. OpenGothic used full 3D
+  // qDistTo (incl. the centerPosition height delta), which shrank the effective focus/auto-aim range
+  // for vertically-displaced targets. Use the horizontal distance (reuses the dpos offset below).
+  auto pos   = npc.position();
+  auto dpos  = pos - pl.position();
+  float l    = dpos.x*dpos.x + dpos.z*dpos.z;
   if(l>qmax || l<qmin)
     return false;
 
-  auto pos   = npc.position();
-  auto dpos  = pos - pl.position();
   auto angle = std::atan2(dpos.z,dpos.x);
 
   const float c = float(std::cos(double(plAng-angle)));
