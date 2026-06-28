@@ -2138,7 +2138,15 @@ void Npc::takeDamage(Npc &other, const Bullet* b) {
   lastHit = &other;
   if(!isPlayer())
     setOther(&other);
-  owner.sendPassivePerc(*this,other,*this,PERC_ASSESSFIGHTSOUND);
+  // NOTE: in original-game Gothic2.exe NO engine routine broadcasts PERC_ASSESSFIGHTSOUND (13).
+  // oCNpc::CreatePassivePerception @0x0075b270 is the sole passive-perc delivery path, and across all
+  // its engine callers (DoDie 6, DropUnconscious 7, AssessDamage_S 9, EV_RemoveWeapon2 11,
+  // ObserveIntruder_S 12, AssessWarn_S 15, AssessTheft_S 17, AddItemEffects 21, EV_DrawWeapon2 24,
+  // FUN_0069ae20 25, AssessCaster_S 29, EndTimedEffect 30, AssessEnterRoom_S 31, AssessUseMob_S 32)
+  // perc 13 is never passed; the melee/hit path (OnDamage_Hit/_Sound/StartHitSound) never raises it
+  // either. ASSESSFIGHTSOUND is emitted only by the script external Npc_SendPassivePerc. OpenGothic
+  // injected an engine broadcast here on every melee hit AND parade, over-firing the perception vs
+  // vanilla -- drop it (script-sent FIGHTSOUND still routes through GameScript::npc_sendpassiveperc).
 
   if(!(isBlock || isJumpb) || b!=nullptr || flyAtk) {
     takeDamage(other,b,COLL_DOEVERYTHING,0,false);
@@ -3485,7 +3493,15 @@ void Npc::commitSpell() {
       visual.startEffect(owner,std::move(e),0,true);
       }
     visual.setMagicWeaponKey(owner,SpellFxKey::Init);
-    if(currentTarget!=nullptr) {
+    // NOTE: in original-game oCVisualFX::Init @0x00491f20 the ASSESSMAGIC perception (AssessMagic_S
+    // @0x0075cc30) is raised only when the effect's VFX has its sendsAssessMagic flag set (field 0x380,
+    // SetSendsAssessMagic @0x0048b2c0) AND the target NPC is not the caster. OpenGothic sent it
+    // unconditionally on every non-projectile commit, so a focused NPC perceived harmless self-buffs
+    // (Light/Heal/summon) as hostile magic. Gate it exactly like OG's collision path (Effect::onCollide,
+    // effect.cpp:319-324): the perc sub-VFX is emFXCollDynPerc (G2) / emFXCollDyn (G1).
+    const bool      g2   = owner.version().game==2;
+    const VisualFx* perc = (vfx==nullptr) ? nullptr : (g2 ? vfx->emFXCollDynPerc : vfx->emFXCollDyn);
+    if(currentTarget!=nullptr && currentTarget!=this && perc!=nullptr && perc->sendAssessMagic) {
       currentTarget->lastHitSpell = splId;
       currentTarget->perceptionProcess(*this,nullptr,0,PERC_ASSESSMAGIC);
       }
