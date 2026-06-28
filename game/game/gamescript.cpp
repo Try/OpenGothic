@@ -1792,7 +1792,13 @@ bool GameScript::wld_isfpavailable(std::shared_ptr<zenkit::INpc> self, std::stri
     return false;
     }
 
-  auto wp = world().findFreePoint(*findNpc(self.get()),name);
+  // NOTE: in original-game Wld_IsFPAvailable external (Gothic2.exe @0x006eb5b0) the fp-name is
+  // upper-cased (zSTRING::Upper) before FindSpot @0x007400e0 substring-matches the upper-case spot
+  // names; OpenGothic stores FP names upper-cased and matches case-sensitively. Same fix as ai_gotonextfp.
+  std::string fpu {name};
+  for(auto& c:fpu)
+    c = char(std::toupper(c));
+  auto wp = world().findFreePoint(*findNpc(self.get()),fpu);
   return wp!=nullptr;
   }
 
@@ -1800,7 +1806,12 @@ bool GameScript::wld_isnextfpavailable(std::shared_ptr<zenkit::INpc> self, std::
   if(self==nullptr){
     return false;
     }
-  auto fp = world().findNextFreePoint(*findNpc(self.get()),name);
+  // NOTE: in original-game Wld_IsNextFPAvailable external (Gothic2.exe @0x006eb860) the fp-name is
+  // upper-cased (zSTRING::Upper) before FindSpot @0x007400e0 substring-matches the upper-case spot names.
+  std::string fpu {name};
+  for(auto& c:fpu)
+    c = char(std::toupper(c));
+  auto fp = world().findNextFreePoint(*findNpc(self.get()),fpu);
   return fp != nullptr;
   }
 
@@ -3394,7 +3405,14 @@ void GameScript::ai_gotofp(std::shared_ptr<zenkit::INpc> npcRef, std::string_vie
   auto npc = findNpc(npcRef);
 
   if(npc) {
-    auto to = world().findFreePoint(*npc,waypoint);
+    // NOTE: in original-game AI_GotoFP external (Gothic2.exe @0x006ebfa0) the free-point name is
+    // upper-cased (zSTRING::Upper) before EV_GotoFP/FindSpot @0x007400e0 substring-match it against
+    // the upper-case spot names. OpenGothic stores FP names upper-cased and WayPoint::checkName matches
+    // case-sensitively, so a non-upper-case script name never matched. Same fix as ai_gotonextfp.
+    std::string name {waypoint};
+    for(auto& c:name)
+      c = char(std::toupper(c));
+    auto to = world().findFreePoint(*npc,name);
     if(to!=nullptr)
       npc->aiPush(AiQueue::aiGoToPoint(*to));
     }
