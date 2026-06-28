@@ -3300,7 +3300,11 @@ void GameScript::ai_stoplookat(std::shared_ptr<zenkit::INpc> selfRef) {
 
 void GameScript::ai_lookat(std::shared_ptr<zenkit::INpc> selfRef, std::string_view waypoint) {
   auto self = findNpc(selfRef);
-  auto to  = world().findPoint(waypoint);
+  // NOTE: in original-game oCNpc::EV_LookAt @0x00759a40 resolves the AI_LookAt target name EXACT-only
+  // (zCWayNet::GetWaypoint @0x007b0330 exact, then a single exact oCWorld::SearchVobByName) -- it never
+  // substring-matches (unlike FindSpot/AI_UseMob). OpenGothic's findPoint default inexact=true adds a
+  // checkName substring fallback, so a name that merely CONTAINS a point's name wrongly resolved. Exact.
+  auto to  = world().findPoint(waypoint,false);
   if(self!=nullptr)
     self->aiPush(AiQueue::aiLookAt(to));
   }
@@ -3623,7 +3627,10 @@ void GameScript::ai_gotoitem(std::shared_ptr<zenkit::INpc> npcRef, std::shared_p
 
 void GameScript::ai_pointat(std::shared_ptr<zenkit::INpc> npcRef, std::string_view waypoint) {
   auto npc = findNpc(npcRef);
-  auto to  = world().findPoint(waypoint);
+  // NOTE: in original-game oCNpc::EV_PointAt @0x00759f40 resolves the AI_PointAt target name EXACT-only
+  // (GetWaypoint @0x007b0330 + exact SearchVobByName), never substring. OpenGothic's findPoint default
+  // inexact=true added a substring fallback, so a partial name wrongly resolved. Exact (matches EV_LookAt).
+  auto to  = world().findPoint(waypoint,false);
   if(npc!=nullptr && to!=nullptr)
     npc->aiPush(AiQueue::aiPointAt(*to));
   }
