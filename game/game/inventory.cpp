@@ -914,8 +914,16 @@ void Inventory::applyArmor(Item &it, Npc &owner, int32_t sgn) {
   if(disguise!=0) {
     auto& hnpc = owner.handle();
     if(sgn>0) {
-      if(disguise!=owner.trueGuild())
+      if(disguise!=owner.trueGuild()) {
         hnpc.guild = disguise;
+        // NOTE: in original-game oCNpc::AddItemEffects @0x007320f0, right after disguise_guild
+        // overwrites C_Npc.guild, the engine fires CreatePassivePerception(self, PERC_ASSESSFAKEGUILD,
+        // OTHER=self, VICTIM=null) @0x0075b270 gated on IsAPlayer, so nearby NPCs immediately re-assess
+        // the hero's apparent guild on donning faction armor (B_AssessFakeGuild). OpenGothic applied the
+        // guild swap but never broadcast the perception, so the re-assessment was delayed/absent.
+        if(owner.isPlayer())
+          owner.world().sendPassivePerc(owner,owner,PERC_ASSESSFAKEGUILD);
+        }
       } else {
       hnpc.guild = owner.trueGuild();
       }
