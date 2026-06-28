@@ -2283,6 +2283,13 @@ void Npc::takeFallDamage(const Vec3& fallSpeed) {
     emitSoundSVM("SVM_%d_AARGH");
     clearState(true);
     }
+  // NOTE: in original-game oCNpc::CreateFallDamage @0x00681da0 the fall oCMsgDamage is posted
+  // with a null sender (origin), so oCNpc::OnDamage_Script -> AssessDamage_S receives other=NULL
+  // and a fatal fall has no killer -> ZS_Dead/B_GiveDeathXP awards no kill credit/XP. OpenGothic
+  // routes kill credit through lastHit (onNoHealth -> setOther(lastHit)) but never cleared it on
+  // the fall path, so a stale previous attacker (e.g. the hero) was wrongly credited with the
+  // kill and given death-XP. Mirror the dive/drown tick and drop the attacker.
+  lastHit = nullptr;
   changeAttribute(ATR_HITPOINTS,-dmg.value,false);
   }
 
