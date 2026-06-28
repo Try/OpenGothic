@@ -4196,6 +4196,14 @@ Npc::BeginCastResult Npc::beginCastSpell() {
     case SPL_RECEIVEINVEST:
     case SPL_NEXTLEVEL: {
       ++manaInvested;
+      // NOTE: in original-game oCSpell::Invest @0x004850d0 the per-mana invest cadence is a
+      // frame-time accumulator (oCSpell+0x44) gated by time_per_mana (oCSpell+0x80): ONLY the first
+      // invest (manaInvested==0) is forced immediate; every later invest waits a full time_per_mana.
+      // This BeginCast IS that immediate first invest, so the next invest must be delayed by
+      // time_per_mana. Leaving castNextTime at tickCount() let the very next tickCast() perform the
+      // second invest as soon as BS_CASTING was reached (~one frame) instead of after time_per_mana,
+      // charging invest/channel spells (and NPC aiExpectedInvest releases) one mana-level too fast.
+      castNextTime = owner.tickCount() + uint64_t(owner.script().spellDesc(active->spellId()).time_per_mana);
       auto ani = owner.script().spellCastAnim(*this,*active);
       if(!visual.startAnimSpell(*this,ani,true))
         Log::d("Couldn't start animation for spell '",currentSpellCast,"'");
