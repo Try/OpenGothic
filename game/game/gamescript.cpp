@@ -1942,6 +1942,11 @@ bool GameScript::wld_detectitem(std::shared_ptr<zenkit::INpc> npcRef, int flags)
   if(npc==nullptr) {
     return false;
     }
+  // NOTE: in original-game oCNpc::DetectItem @0x0073fd40 (the Wld_DetectItem handler) opens with the
+  // same IsSelfPlayer (vtable+0x104) guard as its FindNpc/FindNpcEx siblings, returning null for a
+  // player origin -- Wld_DetectItem is an NPC-AI primitive. OpenGothic lacked the guard.
+  if(npc->isPlayer())
+    return false;
 
   Item* ret =nullptr;
   float dist=std::numeric_limits<float>::max();
