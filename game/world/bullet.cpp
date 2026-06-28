@@ -146,6 +146,11 @@ bool Bullet::onCollide(zenkit::MaterialGroup matId) {
       }
     }
   Effect::onCollide(*wrld,vfx.handle(),obj->position(),nullptr,ow,spellId());
+  // NOTE: in original-game both collision dispatch paths -- ProcessCollision @0x004958d0 (NPC/vob)
+  // and ReportCollision @0x00494e80 (level-polygon) -- funnel into oCVisualFX::Collide @0x00493a00,
+  // which switches the dying flying FX onto its _KEY_COLLIDE emitter key. OpenGothic applied that key
+  // only on the NPC-hit overload (below); the world/level-mesh path left the dying FX on its CAST key.
+  vfx.setKey(*wrld,SpellFxKey::Collide);
   vfx.setLooped(false);
   vfx.setPhysicsDisable();
   wrld->runEffect(std::move(vfx));
