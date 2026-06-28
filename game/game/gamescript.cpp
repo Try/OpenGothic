@@ -1412,7 +1412,13 @@ void GameScript::useInteractive(const std::shared_ptr<zenkit::INpc>& hnpc, std::
   if(fn == nullptr)
     return;
 
+  // NOTE: in original-game oCMobInter::CallOnStateFunc @0x00720870 the mob on_state script is invoked
+  // with SELF=npc AND ITEM=npc->interactItem (oCNpc 0x968, null for scheme mobsis) -- so the engine
+  // clears ITEM on every on_state call. OpenGothic bound only SELF, leaving a stale ITEM instance from
+  // a prior script call visible to the on_state func. Clear ITEM (the interact item itself isn't
+  // modelled, so the null/common case is the reproducible parity; ScopeVar restores prev on exit).
   ScopeVar self(*vm.global_self(),hnpc);
+  ScopeVar item(*vm.global_item(),std::shared_ptr<zenkit::IItem>(nullptr));
   try {
     vm.call_function<void>(fn);
     }
