@@ -250,6 +250,7 @@ patch with a `// NOTE: in original-game …` citation.
 | ASSESSUSEMOB player-only | every routine NPC using a mob over-broadcast PERC_ASSESSUSEMOB; original AssessUseMob_S gates it on IsSelfPlayer (only the player's mob-use alerts nearby NPCs) | `interactive.cpp` `tick` |
 | Mob on_state ITEM context | a mob on_state script saw a stale ITEM VM-global from a prior call; original CallOnStateFunc binds ITEM=interactItem (null for scheme mobs), clearing it each call | `gamescript.cpp` `useInteractive` |
 | Dead NPC spell-target | a corpse passed the typed/NPCS spell-target gate; original IsTargetTypeValid gates NPCS/HUMANS/ORCS/UNDEAD on !IsDead (ALL still accepts corpses). Masked in G2 auto-aim, live in G1 | `npc.cpp` `isTargetableBySpell` |
+| Wld_DetectNpc player origin | Wld_DetectNpc/Ex detected NPCs around the hero; original FindNpc/FindNpcEx return null when the detecting NPC is the player (IsSelfPlayer guard at entry) -- NPC-AI-only primitives | `gamescript.cpp` `wld_detectnpc`/`ex` |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
