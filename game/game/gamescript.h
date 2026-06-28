@@ -356,6 +356,7 @@ class GameScript final {
     void npc_clearinventory  (std::shared_ptr<zenkit::INpc> npcRef);
     int  npc_getattitude     (std::shared_ptr<zenkit::INpc> aRef, std::shared_ptr<zenkit::INpc> bRef);
     int  npc_getpermattitude (std::shared_ptr<zenkit::INpc> aRef, std::shared_ptr<zenkit::INpc> bRef);
+    int  npc_getguildattitude(std::shared_ptr<zenkit::INpc> aRef, std::shared_ptr<zenkit::INpc> bRef);
     void npc_setattitude     (std::shared_ptr<zenkit::INpc> npcRef, int att);
     void npc_settempattitude (std::shared_ptr<zenkit::INpc> npcRef, int att);
     bool npc_hasbodyflag     (std::shared_ptr<zenkit::INpc> npcRef, int bodyflag);

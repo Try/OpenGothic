@@ -232,6 +232,7 @@ void GameScript::initCommon() {
   bindExternal("npc_clearinventory",             &GameScript::npc_clearinventory);
   bindExternal("npc_getattitude",                &GameScript::npc_getattitude);
   bindExternal("npc_getpermattitude",            &GameScript::npc_getpermattitude);
+  bindExternal("npc_getguildattitude",           &GameScript::npc_getguildattitude);
   bindExternal("npc_setattitude",                &GameScript::npc_setattitude);
   bindExternal("npc_settempattitude",            &GameScript::npc_settempattitude);
   bindExternal("npc_hasbodyflag",                &GameScript::npc_hasbodyflag);
@@ -3002,6 +3003,22 @@ int GameScript::npc_getpermattitude(std::shared_ptr<zenkit::INpc> aRef, std::sha
     return guildAttitude(*a,*b);
     }
   return ATT_NEUTRAL;
+  }
+
+int GameScript::npc_getguildattitude(std::shared_ptr<zenkit::INpc> aRef, std::shared_ptr<zenkit::INpc> bRef) {
+  auto a = findNpc(aRef);
+  auto b = findNpc(bRef);
+  // NOTE: in original-game Npc_GetGuildAttitude @0x006e5c00 returns oCGuilds::GetAttitude(self.
+  // GetTrueGuild(), other.GetTrueGuild()) -- the guild matrix keyed on the TRUE guild (oCNpc+0x766) of
+  // BOTH parties, never the live C_Npc.guild, so guildAttitude() (which keys on the live guild()) is
+  // deliberately NOT reused (it diverges for disguised NPCs). Same row*gilCount+col order as the
+  // InitNpcAttitudes re-bake. OpenGothic never bound this external, so every call returned ZenKit's
+  // default 0 == ATT_HOSTILE instead of the real (commonly FRIENDLY/NEUTRAL) matrix value.
+  if(a==nullptr || b==nullptr)
+    return ATT_NEUTRAL;
+  auto aG = std::min<size_t>(gilCount-1, size_t(a->trueGuild()));
+  auto bG = std::min<size_t>(gilCount-1, size_t(b->trueGuild()));
+  return gilAttitudes[aG*gilCount+bG];
   }
 
 void GameScript::npc_setattitude(std::shared_ptr<zenkit::INpc> npcRef, int att) {
