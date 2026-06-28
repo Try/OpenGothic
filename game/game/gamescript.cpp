@@ -3206,11 +3206,19 @@ int GameScript::npc_setactivespellinfo(std::shared_ptr<zenkit::INpc> npcRef, int
   }
 
 int GameScript::npc_getactivespelllevel(std::shared_ptr<zenkit::INpc> npcRef) {
-  int  v   = 0;
+  // NOTE: in original-game oCNpc::GetActiveSpellLevel @0x0073cfe0 returns -1 when the NPC is not in
+  // magic mode / has no selected spell, matching its siblings GetActiveSpellNr @0x0073cf60 and
+  // GetActiveSpellCategory @0x0073cfa0 (the latter already corrected above). OpenGothic returned 0,
+  // colliding with a real level and breaking script tests that use -1 as the "no active spell" marker.
+  // Mirror GetActiveSpellCat's gate (return -1 only when not wielding a spell/rune), leaving the live
+  // cast-state level unchanged otherwise.
   auto npc = findNpc(npcRef);
-  if(npc!=nullptr)
-    v = npc->activeSpellLevel();
-  return v;
+  if(npc==nullptr)
+    return -1;
+  const Item* w = npc->activeWeapon();
+  if(w==nullptr || !w->isSpellOrRune())
+    return -1;
+  return npc->activeSpellLevel();
   }
 
 void GameScript::ai_processinfos(std::shared_ptr<zenkit::INpc> npcRef) {
