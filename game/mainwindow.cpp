@@ -211,11 +211,20 @@ void MainWindow::paintEvent(PaintEvent& event) {
 
       drawMsg(p);
 
+      // NOTE: in original-game oCGame::UpdatePlayerStatus @0x006c3140 a second guard (after the
+      // SetShowPlayerStatus flag check) calls zCCSPlayer::GetPlayingGlobalCutscene @0x00420770 and
+      // early-returns when a global cutscene is playing, removing every status view -- the HP/mana/swim
+      // bars and the focus name+HP bar -- for the whole cutscene. OpenGothic kept drawing them. Mirror
+      // it with the cutscene-camera mode (isCutscene() is Cutscene-only, not Dialog, so it never
+      // over-hides during ordinary conversation).
+      const bool inCutscene = camera.isCutscene();
+
       auto focus = world->validateFocus(player.focus());
-      paintFocus(p,focus,vp);
+      if(!inCutscene)
+        paintFocus(p,focus,vp);
 
       if(auto pl = Gothic::inst().player()){
-        if (!Gothic::inst().isDesktop()) {
+        if (!Gothic::inst().isDesktop() && !inCutscene) {
           auto& opt = Gothic::options();
           float hp  = float(pl->attribute(ATR_HITPOINTS))/float(pl->attribute(ATR_HITPOINTSMAX));
           float mp  = float(pl->attribute(ATR_MANA))     /float(pl->attribute(ATR_MANAMAX));
