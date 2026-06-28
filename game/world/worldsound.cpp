@@ -292,7 +292,12 @@ void WorldSound::tickSoundZone(Npc& player) {
 
   Zone*           zTry[]    = {zone, def.get()};
   GameMusic::Tags dayTry[]  = {isDay ? GameMusic::Day : GameMusic::Ngt, GameMusic::Day};
-  GameMusic::Tags modeTry[] = {mode, mode==GameMusic::Thr ? GameMusic::Fgt : GameMusic::Std, GameMusic::Std};
+  // NOTE: in original-game oCZoneMusic::ProcessZoneList @0x00640560 a missing theme falls back only
+  // *down* the intensity ladder FGT>THR>STD: a fight (FGT) degrades to the threat theme then the calm
+  // theme (FGT->THR->STD), threat (THR) degrades straight to calm (THR->STD), and threat never
+  // escalates up to the combat theme. The previous `mode==Thr ? Fgt : Std` expansion did the reverse
+  // (THR borrowed FGT; FGT skipped THR).
+  GameMusic::Tags modeTry[] = {mode, mode==GameMusic::Fgt ? GameMusic::Thr : GameMusic::Std, GameMusic::Std};
 
   // multi-fallback strategy
   for(auto zone:zTry)
