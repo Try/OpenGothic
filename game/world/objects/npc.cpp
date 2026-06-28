@@ -4048,6 +4048,15 @@ bool Npc::drawWeaponFist() {
     return false;
     }
 
+  // NOTE: in original-game oCNpc::CanDrawWeapon @0x006805c0 permits drawing during a mob interaction
+  // and the draw then interrupts/leaves it, regardless of weapon mode. The three armed draw helpers
+  // (drawWeaponMelee/Bow/drawSpell) detach via setInteraction(nullptr,true) first; drawWeaponFist
+  // omitted it, so an unarmed actor drawing "melee" at a forge/workbench readied fists while still
+  // attached to the MOBSI -- a state the original never produces. Detach first (no-op when not
+  // interacting), matching the sibling draw helpers.
+  if(!setInteraction(nullptr,true))
+    return false;
+
   if(isMonster()) {
     if(!visual.startAnim(*this,WeaponState::Fist))
       visual.setToFightMode(WeaponState::Fist);
@@ -4128,6 +4137,18 @@ bool Npc::drawSpell(int32_t spell) {
   if(weaponSt!=WeaponState::NoWeapon && weaponSt!=WeaponState::Mage) {
     closeWeapon(false);
     return false;
+    }
+
+  // NOTE: in original-game oCNpc::EV_DrawWeapon @0x0074cc10 (magic-ready path) early-returns success
+  // as a no-op when the NPC is already in magic mode (GetWeaponMode @0x00756cb0 != 0) -- re-issuing a
+  // spell draw does nothing -- mirroring the already-drawn returns its drawWeaponMelee/Bow siblings
+  // have. OpenGothic's drawSpell lacked the guard, so re-drawing the same spell re-ran
+  // switchActiveSpell/updateRuneView and re-played the magic-ready anim. Scope the no-op to the SAME
+  // spell so switching to a different spell mid-magic-mode (OG's drawSpell-based spell switch) still runs.
+  if(weaponSt==WeaponState::Mage) {
+    auto* w = invent.activeWeapon();
+    if(w!=nullptr && w->spellId()==spell)
+      return true;
     }
 
   if(!setInteraction(nullptr,true))
