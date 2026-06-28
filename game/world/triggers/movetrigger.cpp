@@ -218,8 +218,6 @@ void MoveTrigger::onUntrigger(const TriggerEvent& e) {
 void MoveTrigger::onGotoMsg(const TriggerEvent& evt) {
   if(keyframes.size()<2 || keyframes[0].ticks==0)
     return;
-  if(evt.move.key<0 || keyframes.size()<size_t(evt.move.key))
-    return;
   if(behavior!=zenkit::MoverBehavior::SINGLE_KEYS)
     return;
   if(state!=Idle)
@@ -227,9 +225,11 @@ void MoveTrigger::onGotoMsg(const TriggerEvent& evt) {
   state = SingleKey;
   switch(evt.move.msg) {
     case zenkit::MoverMessageType::NEXT:
-      // NOTE: in original-game zCMover::OnMessage (Gothic2.exe 0x00613450) NEXT on a
-      // SINGLE_KEYS mover wraps: target = (curFrame+1) % keyframeCount (nextFrame only wraps
-      // for LOOP behavior, so it got stuck on the last keyframe).
+      // NOTE: in original-game zCMover::OnMessage @0x00613450 NEXT/PREVIOUS ignore the message's
+      // gotoFixedKey entirely (it is "only relevant" for FIXED_*). OpenGothic's blanket evt.move.key
+      // range gate dropped NEXT/PREVIOUS whenever key was the usual unused sentinel (-1), so cyclic
+      // single-key movers (wheels/rings) never stepped. NEXT wraps: target = (curFrame+1) % count
+      // (nextFrame only wraps for LOOP behavior, so it got stuck on the last keyframe).
       targetFrame = (frame + 1) % uint32_t(keyframes.size());
       break;
     case zenkit::MoverMessageType::PREVIOUS:
@@ -237,9 +237,18 @@ void MoveTrigger::onGotoMsg(const TriggerEvent& evt) {
       targetFrame = (frame + uint32_t(keyframes.size()) - 1) % uint32_t(keyframes.size());
       break;
     case zenkit::MoverMessageType::FIXED_DIRECT:
-    case zenkit::MoverMessageType::FIXED_ORDER:
-      targetFrame = uint32_t(evt.move.key);
+    case zenkit::MoverMessageType::FIXED_ORDER: {
+      // NOTE: in original-game zCMover::OnMessage @0x00613450 the FIXED_* paths CLAMP gotoFixedKey
+      // into [0,keyframeCount-1] (zClamp) and still fire; they never drop an out-of-range key (and the
+      // old `<` guard also let key==count set an out-of-bounds targetFrame).
+      int32_t k = evt.move.key;
+      if(k<0)
+        k = 0;
+      else if(size_t(k)>=keyframes.size())
+        k = int32_t(keyframes.size())-1;
+      targetFrame = uint32_t(k);
       break;
+      }
     }
   preProcessTrigger();
   }
