@@ -251,8 +251,15 @@ void MoveTrigger::preProcessTrigger(State prev) {
     targetFrame = uint32_t(keyframes.size())-1;
     emitSound(sfxOpenStart);
     if(prev==Close) {
+      // NOTE: in original-game zCMover::InvertMovement @0x00612300 (reached from TriggerMover
+      // @0x00612cb0 when a 2STATE mover is re-triggered while moving) reversal negates the per-tick
+      // frame velocity at the SAME continuous keyframe position, keeping the mover inside its current
+      // segment. During Close `frame` is the segment's upper index [prevFrame(frame),frame]; reversing
+      // to Open it must become the lower index prevFrame(frame) of that same segment, with frameTime
+      // rebased on that lower index's ticks. OpenGothic moved frame to nextFrame (an adjacent segment)
+      // with the wrong ticks base, so frame==targetFrame fired next tick and froze the mover mid-travel.
+      frame     = prevFrame(frame);
       frameTime = keyframes[frame].ticks - frameTime;
-      frame     = nextFrame(frame);
       return;
       }
     }
@@ -260,8 +267,12 @@ void MoveTrigger::preProcessTrigger(State prev) {
     targetFrame = 0;
     emitSound(sfxCloseStart);
     if(prev==Open) {
-      frame     = prevFrame(frame);
+      // NOTE: see zCMover::InvertMovement @0x00612300 -- reversing Open->Close stays in the same
+      // segment [frame,nextFrame(frame)]; during Open `frame` is the lower index, so for Close it must
+      // become the upper index nextFrame(frame). frameTime is rebased on the lower index's ticks
+      // (the old `frame`, read before reassigning). OpenGothic dropped into an adjacent segment.
       frameTime = keyframes[frame].ticks - frameTime;
+      frame     = nextFrame(frame);
       return;
       }
     }
