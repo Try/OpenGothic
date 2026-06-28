@@ -216,6 +216,9 @@ patch with a `// NOTE: in original-game …` citation.
 | Game-clock rate | clock ran ~0.69% fast (14.5 game-ms/real-ms); original is exactly 14.4 (250000 units/game-hour, 100-min day) | `gamesession.cpp` `multTime` |
 | Trigger untrigger gating | untriggers were dropped inside the retrigger cooldown / postponed by fire-delay; original OnUntrigger is a separate vtable path bypassing both | `abstracttrigger.cpp` `processEvent` |
 | Food tab sort | FOOD inventory tab was strictly alphabetical; original sub-sorts by heal-mode (HP/mana/strength/none) then amount desc via GetHealMode | `inventory.cpp` `less` |
+| Mover mid-motion reversal | re-triggering a moving 2STATE mover jumped to the adjacent segment and froze it at a partial position; original reverses in place (InvertMovement) staying in the current segment | `movetrigger.cpp` `preProcessTrigger` |
+| TriggerList NEXT delay | a NEXT-mode list with per-target fire-delays walked the list; original advances the cursor only on the zero-delay path (re-fires the same delayed target) | `triggerlist.cpp` `emitList` |
+| Doc negative-page broadcast | Doc_PrintLine/PrintLines dropped negative-page calls (blank document); original broadcasts a page<0 line to every page | `gothic.cpp` `doc_printline`/`doc_printlines` |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
