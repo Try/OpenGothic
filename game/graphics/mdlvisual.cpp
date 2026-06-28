@@ -290,7 +290,14 @@ void MdlVisual::dropWeapon(Npc& npc) {
   if(itm==nullptr)
     return;
 
-  auto it = npc.world().addItemDyn(itm->clsId(),p,npc.handle().symbol_index());
+  // NOTE: in original-game oCNpc::DropAllInHand @0x007375e0 -> oCNpc::DropFromSlot @0x0074a660
+  // -> oCAIVobMove::Init @0x0069f540 resets the dropped in-hand vob's rotation to world-axis-aligned
+  // via zCVob::ResetRotationsWorld @0x0061c000, keeping only the position. Drop the hand-bone
+  // rotation, matching the already-applied Npc::dropItem fix, so the weapon lands flat.
+  Tempest::Matrix4x4 drop;
+  drop.identity();
+  drop.translate(p.at(3,0),p.at(3,1),p.at(3,2));
+  auto it = npc.world().addItemDyn(itm->clsId(),drop,npc.handle().symbol_index());
   it->setCount(1);
 
   npc.delItem(itm->clsId(),1);
@@ -311,7 +318,12 @@ void MdlVisual::dropShield(Npc& npc) {
   if(itm==nullptr)
     return;
 
-  auto it = npc.world().addItemDyn(itm->clsId(),p,npc.handle().symbol_index());
+  // NOTE: in original-game oCNpc::DropFromSlot @0x0074a660 -> oCAIVobMove::Init @0x0069f540 resets
+  // the dropped in-hand vob's rotation via zCVob::ResetRotationsWorld @0x0061c000 (position only).
+  Tempest::Matrix4x4 drop;
+  drop.identity();
+  drop.translate(p.at(3,0),p.at(3,1),p.at(3,2));
+  auto it = npc.world().addItemDyn(itm->clsId(),drop,npc.handle().symbol_index());
   it->setCount(1);
 
   npc.delItem(itm->clsId(),1);

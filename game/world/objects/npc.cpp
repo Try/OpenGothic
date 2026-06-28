@@ -880,7 +880,13 @@ void Npc::dropTorch(bool burnout) {
     if(leftHand<visual.pose().boneCount())
       mat = visual.pose().bone(leftHand);
 
-    owner.addItemDyn(torchId,mat,hnpc->symbol_index());
+    // NOTE: in original-game oCNpc::DropFromSlot @0x0074a660 -> oCAIVobMove::Init @0x0069f540 resets
+    // the dropped torch's rotation via zCVob::ResetRotationsWorld @0x0061c000, keeping only the
+    // position; mirror the already-applied Npc::dropItem fix so the torch lands world-axis-aligned.
+    Tempest::Matrix4x4 drop;
+    drop.identity();
+    drop.translate(mat.at(3,0),mat.at(3,1),mat.at(3,2));
+    owner.addItemDyn(torchId,drop,hnpc->symbol_index());
     }
   }
 
