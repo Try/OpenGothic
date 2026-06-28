@@ -124,6 +124,12 @@ void Interactive::load(Serialize &fin) {
   fin.read(stateNum,triggerTarget,useWithItem,conditionFunc,onStateFunc);
   fin.read(locked,keyInstance,pickLockStr);
   fin.read(state,reverseState,loopState,isLockCracked);
+  // NOTE: in original-game oCMobLockable::PickLock @0x00724800 the combination index lives on the mob
+  // (state dword >>2) and is archived with it, so partial lock-pick progress survives save/load.
+  // OpenGothic's per-mob pickLockProgress (the behavioral per-mob/no-reset-on-detach fix is applied)
+  // was not persisted; persist it since Serialize v59 (older saves restart the combination from 0).
+  if(fin.version()>=59)
+    fin.read(pickLockProgress);
 
   uint32_t sz=0;
   fin.read(sz);
@@ -164,6 +170,7 @@ void Interactive::save(Serialize &fout) const {
   fout.write(stateNum,triggerTarget,useWithItem,conditionFunc,onStateFunc);
   fout.write(locked,keyInstance,pickLockStr);
   fout.write(state,reverseState,loopState,isLockCracked);
+  fout.write(pickLockProgress);
 
   fout.write(uint32_t(attPos.size()));
   for(auto& i:attPos) {
