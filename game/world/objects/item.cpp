@@ -357,6 +357,13 @@ bool Item::checkCond(const Npc &other) const {
 
 bool Item::checkCondUse(const Npc &other, int32_t &a, int32_t &nv) const {
   for(size_t i=0;i<zenkit::IItem::condition_count;++i){
+    // NOTE: in original-game oCNpc::CanUse @0x007319b0 a use-condition slot is active only when its
+    // attribute index cond_atr>=1; index 0 (ATR_HITPOINTS) is the "no condition" sentinel, so a slot
+    // with cond_atr==0 never gates the use regardless of cond_value. OpenGothic keyed activeness on
+    // cond_value!=0 alone, so a slot with cond_atr==0 & cond_value>0 imposed a phantom HITPOINTS
+    // requirement (item blocked when HP < cond_value). Skip cond_atr<1 slots (cond_atr>=1 unchanged).
+    if(hitem->cond_atr[i]<1)
+      continue;
     auto atr = Attribute(hitem->cond_atr[i]);
     if(other.attribute(atr)<hitem->cond_value[i] && hitem->cond_value[i]!=0) {
       a  = atr;
