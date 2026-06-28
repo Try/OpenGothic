@@ -2397,7 +2397,12 @@ Npc* Npc::updateNearestBody() {
     // IsDead() (hp<1) OR IsUnconscious() (oCNpc_States::IsInState(-4), see oCNpc::IsUnconscious
     // @0x00736750); unconscious NPCs keep hp>0, so a dead-only test silently dropped them as
     // PERC_ASSESSBODY candidates (guards never ran B_AssessBody on a knocked-out NPC/player).
-    if(!n.isDown())
+    // NOTE: in original-game oCNpc::PerceptionCheck @0x0075dd30 builds its scan list via CreateVobList
+    // @0x0075da40, which strips the scanning NPC itself, so it never picks its own body. OpenGothic's
+    // updateNearestEnemy already excludes &n==this, but updateNearestBody omitted it, so a down-but-not-
+    // dead NPC still ticking AiNormal perception could select its own body and fire PERC_ASSESSBODY on
+    // itself. Exclude self (matching the enemy-scan path).
+    if(!n.isDown() || &n==this)
       return;
 
     float d = qDistTo(n);
