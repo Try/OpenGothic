@@ -232,6 +232,8 @@ patch with a `// NOTE: in original-game …` citation.
 | Fresh-spawn perception delay | every newly spawned/inserted NPC perceived the player on its first frame (world-start batch all at once); original starts the perception accumulator at 0 so the first perception is one perceptionTime after spawn | `npc.cpp` `Npc::Npc` |
 | Kill OTHERSDAMAGE double-broadcast | a killing blow broadcast both PERC_ASSESSOTHERSDAMAGE and ASSESSMURDER to allies; original suppresses OTHERSDAMAGE on a fatal blow (MURDER only) via the death-bit gate on AssessDamage_S | `npc.cpp` `takeDamage` |
 | GetPortalGuild sentinel | Npc_GetPortalGuild returned GIL_NONE(0) on an invalid handle; original returns -1 | `gamescript.cpp` `npc_getportalguild` |
+| ASSESSFIGHTSOUND over-broadcast | OG broadcast PERC_ASSESSFIGHTSOUND from the engine on every melee hit + parade; the original engine never emits perc 13 (script-only via Npc_SendPassivePerc) | `npc.cpp` `takeDamage` |
+| Self-buff ASSESSMAGIC | every non-projectile spell broadcast PERC_ASSESSMAGIC to the focus NPC (Light/Heal/summon read as hostile magic); original gates it on the VFX sendAssessMagic flag + not-self | `npc.cpp` `commitSpell` |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
