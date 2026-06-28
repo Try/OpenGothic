@@ -29,7 +29,6 @@ layout(binding = 11, rgba8) uniform image2D dbgImage;
 shared vec4 surfelsPos [NumThreads];
 shared vec4 surfelsNorm[NumThreads];
 shared vec4 surfelsIrr [NumThreads];
-shared uint surfelsUse [NumThreads];
 shared uint surfelCount;
 
 vec3 worldPos(float z, ivec2 fragCoord, ivec2 screenSize) {
@@ -39,54 +38,13 @@ vec3 worldPos(float z, ivec2 fragCoord, ivec2 screenSize) {
   return pos.xyz/pos.w + originLwc;
   }
 
-void applyGlob(inout vec4 clr, const vec3 wpos, const vec3 norm, const uint ptr, const uint cnt) {
-  const uint laneID = gl_LocalInvocationIndex;
-
-  ivec2 bboxMin = ivec2(gl_WorkGroupID.xy*gl_WorkGroupSize.xy);
-  ivec2 bboxMax = bboxMin + ivec2(gl_WorkGroupSize.xy);
-
-  surfelCount = 0;
-  barrier();
-
-  for(uint i=laneID; i<cnt; i+=NumThreads) {
-    const uint   sId = surfelList[ptr+i];
-    const Surfel s   = surfels[sId];
-    if(!isSurfelVisible(s, bboxMin, bboxMax))
-      continue;
-    const uint id = atomicAdd(surfelCount, 1);
-    surfelsUse[id] = sId;
-    }
-  barrier();
-
-  for(uint i=0; i<surfelCount; ++i) {
-    const uint   sId = surfelsUse[i];
-    const Surfel s   = surfels[sId];
-    const float  w   = calculteWeight(s.pos, decodeNormal(s.norm), s.radiusMean, s.radius, wpos, norm);
-    const vec3  color = s.irradiance;
-    if(w <= 0.0)
-      continue;
-    const bool crowd = (clr.a>=1.0 || w<0.05);
-    clr += vec4(color*w, w);
-    if(crowd)
-      continue;
-    atomicOr(usage[sId/32], 1u<<sId%32);
-    }
-  }
-
 void applyBatch(inout vec4 clr, const vec3 wpos, const vec3 norm, const uint surfCount) {
   for(int i=0; i<surfCount; ++i) {
     const float w     = calculteWeight(surfelsPos[i].xyz, surfelsNorm[i].xyz, surfelsIrr[i].w, surfelsNorm[i].w, wpos, norm);
     const vec3  color = surfelsIrr[i].rgb;
     if(w <= 0.0)
       continue;
-
-    const bool crowd = (clr.a>=1.0 || w<0.005);
     clr += vec4(color*w, w);
-    if(crowd)
-      continue;
-
-    //const uint sId = surfelsUse[i];
-    //atomicOr(usage[sId/32], 1u<<sId%32);
     }
   }
 
@@ -101,7 +59,7 @@ void pullSurfels(ivec2 bboxMin, ivec2 bboxMax, uint ptr, uint cnt, uint i) {
 
   const uint   sId = surfelList[ptr+i];
   const Surfel s   = surfels[sId];
-  //TODO: Preserve order!
+
   if(!isSurfelVisible(s, bboxMin, bboxMax))
     return;
 
@@ -109,7 +67,6 @@ void pullSurfels(ivec2 bboxMin, ivec2 bboxMax, uint ptr, uint cnt, uint i) {
   surfelsPos [id] = vec4(s.pos, uintBitsToFloat(sId));
   surfelsNorm[id] = vec4(decodeNormal(s.norm), s.radius);
   surfelsIrr [id] = vec4(s.irradiance, s.radiusMean);
-  surfelsUse [id] = sId;
   }
 
 void main() {
@@ -136,9 +93,6 @@ void main() {
   ivec2 bboxMax = bboxMin + ivec2(gl_WorkGroupSize.xy);
 
   vec4 clr = vec4(0);
-#if 0
-  applyGlob(clr, wpos, norm, ptr, cnt);
-#else
   for(uint i=0; ; i+=NumThreads) {
     pullSurfels(bboxMin, bboxMax, ptr, cnt, i+laneID);
     barrier();
@@ -150,7 +104,6 @@ void main() {
       break;
     barrier();
     }
-#endif
 
   if(!valid || sky) {
     imageStore(irradiance, fragCoord, vec4(0,0,0,1));

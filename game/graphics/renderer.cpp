@@ -571,7 +571,7 @@ void Renderer::draw(Encoder<CommandBuffer>& cmd, uint8_t cmdId, size_t imgId,
   }
 
 void Renderer::dbgDraw(Tempest::Painter& p) {
-  static bool dbg = true;
+  static bool dbg = false;
   if(!dbg)
     return;
 
@@ -1980,16 +1980,40 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
   cmd.setDebugMarker("Surfels");
 
   // prev-frame
-  {
   surfelsBinning(cmd, wview, tileSize, false);
 
-  cmd.setBinding(3, surfCnts);
-  cmd.setBinding(4, surfBins);
-  cmd.setBinding(5, surfList);
+  static bool gc = true;
+  if(gc) {
+    struct PushGc {
+      uint32_t pass;
+      uint32_t tileSize;
+      } pushGc = {};
 
-  cmd.setPipeline(shaders.surfBinSort); // assist with stable GC
-  cmd.dispatch(surfBins.size());
-  }
+    cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
+    //
+    cmd.setBinding(4, surfels);
+    cmd.setBinding(5, surfUsage);
+    cmd.setBinding(6, surfCnts);
+    cmd.setBinding(7, surfBins);
+    cmd.setBinding(8, surfList);
+
+    cmd.setPipeline(shaders.surfBinSort); // assist with stable GC
+    cmd.dispatch(surfBins.size());
+
+    cmd.setPipeline(shaders.surfDecimate);
+    for(uint32_t pass=0; pass<3; ++pass) {
+      pushGc.pass     = pass;
+      pushGc.tileSize = uint32_t(tileSize);
+      cmd.setPushData(pushGc);
+      cmd.dispatchThreads(maxSurfels);
+      }
+
+    cmd.setPipeline(shaders.surfCompact);
+    cmd.dispatch(1);
+
+    // bin one more time, for sake of apply pass
+    surfelsBinning(cmd, wview, tileSize, false);
+    }
 
   static bool apply = true;
   if(apply) {
@@ -2008,12 +2032,6 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
 
     cmd.setPipeline(shaders.surfApply2);
     cmd.dispatchThreads(zbuffer.size());
-
-    cmd.setPipeline(shaders.surfDecimate);
-    cmd.dispatchThreads(maxSurfels);
-
-    cmd.setPipeline(shaders.surfCompact);
-    cmd.dispatch(1);
     }
 
   static bool alloc = true;
@@ -2056,10 +2074,10 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
     //cmd.dispatchThreads(maxSurfels);
     cmd.dispatchIndirect(surfels, 0); //NOTE: need to split into old/new
     }
-  //surfelsBinning(cmd, wview, tileSize, false);
 
+  //surfelsBinning(cmd, wview, tileSize, false);
   if(apply) {
-    //TODO: patch  pass
+    //TODO: patch pass
     }
   }
 

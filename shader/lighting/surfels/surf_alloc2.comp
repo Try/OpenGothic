@@ -11,7 +11,6 @@ const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z
 const ivec2 TileSize    = ivec2(128);
 const float NormalBias  = 0.0030;
 const uint  Salt        = 0x9D;
-const float Edge        = 0.1;
 const float MaxAttempts = 1;
 const int   MaxQueue    = 256;
 
@@ -67,7 +66,7 @@ float amendCoverage(const ivec2 fragCoord, const vec3 wpos, const vec3 norm) {
   }
 
 float estimateCoverage(const ivec2 fragCoord, const vec3 wpos, const vec3 norm, const uint accounted) {
-  float wSum = texelFetch(irradiance, fragCoord, 0).a;
+  float wSum = 0.001 + texelFetch(irradiance, fragCoord, 0).a;
   if(wSum>1.0)
     return 1.0;
 
@@ -175,14 +174,14 @@ void mainSubtile(const ivec2 at, const ivec2 fragCoord, const ivec2 screenSize) 
 ivec2 remap(ivec2 subtile, ivec2 tileCnt) {
   // shuffle sub-tiles a little
   uint k           = uint(subtile.y * tileCnt.x + subtile.x);
-  k ^= 0x12;
+  k ^= (3*8+4);
   k &= uint(NumThreads-1);
   return ivec2(int(k % tileCnt.x), int(k / tileCnt.x));
   }
 
 void main() {
 #if 0
-  if(gl_WorkGroupID.xy!=uvec2(10,6))
+  if(gl_WorkGroupID.xy!=uvec2(10,4))
     return;
 #endif
 
