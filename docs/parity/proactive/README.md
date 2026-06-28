@@ -247,6 +247,7 @@ patch with a `// NOTE: in original-game …` citation.
 | AI_UseMob substring match | routine mob lookup used exact name equality; original FindMobInter case-folded substring-matches the scheme arg within the mob's name (the L`Hiver "COOL"/"BSCOOL" typo + any partial name silently failed to resolve) | `interactive.cpp` `checkMobName` |
 | AI_LookAt/PointAt exact match | AI_LookAt/AI_PointAt resolved the target name via inexact (substring) findPoint; original EV_LookAt/EV_PointAt are exact-only (GetWaypoint + SearchVobByName), so a partial name wrongly resolved | `gamescript.cpp` `ai_lookat`/`ai_pointat` |
 | ASSESSFAKEGUILD on disguise | equipping disguise armor swapped the guild but never broadcast PERC_ASSESSFAKEGUILD; original fires it in AddItemEffects so nearby NPCs immediately re-assess the fake guild | `inventory.cpp` `applyArmor` |
+| ASSESSUSEMOB player-only | every routine NPC using a mob over-broadcast PERC_ASSESSUSEMOB; original AssessUseMob_S gates it on IsSelfPlayer (only the player's mob-use alerts nearby NPCs) | `interactive.cpp` `tick` |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
