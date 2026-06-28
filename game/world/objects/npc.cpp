@@ -1987,9 +1987,16 @@ void Npc::implSetFightMode(const Animation::EvCount& ev) {
   if(ev.weaponCh==zenkit::MdsFightMode::NONE && (ws==WeaponState::W1H || ws==WeaponState::W2H)) {
     if(auto melee = invent.currentMeleeWeapon()) {
       auto at = centerPosition();
+      // NOTE: in original-game oCNpc::DoDoAniEvents @0x00742a20 the DEF_DRAWSOUND/DEF_UNDRAWSOUND
+      // eventTags resolve a Daedalus C_SFX *instance* (Drawsound_ME/Drawsound_WO -> Sword_Draw_01.wav
+      // vol=25) via zCSndSys_MSS::LoadSoundFXScript @0x004ee120, which returns null for an undefined
+      // symbol with NO .WAV fallback -- and there is no UnDrawSound_* instance, so sheathe is silent.
+      // The ".WAV" suffix forced OG down loadSoundWavFx (raw file, vol 127, a different orphan sample)
+      // and made sheathe audible. Drop ".WAV" so it routes through the C_SFX-instance loader, matching
+      // the original and OG's already-correct data-driven bow path (Drawsound_Bow).
       if(melee->handle().material==ItemMaterial::MAT_METAL)
-        sfxWeapon = ::Sound(owner,::Sound::T_Regular,"UNDRAWSOUND_ME.WAV",at,2500,false); else
-        sfxWeapon = ::Sound(owner,::Sound::T_Regular,"UNDRAWSOUND_WO.WAV",at,2500,false);
+        sfxWeapon = ::Sound(owner,::Sound::T_Regular,"UNDRAWSOUND_ME",at,2500,false); else
+        sfxWeapon = ::Sound(owner,::Sound::T_Regular,"UNDRAWSOUND_WO",at,2500,false);
       sfxWeapon.play();
       }
     }
@@ -1997,8 +2004,8 @@ void Npc::implSetFightMode(const Animation::EvCount& ev) {
     if(auto melee = invent.currentMeleeWeapon()) {
       auto at = centerPosition();
       if(melee->handle().material==ItemMaterial::MAT_METAL)
-        sfxWeapon = ::Sound(owner,::Sound::T_Regular,"DRAWSOUND_ME.WAV",at,2500,false); else
-        sfxWeapon = ::Sound(owner,::Sound::T_Regular,"DRAWSOUND_WO.WAV",at,2500,false);
+        sfxWeapon = ::Sound(owner,::Sound::T_Regular,"DRAWSOUND_ME",at,2500,false); else
+        sfxWeapon = ::Sound(owner,::Sound::T_Regular,"DRAWSOUND_WO",at,2500,false);
       sfxWeapon.play();
       }
     }
@@ -4520,7 +4527,12 @@ void Npc::setPerceptionDisable(PercType t) {
 void Npc::startDialog(Npc& pl) {
   if(pl.isDown() || pl.isInAir() || isPlayer())
     return;
-  if(perceptionProcess(pl,nullptr,0,PERC_ASSESSTALK))
+  // NOTE: in original-game oCAIHuman::StandActions @0x00698ea0 a player-initiated talk is gated by
+  // oCNpc::IsInPerceptionRange(PERC_ASSESSTALK,player,npc) @0x0075e490 (real distance < percRange[0x13])
+  // before AssessTalk_S @0x0075c890 is invoked; an out-of-range focused NPC is not talked to. OpenGothic
+  // passed a hard-coded 0 distance, so the PERC_ASSESSTALK range gate (same Perc_SetRange table) never
+  // applied and the player could start a conversation from anywhere the NPC was merely focusable.
+  if(perceptionProcess(pl,nullptr,pl.qDistTo(*this),PERC_ASSESSTALK))
     setOther(&pl);
   }
 
