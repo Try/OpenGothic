@@ -60,7 +60,12 @@ class DirectMemory {
     zCTimer     zTimer          = {};
     oGame       memGame         = {};
     char        menuName[17]    = {};   // 16 bytes for script + null-charater, invisible to the script
-    float       spawnRange      = 1000; // 10 meters, for now
+    // NOTE: in original-game the SPAWN_INSERTRANGE global (@0x008BACD0, returned by
+    // oCSpawnManager::GetInsertRange @0x00777830) defaults to 4500.0 (45m) -- confirmed by the
+    // adjacent SPAWN_REMOVERANGE = 5000.0. OpenGothic exposed a 1000 placeholder here, so mods reading
+    // SPAWN_INSERTRANGE via direct memory saw 10m instead of 45m. (OG's own spawn tiering uses separate
+    // distances in worldobjects.cpp, so this is a mod-compat-only correction.)
+    float       spawnRange      = 4500;
 
     ptr32_t     oGame_Pointer   = 0;
     ptr32_t     gameman_Ptr     = 0;
