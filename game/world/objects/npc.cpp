@@ -2360,8 +2360,13 @@ Npc *Npc::updateNearestEnemy() {
 
   Npc*  ret  = nullptr;
   float dist = std::numeric_limits<float>::max();
+  // NOTE: in original-game oCNpc::PerceptionCheck @0x0075dd30 rebuilds and re-classifies every
+  // candidate through the live GetPermAttitude each cycle -- there is no retained-enemy bypass. The
+  // cached-enemy retention below re-checked only liveness+senses, not attitude (unlike the fresh-scan
+  // path which gates on isEnemy), so an NPC whose attitude flipped to non-hostile (Npc_SetTempAttitude,
+  // party join, guild change) stayed latched onto it and kept firing PERC_ASSESSENEMY. Re-check isEnemy.
   if(nearestEnemy!=nullptr &&
-     (!nearestEnemy->isDown() && canSenseNpc(*nearestEnemy,true)!=SensesBit::SENSE_NONE)) {
+     (isEnemy(*nearestEnemy) && !nearestEnemy->isDown() && canSenseNpc(*nearestEnemy,true)!=SensesBit::SENSE_NONE)) {
     ret  = nearestEnemy;
     dist = qDistTo(*ret);
     }
