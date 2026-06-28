@@ -244,6 +244,7 @@ patch with a `// NOTE: in original-game …` citation.
 | SPAWN_INSERTRANGE value | the direct-memory mod-compat shim exposed a 1000 (10m) placeholder; original SPAWN_INSERTRANGE defaults to 4500 (45m) | `directmemory.h` `spawnRange` |
 | Guild-owned mob theft gate | guild-owned decoration mobs never triggered the owning guild's use/theft reaction (owner_guild dropped, Npc_IsDetectedMobOwnedByGuild stubbed); implemented via a new persisted ownerGuild field (Serialize 57→58) | `interactive.cpp`, `gamescript.cpp` |
 | Lock-pick progress persist | partial lock-pick combination progress reset to 0 on save/load; original archives it on the mob — persisted (Serialize 58→59), completing the save-deferred half of the per-mob progress fix | `interactive.cpp` `load`/`save` |
+| AI_UseMob substring match | routine mob lookup used exact name equality; original FindMobInter case-folded substring-matches the scheme arg within the mob's name (the L`Hiver "COOL"/"BSCOOL" typo + any partial name silently failed to resolve) | `interactive.cpp` `checkMobName` |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
