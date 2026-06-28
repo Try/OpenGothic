@@ -3668,7 +3668,11 @@ Item* Npc::takeItem(Item& item) {
     return nullptr;
 
   auto state = bodyStateMasked();
-  if(state!=BS_STAND && state!=BS_SNEAK && state!=BS_SWIM && state!=BS_DIVE) {
+  // NOTE: in original-game oCNpc::EV_TakeVob @0x007534e0 the take is aborted when
+  // oCAniCtrl_Human::GetWaterLevel @0x006b89d0 == 2 (fully submerged/diving): an item can be taken
+  // while standing/wading/surface-swimming (levels 0/1) but never while diving. OpenGothic allowed
+  // BS_DIVE, so the player could pick up world items underwater; drop it (BS_SWIM surface stays).
+  if(state!=BS_STAND && state!=BS_SNEAK && state!=BS_SWIM) {
     return nullptr;
     }
 
@@ -4532,8 +4536,16 @@ void Npc::startDialog(Npc& pl) {
   // before AssessTalk_S @0x0075c890 is invoked; an out-of-range focused NPC is not talked to. OpenGothic
   // passed a hard-coded 0 distance, so the PERC_ASSESSTALK range gate (same Perc_SetRange table) never
   // applied and the player could start a conversation from anywhere the NPC was merely focusable.
+  // NOTE: in original-game oCAIHuman::StandActions @0x00698ea0 a player interact tries
+  // PERC_ASSESSTALK (AssessTalk_S @0x0075c890) first; only if the NPC lacks PERC_ASSESSTALK or is
+  // out of its range does it fall back to PERC_ASSESSCALL (AssessCall_S @0x0075c6f0, the "hailing"
+  // reaction), gated by IsInPerceptionRange(0x12) @0x0075e490 against the separate percRange[0x12].
+  // OpenGothic only ran the talk path, so PERC_ASSESSCALL never fired. perceptionProcess is internally
+  // gated on hasPerc(perc)+range, so the else is a no-op unless the NPC actually enabled B_AssessCall.
   if(perceptionProcess(pl,nullptr,pl.qDistTo(*this),PERC_ASSESSTALK))
     setOther(&pl);
+  else
+    perceptionProcess(pl,nullptr,pl.qDistTo(*this),PERC_ASSESSCALL);
   }
 
 bool Npc::perceptionProcess(Npc &pl) {
