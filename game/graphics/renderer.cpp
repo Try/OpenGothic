@@ -1993,12 +1993,11 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
 
   static bool apply = true;
   if(apply) {
-    // apply = false;
     cmd.setPushData(push);
     cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
-    cmd.setBinding(1, irrImage,    Sampler::nearest());
-    cmd.setBinding(2, gbufNormal,  Sampler::nearest());
-    cmd.setBinding(3, zbuffer,     Sampler::nearest());
+    cmd.setBinding(1, irrImage,   Sampler::nearest());
+    cmd.setBinding(2, gbufNormal, Sampler::nearest());
+    cmd.setBinding(3, zbuffer,    Sampler::nearest());
     cmd.setBinding(4, surfels);
     cmd.setBinding(5, surfUsage);
     cmd.setBinding(6, surfCnts);
@@ -2019,12 +2018,11 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
 
   static bool alloc = true;
   if(alloc) {
-    // alloc = false;
     cmd.setPushData(push);
     cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
-    cmd.setBinding(1, irrImage,    Sampler::nearest());
-    cmd.setBinding(2, gbufNormal,  Sampler::nearest());
-    cmd.setBinding(3, zbuffer,     Sampler::nearest());
+    cmd.setBinding(1, irrImage,   Sampler::nearest());
+    cmd.setBinding(2, gbufNormal, Sampler::nearest());
+    cmd.setBinding(3, zbuffer,    Sampler::nearest());
     cmd.setBinding(4, surfels);
     //
     cmd.setBinding(6, surfCnts);

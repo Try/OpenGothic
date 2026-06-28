@@ -29,7 +29,7 @@ void main() {
   if(surfelId >= count.x)
     return;
 
-  const float  edge   = 2.0;
+  const float  edge   = 1.57; // .57 is prefference driven
   const Surfel p      = surfels[surfelId];
   const ivec2  sz     = textureSize(irradiance, 0);
 
@@ -58,7 +58,6 @@ void main() {
 
     const float  w = calculteWeight(s.pos, decodeNormal(s.norm), s.radiusMean, s.radius, wpos, norm);
     weight += w;
-    //atomicOr(usage[sId/32], 1u << (sId%32));
 
     if(weight>edge) {
       // too dense
