@@ -4113,7 +4113,12 @@ bool Npc::doAttack(Anim anim, BodyState bs) {
   if(weaponSt==WeaponState::NoWeapon || weaponSt==WeaponState::Mage)
     return false;
 
-  if(mvAlgo.isSwim())
+  // NOTE: in original-game fight/draw actions are blocked only at oCAniCtrl_Human::GetWaterLevel
+  // @0x006b89d0 == 2 (fully submerged/diving), NOT at surface-swim level 1: oCNpc::Fighting @0x006800ee
+  // and oCNpc::ThinkNextFightAction @0x0067e350 both branch on `1 < waterLevel`, and EV_DrawWeapon
+  // @0x0074cc34 returns early on `waterLevel == 2`. OpenGothic gated doAttack on isSwim() (level 1) and
+  // allowed isDive() (level 2) -- inverted. Block while diving, allow surface swim.
+  if(mvAlgo.isDive())
     return false;
 
   if(bs==BS_PARADE && hasState(BS_PARADE))
