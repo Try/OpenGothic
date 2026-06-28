@@ -1868,6 +1868,12 @@ bool GameScript::wld_detectnpc(std::shared_ptr<zenkit::INpc> npcRef, int inst, i
   if(npc==nullptr) {
     return false;
     }
+  // NOTE: in original-game oCNpc::FindNpc @0x00740a80 (the Wld_DetectNpc handler) the very first
+  // statement returns null when the detecting/origin NPC is the player (vtable+0x104 = IsSelfPlayer
+  // @0x007425b0, decompile-verified), so Wld_DetectNpc always returns FALSE for a hero origin -- it is
+  // an NPC-AI detection primitive. OpenGothic lacked the guard and detected NPCs around the hero.
+  if(npc->isPlayer())
+    return false;
 
   Npc*  ret =nullptr;
   float dist=std::numeric_limits<float>::max();
@@ -1898,6 +1904,10 @@ bool GameScript::wld_detectnpcex(std::shared_ptr<zenkit::INpc> npcRef, int inst,
   if(npc==nullptr) {
     return false;
     }
+  // NOTE: in original-game oCNpc::FindNpcEx @0x00740b80 returns null when the origin NPC is the player
+  // (vtable+0x104 = IsSelfPlayer), like its FindNpc sibling -- Wld_DetectNpcEx is an NPC-AI primitive.
+  if(npc->isPlayer())
+    return false;
   Npc*  ret =nullptr;
   float dist=std::numeric_limits<float>::max();
 
