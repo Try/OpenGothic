@@ -196,6 +196,11 @@ Npc::Npc(World &owner, size_t instance, std::string_view waypoint, NpcProcessPol
     invent.autoEquipWeapons(*this);
   if(hnpc->damage_type==0)
     hnpc->damage_type = 2;
+  // NOTE: in original-game oCNpc::InitByScript @0x0072ee70, right after CreateInstance,
+  // C_NPC.body_mass is forced to 10 when the instance left it at 0 (engine offset 0x25c),
+  // the same spot it applies the damage_type=0->2 default above.
+  if(hnpc->body_mass==0)
+    hnpc->body_mass = 10;
   setTrueGuild(hnpc->guild); // https://worldofplayers.ru/threads/12446/post-878087
   setPerceptionTime(5000);   // https://github.com/Try/OpenGothic/pull/720#issuecomment-2602908614
   }
