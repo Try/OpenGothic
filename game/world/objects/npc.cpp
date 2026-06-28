@@ -2217,6 +2217,12 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
     // early-returns while IsInState(-4)). 'dontKill' is OpenGothic's non-lethal / allow-unconscious
     // flag (same role as the changeAttribute arg below), so the raw 'death=dontKill' was inverted: it
     // killed knocked-out NPCs with fists and revived corpses hit by a stray arrow/spell.
+    // NOTE: that DropUnconscious @0x00735eb0 IsInState(-4) early-return also makes a non-lethal re-hit
+    // on an already-unconscious NPC a true no-op; OpenGothic instead ran onNoHealth(false), restarting
+    // ZS_Unconscious (replaying the drop anim, resetting HP to 1, clearing the AI queue, reassigning
+    // other) on every blow to the body. Mirror the early-return for the unconscious + non-lethal case.
+    if(isUnconscious() && dontKill)
+      return;
     onNoHealth(isDead() || !dontKill,HS_NoSound);
     return;
     }
