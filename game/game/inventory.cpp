@@ -934,8 +934,16 @@ bool Inventory::use(size_t cls, Npc &owner, uint8_t slotHint, bool force) {
   if(flag & ITM_SHIELD)
     return setSlot(shield,it,owner,force);
 
-  if(mainflag & ITM_CAT_NF)
+  if(mainflag & ITM_CAT_NF) {
+    // NOTE: in original-game oCNpc::EquipWeapon @0x0073a030 equipping a two-handed melee weapon
+    // (ITM_2HD_SWD/ITM_2HD_AXE) also unequips the shield (NPC_NODE_SHIELD slot) -- a two-handed weapon
+    // and a shield are mutually exclusive, whereas a one-handed weapon keeps the shield. The shield is
+    // dropped only on the path where the equip proceeds (after CanUse passes), so gate it on the same
+    // stat-check setSlot uses to avoid an inconsistent state when the weapon's own requirement is unmet.
+    if(it->is2H() && shield!=nullptr && (force || it->checkCond(owner)))
+      setSlot(shield,nullptr,owner,false);
     return setSlot(melee,it,owner,force);
+    }
 
   if(mainflag & ITM_CAT_FF)
     return setSlot(range,it,owner,force);
