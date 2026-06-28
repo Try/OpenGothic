@@ -43,10 +43,17 @@ void TriggerList::emitList(TriggerEvent::Type type) {
       break;
       }
     case zenkit::TriggerBatchMode::NEXT: {
+      // NOTE: in original-game zCTriggerList::DoTriggering @0x00615190 the NEXT cursor (field_0x1fc)
+      // advances only on the zero-delay fire path; when the selected target carries a positive
+      // per-target fire-delay it is armed via zCVob::SetOnTimer and zCTriggerList::OnTimer @0x00615100
+      // fires it WITHOUT advancing the cursor (the advance there is gated on ALL mode). So a NEXT list
+      // with per-target delays re-fires the same target every trigger; OpenGothic advanced
+      // unconditionally and walked the list. Zero-delay NEXT lists are unaffected.
       auto& i = targets[next];
-      next = (next+1)%uint32_t(targets.size());
-
       uint64_t time = world.tickCount()+uint64_t(i.delay*1000);
+      if(i.delay<=0)
+        next = (next+1)%uint32_t(targets.size());
+
       TriggerEvent ex(i.name,vobName,time,type);
       world.execTriggerEvent(ex);
       break;
