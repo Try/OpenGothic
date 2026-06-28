@@ -1131,16 +1131,41 @@ void Gothic::doc_setpages(int handle, int count) {
   }
 
 void Gothic::doc_printline(int handle, int page, std::string_view text) {
+  // NOTE: in original-game oCViewDocument::PrintLine @0x0068cbb0 (via oCDocumentManager::PrintLine
+  // @0x0065f280) a negative page index broadcasts the line to EVERY page of the document (the same
+  // page<0 => all-pages convention SetFont/SetMargins/SetPage share); a non-negative index targets that
+  // single page. OpenGothic guarded on page>=0 and silently dropped negative-page calls (blank doc).
   auto& doc = getDocument(handle);
-  if(doc!=nullptr && page>=0 && size_t(page)<doc->pages.size()){
+  if(doc==nullptr)
+    return;
+  if(page<0){
+    for(auto& pg:doc->pages){
+      pg.text += text;
+      pg.text += "\n";
+      }
+    return;
+    }
+  if(size_t(page)<doc->pages.size()){
     doc->pages[size_t(page)].text += text;
     doc->pages[size_t(page)].text += "\n";
     }
   }
 
 void Gothic::doc_printlines(int handle, int page, std::string_view text) {
+  // NOTE: in original-game oCViewDocument::PrintLines @0x0068cc70 (via oCDocumentManager::PrintLines
+  // @0x0065f2c0) a negative page index broadcasts the line to EVERY page; a non-negative index targets
+  // that single page. OpenGothic guarded on page>=0 and silently dropped negative-page calls.
   auto& doc = getDocument(handle);
-  if(doc!=nullptr && page>=0 && size_t(page)<doc->pages.size()){
+  if(doc==nullptr)
+    return;
+  if(page<0){
+    for(auto& pg:doc->pages){
+      pg.text += text;
+      pg.text += "\n";
+      }
+    return;
+    }
+  if(size_t(page)<doc->pages.size()){
     doc->pages[size_t(page)].text += text;
     doc->pages[size_t(page)].text += "\n";
     }
