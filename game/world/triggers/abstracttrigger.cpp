@@ -95,6 +95,18 @@ void AbstractTrigger::processEvent(const TriggerEvent& evt) {
     // discard, if already have pending
     return;
     }
+  if(evt.type==TriggerEvent::T_Untrigger) {
+    // NOTE: in original-game zCTrigger::OnUntrigger @0x00610600 (and OnUntouch @0x00610660) the
+    // untrigger relay is a separate vtable path from OnTrigger/OnTouch -> ActivateTrigger @0x006104d0.
+    // It never consults CanBeActivatedNow @0x00610220, the retrigger-wait timestamp (field_0x15c) or
+    // the fire-delay (field_0x158); its only gates are IsOnTimer (a pending fire-delay timer, already
+    // covered by the hasDelayedEvents() check above), the enabled flag and sendUntrigger. OpenGothic
+    // funneled untriggers through the shared retrigger/fire-delay gates below, so an untrigger arriving
+    // inside the retrigger cooldown was dropped (leaving the target stuck "on") and an untrigger on a
+    // fire-delayed trigger was postponed. The remaining gates live in implProcessEvent's T_Untrigger.
+    implProcessEvent(evt);
+    return;
+    }
   if(0!=emitTimeLast && world.tickCount()<emitTimeLast+retriggerDelay) {
     // need to discard event
     return;
