@@ -403,7 +403,14 @@ void Interactive::implTick(Pos& p) {
 
   if(needToLockpick(npc)) {
     if(p.attachMode) {
-      npc.world().sendPassivePerc(npc,npc,PERC_ASSESSUSEMOB);
+      // NOTE: in original-game oCNpc::AssessUseMob_S @0x0075d300 the PERC_ASSESSUSEMOB broadcast is
+      // gated on vtable+0x104 = oCNpc::IsSelfPlayer @0x007425b0 (this==player) -- both callers
+      // (oCAIHuman::CreateAssessUseMob @0x0069b260, CheckMobInteraction @0x006983ad) funnel through it,
+      // so the engine only broadcasts USEMOB when the PLAYER uses a mob. OpenGothic fired it for every
+      // routine NPC (sitting on a bench/bed), over-broadcasting the perception. Gate on isPlayer (the
+      // mob's trigger-target emitTriggerEvent below stays unconditional -- the trigger fires for any user).
+      if(npc.isPlayer())
+        npc.world().sendPassivePerc(npc,npc,PERC_ASSESSUSEMOB);
       return; // chest is locked - need to crack lock first
       }
     }
@@ -418,12 +425,14 @@ void Interactive::implTick(Pos& p) {
     }
 
   if(state==0 && p.attachMode) {
-    npc.world().sendPassivePerc(npc,npc,PERC_ASSESSUSEMOB);
+    if(npc.isPlayer()) // ASSESSUSEMOB is player-only (AssessUseMob_S @0x0075d300 IsSelfPlayer gate)
+      npc.world().sendPassivePerc(npc,npc,PERC_ASSESSUSEMOB);
     emitTriggerEvent(TriggerEvent::T_Trigger);
     }
 
   if(state==stateNum && p.attachMode && reverseState) {
-    npc.world().sendPassivePerc(npc,npc,PERC_ASSESSUSEMOB);
+    if(npc.isPlayer()) // ASSESSUSEMOB is player-only (AssessUseMob_S @0x0075d300 IsSelfPlayer gate)
+      npc.world().sendPassivePerc(npc,npc,PERC_ASSESSUSEMOB);
     emitTriggerEvent(TriggerEvent::T_Untrigger);
     }
 
