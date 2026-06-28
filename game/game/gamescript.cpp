@@ -2784,7 +2784,11 @@ bool GameScript::npc_checkinfo(std::shared_ptr<zenkit::INpc> npcRef, int imp) {
   }
 
 int GameScript::npc_getportalguild(std::shared_ptr<zenkit::INpc> npcRef) {
-  int32_t g   = GIL_NONE;
+  // NOTE: in original-game Npc_GetPortalGuild @0x006e4ee0 seeds the result with -1 and returns -1 for
+  // an invalid NPC handle / missing portal-room manager (a valid NPC not in a portal room also yields
+  // -1 via guildOfRoom). OpenGothic seeded GIL_NONE (==0, a valid guild id), so a null handle read as
+  // "guild 0" instead of the -1 none/invalid sentinel. (The player getter genuinely defaults to 0.)
+  int32_t g   = -1;
   auto    npc = findNpc(npcRef);
   if(npc!=nullptr)
     g = world().guildOfRoom(npc->portalName());
