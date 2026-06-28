@@ -837,6 +837,7 @@ bool Interactive::attach(Npc& npc, Interactive::Pos& to) {
 
   Tempest::Vec3 mv = {};
   mat.project(mv);
+  const Tempest::Vec3 slotPos = mv;   // real ZS_POS node world position (before the Y-flatten below)
 
   // NOTE: in original-game oCMobInter::SetIdealPosition (Gothic2.exe 0x71e240), the
   // non-DIST slot branch does SetPositionWorld(slot.x, npc.currentY, slot.z): X/Z come
@@ -845,12 +846,15 @@ bool Interactive::attach(Npc& npc, Interactive::Pos& to) {
   if(!to.isDistPos())
     mv.y = npc.position().y;
 
-  // NOTE: in original-game oCMobInter::SearchFreePosition (Gothic2.exe 0x71dfc0), called
-  // from CanInteractWith/GetFreePosition, uses a free-slot search distance of 150.0 (a slot
-  // is rejected once npc->slot exceeds 150) -- not MAX_AI_USE_DISTANCE (165). Using 165 let
-  // NPCs/the player start using mobsis ~10% farther than vanilla.
+  // NOTE: in original-game oCMobInter::SearchFreePosition (Gothic2.exe 0x71dfc0), called from
+  // CanInteractWith/GetFreePosition, rejects a free slot at 3D squared distance >150^2 measured from
+  // the NPC's *world origin* (vob trafo +0x48/+0x58/+0x68 == position(), the feet) to the *cached
+  // ZS_POS node world position* (+0x0c/+0x1c/+0x2c) -- not MAX_AI_USE_DISTANCE (165), and not
+  // centerPosition()/the Y-flattened setPos target. Using centerPosition() (origin + pose.translateY)
+  // against the feet-flattened slot baked a constant ~90cm vertical term in instead of the real
+  // node-to-feet height, shrinking horizontal reach below 150 for ground-level/DIST slots.
   static const float MOBSI_USE_DISTANCE = 150.f;
-  if((npc.centerPosition()-mv).quadLength()>MOBSI_USE_DISTANCE*MOBSI_USE_DISTANCE) {
+  if((npc.position()-slotPos).quadLength()>MOBSI_USE_DISTANCE*MOBSI_USE_DISTANCE) {
     if(npc.isPlayer()) {
       auto& sc = npc.world().script();
       sc.printMobTooFar(npc);
