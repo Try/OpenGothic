@@ -203,6 +203,15 @@ Npc::Npc(World &owner, size_t instance, std::string_view waypoint, NpcProcessPol
     hnpc->body_mass = 10;
   setTrueGuild(hnpc->guild); // https://worldofplayers.ru/threads/12446/post-878087
   setPerceptionTime(5000);   // https://github.com/Try/OpenGothic/pull/720#issuecomment-2602908614
+  // NOTE: in original-game oCNpc::oCNpc @0x0072d950 the perception accumulator (engine offset 0x900)
+  // starts at 0 and the engine fires perception only once it reaches perceptionTime (offset 0x904,
+  // init 5000.0; see oCNpc::SetPerceptionTime @0x0075dba0), so a freshly spawned NPC's first
+  // perception is one full perceptionTime after spawn. OpenGothic models 0x900 as the
+  // perceptionNextTime deadline, but the header default 0 is a past deadline, so every newly
+  // spawned/inserted NPC perceived the player on its first processed frame (and a world-start batch
+  // all on the same frame). Arm the deadline to spawnTime + perceptionTime (loaded NPCs overwrite it
+  // from the save; the player is excluded from perceptionProcess so this is harmless for it).
+  perceptionNextTime = owner.tickCount() + perceptionTimeClampt();
   }
 
 Npc::~Npc(){
@@ -2259,14 +2268,6 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
     mvAlgo.accessDamFly(x-other.x, z-other.z, lastHitType);
     }
 
-  // NOTE: in original-game oCNpc::AssessDamage_S (Gothic2.exe 0x0075c280) the witness broadcast
-  // CreatePassivePerception(PERC_ASSESSOTHERSDAMAGE) fires together with the self PERC_ASSESSDAMAGE
-  // whenever the hit lands, with no dependency on the net damage value -- so a blow fully absorbed
-  // by armour (value==0) still alerts nearby NPCs. OpenGothic nested it under value>0, suppressing
-  // that witness reaction. The value-dependent DEFEAT/MURDER/AARGH reactions stay under value>0.
-  if(hitResult.hasHit && (bMask&(COLL_APPLYVICTIMSTATE|COLL_DOEVERYTHING)))
-    owner.sendPassivePerc(*this,other,*this,PERC_ASSESSOTHERSDAMAGE);
-
   if(hitResult.value>0) {
     currentOther = &other;
     changeAttribute(ATR_HITPOINTS,-hitResult.value,dontKill);
@@ -2288,6 +2289,19 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
         }
       }
     }
+
+  // NOTE: in original-game oCNpc::OnDamage @0x006660e0 calls OnDamage_Script @0x0066e220 -> AssessDamage_S
+  // @0x0075c280 (which fires the self PERC_ASSESSDAMAGE and the witness PERC_ASSESSOTHERSDAMAGE broadcast)
+  // ONLY when the death bit (oSDamageDescriptor+0x90 & 4) is clear. OnDamage_Condition @0x0066cf30 sets
+  // that bit on a lethal blow (victim dead and NOT knocked unconscious), so a killing blow alerts
+  // witnesses with ASSESSMURDER only (from DoDie @0x00736760), never ASSESSOTHERSDAMAGE. The knockout
+  // bit does NOT suppress it (a KO fires both DEFEAT and OTHERSDAMAGE), and an armour-absorbed (value==0)
+  // hit never reaches death so it keeps firing. OpenGothic fired OTHERSDAMAGE on every landed hit and
+  // then ALSO MURDER on a kill, double-broadcasting to allies. Gate it on the post-damage !isDead()
+  // result (evaluated after changeAttribute above) so a kill no longer double-broadcasts; value==0
+  // absorbed hits still alert witnesses (the original AssessDamage_S has no net-value dependency).
+  if(hitResult.hasHit && (bMask&(COLL_APPLYVICTIMSTATE|COLL_DOEVERYTHING)) && !isDead())
+    owner.sendPassivePerc(*this,other,*this,PERC_ASSESSOTHERSDAMAGE);
   }
 
 void Npc::takeFallDamage(const Vec3& fallSpeed) {
