@@ -549,6 +549,13 @@ void Npc::setProcessPolicy(NpcProcessPolicy t) {
   }
 
 void Npc::setWalkMode(WalkBit m) {
+  // NOTE: in original-game oCNpc::EV_SetWalkMode @0x006859f0 a walk/run/sneak mode change (player
+  // toggle and scripted AI_SetWalkmode alike) is aborted while oCAniCtrl_Human::GetWaterLevel
+  // @0x006b89d0 > 0, i.e. swimming(1) or diving(2). OpenGothic applied it unconditionally, letting the
+  // player toggle sneak/walk in water. Keep the pre-water mode; the only callers are AI_SetWalkmode and
+  // the two player toggles, which the original routes through this same EV_SetWalkMode gate.
+  if(isSwim() || isDive())
+    return;
   wlkMode = m;
   }
 
@@ -2237,8 +2244,12 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
   // C_CanNpcCollideWithSpell mask omits it (incl. COLL_DONOTHING / COLL_APPLYDAMAGE-only) deals
   // damage with no knockback. hitResult.hasHit is true even for value==0 / no-victim-state masks,
   // so gate the throwback on the same flag the perception broadcasts above already use.
+  // NOTE: in original-game oCNpc::OnDamage_Anim @0x00675bd0 the FLY throwback (StartFlyDamage) is
+  // additionally gated on oCAniCtrl_Human::GetWaterLevel @0x006b89d0 == 0 -- a swimming(1) or diving(2)
+  // victim is never knocked back. OpenGothic omitted that, so a knockback hit launched a target in
+  // water; add the same !isSwim() && !isDive() water idiom this function's dontKill line already uses.
   if(hitResult.hasHit && (damageType & (1<<zenkit::DamageType::FLY)) &&
-     (bMask&(COLL_APPLYVICTIMSTATE|COLL_DOEVERYTHING))) {
+     (bMask&(COLL_APPLYVICTIMSTATE|COLL_DOEVERYTHING)) && !isSwim() && !isDive()) {
     mvAlgo.accessDamFly(x-other.x, z-other.z, lastHitType);
     }
 
@@ -2534,9 +2545,11 @@ void Npc::tick(uint64_t dt) {
 
   nextAiAction(aiQueueOverlay,dt);
 
-  if(tickCast(dt))
-    return;
-
+  // NOTE: in original-game the per-frame oCNpc tick (caller @0x0073e4d1) invokes oCNpc::Regenerate
+  // @0x00741fd0 UNCONDITIONALLY, near the top of the tick and BEFORE the spell/AI event dispatch -- so
+  // HP/mana regen keeps running while a spell is being cast/channeled. OpenGothic's `if(tickCast(dt))
+  // return;` early-return sat in front of the regen block, freezing regen for the whole cast pipeline
+  // (most visible: a caster's mana frozen during a long invest). Run regen before the cast bail-out.
   if(!isDead()) {
     // NOTE: in original-game oCNpc::Regenerate @0x00741fd0 the per-tick HP regen is applied via
     // oCNpc::ChangeAttribute(HITPOINTS,+1) @0x0072ff60, whose IMMORTAL guard rejects every HP change
@@ -2550,6 +2563,9 @@ void Npc::tick(uint64_t dt) {
     tickRegen(hnpc->attribute[ATR_MANA],hnpc->attribute[ATR_MANAMAX],
               hnpc->attribute[ATR_REGENERATEMANA],dt);
     }
+
+  if(tickCast(dt))
+    return;
 
   if(waitTime>=owner.tickCount() || aniWaitTime>=owner.tickCount() || outWaitTime>owner.tickCount()) {
     if(!isPlayer() && go2.flag!=GT_Flee && faiWaitTime<owner.tickCount() && currentTarget!=nullptr) {
