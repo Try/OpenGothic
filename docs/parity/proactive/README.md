@@ -229,6 +229,9 @@ patch with a `// NOTE: in original-game …` citation.
 | Re-hit unconscious NPC | a non-lethal blow on an already-KO'd NPC restarted ZS_Unconscious (replay drop anim, HP→1, clear queue); original DropUnconscious early-returns while unconscious (no-op) | `npc.cpp` `takeDamage` |
 | AI_StandUp while standing | B_ASSESSTALK's AI_StandUp on an already-standing greeted NPC ran stopAnim("") wiping all anim layers + pfx effects; original StandUp gates the reset on IsStanding()==0 (no-op while standing) | `npc.cpp` `nextAiAction` |
 | GetActiveSpellLevel sentinel | Npc_GetActiveSpellLevel returned 0 (a valid level) when no spell active; original returns -1, like its already-fixed GetActiveSpellCat/Nr siblings | `gamescript.cpp` `npc_getactivespelllevel` |
+| Fresh-spawn perception delay | every newly spawned/inserted NPC perceived the player on its first frame (world-start batch all at once); original starts the perception accumulator at 0 so the first perception is one perceptionTime after spawn | `npc.cpp` `Npc::Npc` |
+| Kill OTHERSDAMAGE double-broadcast | a killing blow broadcast both PERC_ASSESSOTHERSDAMAGE and ASSESSMURDER to allies; original suppresses OTHERSDAMAGE on a fatal blow (MURDER only) via the death-bit gate on AssessDamage_S | `npc.cpp` `takeDamage` |
+| GetPortalGuild sentinel | Npc_GetPortalGuild returned GIL_NONE(0) on an invalid handle; original returns -1 | `gamescript.cpp` `npc_getportalguild` |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
