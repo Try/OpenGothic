@@ -461,9 +461,23 @@ std::string_view Interactive::focusName() const {
   }
 
 bool Interactive::checkMobName(std::string_view dest) const {
+  // NOTE: in original-game oCNpc::FindMobInter @0x0073fe70 matches a routine mob with
+  // zSTRING::Search(mobScheme, requestedName) @0x0046c920: the AI_UseMob/Wld_IsMobAvailable scheme
+  // argument is matched as a (case-folded) SUBSTRING of the mob's own scheme name, after EV_UseMob
+  // @0x00754290 upper-cases the request; the nearest substring-candidate wins (availableMob picks
+  // nearest). Exact equality made the documented L`Hiver typo ("COOL" vs "BSCOOL") and any partial
+  // scheme name fail to resolve the mob; case-folding also closes the ai_usemob no-uppercase gap.
   std::string_view scheme = schemeName();
-  if(scheme==dest)
-    return true;
+  if(dest.empty() || scheme.size()<dest.size())
+    return false;
+  auto up = [](char c){ return char(std::toupper((unsigned char)c)); };
+  for(size_t i=0, e=scheme.size()-dest.size(); i<=e; ++i) {
+    bool ok = true;
+    for(size_t j=0; j<dest.size(); ++j)
+      if(up(scheme[i+j])!=up(dest[j])) { ok=false; break; }
+    if(ok)
+      return true;
+    }
   return false;
   }
 
