@@ -251,6 +251,7 @@ patch with a `// NOTE: in original-game …` citation.
 | Mob on_state ITEM context | a mob on_state script saw a stale ITEM VM-global from a prior call; original CallOnStateFunc binds ITEM=interactItem (null for scheme mobs), clearing it each call | `gamescript.cpp` `useInteractive` |
 | Dead NPC spell-target | a corpse passed the typed/NPCS spell-target gate; original IsTargetTypeValid gates NPCS/HUMANS/ORCS/UNDEAD on !IsDead (ALL still accepts corpses). Masked in G2 auto-aim, live in G1 | `npc.cpp` `isTargetableBySpell` |
 | Wld_DetectNpc player origin | Wld_DetectNpc/Ex detected NPCs around the hero; original FindNpc/FindNpcEx return null when the detecting NPC is the player (IsSelfPlayer guard at entry) -- NPC-AI-only primitives | `gamescript.cpp` `wld_detectnpc`/`ex` |
+| Wld_DetectItem player origin | Wld_DetectItem detected items around the hero; original DetectItem @0x0073fd40 returns null for a player origin (same IsSelfPlayer guard as DetectNpc) | `gamescript.cpp` `wld_detectitem` |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
