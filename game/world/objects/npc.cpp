@@ -2784,7 +2784,13 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
           queue.pushFront(std::move(act)); else
           implAniWait(visual.pose().animationTotalTime());
         }
-      else if(bs!=BS_DEAD) {
+      else if(bs!=BS_DEAD && bs!=BS_STAND) {
+        // NOTE: in original-game oCNpc::StandUp @0x00682b40 the body-state reset and StartAni(idle)
+        // are gated by oCAniCtrl_Human::IsStanding()==0 -- they run ONLY when the NPC is NOT already
+        // standing; for an already-standing NPC StandUp neither restarts the base ani nor clears
+        // effects (it only fades the gesture layers). OpenGothic's stopAnim("") also clears ALL pfx
+        // effects, so re-issuing AI_StandUp on a standing NPC (B_ASSESSTALK fires it on nearly every
+        // greeted NPC) wiped its animations and ambient effects each time. Skip the reset for BS_STAND.
         visual.stopAnim(*this,"");
         setStateItem(MeshObjects::Mesh(),"");
         setAnim(Anim::Idle);
