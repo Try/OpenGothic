@@ -246,6 +246,7 @@ patch with a `// NOTE: in original-game …` citation.
 | Lock-pick progress persist | partial lock-pick combination progress reset to 0 on save/load; original archives it on the mob — persisted (Serialize 58→59), completing the save-deferred half of the per-mob progress fix | `interactive.cpp` `load`/`save` |
 | AI_UseMob substring match | routine mob lookup used exact name equality; original FindMobInter case-folded substring-matches the scheme arg within the mob's name (the L`Hiver "COOL"/"BSCOOL" typo + any partial name silently failed to resolve) | `interactive.cpp` `checkMobName` |
 | AI_LookAt/PointAt exact match | AI_LookAt/AI_PointAt resolved the target name via inexact (substring) findPoint; original EV_LookAt/EV_PointAt are exact-only (GetWaypoint + SearchVobByName), so a partial name wrongly resolved | `gamescript.cpp` `ai_lookat`/`ai_pointat` |
+| ASSESSFAKEGUILD on disguise | equipping disguise armor swapped the guild but never broadcast PERC_ASSESSFAKEGUILD; original fires it in AddItemEffects so nearby NPCs immediately re-assess the fake guild | `inventory.cpp` `applyArmor` |
 
 ## Deferred (analyzed, not applied — need runtime validation or are non-surgical/unsafe)
 | Finding | Why deferred |
