@@ -15,14 +15,14 @@ layout(std140, push_constant) uniform Push {
 layout(binding = 0, std140) uniform UboScene {
   SceneDesc scene;
   };
-layout(binding = 1) uniform sampler2D  gbufDiffuse;
-layout(binding = 2) uniform usampler2D gbufNormal;
-layout(binding = 3) uniform sampler2D  depth;
+layout(binding = 1, rgba16f) uniform image2D irradiance;
+layout(binding = 2) uniform utexture2D gbufNormal;
+layout(binding = 3) uniform texture2D  depth;
 layout(binding = 4, std430) readonly buffer SB0 { uvec4 count; Surfel surfels[]; };
-layout(binding = 5, std430) readonly buffer SB1 { uint surfelList[]; };
+layout(binding = 5, std430)          buffer SB1 { uint usage[]; };
 layout(binding = 6, r32ui) uniform uimage2D surfCnts;
 layout(binding = 7, r32ui) uniform uimage2D surfBins;
-layout(binding = 8, r11f_g11f_b10f) uniform image2D irradiance;
+layout(binding = 8, std430) readonly buffer SB2 { uint surfelList[]; };
 //
 layout(binding = 11, rgba8) uniform image2D dbgImage;
 
@@ -42,13 +42,38 @@ void applyBatch(inout vec4 clr, const vec3 wpos, const vec3 norm, const uint sur
   for(int i=0; i<surfCount; ++i) {
     const float w     = calculteWeight(surfelsPos[i].xyz, surfelsNorm[i].xyz, surfelsIrr[i].w, surfelsNorm[i].w, wpos, norm);
     const vec3  color = surfelsIrr[i].rgb;
-    if(w <= 0)
+    if(w <= 0.0)
       continue;
     clr += vec4(color*w, w);
     }
   }
 
+void pullSurfels(ivec2 bboxMin, ivec2 bboxMax, uint ptr, uint cnt, uint i) {
+  const uint laneID = gl_LocalInvocationIndex;
+
+  surfelCount = 0;
+  barrier();
+
+  if(i >= cnt)
+    return;
+
+  const uint   sId = surfelList[ptr+i];
+  const Surfel s   = surfels[sId];
+
+  if(!isSurfelVisible(s, bboxMin, bboxMax))
+    return;
+
+  const uint id = atomicAdd(surfelCount, 1);
+  surfelsPos [id] = vec4(s.pos, uintBitsToFloat(sId));
+  surfelsNorm[id] = vec4(decodeNormal(s.norm), s.radius);
+  surfelsIrr [id] = vec4(s.irradiance, s.radiusMean);
+  }
+
 void main() {
+#if 0
+  if(gl_WorkGroupID.xy/8!=uvec2(10,6))
+    return;
+#endif
   const uint laneID = gl_LocalInvocationIndex;
 
   const ivec2 fragCoord  = ivec2(gl_GlobalInvocationID.xy);
@@ -69,32 +94,19 @@ void main() {
 
   vec4 clr = vec4(0);
   for(uint i=0; ; i+=NumThreads) {
-    surfelCount = 0;
-    barrier();
-
-    if(i+laneID < cnt) {
-      const uint   sId = surfelList[ptr+i+laneID];
-      const Surfel s   = surfels[sId];
-
-      if(isSurfelVisible(s, bboxMin, bboxMax)) {
-        const uint   id  = atomicAdd(surfelCount, 1);
-        surfelsPos [id] = vec4(s.pos, uintBitsToFloat(sId));
-        surfelsNorm[id] = vec4(decodeNormal(s.norm), s.radius);
-        surfelsIrr [id] = vec4(s.irradiance, s.radiusMean);
-        }
-      }
+    pullSurfels(bboxMin, bboxMax, ptr, cnt, i+laneID);
     barrier();
 
     if(!sky) {
       applyBatch(clr, wpos, norm, surfelCount);
       }
-
     if(i+NumThreads>=cnt)
       break;
     barrier();
     }
 
   if(!valid || sky) {
+    imageStore(irradiance, fragCoord, vec4(0,0,0,1));
     imageStore(dbgImage, fragCoord, vec4(1));
     return;
     }

@@ -1,17 +1,11 @@
 #version 450
 
-layout(local_size_x = 64) in;
+layout(local_size_x = 1) in;
 
 layout(binding = 4, std430) buffer SB0 { uvec4 count; } surf;
-layout(binding = 8, std430) buffer SB2 { uvec4 count; } alloc;
-layout(binding = 9, std430) buffer SB3 { uint deduplication[]; };
+layout(binding = 5, std430) buffer SB2 { uvec4 count; } alloc;
 
 void main() {
-  if(gl_GlobalInvocationID.x==0) {
-    surf. count = uvec4(0,1,1,0);
-    alloc.count = uvec4(0,1,1,0);
-    }
-
-  if(gl_GlobalInvocationID.x < deduplication.length())
-    deduplication[gl_GlobalInvocationID.x] = 0;
+  surf. count = uvec4(0,1,1,0);
+  alloc.count = uvec4(0,1,1,0);
   }

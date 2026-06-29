@@ -88,14 +88,12 @@ class Shaders {
 
     // GI-Surf
     Tempest::RenderPipeline  surfDbg;
-    Tempest::ComputePipeline surfInit, surfTiled, surfAlloc;
     Tempest::ComputePipeline surfBinClear, surfBinningS, surfBinningA, surfBinAlloc, surfBinSort;
-    Tempest::ComputePipeline surfInit2;
-    Tempest::ComputePipeline surfSpawn, surfWeight, surfTileWeight, surfTileNorm, surfTileDecim;
-    Tempest::ComputePipeline surfApply;
-    Tempest::ComputePipeline surfPathtrace;
 
-    Tempest::ComputePipeline surfAlloc2, surfApply2, surfDecimate, surfCompact;
+    Tempest::ComputePipeline surfInit;
+    Tempest::ComputePipeline surfAlloc, surfApply, surfDecimate, surfCompact;
+
+    Tempest::ComputePipeline surfPathtrace;
 
     // Epipolar
     Tempest::ComputePipeline fogEpipolarVsm;

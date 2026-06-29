@@ -249,26 +249,16 @@ void Shaders::compileShaders() {
     auto fs = device.shader(sh.data,sh.len);
     surfDbg = device.pipeline(Triangles,state,vs,fs);
 
-    surfInit     = computeShader("surf_init.comp.sprv");
-    surfTiled    = computeShader("surf_tiled.comp.sprv");
-    surfAlloc    = computeShader("surf_alloc.comp.sprv");
-    surfApply    = computeShader("surf_apply.comp.sprv");
-
-    surfInit2      = computeShader("surf_init2.comp.sprv");
-    surfSpawn      = computeShader("surf_spawn.comp.sprv");
-    surfWeight     = computeShader("surf_weight.comp.sprv");
-    surfTileWeight = computeShader("surf_tile_weight.comp.sprv");
-    surfTileNorm   = computeShader("surf_tile_normalize.comp.sprv");
-    surfTileDecim  = computeShader("surf_tile_decimate.comp.sprv");
-
     surfBinningS = computeShader("surf_binning_s.comp.sprv");
     surfBinningA = computeShader("surf_binning_a.comp.sprv");
     surfBinClear = computeShader("surf_bin_clear.comp.sprv");
     surfBinAlloc = computeShader("surf_bin_alloc.comp.sprv");
     surfBinSort  = computeShader("surf_bin_sort.comp.sprv");
 
-    surfAlloc2   = computeShader("surf_alloc2.comp.sprv");
-    surfApply2   = computeShader("surf_apply2.comp.sprv");
+    surfInit     = computeShader("surf_init.comp.sprv");
+
+    surfAlloc    = computeShader("surf_alloc.comp.sprv");
+    surfApply    = computeShader("surf_apply.comp.sprv");
     surfCompact  = computeShader("surf_compact.comp.sprv");
     surfDecimate = computeShader("surf_decimate.comp.sprv");
 

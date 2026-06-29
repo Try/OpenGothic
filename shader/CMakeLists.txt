@@ -313,28 +313,17 @@ add_shader(surf_dbg.vert             lighting/surfels/surf_dbg.vert)
 add_shader(surf_dbg.frag             lighting/surfels/surf_dbg.frag)
 
 add_shader(surf_init.comp            lighting/surfels/surf_init.comp)
-add_shader(surf_tiled.comp           lighting/surfels/surf_tiled.comp)
-add_shader(surf_alloc.comp           lighting/surfels/surf_alloc.comp)
 
+add_shader(surf_alloc.comp           lighting/surfels/surf_alloc.comp)
 add_shader(surf_apply.comp           lighting/surfels/surf_apply.comp)
+add_shader(surf_compact.comp         lighting/surfels/surf_compact.comp)
+add_shader(surf_decimate.comp        lighting/surfels/surf_decimate.comp)
 
 add_shader(surf_bin_clear.comp       lighting/surfels/surf_bin_clear.comp)
 add_shader(surf_bin_alloc.comp       lighting/surfels/surf_bin_alloc.comp)
 add_shader(surf_binning_s.comp       lighting/surfels/surf_binning.comp -DSURFEL)
 add_shader(surf_binning_a.comp       lighting/surfels/surf_binning.comp -DALLOC)
 add_shader(surf_bin_sort.comp        lighting/surfels/surf_bin_sort.comp)
-
-add_shader(surf_init2.comp           lighting/surfels/surf_init2.comp)
-add_shader(surf_spawn.comp           lighting/surfels/surf_spawn.comp)
-add_shader(surf_weight.comp          lighting/surfels/surf_weight.comp)
-add_shader(surf_tile_weight.comp     lighting/surfels/surf_tile_weight.comp)
-add_shader(surf_tile_normalize.comp  lighting/surfels/surf_tile_normalize.comp)
-add_shader(surf_tile_decimate.comp   lighting/surfels/surf_tile_decimate.comp)
-
-add_shader(surf_alloc2.comp          lighting/surfels/surf_alloc2.comp)
-add_shader(surf_apply2.comp          lighting/surfels/surf_apply2.comp)
-add_shader(surf_compact.comp         lighting/surfels/surf_compact.comp)
-add_shader(surf_decimate.comp        lighting/surfels/surf_decimate.comp)
 
 add_shader(surf_pathtrace.comp       lighting/surfels/surf_pathtrace.comp)
 
