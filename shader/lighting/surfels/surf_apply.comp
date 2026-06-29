@@ -11,6 +11,7 @@ const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z
 layout(std140, push_constant) uniform Push {
   vec3 originLwc;
   uint tileSize;
+  uint pass;
   };
 layout(binding = 0, std140) uniform UboScene {
   SceneDesc scene;
@@ -18,7 +19,7 @@ layout(binding = 0, std140) uniform UboScene {
 layout(binding = 1, rgba16f) uniform image2D irradiance;
 layout(binding = 2) uniform utexture2D gbufNormal;
 layout(binding = 3) uniform texture2D  depth;
-layout(binding = 4, std430) readonly buffer SB0 { uvec4 count; Surfel surfels[]; };
+layout(binding = 4, std430) readonly buffer SB0 { SurfHeader header; Surfel surfels[]; };
 layout(binding = 5, std430)          buffer SB1 { uint usage[]; };
 layout(binding = 6, r32ui) uniform uimage2D surfCnts;
 layout(binding = 7, r32ui) uniform uimage2D surfBins;
@@ -51,9 +52,6 @@ void applyBatch(inout vec4 clr, const vec3 wpos, const vec3 norm, const uint sur
 void pullSurfels(ivec2 bboxMin, ivec2 bboxMax, uint ptr, uint cnt, uint i) {
   const uint laneID = gl_LocalInvocationIndex;
 
-  surfelCount = 0;
-  barrier();
-
   if(i >= cnt)
     return;
 
@@ -84,6 +82,9 @@ void main() {
   const uint  cnt    = imageLoad(surfCnts, tileId).x;
   const uint  ptr    = imageLoad(surfBins, tileId).x;
 
+  if(pass>0 && cnt==0)
+    return;
+
   const float z    = valid ? texelFetch(depth,fragCoord,0).x : 1;
   const vec3  wpos = worldPos(z, fragCoord, screenSize);
   const vec3  norm = normalFetch(gbufNormal, fragCoord);
@@ -92,29 +93,47 @@ void main() {
   ivec2 bboxMin = ivec2(gl_WorkGroupID.xy*gl_WorkGroupSize.xy);
   ivec2 bboxMax = bboxMin + ivec2(gl_WorkGroupSize.xy);
 
+  surfelCount = 0;
+
   vec4 clr = vec4(0);
-  for(uint i=0; ; i+=NumThreads) {
+  for(uint i=0; i<cnt; i+=NumThreads) {
+    barrier();
+
     pullSurfels(bboxMin, bboxMax, ptr, cnt, i+laneID);
     barrier();
 
     if(!sky) {
       applyBatch(clr, wpos, norm, surfelCount);
       }
-    if(i+NumThreads>=cnt)
-      break;
     barrier();
+
+    surfelCount = 0;
     }
 
-  if(!valid || sky) {
+  if(!valid)
+    return;
+
+  if(sky) {
     imageStore(irradiance, fragCoord, vec4(0,0,0,1));
     imageStore(dbgImage, fragCoord, vec4(1));
     return;
     }
 
-  if(clr.a>0)
-    clr.rgb /= clr.a;
   clr.rgb *= scene.exposure;
 
-  imageStore(irradiance, fragCoord, vec4(clr.rgb, clr.a));
+  if(pass==0) {
+    // first pass
+    if(clr.a>0)
+      clr.rgb /= clr.a;
+    imageStore(irradiance, fragCoord, vec4(clr));
+    } else {
+    // post pass
+    const vec4 pre = imageLoad(irradiance, fragCoord);
+    clr += vec4(pre.rgb*pre.a, pre.a);
+    if(clr.a>0)
+      clr.rgb /= clr.a;
+    imageStore(irradiance, fragCoord, vec4(clr.rgb, clr.a));
+    }
+
   imageStore(dbgImage, fragCoord, vec4(clr.a));
   }

@@ -23,7 +23,7 @@ layout(binding = 0, std140) uniform UboScene {
 layout(binding = 1) uniform texture2D  irradiance;
 layout(binding = 2) uniform utexture2D gbufNormal;
 layout(binding = 3) uniform texture2D  depth;
-layout(binding = 4, std430) buffer SB0 { uvec4 count; Surfel surfels[]; } surf;
+layout(binding = 4, std430) buffer SB0 { SurfHeader header; Surfel surfels[]; } surf;
 //
 layout(binding = 6, r32ui)  uniform uimage2D surfCnts;
 layout(binding = 7, r32ui)  uniform uimage2D surfBins;
@@ -91,8 +91,8 @@ void storeSurfels() {
 
   if(laneID==0) {
     pointQueueSize = min(pointQueueSize, pointQueue.length());
-    fragVote       = atomicAdd(surf.count.x, pointQueueSize);
-    atomicAdd(surf.count.w, pointQueueSize);
+    fragVote       = atomicAdd(surf.header.count, pointQueueSize);
+    atomicAdd(surf.header.added, pointQueueSize);
     }
   barrier();
 
@@ -107,7 +107,7 @@ void storeSurfels() {
       sx.norm       = encodeNormal(p.norm);
       sx.radius     = r;
       sx.radiusMean = p.pos.w;
-      sx.irradiance = debugColors[(gl_WorkGroupID.x*32+gl_WorkGroupID.y)%debugColors.length()]; //surfDebugColor(p.pos.xyz, ptr);
+      sx.irradiance = debugColors[(gl_WorkGroupID.x*32+gl_WorkGroupID.y)%debugColors.length()] * scene.exposure;
       sx.radiusPix  = DefaultCoverage;
       surf.surfels[ptr] = sx;
       }

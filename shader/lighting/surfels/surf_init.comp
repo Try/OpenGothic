@@ -1,11 +1,16 @@
 #version 450
 
+#include "lighting/surfels/surf_common.glsl"
+
 layout(local_size_x = 1) in;
 
-layout(binding = 4, std430) buffer SB0 { uvec4 count; } surf;
+layout(binding = 4, std430) buffer SB0 { SurfHeader header; } surf;
 layout(binding = 5, std430) buffer SB2 { uvec4 count; } alloc;
 
 void main() {
-  surf. count = uvec4(0,1,1,0);
+  surf.header.count = 0;
+  surf.header.one1  = 1;
+  surf.header.one2  = 1;
+
   alloc.count = uvec4(0,1,1,0);
   }

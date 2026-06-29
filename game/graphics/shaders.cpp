@@ -249,8 +249,7 @@ void Shaders::compileShaders() {
     auto fs = device.shader(sh.data,sh.len);
     surfDbg = device.pipeline(Triangles,state,vs,fs);
 
-    surfBinningS = computeShader("surf_binning_s.comp.sprv");
-    surfBinningA = computeShader("surf_binning_a.comp.sprv");
+    surfBinPass  = computeShader("surf_bin_pass.comp.sprv");
     surfBinClear = computeShader("surf_bin_clear.comp.sprv");
     surfBinAlloc = computeShader("surf_bin_alloc.comp.sprv");
     surfBinSort  = computeShader("surf_bin_sort.comp.sprv");

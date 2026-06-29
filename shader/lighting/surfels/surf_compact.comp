@@ -8,7 +8,7 @@ layout(local_size_x = 256) in;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
 
-layout(binding = 4, std430) buffer SB0 { uvec4 count; Surfel surfels[]; };
+layout(binding = 4, std430) buffer SB0 { SurfHeader header; Surfel surfels[]; } surf;
 layout(binding = 5, std430) buffer SB1 { uint usage[]; };
 
 shared uint wPtr;
@@ -20,24 +20,27 @@ void main() {
   barrier();
 
   Surfel sx;
-  for(uint ix=0; ix<count.x; ix+=NumThreads) {
+  for(uint ix=0; ix<surf.header.count; ix+=NumThreads) {
     const uint i    = ix+laneID;
     const uint bit  = (1u << (i % 32));
-    const bool keep = i<count.x && (usage[i/32] & bit)!=0;
+    const bool keep = i<surf.header.count && (usage[i/32] & bit)!=0;
     if(keep) {
-      sx = surfels[i];
+      sx = surf.surfels[i];
       }
     barrier();
 
     if(keep) {
       const uint w = atomicAdd(wPtr, 1);
-      surfels[w] = sx;
+      surf.surfels[w] = sx;
       }
     barrier();
     }
 
   if(laneID==0) {
-    count = uvec4(wPtr,1,1,0);
+    surf.header.count = wPtr;
+    surf.header.one1  = 1;
+    surf.header.one2  = 1;
+    surf.header.added = 0;
     }
 
   for(uint i=laneID; i<usage.length(); i+=NumThreads) {

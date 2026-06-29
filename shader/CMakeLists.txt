@@ -321,8 +321,7 @@ add_shader(surf_decimate.comp        lighting/surfels/surf_decimate.comp)
 
 add_shader(surf_bin_clear.comp       lighting/surfels/surf_bin_clear.comp)
 add_shader(surf_bin_alloc.comp       lighting/surfels/surf_bin_alloc.comp)
-add_shader(surf_binning_s.comp       lighting/surfels/surf_binning.comp -DSURFEL)
-add_shader(surf_binning_a.comp       lighting/surfels/surf_binning.comp -DALLOC)
+add_shader(surf_bin_pass.comp        lighting/surfels/surf_bin_pass.comp)
 add_shader(surf_bin_sort.comp        lighting/surfels/surf_bin_sort.comp)
 
 add_shader(surf_pathtrace.comp       lighting/surfels/surf_pathtrace.comp)

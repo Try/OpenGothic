@@ -8,6 +8,13 @@ const int   MinCoverage     = 8;   // in pixels
 const int   DefaultCoverage = 128; // in pixels
 const uint  MaxInTile       = 512; // ~32px (~6x6) per surfel
 
+struct SurfHeader {
+  uint count;
+  uint one1;
+  uint one2;
+  uint added;
+  };
+
 struct Surfel {
   vec3  pos;
   uint  norm;
