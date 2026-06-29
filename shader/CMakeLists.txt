@@ -314,10 +314,13 @@ add_shader(surf_dbg.frag             lighting/surfels/surf_dbg.frag)
 
 add_shader(surf_init.comp            lighting/surfels/surf_init.comp)
 
+add_shader(surf_update.comp          lighting/surfels/surf_update.comp)
+add_shader(surf_culling.comp         lighting/surfels/surf_culling.comp)
+add_shader(surf_decimate.comp        lighting/surfels/surf_decimate.comp)
+add_shader(surf_compact.comp         lighting/surfels/surf_compact.comp)
+
 add_shader(surf_alloc.comp           lighting/surfels/surf_alloc.comp)
 add_shader(surf_apply.comp           lighting/surfels/surf_apply.comp)
-add_shader(surf_compact.comp         lighting/surfels/surf_compact.comp)
-add_shader(surf_decimate.comp        lighting/surfels/surf_decimate.comp)
 
 add_shader(surf_bin_clear.comp       lighting/surfels/surf_bin_clear.comp)
 add_shader(surf_bin_alloc.comp       lighting/surfels/surf_bin_alloc.comp)

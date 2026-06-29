@@ -256,10 +256,13 @@ void Shaders::compileShaders() {
 
     surfInit     = computeShader("surf_init.comp.sprv");
 
+    surfUpdate   = computeShader("surf_update.comp.sprv");
+    surfCulling  = computeShader("surf_culling.comp.sprv");
+    surfDecimate = computeShader("surf_decimate.comp.sprv");
+    surfCompact  = computeShader("surf_compact.comp.sprv");
+
     surfAlloc    = computeShader("surf_alloc.comp.sprv");
     surfApply    = computeShader("surf_apply.comp.sprv");
-    surfCompact  = computeShader("surf_compact.comp.sprv");
-    surfDecimate = computeShader("surf_decimate.comp.sprv");
 
     surfPathtrace = computeShader("surf_pathtrace.comp.sprv");
     }

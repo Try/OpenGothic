@@ -1982,6 +1982,21 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
   cmd.setDebugMarker("Surfels");
 
   // prev-frame
+  {
+    float znear = scene.znear;
+    cmd.setPushData(znear);
+    cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
+    cmd.setBinding(1, hiz.hiZ);
+    cmd.setBinding(2, zbuffer);
+    cmd.setBinding(3, surfels);
+
+    cmd.setPipeline(shaders.surfUpdate);
+    cmd.dispatchThreads(maxSurfels);
+
+    cmd.setPipeline(shaders.surfCulling);
+    cmd.dispatchThreads(maxSurfels);
+  }
+
   static bool gc = true;
   if(gc) {
     surfelsBinning(cmd, wview, tileSize, false);
@@ -1992,6 +2007,7 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
       } pushGc = {};
 
     cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
+    cmd.setBinding(1, hiz.hiZ);
     //
     cmd.setBinding(4, surfels);
     cmd.setBinding(5, surfUsage);
@@ -2025,9 +2041,9 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
 
     cmd.setPushData(push);
     cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
-    cmd.setBinding(1, irrImage,   Sampler::nearest());
-    cmd.setBinding(2, gbufNormal, Sampler::nearest());
-    cmd.setBinding(3, zbuffer,    Sampler::nearest());
+    cmd.setBinding(1, irrImage);
+    cmd.setBinding(2, gbufNormal);
+    cmd.setBinding(3, zbuffer);
     cmd.setBinding(4, surfels);
     cmd.setBinding(5, surfUsage);
     cmd.setBinding(6, surfCnts);
@@ -2040,13 +2056,14 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
     cmd.dispatchThreads(zbuffer.size());
     }
 
+  // current-frame
   static bool alloc = true;
   if(alloc) {
     cmd.setPushData(push);
     cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
-    cmd.setBinding(1, irrImage,   Sampler::nearest());
-    cmd.setBinding(2, gbufNormal, Sampler::nearest());
-    cmd.setBinding(3, zbuffer,    Sampler::nearest());
+    cmd.setBinding(1, irrImage);
+    cmd.setBinding(2, gbufNormal);
+    cmd.setBinding(3, zbuffer);
     cmd.setBinding(4, surfels);
     //
     cmd.setBinding(6, surfCnts);
@@ -2054,9 +2071,6 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
     cmd.setBinding(8, surfList);
     //
     cmd.setBinding(11, dbgImage);
-
-    //cmd.setPipeline(shaders.surfInit);
-    //cmd.dispatchThreads(1); //for sake of zeroing counters
 
     const auto tc = tileCount(zbuffer.size(), 128);
     cmd.setPipeline(shaders.surfAlloc);

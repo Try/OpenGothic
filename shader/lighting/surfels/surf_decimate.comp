@@ -16,7 +16,7 @@ layout(binding = 0, std140) uniform UboScene {
   SceneDesc scene;
   };
 //
-layout(binding = 4, std430) readonly buffer SB0 { uvec4 count; Surfel surfels[]; };
+layout(binding = 4, std430) readonly buffer SB0 { SurfHeader header; Surfel surfels[]; };
 layout(binding = 5, std430)          buffer SB1 { uint usage[]; };
 layout(binding = 6, r32ui)  uniform uimage2D surfCnts;
 layout(binding = 7, r32ui)  uniform uimage2D surfBins;
@@ -33,12 +33,15 @@ uint passId(ivec2 tileId) {
 
 void main() {
   const uint surfelId = gl_GlobalInvocationID.x;
-  if(surfelId >= count.x)
+  if(surfelId >= header.count)
     return;
 
   const float  edge   = 1.57; // .57 is prefference driven
   const Surfel p      = surfels[surfelId];
   const ivec2  sz     = scene.screenRes;
+
+  if(p.radius==0)
+    return; // disabled
 
   if(!(-DefaultCoverage <= p.fragCoord.x && p.fragCoord.x < sz.x+DefaultCoverage))
     return;
