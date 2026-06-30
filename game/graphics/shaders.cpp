@@ -401,10 +401,10 @@ bool Shaders::isGi1Supported() {
 bool Shaders::isGi2Supported() {
   auto& gpu = Resources::device().properties();
   if(!gpu.raytracing.rayQuery)
-    return false;
+    return false; //TODO: splatting
   if(gpu.compute.maxInvocations<256 || !gpu.descriptors.nonUniformIndexing)
     return false;
-  if(!gpu.hasStorageFormat(R11G11B10UF) || !gpu.hasStorageFormat(R32F))
+  if(!gpu.hasStorageFormat(RGBA16F))
     return false;
   return true;
   }

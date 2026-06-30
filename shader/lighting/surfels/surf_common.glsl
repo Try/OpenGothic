@@ -25,19 +25,9 @@ struct Surfel {
   int   radiusPix;
   };
 
-struct SurfelAlloc {
-  vec4  pos;  // pos, size
-  vec3  norm;
-  uint  reuseId;
-  };
-
 struct Candidate {
-  vec3  pos;
-  float radius;
-  vec3  norm;
-  float weight;
-  ivec2 fragCoord;
-  ivec2 padd0;
+  vec4  pos;  // pos,  size
+  vec4  norm; // norm, padd
   };
 
 bool isSurfelVisible(const Surfel s, ivec2 bboxMin, ivec2 bboxMax) {

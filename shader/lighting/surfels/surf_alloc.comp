@@ -8,7 +8,6 @@ layout(local_size_x = 16, local_size_y = 16) in;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
 
-const ivec2 TileSize    = ivec2(128);
 const float NormalBias  = 0.0030;
 const uint  Salt        = 0x9D;
 const float MaxAttempts = 1;
@@ -16,6 +15,7 @@ const int   MaxQueue    = 256;
 
 layout(std140, push_constant) uniform Push {
   vec3 originLwc;
+  uint tileSize;
   };
 layout(binding = 0, std140) uniform UboScene {
   SceneDesc scene;
@@ -31,9 +31,8 @@ layout(binding = 8, std430) readonly buffer SB2 { uint surfelList[]; };
 //
 layout(binding = 11, rgba8) uniform image2D dbgImage;
 
-shared SurfelAlloc pointQueue[MaxQueue];
-shared float       pointRMax [MaxQueue];
-shared int         pointQueueSize;
+shared Candidate pointQueue[MaxQueue];
+shared int       pointQueueSize;
 
 shared uint fragVote;
 
@@ -55,14 +54,15 @@ float pixelToWorld(float pixelRadius, float z) {
   return min(worldRadiusX, worldRadiusY);
   }
 
-float calculteWeight(const SurfelAlloc s, float rMax, const vec3 wpos, const vec3 norm) {
-  return calculteWeight(s.pos.xyz, s.norm, s.pos.w, rMax, wpos, norm);
+float calculteWeight(const Candidate s, const vec3 wpos, const vec3 norm) {
+  float rMean = s.pos.w * 2.0;
+  float rMax  = s.pos.w;
+  return calculteWeight(s.pos.xyz, s.norm.xyz, rMean, rMax, wpos, norm);
   }
 
 float amendCoverage(const ivec2 fragCoord, const vec3 wpos, const vec3 norm) {
   const int i = pointQueueSize-1;
-  const SurfelAlloc s = pointQueue[i];
-  return calculteWeight(s,pointRMax[i],wpos,norm);
+  return calculteWeight(pointQueue[i], wpos, norm);
   }
 
 float estimateCoverage(const ivec2 fragCoord, const vec3 wpos, const vec3 norm, const uint accounted) {
@@ -72,8 +72,7 @@ float estimateCoverage(const ivec2 fragCoord, const vec3 wpos, const vec3 norm, 
 
   for(int i=pointQueueSize; i>accounted;) {
     --i;
-    const SurfelAlloc s = pointQueue[i];
-    wSum += calculteWeight(s,pointRMax[i],wpos,norm);
+    wSum += calculteWeight(pointQueue[i], wpos, norm);
     if(wSum > 1.0)
       return 1.0;
     }
@@ -99,19 +98,18 @@ void storeSurfels() {
   if(laneID<pointQueueSize) {
     const uint ptr = fragVote + laneID;
     if(ptr<surf.surfels.length()) {
-      SurfelAlloc p = pointQueue[laneID];
-      float       r = pointRMax[laneID];
+      const Candidate p = pointQueue[laneID];
 
-      const vec4   pos4       = scene.viewProject * vec4(p.pos.xyz, 1.0);
-      const vec2   posNdc     = ((pos4.xy/pos4.w)*0.5+0.5);
-      const ivec2  fragCoord  = ivec2(posNdc*scene.screenRes + 0.5);
+      const vec4  pos4      = scene.viewProject * vec4(p.pos.xyz, 1.0);
+      const vec2  posNdc    = ((pos4.xy/pos4.w)*0.5+0.5);
+      const ivec2 fragCoord = ivec2(posNdc*scene.screenRes + 0.5);
 
       Surfel sx;
       sx.pos        = p.pos.xyz;
-      sx.norm       = encodeNormal(p.norm);
+      sx.norm       = encodeNormal(p.norm.xyz);
       sx.fragCoord  = fragCoord;
-      sx.radius     = r;
-      sx.radiusMean = p.pos.w;
+      sx.radius     = p.pos.w;
+      sx.radiusMean = p.pos.w * 2;
       sx.irradiance = debugColors[(gl_WorkGroupID.x*32+gl_WorkGroupID.y)%debugColors.length()] / scene.exposure;
       sx.radiusPix  = DefaultCoverage;
       surf.surfels[ptr] = sx;
@@ -133,11 +131,10 @@ void allocSurfel(ivec2 fragCoord, const ivec2 screenSize, const uint vote) {
   if(laneID==0 && pointQueueSize<pointQueue.length()) {
     const float sz = max(pixelToWorld(DefaultCoverage, z), 0);
 
-    SurfelAlloc s;
-    s.pos     = vec4(wpos, sz*2.0);
-    s.norm    = norm;
+    Candidate s;
+    s.pos     = vec4(wpos, sz);
+    s.norm    = vec4(norm, 0);
     pointQueue[pointQueueSize] = s;
-    pointRMax [pointQueueSize] = sz;
     pointQueueSize++;
     }
   }
@@ -199,10 +196,10 @@ void main() {
   barrier();
 
   const ivec2 screenSize = ivec2(textureSize(depth,0));
-  const ivec2 tileCount  = TileSize/ivec2(gl_WorkGroupSize.xy);
+  const ivec2 tileCount  = ivec2(tileSize)/ivec2(gl_WorkGroupSize.xy);
   for(int y=0; y<tileCount.y; ++y)
     for(int x=0; x<tileCount.x; ++x) {
-      ivec2 at = ivec2(gl_WorkGroupID.xy) * TileSize;
+      ivec2 at = ivec2(gl_WorkGroupID.xy) * int(tileSize);
       at += remap(ivec2(x,y), tileCount)*ivec2(gl_WorkGroupSize.xy);
       mainSubtile(at, at + ivec2(gl_LocalInvocationID.xy), screenSize);
       }

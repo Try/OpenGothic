@@ -43,7 +43,7 @@ static bool boolArg(std::string_view v) {
 static int intArg(std::string_view v) {
   if(v=="false")
     return 0;
-  return (std::stol(std::string(v)));
+  return (std::stoi(std::string(v)));
   }
 
 CommandLine::CommandLine(int argc, const char** argv) {
