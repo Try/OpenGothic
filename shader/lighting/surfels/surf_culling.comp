@@ -62,6 +62,7 @@ bool projectSphere(const vec3 c, float R, out vec4 aabb, out float depthMin, out
   depthMax  = scene.project[3][2]/max(c.z + R, znear) + scene.project[2][2];
 
   if (c.z + R < 0.0) {
+    // aabb = vec4(0,0,1,1);
     return false;
     }
 
@@ -99,19 +100,21 @@ bool isSurfelVisible(const vec4 p, float radiusMean, ivec2 fragCoord) {
   if(!frustrumTest(p))
     return false;
 
-#if 0
-  const vec3 viewPos = (scene.viewProject * vec4(p.xyz, 1)).xyz;
+  const vec3 viewPos = (scene.view * vec4(p.xyz, 1)).xyz;
+
+#if 1
   if(0<=fragCoord.x && fragCoord.x<scene.screenRes.x &&
      0<=fragCoord.y && fragCoord.y<scene.screenRes.y) {
     const float z  = texelFetch(depth,fragCoord,0).x;
     const float lz = linearDepth(z, scene.clipInfo);
-    if(abs(viewPos.z-lz) > radiusMean) {
+    if((lz-viewPos.z) > radiusMean) {
+      // TODO: two-sided HiZ
       return false;
       }
     }
 #endif
 
-#if 0
+#if 1
   vec4  aabb = vec4(0);
   float depthMin=0, depthMax=0;
   if(!projectSphere(viewPos, p.w, aabb, depthMin, depthMax))

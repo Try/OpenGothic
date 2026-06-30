@@ -102,12 +102,17 @@ void storeSurfels() {
       SurfelAlloc p = pointQueue[laneID];
       float       r = pointRMax[laneID];
 
+      const vec4   pos4       = scene.viewProject * vec4(p.pos.xyz, 1.0);
+      const vec2   posNdc     = ((pos4.xy/pos4.w)*0.5+0.5);
+      const ivec2  fragCoord  = ivec2(posNdc*scene.screenRes + 0.5);
+
       Surfel sx;
       sx.pos        = p.pos.xyz;
       sx.norm       = encodeNormal(p.norm);
+      sx.fragCoord  = fragCoord;
       sx.radius     = r;
       sx.radiusMean = p.pos.w;
-      sx.irradiance = debugColors[(gl_WorkGroupID.x*32+gl_WorkGroupID.y)%debugColors.length()] * scene.exposure;
+      sx.irradiance = debugColors[(gl_WorkGroupID.x*32+gl_WorkGroupID.y)%debugColors.length()] / scene.exposure;
       sx.radiusPix  = DefaultCoverage;
       surf.surfels[ptr] = sx;
       }
