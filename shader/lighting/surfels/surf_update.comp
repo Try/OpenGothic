@@ -6,44 +6,12 @@
 
 layout(local_size_x = 64) in;
 
-layout(push_constant, std140) uniform Push {
-  float znear;
-  };
 layout(binding = 0, std140) uniform UboScene {
   SceneDesc scene;
   };
-layout(binding = 1) uniform texture2D hiZ;
-layout(binding = 2) uniform texture2D depth;
-layout(binding = 3, std430) buffer SB0 { SurfHeader header; Surfel surfels[]; };
+layout(binding = 1) uniform texture2D depth;
+layout(binding = 2, std430) buffer SB0 { SurfHeader header; Surfel surfels[]; };
 
-
-bool projectSphere(const vec3 c, float R, out vec4 aabb, out float depthMin, out float depthMax) {
-  // https://jcgt.org/published/0002/02/05/paper.pdf
-  depthMin  = scene.project[3][2]/max(c.z - R, znear) + scene.project[2][2];
-  depthMax  = scene.project[3][2]/max(c.z + R, znear) + scene.project[2][2];
-
-  if (c.z + R < 0.0) {
-    return false;
-    }
-
-  const float P00 = scene.project[0][0]; // fx
-  const float P11 = scene.project[1][1]; // fy
-
-  vec3  cr   = c * R;
-  float czr2 = c.z * c.z - R * R;
-
-  float vx   = sqrt(c.x * c.x + czr2);
-  float minx = (vx * c.x - cr.z) / (vx * c.z + cr.x);
-  float maxx = (vx * c.x + cr.z) / (vx * c.z - cr.x);
-
-  float vy   = sqrt(c.y * c.y + czr2);
-  float miny = (vy * c.y - cr.z) / (vy * c.z + cr.y);
-  float maxy = (vy * c.y + cr.z) / (vy * c.z - cr.y);
-
-  aabb = vec4(minx * P00, miny * P11, maxx * P00, maxy * P11);
-  aabb = aabb*0.5 + vec4(0.5);
-  return true;
-  }
 
 float pixelToWorld(float pixelRadius, float z) {
   z = linearDepth(z, scene.clipInfo);
@@ -54,16 +22,6 @@ float pixelToWorld(float pixelRadius, float z) {
   float worldRadiusX = (clipRadiusX * z) / scene.project[0][0];
   float worldRadiusY = (clipRadiusY * z) / scene.project[1][1];
   return min(worldRadiusX, worldRadiusY);
-  }
-
-int worldToPixel(const vec3 pos, float R) {
-  vec4 aabb = vec4(0);
-  float depthMin=0, depthMax=0;
-  if(!projectSphere(pos, R, aabb, depthMin, depthMax))
-    return 0;
-  ivec4 area = ivec4(aabb.xy * scene.screenRes, aabb.zw * scene.screenRes);
-  vec2  sz   = area.zw - area.xy;
-  return int( ceil(max(sz.x, sz.y)*0.5) );
   }
 
 void main() {
