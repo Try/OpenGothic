@@ -1950,7 +1950,7 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
   if(!enable)
     return;
 
-  if(settings.giMethod!=GiMethod::IrrC)
+  if(settings.giMethod!=GiMethod::IrrC || !settings.zCloudShadowScale)
     return;
 
   const uint32_t maxSurfels      = surf.maxSurfels;
@@ -2495,10 +2495,9 @@ void Renderer::drawAmbient(Encoder<CommandBuffer>& cmd, const WorldView& view) {
   cmd.setBinding(0, view.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
   cmd.setBinding(1, gbufDiffuse, Sampler::nearest());
   cmd.setBinding(2, gbufNormal,  Sampler::nearest());
-  if(settings.giMethod==GiMethod::IrrC) {
-    auto& ao = (settings.zCloudShadowScale ? textureCast<Texture2d&>(ssao.ssaoBlur) : Resources::fallbackBlack());
+  if(settings.giMethod==GiMethod::IrrC && settings.zCloudShadowScale) {
     cmd.setBinding(3, surf.irrImage, Sampler::nearest(ClampMode::ClampToEdge));
-    cmd.setBinding(4, ao,            Sampler::nearest(ClampMode::ClampToEdge));
+    cmd.setBinding(4, ssao.ssaoBlur, Sampler::nearest(ClampMode::ClampToEdge)); //TODO: remove once splatting is working
     cmd.setBinding(5, surf.surfels);
     cmd.setPipeline(shaders.ambientLightSurf);
     }

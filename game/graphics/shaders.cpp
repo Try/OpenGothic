@@ -254,8 +254,6 @@ void Shaders::compileShaders() {
     surfBinAlloc = computeShader("surf_bin_alloc.comp.sprv");
     surfBinSort  = computeShader("surf_bin_sort.comp.sprv");
 
-    surfInit     = computeShader("surf_init.comp.sprv");
-
     surfUpdate   = computeShader("surf_update.comp.sprv");
     surfCulling  = computeShader("surf_culling.comp.sprv");
     surfDecimate = computeShader("surf_decimate.comp.sprv");

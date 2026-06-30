@@ -312,8 +312,6 @@ add_shader(probe_ambient.frag        lighting/rt/probe_ambient.frag)
 add_shader(surf_dbg.vert             lighting/surfels/surf_dbg.vert)
 add_shader(surf_dbg.frag             lighting/surfels/surf_dbg.frag)
 
-add_shader(surf_init.comp            lighting/surfels/surf_init.comp)
-
 add_shader(surf_update.comp          lighting/surfels/surf_update.comp)
 add_shader(surf_culling.comp         lighting/surfels/surf_culling.comp)
 add_shader(surf_decimate.comp        lighting/surfels/surf_decimate.comp)

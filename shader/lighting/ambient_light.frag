@@ -85,8 +85,8 @@ void main() {
   vec3 color = linear;
   color *= luminance(norm);
 #if defined(SURFEL_GI)
-  // preexposed already
-  //color *= ao;
+  //NOTE: pre-exposed already
+  color *= ao;
 #else
   color *= ao;
   color *= scene.exposure;
