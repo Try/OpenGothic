@@ -2510,6 +2510,7 @@ void Renderer::drawAmbient(Encoder<CommandBuffer>& cmd, const WorldView& view) {
     auto& ao = (settings.zCloudShadowScale ? textureCast<Texture2d&>(ssao.ssaoBlur) : Resources::fallbackBlack());
     cmd.setBinding(3, surf.irrImage, Sampler::nearest(ClampMode::ClampToEdge));
     cmd.setBinding(4, ao,            Sampler::nearest(ClampMode::ClampToEdge));
+    cmd.setBinding(5, surf.surfels);
     cmd.setPipeline(shaders.ambientLightSurf);
     }
   else if(settings.giMethod==GiMethod::Probes && settings.zCloudShadowScale) {

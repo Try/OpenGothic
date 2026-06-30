@@ -16,6 +16,7 @@ layout(binding  = 2) uniform usampler2D gbufNormal;
 #if defined(SURFEL_GI)
 layout(binding  = 3) uniform sampler2D  surfGi;
 layout(binding  = 4) uniform sampler2D  ssao;
+layout(binding  = 5, std430) readonly buffer SB0 { uint count;  } surf;
 #elif defined(SSAO)
 layout(binding  = 3) uniform texture2D  irradiance;
 layout(binding  = 4) uniform sampler2D  ssao;
@@ -89,6 +90,13 @@ void main() {
 #else
   color *= ao;
   color *= scene.exposure;
+#endif
+
+#if defined(SURFEL_GI) && 1
+  if(drawInt(fragCoord.xy-ivec2(100,100), int(surf.count))>0) {
+    outColor = vec4(1);
+    return;
+    }
 #endif
 
   outColor = vec4(color, 1);
