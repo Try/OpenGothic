@@ -176,8 +176,9 @@ void Shaders::compileShaders() {
     cmaa2DeferredColorApply2x2 = device.pipeline(Tempest::Points,RenderState(),vs,fs);
   }
 
-  hiZPot = computeShader("hiz_pot.comp.sprv");
-  hiZMip = computeShader("hiz_mip.comp.sprv");
+  hiZPot  = computeShader("hiz_pot.comp.sprv");
+  hiZMip  = computeShader("hiz_mip.comp.sprv");
+  hiZMip2 = computeShader("hiz_mip2.comp.sprv");
 
   if(Gothic::options().doRayQuery) {
     rtDbg       = postEffect("triangle_uv", "rt_dbg", RenderState::ZTestMode::NoEqual);

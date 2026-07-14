@@ -281,6 +281,7 @@ if(IOS)
   add_shader(hiz_mip.comp            hiz/hiz_mip.comp -DIOS)
 else()
   add_shader(hiz_mip.comp            hiz/hiz_mip.comp)
+  add_shader(hiz_mip2.comp           hiz/hiz_mip2.comp)
 endif()
 add_shader(hiz_pot.comp              hiz/hiz_pot.comp)
 

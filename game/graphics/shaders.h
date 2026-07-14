@@ -68,7 +68,7 @@ class Shaders {
     Tempest::RenderPipeline  cmaa2DeferredColorApply2x2;
 
     // HiZ
-    Tempest::ComputePipeline hiZPot, hiZMip;
+    Tempest::ComputePipeline hiZPot, hiZMip, hiZMip2;
 
     // Cluster
     Tempest::ComputePipeline clusterInit, clusterPatch;
