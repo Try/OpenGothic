@@ -1,7 +1,6 @@
 #version 450
 
 #extension GL_EXT_control_flow_attributes : enable
-// #extension GL_EXT_samplerless_texture_functions : enable
 
 layout(local_size_x = 8, local_size_y = 8) in;
 
@@ -111,12 +110,13 @@ void processTile(ivec2 group, int baseMip, uint mipCount) {
     store(baseMip+1, uv, z);
     }
 
+  [[unroll]]
   for(int i=2; baseMip+i<mipCount && i<5; ++i) {
     tile[local.x][local.y] = z;
     barrier();
 
     gsize /= 2;
-    if(local.x<gsize.x && local.y<gsize.x) {
+    if(local.x<gsize.x && local.y<gsize.y) {
       uv = group*gsize + local;
       z  = gatherTile(local);
       if(all(lessThan(uv, dstSz)))
@@ -143,6 +143,6 @@ void main() {
   if(cnt < gl_NumWorkGroups.x*gl_NumWorkGroups.y-1)
     return;
 
-  counter = 0;
+  atomicExchange(counter, 0); // skip buffer memory-barrier
   processTile(ivec2(0), 4, mipCount);
   }
