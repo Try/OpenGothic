@@ -144,14 +144,8 @@ void Renderer::resetSwapchain() {
     hh = std::max(1u, (hh+1)/2u);
     }
 
-  hiz.atomicImg = device.properties().hasAtomicFormat(TextureFormat::R32U);
   hiz.hiZ       = device.image2d(TextureFormat::R16,  hw, hh, true);
-  if(hiz.atomicImg) {
-    hiz.counter = device.image2d(TextureFormat::R32U, std::max(hw/4, 1u), std::max(hh/4, 1u), false);
-    } else {
-    hiz.counterBuf = device.ssbo(Tempest::Uninitialized, std::max(hw/4, 1u)*std::max(hh/4, 1u)*sizeof(uint32_t));
-    }
-  hiz.counterBuf = device.ssbo(nullptr, sizeof(uint32_t));
+  hiz.counter   = device.ssbo(nullptr, sizeof(uint32_t));
 
   sceneOpaque   = device.attachment(TextureFormat::R11G11B10UF,w,h);
   sceneDepth    = device.attachment(TextureFormat::R32F,       w,h);
@@ -1053,27 +1047,12 @@ void Renderer::buildHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
   cmd.dispatch(size_t(hiz.hiZ.w()), size_t(hiz.hiZ.h()));
 
   const uint32_t maxBind = 8, mip = hiz.hiZ.mipCount();
-  cmd.setBinding(0, hiz.counterBuf);
-  for(uint32_t i=0; i<maxBind; ++i)
-    cmd.setBinding(1+i, hiz.hiZ, Sampler::nearest(), std::min(i, mip-1));
-  cmd.setPushData(&mip, sizeof(mip));
-  cmd.setPipeline(shaders.hiZMip2);
-  cmd.dispatchThreads(std::max(uint32_t(hiz.hiZ.w())/2u, 1u), std::max(uint32_t(hiz.hiZ.h())/2u, 1u));
-
-/*
-  // const uint32_t maxBind = 8, mip = hiz.hiZ.mipCount();
-  const uint32_t w = uint32_t(hiz.hiZ.w()), h = uint32_t(hiz.hiZ.h());
-  if(hiz.atomicImg) {
-    cmd.setBinding(0, hiz.counter, Sampler::nearest(), 0);
-    } else {
-    cmd.setBinding(0, hiz.counterBuf);
-    }
+  cmd.setBinding(0, hiz.counter);
   for(uint32_t i=0; i<maxBind; ++i)
     cmd.setBinding(1+i, hiz.hiZ, Sampler::nearest(), std::min(i, mip-1));
   cmd.setPushData(&mip, sizeof(mip));
   cmd.setPipeline(shaders.hiZMip);
-  cmd.dispatchThreads(w,h);
-  */
+  cmd.dispatchThreads(std::max(uint32_t(hiz.hiZ.w())/2u, 1u), std::max(uint32_t(hiz.hiZ.h())/2u, 1u));
   }
 
 void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview) {

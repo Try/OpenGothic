@@ -1,11 +1,10 @@
 #version 450
 
 #extension GL_EXT_control_flow_attributes : enable
-#extension GL_EXT_samplerless_texture_functions : enable
 
 layout(local_size_x = 8, local_size_y = 8) in;
 
-layout(binding = 0, r32ui)    uniform coherent uimage2D  counters;
+layout(binding = 0, std430)   buffer  coherent SB0 { uint counter; };
 layout(binding = 1, r16)      uniform coherent image2D   mip0;
 layout(binding = 2, r16)      uniform coherent image2D   mip1;
 layout(binding = 3, r16)      uniform coherent image2D   mip2;
@@ -20,10 +19,14 @@ layout(push_constant, std140) uniform PushConstant {
   uint mipCount;
   };
 
+shared float tile[8][8];
+shared uint  cnt;
+
 float load(int mip, ivec2 uv) {
-#if defined(IOS)
+#if defined(IOS) && 0
   // ios metal-shader compiller has ugly bug:
   // https://developer.apple.com/forums/thread/750478
+  // NOTE: longer an issue, on recent ios, by looks of it. But maybe issue been hidden by changes in the shader
   switch(mip) {
     case 0: return imageLoad(mip0, uv).x;
     default: return 1;
@@ -70,7 +73,13 @@ void store(int mip, ivec2 uv, float z) {
     }
   }
 
-float gather(int mip, ivec2 srcUV0, ivec2 srcUV1) {
+float gatherImg(int mip, ivec2 uv, ivec2 srcSz, ivec2 dstSz) {
+  if(!all(lessThan(uv, dstSz)))
+    return 0;
+
+  ivec2 srcUV0 = uv*2;
+  ivec2 srcUV1 = min(srcUV0+1, srcSz-1);
+
   float z00 = load(mip, ivec2(srcUV0.x,srcUV0.y));
   float z01 = load(mip, ivec2(srcUV0.x,srcUV1.y));
   float z10 = load(mip, ivec2(srcUV1.x,srcUV0.y));
@@ -78,41 +87,63 @@ float gather(int mip, ivec2 srcUV0, ivec2 srcUV1) {
   return max(max(z00, z01), max(z10, z11));
   }
 
-uint addCounter(int mip, ivec2 uv) {
-  uint bit     = (mip-1)*3;
-  uint counter = imageAtomicAdd(counters, uv, 1u << bit);
-  counter = (counter >> bit) & 0x3;
-  return counter+1;
+float gatherTile(ivec2 local) {
+  local *= 2;
+  float z00 = tile[local.x+0][local.y+0];
+  float z01 = tile[local.x+0][local.y+1];
+  float z10 = tile[local.x+1][local.y+0];
+  float z11 = tile[local.x+1][local.y+1];
+  return max(max(z00, z01), max(z10, z11));
   }
 
-void clearCounter(int mip, ivec2 uv) {
-  uint bits = 0x7u << ((mip-1)*3);
-  imageAtomicAnd(counters, uv, ~bits);
+void processTile(ivec2 group, int baseMip, uint mipCount) {
+  ivec2 local = ivec2(gl_LocalInvocationID.xy);
+  ivec2 gsize = ivec2(gl_WorkGroupSize.xy);
+
+  ivec2 imgSz = imageSize(mip0);
+  ivec2 srcSz = max(ivec2(1,1), imgSz >> (baseMip+0));
+  ivec2 dstSz = max(ivec2(1,1), imgSz >> (baseMip+1));
+
+  float z  = 0;
+  ivec2 uv = group*gsize + local;
+  if(all(lessThan(uv, dstSz))) {
+    z = gatherImg(baseMip, uv, srcSz, dstSz);
+    store(baseMip+1, uv, z);
+    }
+
+  [[unroll]]
+  for(int i=2; baseMip+i<mipCount && i<5; ++i) {
+    tile[local.x][local.y] = z;
+    barrier();
+
+    gsize /= 2;
+    if(local.x<gsize.x && local.y<gsize.y) {
+      uv = group*gsize + local;
+      z  = gatherTile(local);
+      if(all(lessThan(uv, dstSz)))
+        store(baseMip+i, uv, z);
+      }
+    barrier();
+    }
   }
 
 void main() {
-  const ivec2 group = ivec2(gl_WorkGroupID.xy);
-  const ivec2 gsize = ivec2(gl_WorkGroupSize.xy);
-  const ivec2 local = ivec2(gl_LocalInvocationID.xy);
+  processTile(ivec2(gl_WorkGroupID.xy), 0, mipCount);
 
-  ivec2 uv    = group * gsize + local;
-  ivec2 srcSz = imageSize(mip0);
-  ivec2 dstSz = imageSize(mip1);
-  for(int mip = 1; mip<mipCount && mip<9; mip++) {
-    if(uv.x>=dstSz.x || uv.y>=dstSz.y)
-      return;
+  if(mipCount<=4)
+    return;
 
-    const float z = gather(mip-1, uv*2, min(uv*2+1, srcSz-1));
-    store(mip, uv, z);
-    memoryBarrierImage();
+  memoryBarrierImage();
+  barrier();
 
-    uint  counter = addCounter(mip, uv/2);
-    ivec2 area    = min(ivec2(2), dstSz - (uv/2)*2);
-    if(counter!=area.x*area.y)
-      return;
-    clearCounter(mip, uv/2);
-    uv    = uv/2;
-    dstSz = max(ivec2(1,1), dstSz/2);
-    srcSz = max(ivec2(1,1), srcSz/2);
+  if(gl_LocalInvocationIndex==0) {
+    cnt = atomicAdd(counter, 1);
     }
+  barrier();
+
+  if(cnt < gl_NumWorkGroups.x*gl_NumWorkGroups.y-1)
+    return;
+
+  atomicExchange(counter, 0); // skip buffer memory-barrier
+  processTile(ivec2(0), 4, mipCount);
   }

@@ -178,7 +178,6 @@ void Shaders::compileShaders() {
 
   hiZPot  = computeShader("hiz_pot.comp.sprv");
   hiZMip  = computeShader("hiz_mip.comp.sprv");
-  hiZMip2 = computeShader("hiz_mip2.comp.sprv");
 
   if(Gothic::options().doRayQuery) {
     rtDbg       = postEffect("triangle_uv", "rt_dbg", RenderState::ZTestMode::NoEqual);
