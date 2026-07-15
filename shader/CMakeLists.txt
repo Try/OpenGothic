@@ -279,6 +279,7 @@ add_shader(ssao_blur.comp            ssao/ssao_blur.comp)
 # GPU-driven: HiZ
 if(IOS)
   add_shader(hiz_mip.comp            hiz/hiz_mip.comp -DIOS)
+  add_shader(hiz_mip2.comp           hiz/hiz_mip2.comp)
 else()
   add_shader(hiz_mip.comp            hiz/hiz_mip.comp)
   add_shader(hiz_mip2.comp           hiz/hiz_mip2.comp)
