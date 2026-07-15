@@ -96,20 +96,18 @@ float gatherTile(ivec2 local) {
   return max(max(z00, z01), max(z10, z11));
   }
 
-void processTile(int baseMip, uint mipCount) {
+void processTile(ivec2 group, int baseMip, uint mipCount) {
   ivec2 local = ivec2(gl_LocalInvocationID.xy);
-  ivec2 group = ivec2(gl_WorkGroupID.xy);
   ivec2 gsize = ivec2(gl_WorkGroupSize.xy);
 
-  ivec2 uv    = ivec2(0);
   ivec2 imgSz = imageSize(mip0);
   ivec2 srcSz = max(ivec2(1,1), imgSz >> (baseMip+0));
   ivec2 dstSz = max(ivec2(1,1), imgSz >> (baseMip+1));
 
-  float z = 0;
+  float z  = 0;
+  ivec2 uv = group*gsize + local;
   if(all(lessThan(uv, dstSz))) {
-    uv = group*gsize + local;
-    z  = gatherImg(baseMip, uv, srcSz, dstSz);
+    z = gatherImg(baseMip, uv, srcSz, dstSz);
     store(baseMip+1, uv, z);
     }
 
@@ -121,14 +119,15 @@ void processTile(int baseMip, uint mipCount) {
     if(local.x<gsize.x && local.y<gsize.x) {
       uv = group*gsize + local;
       z  = gatherTile(local);
-      store(baseMip+i, uv, z);
+      if(all(lessThan(uv, dstSz)))
+        store(baseMip+i, uv, z);
       }
     barrier();
     }
   }
 
 void main() {
-  processTile(0, mipCount);
+  processTile(ivec2(gl_WorkGroupID.xy), 0, mipCount);
 
   if(mipCount<=4)
     return;
@@ -145,5 +144,5 @@ void main() {
     return;
 
   counter = 0;
-  processTile(4, mipCount);
+  processTile(ivec2(0), 4, mipCount);
   }
