@@ -30,6 +30,16 @@ struct Candidate {
   vec4  norm; // norm, padd
   };
 
+uint packAtlassPos(uint x, uint y) {
+  return (x) | (y << 12) | 0x80000000;
+  }
+
+ivec2 unpackAtlassPos(uint ptr) {
+  uint x = ((ptr >>  0) & 0xFFF);
+  uint y = ((ptr >> 12) & 0xFFF);
+  return ivec2(x, y);
+  }
+
 bool isSurfelVisible(const Surfel s, ivec2 bboxMin, ivec2 bboxMax) {
   const ivec2 at     = s.fragCoord;
   const int   radius = DefaultCoverage;

@@ -1,5 +1,7 @@
 #version 450
 
+#include "lighting/surfels/surf_common.glsl"
+
 layout(local_size_x = 64) in;
 
 layout(binding = 0, std430) buffer SB0 { int count; uint idx[]; };
@@ -10,5 +12,5 @@ void main() {
     count = 0;
 
   if(id < idx.length())
-    idx[id] = (id | 0x80000000);
+    idx[id] = packAtlassPos(id%128, id/128);
   }
