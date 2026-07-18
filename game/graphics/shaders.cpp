@@ -265,6 +265,7 @@ void Shaders::compileShaders() {
 
     surfPathtrace = computeShader("surf_pathtrace.comp.sprv");
     surfRaycast   = computeShader("surf_raycast.comp.sprv");
+    surLighting   = computeShader("surf_lighting.comp.sprv");
     }
 
   if(Shaders::isVsmSupported()) {

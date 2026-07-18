@@ -25,9 +25,9 @@ layout(binding = 0, std140) uniform UboScene {
   };
 layout(binding = 1, std430) buffer SB0 { SurfHeader header; Surfel surfels[]; };
 layout(binding = 2)         uniform sampler2D skyLUT;
-layout(binding = 3, rgba8)  uniform image2D   gbufDiff;
-layout(binding = 4, rgba8)  uniform image2D   gbufNorm;
-layout(binding = 5, r16)    uniform image2D   gbufHit;
+layout(binding = 3)         uniform texture2D gbufDiff;
+layout(binding = 4)         uniform texture2D gbufNorm;
+layout(binding = 5)         uniform texture2D gbufHit;
 
 mat3 toTangent(vec3 norm) {
   mat3 tangent;
@@ -51,17 +51,6 @@ float sampleDirectLight(vec3 norm, vec3 rayOrigin, vec3 rayDirection) {
   return (lamb * shadow);
   }
 
-HitResolve raycast(vec3 rayOrigin, vec3 rayDirection, inout Random rngState) {
-  HitResolve hit = rayQueryProceedPrimary(rayOrigin, rayDirection, -1, rngState);
-  if(hit.rayT<0) {
-    hit.rayT = -hit.rayT; // backfaces are fine
-    hit.norm = -hit.norm;
-    }
-  if(hit.rayT==TMax)
-    hit.diff = vec4(0,0,1,1);
-  return hit;
-  }
-
 vec3 evalLight(vec3 rayOrigin, vec3 rayDirection, HitResolve hit) {
   vec3  thruput = min(textureAlbedo(hit.diff.rgb), 0.95);
   float depth   = hit.rayT;
@@ -83,8 +72,22 @@ vec3 evalLight(vec3 rayOrigin, vec3 rayDirection, HitResolve hit) {
   return color;
   }
 
-shared float reduction[NumThreads];
-shared uint  hitCnt;
+HitResolve loadGBuf(uint ptr) {
+  uint x = ((ptr >>  0) & 0xFFF);
+  uint y = ((ptr >> 12) & 0xFFF);
+
+  ivec2 at = ivec2(x,y)*8 + ivec2(gl_LocalInvocationID.xy);
+
+  HitResolve hit;
+  hit.diff = texelFetch(gbufDiff, at, 0);
+  hit.norm = texelFetch(gbufNorm, at, 0).xyz*2.0-1.0;
+  hit.rayT = texelFetch(gbufHit,  at, 0).x*TMax;
+
+  return hit;
+  }
+
+shared vec3 reduction[NumThreads];
+shared uint hitCnt;
 
 void reduceIrr() {
   uint laneID = gl_LocalInvocationIndex;
@@ -97,22 +100,10 @@ void reduceIrr() {
     }
   }
 
-void storeGBuf(uint ptr, const HitResolve hit) {
-  if(ptr==0)
-    return; //error
-
-  ivec2 at = unpackAtlassPos(ptr)*8 + ivec2(gl_LocalInvocationID.xy);
-  imageStore(gbufDiff, at, vec4(hit.diff.rgb, 1));
-  imageStore(gbufNorm, at, vec4(hit.norm.xyz*0.5+0.5, 1));
-  imageStore(gbufHit,  at, vec4(hit.rayT/TMax));
-  }
-
 void main() {
   const float eps      = 0.0001;
   const uint  numPaths = NumThreads;
   const uint  surfelId = pass==0 ? gl_WorkGroupID.x : (header.count-gl_WorkGroupID.z-1);
-  // if(surfelId>=header.count)
-  //   return;
 
   const Surfel p   = surfels[surfelId];
   const mat3   tbn = toTangent(decodeNormal(p.norm));
@@ -122,9 +113,8 @@ void main() {
   const uint i   = gl_LocalInvocationIndex;
   const vec3 ray = tbn * sampleHemisphereCos(i,numPaths,0);
 
-  const HitResolve hit = raycast(p.pos, ray, rngState);
+  const HitResolve hit = loadGBuf(p.payload);
   const vec3       pt  = evalLight(p.pos, ray, hit);
-  storeGBuf(p.payload, hit);
 
   hitCnt = 0;
   barrier();
@@ -132,13 +122,13 @@ void main() {
   if(hit.rayT!=TMax)
     atomicAdd(hitCnt, 1);
 
-  reduction[i] = 1.0/clamp(hit.rayT*0.4, 10.0, 1*p.radius);
+  reduction[i] = vec3(pt.rgb);
   barrier();
 
   reduceIrr();
 
   if(gl_LocalInvocationIndex==0) {
-    const float hitMean = float(numPaths)/max(reduction[0], eps); //harmonic mean
-    surfels[surfelId].radiusMean = hitMean;
+    //NOTE: not updating harmonic mean - it's frozen after RT-pass
+    surfels[surfelId].irradiance = (reduction[0].rgb/float(numPaths));
     }
   }
