@@ -78,7 +78,7 @@ vec4 pathtrace(vec3 rayOrigin, vec3 rayDirection, inout Random rngState) {
       return vec4(color, depth);
       }
 
-    HitResolve hit = rayQueryProceedPrimary(rayOrigin, rayDirection, (bounce==0 ? 0 : -1), rngState);
+    HitResolve hit = rayQueryProceedPrimary(rayOrigin, rayDirection, -1, rngState);
     if(bounce==0)
       depth = abs(hit.rayT);
 

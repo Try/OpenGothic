@@ -22,7 +22,7 @@ struct Surfel {
   float radius;
   float radiusMean;
   vec3  irradiance;
-  int   radiusPix;
+  uint  payload;
   };
 
 struct Candidate {
@@ -32,7 +32,7 @@ struct Candidate {
 
 bool isSurfelVisible(const Surfel s, ivec2 bboxMin, ivec2 bboxMax) {
   const ivec2 at     = s.fragCoord;
-  const int   radius = s.radiusPix;
+  const int   radius = DefaultCoverage;
 
   if(bboxMax.x < at.x-radius || bboxMax.y < at.y-radius)
     return false;

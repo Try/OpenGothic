@@ -217,6 +217,9 @@ class Renderer final {
       Tempest::StorageImage     surfCnts, surfBins;
       Tempest::StorageBuffer    surfBinsCtrl, surfList;
 
+      Tempest::StorageBuffer    gbuffFree;
+      Tempest::StorageImage     gbuffDiff, gbuffNorm, gbuffHitT;
+
       Tempest::StorageImage     dbgImage;
       } surf;
 

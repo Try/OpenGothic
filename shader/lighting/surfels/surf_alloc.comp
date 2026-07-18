@@ -24,7 +24,7 @@ layout(binding = 1) uniform texture2D  irradiance;
 layout(binding = 2) uniform utexture2D gbufNormal;
 layout(binding = 3) uniform texture2D  depth;
 layout(binding = 4, std430) buffer SB0 { SurfHeader header; Surfel surfels[]; } surf;
-//
+layout(binding = 5, std430) buffer SB1 { uint count; uint ids[]; } freelist;
 layout(binding = 6, r32ui)  uniform uimage2D surfCnts;
 layout(binding = 7, r32ui)  uniform uimage2D surfBins;
 layout(binding = 8, std430) readonly buffer SB2 { uint surfelList[]; };
@@ -85,6 +85,13 @@ void fragCoverageVote(float wSum) {
   atomicMin(fragVote, b);
   }
 
+uint allocPayload() {
+  uint i = atomicAdd(freelist.count, 1);
+  if(i<freelist.ids.length())
+    return freelist.ids[i];
+  return 0;
+  }
+
 void storeSurfels() {
   const uint laneID = gl_LocalInvocationIndex;
 
@@ -111,7 +118,7 @@ void storeSurfels() {
       sx.radius     = p.pos.w;
       sx.radiusMean = p.pos.w * 2;
       sx.irradiance = debugColors[(gl_WorkGroupID.x*32+gl_WorkGroupID.y)%debugColors.length()] / scene.exposure;
-      sx.radiusPix  = DefaultCoverage;
+      sx.payload    = allocPayload();
       surf.surfels[ptr] = sx;
       }
     }

@@ -3,7 +3,7 @@
 
 #include "random.glsl"
 
-const float TMax = 1e30f;
+const float TMax = 500*100;
 
 struct HitResolve {
   vec4  diff;
@@ -40,7 +40,7 @@ float rayQueryProceedShadow(const vec3 rayOrigin, const vec3 rayDirection, inout
 
   rayQueryEXT rayQuery;
   rayQueryInitializeEXT(rayQuery, topLevelAS, flags, CM_ShadowCaster,
-                        rayOrigin, tMin, rayDirection, 500*100);
+                        rayOrigin, tMin, rayDirection, TMax);
   rayQueryProceedAlphaTest(rayQuery);
   // rayQueryProceedAlphaTest(rayQuery, rngState);
   if(rayQueryGetIntersectionTypeEXT(rayQuery, true) == gl_RayQueryCommittedIntersectionNoneEXT)
@@ -55,7 +55,7 @@ HitResolve rayQueryProceedPrimary(const vec3 rayOrigin, const vec3 rayDirection,
 
   rayQueryEXT rayQuery;
   rayQueryInitializeEXT(rayQuery, topLevelAS, flags, 0xFF,
-                        rayOrigin, tMin, rayDirection, 500*100);
+                        rayOrigin, tMin, rayDirection, TMax);
   rayQueryProceedAlphaTest(rayQuery);
   // rayQueryProceedAlphaTest(rayQuery, rngState);
   if(rayQueryGetIntersectionTypeEXT(rayQuery, true) == gl_RayQueryCommittedIntersectionNoneEXT) {

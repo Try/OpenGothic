@@ -90,10 +90,10 @@ class Shaders {
     Tempest::RenderPipeline  surfDbg;
     Tempest::ComputePipeline surfBinClear, surfBinPass, surfBinAlloc, surfBinSort;
 
-    Tempest::ComputePipeline surfAlloc, surfApply;
+    Tempest::ComputePipeline surfAlloc, surfApply, surfFList;
     Tempest::ComputePipeline surfUpdate, surfCulling, surfDecimate, surfCompact;
 
-    Tempest::ComputePipeline surfPathtrace;
+    Tempest::ComputePipeline surfPathtrace, surfRaycast;
 
     // Epipolar
     Tempest::ComputePipeline fogEpipolarVsm;
