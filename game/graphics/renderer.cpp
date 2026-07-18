@@ -1949,9 +1949,9 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
   const auto     binCount        = tileCount(zbuffer.size(), DefaultCoverage);
 
   auto& scene     = wview.sceneGlobals();
-  auto& dbgImage  = usesImage2d (surf.dbgImage, TextureFormat::RGBA8,   zbuffer.size());
-  auto& irrImage  = usesImage2d (surf.irrImage, TextureFormat::RGBA16F, zbuffer.size());
-  auto& surfels   = usesSsboInit(surf.surfels,  shaders.surfAlloc.sizeofBuffer(4, maxSurfels));
+  auto& dbgImage  = usesImage2d (surf.dbgImage,  TextureFormat::RGBA8,   zbuffer.size());
+  auto& irrImage  = usesImage2d (surf.irrImage,  TextureFormat::RGBA16F, zbuffer.size());
+  auto& surfels   = usesSsboInit(surf.surfels,   shaders.surfAlloc.sizeofBuffer(4, maxSurfels));
 
   auto& surfCnts  = usesImage2d(surf.surfCnts, TextureFormat::R32U, binCount);
   auto& surfBins  = usesImage2d(surf.surfBins, TextureFormat::R32U, binCount);
@@ -1967,6 +1967,13 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
   push.pass      = 0;
 
   cmd.setDebugMarker("Surfels");
+
+  if(surf.gbuffFree.isEmpty()) {
+    auto& gbuffFree = usesSsbo(surf.gbuffFree, shaders.surfFList.sizeofBuffer(0, maxSurfels));
+    cmd.setBinding(0, gbuffFree);
+    cmd.setPipeline(shaders.surfFList);
+    cmd.dispatchThreads(maxSurfels);
+    }
 
   // prev-frame
   {
@@ -1986,6 +1993,7 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
     cmd.setBinding(1, hiz.hiZ);
     cmd.setBinding(2, zbuffer);
     cmd.setBinding(3, surfels);
+    cmd.setBinding(4, surf.gbuffFree);
     //
     cmd.setBinding(6, surfCnts);
     cmd.setBinding(7, surfBins);
@@ -2041,7 +2049,7 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
     cmd.setBinding(2, gbufNormal);
     cmd.setBinding(3, zbuffer);
     cmd.setBinding(4, surfels);
-    //
+    cmd.setBinding(5, surf.gbuffFree);
     cmd.setBinding(6, surfCnts);
     cmd.setBinding(7, surfBins);
     cmd.setBinding(8, surfList);
@@ -2123,14 +2131,29 @@ void Renderer::surfelsBinning(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
   }
 
 void Renderer::surfelsTrace(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview, StorageBuffer& surfels, bool postPass) {
+  static int giMethod = 0;
+
   auto& scene = wview.sceneGlobals();
+
+  const Tempest::ComputePipeline* pso = &shaders.surfRaycast;
+  if(giMethod==1)
+    pso = &shaders.surfPathtrace;
+
+  const uint32_t gbufTilesX = uint32_t(std::sqrt(surf.maxSurfels));
+  const uint32_t gbufTilesY = (surf.maxSurfels+gbufTilesX-1)/gbufTilesX;
+
+  auto& gbuffDiff = usesImage2d (surf.gbuffDiff, TextureFormat::RGBA8, gbufTilesX*8, gbufTilesY*8);
+  auto& gbuffNorm = usesImage2d (surf.gbuffNorm, TextureFormat::RGBA8, gbufTilesX*8, gbufTilesY*8);
+  auto& gbuffHitT = usesImage2d (surf.gbuffHitT, TextureFormat::R16,   gbufTilesX*8, gbufTilesY*8);
 
   const uint32_t pass = postPass ? 1 : 0;
   cmd.setPushData(pass);
   cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
   cmd.setBinding(1, surfels);
   cmd.setBinding(2, sky.viewCldLut);
-  //
+  cmd.setBinding(3, gbuffDiff);
+  cmd.setBinding(4, gbuffNorm);
+  cmd.setBinding(5, gbuffHitT);
   cmd.setBinding(6, scene.rtScene.tlas);
   cmd.setBinding(7, Sampler::trillinear());
   cmd.setBinding(8, scene.rtScene.tex);
@@ -2138,10 +2161,17 @@ void Renderer::surfelsTrace(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
   cmd.setBinding(10,scene.rtScene.ibo);
   cmd.setBinding(11,scene.rtScene.rtDesc);
 
-  cmd.setPipeline(shaders.surfPathtrace);
-  //cmd.dispatchThreads(maxSurfels);
+  cmd.setPipeline(*pso);
   const uint32_t offset = postPass ? sizeof(uint32_t) : 0;
-  cmd.dispatchIndirect(surfels, offset);
+  if(!(giMethod==0 && postPass==false)) {
+    cmd.dispatchIndirect(surfels, offset);
+    // cmd.dispatchThreads(maxSurfels);
+    }
+
+  if(giMethod==0) {
+    cmd.setPipeline(shaders.surLighting);
+    cmd.dispatchIndirect(surfels, offset);
+    }
   }
 
 void Renderer::prepareIrradiance(Encoder<CommandBuffer>& cmd, WorldView& wview) {
