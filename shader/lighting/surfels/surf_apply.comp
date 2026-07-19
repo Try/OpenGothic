@@ -4,7 +4,7 @@
 #include "scene.glsl"
 #include "common.glsl"
 
-layout(local_size_x = 16, local_size_y = 16) in;
+layout(local_size_x = 32, local_size_y = 16) in;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
 
@@ -24,13 +24,15 @@ layout(binding = 4, std430) readonly buffer SB0 { SurfHeader header; Surfel surf
 layout(binding = 6, r32ui) uniform uimage2D surfCnts;
 layout(binding = 7, r32ui) uniform uimage2D surfBins;
 layout(binding = 8, std430) readonly buffer SB2 { uint surfelList[]; };
-//
-layout(binding = 11, rgba8) uniform image2D dbgImage;
 
-shared vec4 surfelsPos [NumThreads];
-shared vec4 surfelsNorm[NumThreads];
-shared vec4 surfelsIrr [NumThreads];
-shared uint surfelCount;
+struct TSurfel {
+  vec4 pos;
+  vec4 norm;
+  vec4 irr;
+  };
+
+shared TSurfel tSurfels[NumThreads];
+shared uint    surfelCount;
 
 vec3 worldPos(float z, ivec2 fragCoord, ivec2 screenSize) {
   const mat4 inv = scene.viewProjectLwcInv;
@@ -40,11 +42,12 @@ vec3 worldPos(float z, ivec2 fragCoord, ivec2 screenSize) {
   }
 
 void applyBatch(inout vec4 clr, const vec3 wpos, const vec3 norm, const uint surfCount) {
-  for(int i=0; i<surfCount; ++i) {
-    const float w     = calculteWeight(surfelsPos[i].xyz, surfelsNorm[i].xyz, surfelsIrr[i].w, surfelsNorm[i].w, wpos, norm);
-    const vec3  color = surfelsIrr[i].rgb;
+  for(int i=0; i<tSurfels.length() && i<surfCount; ++i) {
+    const TSurfel sx = tSurfels[i];
+    const float   w  = calculteWeight(sx.pos.xyz, sx.norm.xyz, sx.pos.w, sx.norm.w, wpos, norm);
     if(w <= 0.0)
       continue;
+    const vec3 color = sx.irr.rgb;
     clr += vec4(color*w, w);
     }
   }
@@ -62,9 +65,14 @@ void pullSurfels(ivec2 bboxMin, ivec2 bboxMax, uint ptr, uint cnt, uint i) {
     return;
 
   const uint id = atomicAdd(surfelCount, 1);
-  surfelsPos [id] = vec4(s.pos, uintBitsToFloat(sId));
-  surfelsNorm[id] = vec4(decodeNormal(s.norm), s.radius);
-  surfelsIrr [id] = vec4(s.irradiance, s.radiusMean);
+  if(id>=tSurfels.length())
+    return;
+
+  TSurfel sx;
+  sx.pos  = vec4(s.pos, s.radiusMean);
+  sx.norm = vec4(decodeNormal(s.norm), s.radius);
+  sx.irr  = vec4(s.irradiance, 0);
+  tSurfels[id] = sx;
   }
 
 void main() {
@@ -96,26 +104,25 @@ void main() {
   surfelCount = 0;
 
   vec4 clr = vec4(0);
-  for(uint i=0; i<cnt; i+=NumThreads) {
-    barrier();
+  //for(uint i=0; i<cnt; i+=NumThreads) {
+  //  barrier();
 
-    pullSurfels(bboxMin, bboxMax, ptr, cnt, i+laneID);
+    pullSurfels(bboxMin, bboxMax, ptr, cnt, 0+laneID);
     barrier();
 
     if(!sky) {
       applyBatch(clr, wpos, norm, surfelCount);
       }
-    barrier();
+  //  barrier();
 
-    surfelCount = 0;
-    }
+  //  surfelCount = 0;
+  //  }
 
   if(!valid)
     return;
 
   if(sky) {
     imageStore(irradiance, fragCoord, vec4(0,0,0,1));
-    imageStore(dbgImage, fragCoord, vec4(1));
     return;
     }
 
@@ -130,10 +137,9 @@ void main() {
     // post pass
     const vec4 pre = imageLoad(irradiance, fragCoord);
     clr += vec4(pre.rgb*pre.a, pre.a);
+    //clr += vec4(pre.rgb, pre.a);
     if(clr.a>0)
       clr.rgb /= clr.a;
     imageStore(irradiance, fragCoord, vec4(clr.rgb, clr.a));
     }
-
-  imageStore(dbgImage, fragCoord, vec4(clr.a));
   }

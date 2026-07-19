@@ -2075,7 +2075,6 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
 void Renderer::surfelsApply(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview, int32_t tileSize, bool postPass) {
   auto& scene = wview.sceneGlobals();
 
-  auto& dbgImage  = surf.dbgImage;
   auto& irrImage  = surf.irrImage;
   auto& surfels   = surf.surfels;
   auto& surfCnts  = surf.surfCnts;
@@ -2104,12 +2103,10 @@ void Renderer::surfelsApply(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
   cmd.setBinding(6, surfCnts);
   cmd.setBinding(7, surfBins);
   cmd.setBinding(8, surfList);
-  //
-  cmd.setBinding(11, dbgImage);
 
   cmd.setPipeline(shaders.surfApply);
   cmd.dispatchThreads(zbuffer.size());
-
+  /*
   cmd.setFramebuffer({{irrImage2, Vec4(0), Tempest::Preserve}});
   cmd.setPushData(push);
   cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
@@ -2120,6 +2117,7 @@ void Renderer::surfelsApply(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
   cmd.draw(nullptr, 0, 6, 0, surf.maxSurfels);
 
   cmd.setFramebuffer({});
+  */
   }
 
 void Renderer::surfelsBinning(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview, int32_t tileSize, bool postPass) {
