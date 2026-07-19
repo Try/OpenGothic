@@ -1959,15 +1959,15 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
   if(settings.giMethod!=GiMethod::IrrC || !settings.zCloudShadowScale)
     return;
 
-  const uint32_t maxSurfels      = surf.maxSurfels;
-  const int32_t  tileSize        = 128;
-  const int32_t  DefaultCoverage = 128;
-  const auto     binCount        = tileCount(zbuffer.size(), DefaultCoverage);
+  const uint32_t maxSurfels = surf.maxSurfels;
+  const int32_t  TileSize   = 64;
+  const int32_t  LargeTile  = 128;
+  const auto     binCount   = tileCount(zbuffer.size(), TileSize);
 
   auto& scene     = wview.sceneGlobals();
-  auto& dbgImage  = usesImage2d (surf.dbgImage,  TextureFormat::RGBA8,   zbuffer.size());
-  auto& irrImage  = usesImage2d (surf.irrImage,  TextureFormat::RGBA16F, zbuffer.size());
-  auto& surfels   = usesSsboInit(surf.surfels,   shaders.surfAlloc.sizeofBuffer(4, maxSurfels));
+  auto& dbgImage  = usesImage2d (surf.dbgImage, TextureFormat::RGBA8,   zbuffer.size());
+  auto& irrImage  = usesImage2d (surf.irrImage, TextureFormat::RGBA16F, zbuffer.size());
+  auto& surfels   = usesSsboInit(surf.surfels,  shaders.surfAlloc.sizeofBuffer(4, maxSurfels));
 
   auto& surfCnts  = usesImage2d(surf.surfCnts, TextureFormat::R32U, binCount);
   auto& surfBins  = usesImage2d(surf.surfBins, TextureFormat::R32U, binCount);
@@ -1979,7 +1979,7 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
     uint32_t pass;
     } push = {};
   push.originLwc = scene.originLwc;
-  push.tileSize  = uint32_t(tileSize);
+  push.tileSize  = uint32_t(TileSize);
   push.pass      = 0;
 
   cmd.setDebugMarker("Surfels");
@@ -2003,7 +2003,7 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
 
   static bool gc = true;
   if(gc) {
-    surfelsBinning(cmd, wview, tileSize, false);
+    surfelsBinning(cmd, wview, TileSize, false);
 
     cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
     cmd.setBinding(1, hiz.hiZ);
@@ -2037,8 +2037,8 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
 
   static bool apply = true;
   if(apply) {
-    surfelsBinning(cmd, wview, tileSize, false);
-    surfelsApply(cmd, wview, tileSize, false);
+    surfelsBinning(cmd, wview, TileSize, false);
+    surfelsApply(cmd, wview, TileSize, false);
     }
 
   // current-frame
@@ -2057,7 +2057,7 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
     //
     cmd.setBinding(11, dbgImage);
 
-    const auto tc = tileCount(zbuffer.size(), 128);
+    const auto tc = tileCount(zbuffer.size(), LargeTile);
     cmd.setPipeline(shaders.surfAlloc);
     cmd.dispatch(tc);
     }
@@ -2067,8 +2067,8 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
     }
 
   if(apply) {
-    surfelsBinning(cmd, wview, tileSize, true);
-    surfelsApply(cmd, wview, tileSize, true);
+    surfelsBinning(cmd, wview, TileSize, true);
+    surfelsApply(cmd, wview, TileSize, true);
     }
   }
 

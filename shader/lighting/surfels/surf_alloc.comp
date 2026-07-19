@@ -15,7 +15,6 @@ const int   MaxQueue    = 256;
 
 layout(std140, push_constant) uniform Push {
   vec3 originLwc;
-  uint tileSize;
   };
 layout(binding = 0, std140) uniform UboScene {
   SceneDesc scene;
@@ -203,10 +202,10 @@ void main() {
   barrier();
 
   const ivec2 screenSize = ivec2(textureSize(depth,0));
-  const ivec2 tileCount  = ivec2(tileSize)/ivec2(gl_WorkGroupSize.xy);
+  const ivec2 tileCount  = ivec2(LargeTile)/ivec2(gl_WorkGroupSize.xy);
   for(int y=0; y<tileCount.y; ++y)
     for(int x=0; x<tileCount.x; ++x) {
-      ivec2 at = ivec2(gl_WorkGroupID.xy) * int(tileSize);
+      ivec2 at = ivec2(gl_WorkGroupID.xy) * int(LargeTile);
       at += remap(ivec2(x,y), tileCount)*ivec2(gl_WorkGroupSize.xy);
       mainSubtile(at, at + ivec2(gl_LocalInvocationID.xy), screenSize);
       }
