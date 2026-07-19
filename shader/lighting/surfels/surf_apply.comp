@@ -4,7 +4,7 @@
 #include "scene.glsl"
 #include "common.glsl"
 
-layout(local_size_x = 32, local_size_y = 16) in;
+layout(local_size_x = 16, local_size_y = 16) in;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
 
@@ -42,7 +42,7 @@ vec3 worldPos(float z, ivec2 fragCoord, ivec2 screenSize) {
   }
 
 void applyBatch(inout vec4 clr, const vec3 wpos, const vec3 norm, const uint surfCount) {
-  for(int i=0; i<tSurfels.length() && i<surfCount; ++i) {
+  for(int i=0; i<surfCount; ++i) {
     const TSurfel sx = tSurfels[i];
     const float   w  = calculteWeight(sx.pos.xyz, sx.norm.xyz, sx.pos.w, sx.norm.w, wpos, norm);
     if(w <= 0.0)
@@ -104,8 +104,8 @@ void main() {
   surfelCount = 0;
 
   vec4 clr = vec4(0);
-  //for(uint i=0; i<cnt; i+=NumThreads) {
-  //  barrier();
+  for(uint i=0;; i+=NumThreads) {
+    barrier();
 
     pullSurfels(bboxMin, bboxMax, ptr, cnt, 0+laneID);
     barrier();
@@ -113,10 +113,13 @@ void main() {
     if(!sky) {
       applyBatch(clr, wpos, norm, surfelCount);
       }
-  //  barrier();
 
-  //  surfelCount = 0;
-  //  }
+    if(i>=cnt)
+      break;
+
+    barrier();
+    surfelCount = 0;
+    }
 
   if(!valid)
     return;
