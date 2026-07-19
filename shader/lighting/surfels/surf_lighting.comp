@@ -28,6 +28,24 @@ layout(binding = 2)         uniform sampler2D skyLUT;
 layout(binding = 3)         uniform texture2D gbufDiff;
 layout(binding = 4)         uniform texture2D gbufNorm;
 layout(binding = 5)         uniform texture2D gbufHit;
+layout(binding = 12)        uniform sampler2D textureSm1;
+
+float shadowResolve(in vec4 sh, float z) {
+  z  = clamp(z,0,0.99);
+  sh = step(sh,vec4(z));
+  return 0.25*(sh.x+sh.y+sh.z+sh.w);
+  }
+
+vec4 shadowSample(in sampler2D shadowMap, vec2 shPos) {
+  shPos.xy = shPos.xy*vec2(0.5,0.5)+vec2(0.5);
+  return textureGather(shadowMap,shPos);
+  }
+
+float calcShadow(vec3 shPos1) {
+  vec4  lay1 = shadowSample(textureSm1,shPos1.xy);
+  float v1   = shadowResolve(lay1,shPos1.z);
+  return v1;
+  }
 
 mat3 toTangent(vec3 norm) {
   mat3 tangent;
@@ -40,14 +58,21 @@ mat3 toTangent(vec3 norm) {
   }
 
 float sampleDirectLight(vec3 norm, vec3 rayOrigin, vec3 rayDirection) {
-  vec3  shRay  = rayDirection;
-
   float lamb   = max(dot(norm, rayDirection), 0);
   if(lamb==0)
     return lamb;
 
-  Random rngState = Random(0);
-  float shadow = rayQueryProceedShadow(rayOrigin, shRay, rngState);
+  vec4 shCoord = scene.viewShadow[1]*vec4(rayOrigin,1);
+  if(abs(shCoord.x)>=shCoord.w && abs(shCoord.y)>=shCoord.w) {
+#if 1
+    return 1;
+#else
+    Random rngState = Random(0);
+    float shadow = rayQueryProceedShadow(rayOrigin, rayDirection, rngState);
+    return (lamb * shadow);
+#endif
+    }
+  float shadow = calcShadow(shCoord.xyz/shCoord.w);
   return (lamb * shadow);
   }
 

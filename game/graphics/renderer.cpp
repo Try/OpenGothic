@@ -432,7 +432,8 @@ void Renderer::resetShadowmap() {
   for(int i=0; i<Resources::ShadowLayers; ++i)
     Resources::recycle(std::move(shadowMap[i]));
 
-  const bool forceSm1 = (settings.giMethod==GiMethod::Probes || settings.pathTraceEnabled || sky.quality==PathTrace);
+  const bool forceSm1 = (settings.giMethod==GiMethod::Probes || settings.giMethod==GiMethod::IrrC ||
+                         settings.pathTraceEnabled || sky.quality==PathTrace);
   for(int i=0; i<Resources::ShadowLayers; ++i) {
     if(!(i==1 && forceSm1)) {
       if(settings.vsmEnabled && !(settings.rtsmEnabled && i==1))
@@ -2081,8 +2082,8 @@ void Renderer::surfelsApply(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
   auto& surfBins  = surf.surfBins;
   auto& surfList  = surf.surfList;
 
-  auto& irrImage2 = usesAttachment(surf.irrImage2, TextureFormat::RGBA16F, zbuffer.size());
-  (void)irrImage2;
+  // auto& irrImage2 = usesAttachment(surf.irrImage2, TextureFormat::RGBA16F, zbuffer.size());
+  // (void)irrImage2;
 
   struct Push {
     Vec3     originLwc;
@@ -2193,6 +2194,7 @@ void Renderer::surfelsTrace(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
   cmd.setBinding(9, scene.rtScene.vbo);
   cmd.setBinding(10,scene.rtScene.ibo);
   cmd.setBinding(11,scene.rtScene.rtDesc);
+  cmd.setBinding(12,shadowMap[1]);
 
   cmd.setPipeline(*pso);
   const uint32_t offset = postPass ? sizeof(uint32_t) : 0;
