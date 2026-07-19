@@ -49,6 +49,8 @@ class Renderer final {
     Tempest::StorageImage&  usesImage2d(Tempest::StorageImage& ret, Tempest::TextureFormat frm, Tempest::Size sz, bool mips = false);
     Tempest::StorageImage&  usesImage3d(Tempest::StorageImage& ret, Tempest::TextureFormat frm, uint32_t w, uint32_t h, uint32_t d, bool mips = false);
     Tempest::ZBuffer&       usesZBuffer(Tempest::ZBuffer&      ret, Tempest::TextureFormat frm, uint32_t w, uint32_t h);
+    Tempest::Attachment&    usesAttachment(Tempest::Attachment&ret, Tempest::TextureFormat frm, Tempest::Size sz);
+    Tempest::Attachment&    usesAttachment(Tempest::Attachment&ret, Tempest::TextureFormat frm, uint32_t w, uint32_t h);
     Tempest::StorageBuffer& usesSsbo(Tempest::StorageBuffer& ret, size_t size);
     Tempest::StorageBuffer& usesSsboInit(Tempest::StorageBuffer& ret, size_t size);
     Tempest::StorageBuffer& usesScratch(Tempest::StorageBuffer& ret, size_t size);
@@ -66,6 +68,7 @@ class Renderer final {
     void prepareEpipolar  (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview);
 
     void prepareSurfels   (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview);
+    void surfelsApply     (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview, int32_t tileSize, bool postPass);
     void surfelsBinning   (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview, int32_t tileSize, bool postPass);
     void surfelsTrace     (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview, Tempest::StorageBuffer& surfels, bool postPass);
 
@@ -212,6 +215,8 @@ class Renderer final {
     struct {
       const uint32_t            maxSurfels = 16*1024;
       Tempest::StorageBuffer    surfels;
+
+      Tempest::Attachment       irrImage2;
 
       Tempest::StorageImage     irrImage;
       Tempest::StorageImage     surfCnts, surfBins;

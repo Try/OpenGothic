@@ -20,7 +20,7 @@ layout(binding = 1, rgba16f) uniform image2D irradiance;
 layout(binding = 2) uniform utexture2D gbufNormal;
 layout(binding = 3) uniform texture2D  depth;
 layout(binding = 4, std430) readonly buffer SB0 { SurfHeader header; Surfel surfels[]; };
-layout(binding = 5, std430)          buffer SB1 { uint usage[]; };
+//
 layout(binding = 6, r32ui) uniform uimage2D surfCnts;
 layout(binding = 7, r32ui) uniform uimage2D surfBins;
 layout(binding = 8, std430) readonly buffer SB2 { uint surfelList[]; };

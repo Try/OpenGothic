@@ -368,6 +368,22 @@ ZBuffer& Renderer::usesZBuffer(Tempest::ZBuffer& ret, Tempest::TextureFormat frm
   return ret;
   }
 
+Attachment& Renderer::usesAttachment(Tempest::Attachment& ret, Tempest::TextureFormat frm, Tempest::Size size) {
+  if(textureCast<Texture2d&>(ret).format()==frm && ret.size()==size)
+    return ret;
+  Resources::recycle(std::move(ret));
+  ret = Resources::device().attachment(frm, size);
+  return ret;
+  }
+
+Attachment& Renderer::usesAttachment(Tempest::Attachment& ret, Tempest::TextureFormat frm, uint32_t w, uint32_t h) {
+  if(textureCast<Texture2d&>(ret).format()==frm && uint32_t(ret.w())==w && uint32_t(ret.h())==h)
+    return ret;
+  Resources::recycle(std::move(ret));
+  ret = Resources::device().attachment(frm, w, h);
+  return ret;
+  }
+
 StorageBuffer& Renderer::usesSsbo(Tempest::StorageBuffer& ret, size_t size) {
   if(ret.byteSize()==size)
     return ret;
@@ -2022,22 +2038,7 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
   static bool apply = true;
   if(apply) {
     surfelsBinning(cmd, wview, tileSize, false);
-
-    cmd.setPushData(push);
-    cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
-    cmd.setBinding(1, irrImage);
-    cmd.setBinding(2, gbufNormal);
-    cmd.setBinding(3, zbuffer);
-    cmd.setBinding(4, surfels);
-    //
-    cmd.setBinding(6, surfCnts);
-    cmd.setBinding(7, surfBins);
-    cmd.setBinding(8, surfList);
-    //
-    cmd.setBinding(11, dbgImage);
-
-    cmd.setPipeline(shaders.surfApply);
-    cmd.dispatchThreads(zbuffer.size());
+    surfelsApply(cmd, wview, tileSize, false);
     }
 
   // current-frame
@@ -2067,24 +2068,58 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
 
   if(apply) {
     surfelsBinning(cmd, wview, tileSize, true);
-
-    push.pass = 1;
-    cmd.setPushData(push);
-    cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
-    cmd.setBinding(1, irrImage);
-    cmd.setBinding(2, gbufNormal);
-    cmd.setBinding(3, zbuffer);
-    cmd.setBinding(4, surfels);
-    //
-    cmd.setBinding(6, surfCnts);
-    cmd.setBinding(7, surfBins);
-    cmd.setBinding(8, surfList);
-    //
-    cmd.setBinding(11, dbgImage);
-
-    cmd.setPipeline(shaders.surfApply);
-    cmd.dispatchThreads(zbuffer.size());
+    surfelsApply(cmd, wview, tileSize, true);
     }
+  }
+
+void Renderer::surfelsApply(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview, int32_t tileSize, bool postPass) {
+  auto& scene = wview.sceneGlobals();
+
+  auto& dbgImage  = surf.dbgImage;
+  auto& irrImage  = surf.irrImage;
+  auto& surfels   = surf.surfels;
+  auto& surfCnts  = surf.surfCnts;
+  auto& surfBins  = surf.surfBins;
+  auto& surfList  = surf.surfList;
+
+  auto& irrImage2 = usesAttachment(surf.irrImage2, TextureFormat::RGBA16F, zbuffer.size());
+  (void)irrImage2;
+
+  struct Push {
+    Vec3     originLwc;
+    uint32_t tileSize;
+    uint32_t pass;
+    } push = {};
+  push.originLwc = scene.originLwc;
+  push.tileSize  = uint32_t(tileSize);
+  push.pass      = postPass ? 1 : 0;
+
+  cmd.setPushData(push);
+  cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
+  cmd.setBinding(1, irrImage);
+  cmd.setBinding(2, gbufNormal);
+  cmd.setBinding(3, zbuffer);
+  cmd.setBinding(4, surfels);
+  //
+  cmd.setBinding(6, surfCnts);
+  cmd.setBinding(7, surfBins);
+  cmd.setBinding(8, surfList);
+  //
+  cmd.setBinding(11, dbgImage);
+
+  cmd.setPipeline(shaders.surfApply);
+  cmd.dispatchThreads(zbuffer.size());
+
+  cmd.setFramebuffer({{irrImage2, Vec4(0), Tempest::Preserve}});
+  cmd.setPushData(push);
+  cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
+  cmd.setBinding(2, gbufNormal);
+  cmd.setBinding(3, zbuffer);
+  cmd.setBinding(4, surfels);
+  cmd.setPipeline(shaders.surfApplyFrag);
+  cmd.draw(nullptr, 0, 6, 0, surf.maxSurfels);
+
+  cmd.setFramebuffer({});
   }
 
 void Renderer::surfelsBinning(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview, int32_t tileSize, bool postPass) {
@@ -2142,9 +2177,9 @@ void Renderer::surfelsTrace(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
   const uint32_t gbufTilesX = uint32_t(std::sqrt(surf.maxSurfels));
   const uint32_t gbufTilesY = (surf.maxSurfels+gbufTilesX-1)/gbufTilesX;
 
-  auto& gbuffDiff = usesImage2d (surf.gbuffDiff, TextureFormat::RGBA8, gbufTilesX*8, gbufTilesY*8);
-  auto& gbuffNorm = usesImage2d (surf.gbuffNorm, TextureFormat::RGBA8, gbufTilesX*8, gbufTilesY*8);
-  auto& gbuffHitT = usesImage2d (surf.gbuffHitT, TextureFormat::R16,   gbufTilesX*8, gbufTilesY*8);
+  auto& gbuffDiff = usesImage2d(surf.gbuffDiff, TextureFormat::RGBA8, gbufTilesX*8, gbufTilesY*8);
+  auto& gbuffNorm = usesImage2d(surf.gbuffNorm, TextureFormat::RGBA8, gbufTilesX*8, gbufTilesY*8);
+  auto& gbuffHitT = usesImage2d(surf.gbuffHitT, TextureFormat::R16,   gbufTilesX*8, gbufTilesY*8);
 
   const uint32_t pass = postPass ? 1 : 0;
   cmd.setPushData(pass);

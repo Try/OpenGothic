@@ -92,6 +92,7 @@ class Shaders {
 
     Tempest::ComputePipeline surfAlloc, surfApply, surfFList;
     Tempest::ComputePipeline surfUpdate, surfCulling, surfDecimate, surfCompact;
+    Tempest::RenderPipeline  surfApplyFrag;
 
     Tempest::ComputePipeline surfPathtrace, surfRaycast, surLighting;
 
