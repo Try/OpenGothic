@@ -213,10 +213,11 @@ class Renderer final {
       } gi;
 
     struct {
-      const uint32_t            maxSurfels = 16*1024;
+      const Tempest::IVec2      gbufTile   = {8, 8};
+      const uint32_t            gbufTilesX = 256;
+      const uint32_t            gbufTilesY = 256;
+      const uint32_t            maxSurfels = gbufTilesX*gbufTilesY;
       Tempest::StorageBuffer    surfels;
-
-      Tempest::Attachment       irrImage2;
 
       Tempest::StorageImage     irrImage;
       Tempest::StorageImage     surfCnts, surfBins;
@@ -224,8 +225,6 @@ class Renderer final {
 
       Tempest::StorageBuffer    gbuffFree;
       Tempest::StorageImage     gbuffDiff, gbuffNorm, gbuffHitT;
-
-      Tempest::StorageImage     dbgImage;
       } surf;
 
     struct {

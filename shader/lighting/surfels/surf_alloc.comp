@@ -27,8 +27,6 @@ layout(binding = 5, std430) buffer SB1 { uint count; uint ids[]; } freelist;
 layout(binding = 6, r32ui)  uniform uimage2D surfCnts;
 layout(binding = 7, r32ui)  uniform uimage2D surfBins;
 layout(binding = 8, std430) readonly buffer SB2 { uint surfelList[]; };
-//
-layout(binding = 11, rgba8) uniform image2D dbgImage;
 
 shared Candidate pointQueue[MaxQueue];
 shared int       pointQueueSize;
@@ -175,8 +173,6 @@ void mainSubtile(const ivec2 at, const ivec2 fragCoord, const ivec2 screenSize) 
 
     coverage += amendCoverage(fragCoord, wpos, norm);
     }
-
-  imageStore(dbgImage, fragCoord, vec4(coverage));
   }
 
 ivec2 remap(ivec2 subtile, ivec2 tileCnt) {

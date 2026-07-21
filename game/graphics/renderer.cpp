@@ -596,8 +596,7 @@ void Renderer::dbgDraw(Tempest::Painter& p) {
   //tex.push_back(&textureCast<const Texture2d&>(shadowMap[0]));
   //tex.push_back(&textureCast<const Texture2d&>(vsm.pageData));
   //tex.push_back(&textureCast<const Texture2d&>(swrt.outputImage));
-  tex.push_back(&textureCast<const Texture2d&>(surf.dbgImage));
-  //tex.push_back(&textureCast<const Texture2d&>(surf.irrImage));
+  tex.push_back(&textureCast<const Texture2d&>(surf.irrImage));
 
   static int size = 400;
   int left = 10;
@@ -1961,12 +1960,11 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
     return;
 
   const uint32_t maxSurfels = surf.maxSurfels;
-  const int32_t  TileSize   = 64;
+  const int32_t  TileSize   = 96;
   const int32_t  LargeTile  = 128;
   const auto     binCount   = tileCount(zbuffer.size(), TileSize);
 
   auto& scene     = wview.sceneGlobals();
-  auto& dbgImage  = usesImage2d (surf.dbgImage, TextureFormat::RGBA8,   zbuffer.size());
   auto& irrImage  = usesImage2d (surf.irrImage, TextureFormat::RGBA16F, zbuffer.size());
   auto& surfels   = usesSsboInit(surf.surfels,  shaders.surfAlloc.sizeofBuffer(4, maxSurfels));
 
@@ -1987,6 +1985,7 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
 
   if(surf.gbuffFree.isEmpty()) {
     auto& gbuffFree = usesSsbo(surf.gbuffFree, shaders.surfFList.sizeofBuffer(0, maxSurfels));
+    cmd.setPushData(surf.gbufTilesX);
     cmd.setBinding(0, gbuffFree);
     cmd.setPipeline(shaders.surfFList);
     cmd.dispatchThreads(maxSurfels);
@@ -2055,8 +2054,6 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
     cmd.setBinding(6, surfCnts);
     cmd.setBinding(7, surfBins);
     cmd.setBinding(8, surfList);
-    //
-    cmd.setBinding(11, dbgImage);
 
     const auto tc = tileCount(zbuffer.size(), LargeTile);
     cmd.setPipeline(shaders.surfAlloc);
@@ -2107,18 +2104,6 @@ void Renderer::surfelsApply(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
 
   cmd.setPipeline(shaders.surfApply);
   cmd.dispatchThreads(zbuffer.size());
-  /*
-  cmd.setFramebuffer({{irrImage2, Vec4(0), Tempest::Preserve}});
-  cmd.setPushData(push);
-  cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
-  cmd.setBinding(2, gbufNormal);
-  cmd.setBinding(3, zbuffer);
-  cmd.setBinding(4, surfels);
-  cmd.setPipeline(shaders.surfApplyFrag);
-  cmd.draw(nullptr, 0, 6, 0, surf.maxSurfels);
-
-  cmd.setFramebuffer({});
-  */
   }
 
 void Renderer::surfelsBinning(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview, int32_t tileSize, bool postPass) {
@@ -2173,12 +2158,12 @@ void Renderer::surfelsTrace(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
   if(giMethod==1)
     pso = &shaders.surfPathtrace;
 
-  const uint32_t gbufTilesX = uint32_t(std::sqrt(surf.maxSurfels));
-  const uint32_t gbufTilesY = (surf.maxSurfels+gbufTilesX-1)/gbufTilesX;
+  const uint32_t gbufX = surf.gbufTilesX * uint32_t(surf.gbufTile.x);
+  const uint32_t gbufY = surf.gbufTilesY * uint32_t(surf.gbufTile.y);
 
-  auto& gbuffDiff = usesImage2d(surf.gbuffDiff, TextureFormat::RGBA8, gbufTilesX*8, gbufTilesY*8);
-  auto& gbuffNorm = usesImage2d(surf.gbuffNorm, TextureFormat::RGBA8, gbufTilesX*8, gbufTilesY*8);
-  auto& gbuffHitT = usesImage2d(surf.gbuffHitT, TextureFormat::R16,   gbufTilesX*8, gbufTilesY*8);
+  auto& gbuffDiff = usesImage2d(surf.gbuffDiff, TextureFormat::RGBA8, gbufX, gbufY);
+  auto& gbuffNorm = usesImage2d(surf.gbuffNorm, TextureFormat::RGBA8, gbufX, gbufY);
+  auto& gbuffHitT = usesImage2d(surf.gbuffHitT, TextureFormat::R16,   gbufX, gbufY);
 
   const uint32_t pass = postPass ? 1 : 0;
   cmd.setPushData(pass);
@@ -2493,7 +2478,7 @@ void Renderer::drawSurfelsDbg(Encoder<CommandBuffer>& cmd, const WorldView& wvie
   if(settings.giMethod!=GiMethod::IrrC)
     return;
 
-  static bool enable = false;
+  static bool enable = true;
   if(!enable)
     return;
 

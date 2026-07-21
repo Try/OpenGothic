@@ -266,21 +266,6 @@ void Shaders::compileShaders() {
     surfPathtrace = computeShader("surf_pathtrace.comp.sprv");
     surfRaycast   = computeShader("surf_raycast.comp.sprv");
     surLighting   = computeShader("surf_lighting.comp.sprv");
-
-    {
-      RenderState state;
-      state.setCullFaceMode(RenderState::CullMode::NoCull);
-      state.setZTestMode   (RenderState::ZTestMode::Less);
-      state.setBlendSource (RenderState::BlendMode::One);
-      state.setBlendDest   (RenderState::BlendMode::One);
-      state.setZWriteEnabled(false);
-
-      auto sh = GothicShader::get("surf_apply.vert.sprv");
-      auto vs = device.shader(sh.data,sh.len);
-      sh = GothicShader::get("surf_apply.frag.sprv");
-      auto fs = device.shader(sh.data,sh.len);
-      surfApplyFrag = device.pipeline(Triangles,state,vs,fs);
-    }
     }
 
   if(Shaders::isVsmSupported()) {

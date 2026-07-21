@@ -321,9 +321,6 @@ add_shader(surf_alloc.comp           lighting/surfels/surf_alloc.comp)
 add_shader(surf_apply.comp           lighting/surfels/surf_apply.comp)
 add_shader(surf_freelist.comp        lighting/surfels/surf_freelist.comp)
 
-add_shader(surf_apply.vert           lighting/surfels/surf_apply.vert)
-add_shader(surf_apply.frag           lighting/surfels/surf_apply.frag)
-
 add_shader(surf_bin_clear.comp       lighting/surfels/surf_bin_clear.comp)
 add_shader(surf_bin_alloc.comp       lighting/surfels/surf_bin_alloc.comp)
 add_shader(surf_bin_pass.comp        lighting/surfels/surf_bin_pass.comp)
