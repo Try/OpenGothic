@@ -112,7 +112,7 @@ uint surfHash(vec3 pos, float cellSize, uint inorm) {
 #endif
   }
 
-float calculteWeight(const vec3 spos, const vec3 snorm, float rEff, float rMax, const vec3 wpos, const vec3 wnorm) {
+float calculteWeight(const vec3 spos, const vec3 snorm, float rEff, float rMax, float rDiff, const vec3 wpos, const vec3 wnorm) {
   // An Approximate Global Illumination System for Computer Generated Films
   // https://www.tabellion.org/et/paper/siggraph_2004_gi_for_films.pdf
   // https://cgg.mff.cuni.cz/~jaroslav/papers/2008-irradiance_caching_class/03-greg-ic.pdf
@@ -121,39 +121,18 @@ float calculteWeight(const vec3 spos, const vec3 snorm, float rEff, float rMax, 
   float dotN   = dot(wnorm, snorm);
 
   dist = max(dist, 0.0001);
-#if 0
-  float ePos  = dist/rEff;
-  float eNorm = sqrt(max(1 - 1*dotN, 0)) / sqrt(1.0 - cos(M_PI/6.0)); // Eq. 4
-  float w     = 1.0 - max(ePos, eNorm); // Eq. 2
-
-  float eOccl = dot((ldir/dist), 0.5*(snorm+wnorm))*0.5+0.5; // allow small occlusion
-  //float eOccl = 1.0 - clamp(-dot(ldir, wnorm), 0, 1)*0.5; // allow small occlusion
-  //float eOccl = (dot(ldir, snorm) > 0.1*dist) ? 0.1 : 1;
-  return w*eOccl;
-#elif 1
   // Wendland C2 inspired falloff
-  rEff = min(rEff, rMax*0.5);
-  float q     = max(min(dist,rMax)-rEff, 0)/(rMax-rEff);
+  float q     = max(min(dist,rMax)-rEff, 0)/rDiff;
   float wPos  = pow(1-q, 4.0)*(4.0*q + 1.0);
   float wNorm = pow(max(dotN, 0.0), 2.0);
   float wOccl = 1.0 - max(dot((ldir/dist), snorm), 0.0);
   return wPos * wNorm * wOccl;
-#elif 0
-  float wPos  = 1.0 - smoothstep(min(rEff,rMax*0.6), rMax, dist);
-  float wNorm = pow(max(dotN, 0.0), 2.0);
-  float wOccl = 1.0 - max(dot((ldir/dist), snorm), 0.0);
-  return wPos * wNorm * wOccl;
-#elif 0
-  float wPos  = max(1.0 - dist/rMax, 0.0)*(rEff/dist);
-  float wNorm = pow(max(dotN, 0.0), 2.0);
-  float wOccl = dot((ldir/dist), snorm)*0.5+0.5; // allow small occlusion
-  return wPos * wNorm * wOccl;
-#else
-  float ePos  = max(dist/rEff, 0.0);
-  float eNorm = sqrt(max(1 - 1*dotN, 0));
-  float eOccl = dot((ldir/dist), 0.5*(snorm+wnorm))*0.5+0.5; // allow small occlusion
-  return (1.0*eOccl)/max(ePos + eNorm, 0.0001) - 1.0;
-#endif
+  }
+
+float calculteWeight(const vec3 spos, const vec3 snorm, float rEff, float rMax, const vec3 wpos, const vec3 wnorm) {
+  rMax  = min(rMax, 65000);
+  rEff  = min(rEff, rMax*0.5);
+  return calculteWeight(spos, snorm, rEff, rMax, rMax-rEff, wpos, wnorm);
   }
 
 vec3 surfDebugColor(Surfel s, uint sId) {

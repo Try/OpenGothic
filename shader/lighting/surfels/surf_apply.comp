@@ -47,10 +47,13 @@ vec4 unpackHalf4x16(uvec2 packedVal) {
   }
 
 TSurfel packSurfel(const Surfel s) {
+  float rMax = min(s.radius, 65000);
+  float rEff = min(s.radiusMean, rMax*0.5);
+
   TSurfel sx;
-  sx.pos  = vec4(s.pos, min(s.radiusMean, s.radius));
-  sx.norm = packHalf4x16(vec4(decodeNormal(s.norm), s.radius));
-  sx.irr  = packHalf4x16(vec4(s.irradiance, 0));
+  sx.pos  = vec4(s.pos, rEff);
+  sx.norm = packHalf4x16(vec4(decodeNormal(s.norm), rMax));
+  sx.irr  = packHalf4x16(vec4(s.irradiance, rMax-rEff));
   return sx;
   }
 
@@ -66,10 +69,11 @@ void applyBatch(inout vec4 clr, const vec3 wpos, const vec3 norm, const uint sur
     const TSurfel sx  = tSurfels[i];
     const vec4    pos = vec4(sx.pos);
     const vec4    nx  = unpackHalf4x16(sx.norm);
-    const float   w   = calculteWeight(pos.xyz, nx.xyz, pos.w, nx.w, wpos, norm);
+    const vec4    irr = unpackHalf4x16(sx.irr);
+    const float   w   = calculteWeight(pos.xyz, nx.xyz, pos.w, nx.w, irr.w, wpos, norm);
     if(w <= 0.0)
       continue;
-    const vec3 color = unpackHalf4x16(sx.irr).rgb;
+    const vec3 color = irr.rgb;
     clr += vec4(color*w, w);
     }
   }
