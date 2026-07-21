@@ -48,11 +48,19 @@ void main() {
   const uint   cnt     = imageLoad(surfCnts, cTileId).x;
   const uint   ptr     = imageLoad(surfBins, cTileId).x;
 
+  /*
+  if(cnt>1024) {
+    // too many
+    surfels[surfelId].radius = 0;
+    return;
+    }
+  */
+
   float weight = 0;
   for(uint i=0; i<cnt; ++i) {
     const uint   sId = surfelList[ptr+i];
-    if(sId>=surfelId)
-      break; // surfels are sorted
+    if(sId==surfelId)
+      break;
 
     const Surfel s       = surfels[sId];
     const ivec2  sTileId = (s.fragCoord/int(tileSize));
@@ -61,7 +69,7 @@ void main() {
     if(sTileId.y!=tileId.y && tileId.y%2==0)
       continue;
 
-    const float  w = calculteWeight(s.pos, decodeNormal(s.norm), s.radiusMean, s.radius, wpos, norm);
+    const float w = calculteWeight(s.pos, decodeNormal(s.norm), s.radiusMean, s.radius, wpos, norm);
     weight += w;
 
     if(weight>edge) {

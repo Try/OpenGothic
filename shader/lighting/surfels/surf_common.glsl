@@ -4,10 +4,10 @@
 #include "common.glsl"
 
 const float SKY_DEPTH       = 0.999995;
-const int   MinCoverage     = 8;   // in pixels
-const int   DefaultCoverage = 96;  // in pixels
-const int   LargeTile       = 128; // in pixels
-const uint  MaxInTile       = 512; // ~32px (~6x6) per surfel
+const int   MinCoverage     = 8;    // in pixels
+const int   DefaultCoverage = 96;   // in pixels
+const int   LargeTile       = 128;  // in pixels
+const uint  MaxInTile       = 1024; // ~32px (~6x6) per surfel
 
 struct SurfHeader {
   uint count;

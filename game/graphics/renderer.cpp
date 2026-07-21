@@ -2019,10 +2019,11 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
     cmd.setPipeline(shaders.surfCulling);
     cmd.dispatchThreads(maxSurfels);
 
-    cmd.setPushData(push);
-    cmd.setPipeline(shaders.surfBinSort); // assist with stable GC
-    cmd.dispatch(surfBins.size());
+    //cmd.setPushData(push);
+    //cmd.setPipeline(shaders.surfBinSort); // assist with stable GC
+    //cmd.dispatch(surfBins.size());
 
+    cmd.setPushData(push);
     cmd.setPipeline(shaders.surfDecimate);
     cmd.dispatchThreads(maxSurfels);
 
