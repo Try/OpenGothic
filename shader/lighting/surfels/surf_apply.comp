@@ -25,6 +25,15 @@ layout(binding = 6, r32ui) uniform uimage2D surfCnts;
 layout(binding = 7, r32ui) uniform uimage2D surfBins;
 layout(binding = 8, std430) readonly buffer SB2 { uint surfelList[]; };
 
+struct TSurfel {
+  vec4  pos;
+  uvec2 norm;
+  uvec2 irr;
+  };
+
+shared TSurfel tSurfels[NumThreads];
+shared uint    surfelCount;
+
 uvec2 packHalf4x16(vec4 v) {
   uint lowBits  = packHalf2x16(v.xy);
   uint highBits = packHalf2x16(v.zw);
@@ -37,31 +46,30 @@ vec4 unpackHalf4x16(uvec2 packedVal) {
   return vec4(xy, zw);
   }
 
-struct TSurfel {
-  uvec2 pos;
-  uvec2 norm;
-  vec4  irr;
-  };
-
-shared TSurfel tSurfels[NumThreads];
-shared uint    surfelCount;
+TSurfel packSurfel(const Surfel s) {
+  TSurfel sx;
+  sx.pos  = vec4(s.pos, min(s.radiusMean, s.radius));
+  sx.norm = packHalf4x16(vec4(decodeNormal(s.norm), s.radius));
+  sx.irr  = packHalf4x16(vec4(s.irradiance, 0));
+  return sx;
+  }
 
 vec3 worldPos(float z, ivec2 fragCoord, ivec2 screenSize) {
   const mat4 inv = scene.viewProjectLwcInv;
   const vec2 uv  = vec2(fragCoord+0.5)*scene.screenResInv;
   const vec4 pos = inv*vec4(uv * 2.0 - 1.0, z, 1);
-  return pos.xyz/pos.w;
+  return pos.xyz/pos.w + originLwc;
   }
 
 void applyBatch(inout vec4 clr, const vec3 wpos, const vec3 norm, const uint surfCount) {
   for(int i=0; i<surfCount; ++i) {
     const TSurfel sx  = tSurfels[i];
-    const vec4    pos = unpackHalf4x16(sx.pos);
+    const vec4    pos = vec4(sx.pos);
     const vec4    nx  = unpackHalf4x16(sx.norm);
     const float   w   = calculteWeight(pos.xyz, nx.xyz, pos.w, nx.w, wpos, norm);
     if(w <= 0.0)
       continue;
-    const vec3 color = sx.irr.rgb;
+    const vec3 color = unpackHalf4x16(sx.irr).rgb;
     clr += vec4(color*w, w);
     }
   }
@@ -82,11 +90,7 @@ void pullSurfels(ivec2 bboxMin, ivec2 bboxMax, uint ptr, uint cnt, uint i) {
   if(id>=tSurfels.length())
     return;
 
-  TSurfel sx;
-  sx.pos  = packHalf4x16(vec4(s.pos - originLwc, s.radiusMean));
-  sx.norm = packHalf4x16(vec4(decodeNormal(s.norm), s.radius));
-  sx.irr  = vec4(s.irradiance, 0);
-  tSurfels[id] = sx;
+  tSurfels[id] = packSurfel(s);
   }
 
 void main() {
