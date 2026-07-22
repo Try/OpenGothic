@@ -31,6 +31,13 @@ vec3 inverse(vec3 pos) {
   return (ret.xyz/ret.w)/100.f;
   }
 
+vec3 viewVec() {
+  const vec2 uv  = gl_FragCoord.xy*scene.screenResInv;
+  const vec3 pos = vec3(uv*2.0-1.0, 1.0);
+  vec4 ret = scene.viewProjectInv*vec4(pos,1.0);
+  return normalize(ret.xyz/ret.w - scene.camPos); //TODO: LWC
+  }
+
 vec3 atmosphere(vec3 view, vec3 sunDir) {
   const vec3  viewPos = vec3(0.0, RPlanet + scene.plPosY, 0.0);
   return textureSkyLUT(skyLUT, viewPos, view, sunDir);
@@ -89,11 +96,9 @@ vec3 applyClouds(vec3 skyColor) {
   }
 
 void main() {
-  const vec2 uv    = gl_FragCoord.xy*scene.screenResInv;
-  const vec2 inPos = (2.0*gl_FragCoord.xy)*scene.screenResInv - 1.0;
-
-  vec3 view    = normalize(inverse(vec3(inPos,1.0)));
-  vec3 sunDir  = scene.sunDir;
+  const vec2 uv     = gl_FragCoord.xy*scene.screenResInv;
+  const vec3 view   = viewVec();
+  const vec3 sunDir = scene.sunDir;
 
   // accounted in additive fog later
   vec3  maxFog = textureLod(fogLut, vec3(uv, textureSize(fogLut,0).z-1), 0).rgb;
