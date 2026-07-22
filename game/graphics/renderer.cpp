@@ -541,7 +541,7 @@ void Renderer::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldVi
   cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
   cmd.setBinding(1, sky.transLut,     sky.sampler);
   cmd.setBinding(2, sky.multiScatLut, sky.sampler);
-  cmd.setBinding(3, sky.cloudsLut,    sky.sampler);
+  cmd.setBinding(3, sky.cloudsLut,    Sampler::bilinear(ClampMode::ClampToEdge));
   cmd.setPushData(&sz, sizeof(sz));
   cmd.setPipeline(shaders.skyViewLut);
   cmd.draw(nullptr, 0, 3);
@@ -924,7 +924,7 @@ void Renderer::drawSunMoon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const 
 
   cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
   cmd.setBinding(1, isSun ? wview.sky().sunImage() : wview.sky().moonImage());
-  cmd.setBinding(2, sky.transLut, Sampler::bilinear(ClampMode::ClampToEdge));
+  cmd.setBinding(2, sky.transLut, sky.sampler);
   cmd.setPushData(push);
   cmd.setPipeline(shaders.sun);
   cmd.draw(nullptr, 0, 6);
@@ -1859,12 +1859,12 @@ void Renderer::prepareFog(Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview
     auto& shader = sky.quality==VolumetricLQ ? shaders.fogViewLut3d : shaders.fogViewLutSep;
     cmd.setFramebuffer({});
     cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
-    cmd.setBinding(1, sky.transLut,     Sampler::bilinear(ClampMode::ClampToEdge));
-    cmd.setBinding(2, sky.multiScatLut, Sampler::bilinear(ClampMode::ClampToEdge));
+    cmd.setBinding(1, sky.transLut,     sky.sampler);
+    cmd.setBinding(2, sky.multiScatLut, sky.sampler);
     cmd.setBinding(3, sky.cloudsLut,    Sampler::bilinear(ClampMode::ClampToEdge));
-    cmd.setBinding(4, sky.fogLut3D);
+    cmd.setBinding(4, sky.fogLut3D,     Sampler::bilinear(ClampMode::ClampToEdge));
     if(sky.quality==VolumetricHQ || sky.quality==Epipolar)
-      cmd.setBinding(5, sky.fogLut3DMs, Sampler::bilinear(ClampMode::ClampToEdge));
+      cmd.setBinding(5, sky.fogLut3DMs);
     cmd.setPipeline(shader);
     cmd.dispatchThreads(uint32_t(sky.fogLut3D.w()), uint32_t(sky.fogLut3D.h()));
     }
@@ -1917,7 +1917,7 @@ void Renderer::prepareFog(Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview
       cmd.setBinding(2, wview.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
       cmd.setBinding(3, epipolar.epipoles);
       cmd.setBinding(4, zbuffer);
-      cmd.setBinding(5, sky.transLut,   Sampler::bilinear(ClampMode::ClampToEdge));
+      cmd.setBinding(5, sky.transLut,   sky.sampler);
       cmd.setBinding(6, sky.cloudsLut,  Sampler::bilinear(ClampMode::ClampToEdge));
       cmd.setBinding(7, sky.fogLut3DMs, Sampler::bilinear(ClampMode::ClampToEdge));
       cmd.setPipeline(shaders.vsmFogTrace);
