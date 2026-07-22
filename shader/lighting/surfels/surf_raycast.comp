@@ -39,18 +39,6 @@ mat3 toTangent(vec3 norm) {
   return tangent;
   }
 
-float sampleDirectLight(vec3 norm, vec3 rayOrigin, vec3 rayDirection) {
-  vec3  shRay  = rayDirection;
-
-  float lamb   = max(dot(norm, rayDirection), 0);
-  if(lamb==0)
-    return lamb;
-
-  Random rngState = Random(0);
-  float shadow = rayQueryProceedShadow(rayOrigin, shRay, rngState);
-  return (lamb * shadow);
-  }
-
 HitResolve raycast(vec3 rayOrigin, vec3 rayDirection, inout Random rngState) {
   HitResolve hit = rayQueryProceedPrimary(rayOrigin, rayDirection, -1, rngState);
   if(hit.rayT<0) {
@@ -60,27 +48,6 @@ HitResolve raycast(vec3 rayOrigin, vec3 rayDirection, inout Random rngState) {
   if(hit.rayT==TMax)
     hit.diff = vec4(0,0,1,1);
   return hit;
-  }
-
-vec3 evalLight(vec3 rayOrigin, vec3 rayDirection, HitResolve hit) {
-  vec3  thruput = min(textureAlbedo(hit.diff.rgb), 0.95);
-  float depth   = hit.rayT;
-  vec3  color   = vec3(0);
-
-  if(hit.rayT==TMax) {
-    vec3 sky = textureSkyLUT(skyLUT, vec3(0,RPlanet+max(rayOrigin.y*0.01,0),0), rayDirection, scene.sunDir) * scene.GSunIntensity;
-    color += sky;
-    color += (vec3(0.3, 0.26, 1)*0.15); //HACK for the night sky
-    return color;
-    }
-
-  rayOrigin    = (rayOrigin + rayDirection * hit.rayT);
-
-  vec3  direct = vec3(0);
-  direct += sampleDirectLight(hit.norm, rayOrigin, scene.sunDir) * scene.sunColor;
-  color  += thruput*direct*Fd_Lambert;
-
-  return color;
   }
 
 shared float reduction[NumThreads];
@@ -123,7 +90,6 @@ void main() {
   const vec3 ray = tbn * sampleHemisphereCos(i,numPaths,0);
 
   const HitResolve hit = raycast(p.pos, ray, rngState);
-  const vec3       pt  = evalLight(p.pos, ray, hit);
   storeGBuf(p.payload, hit);
 
   hitCnt = 0;
