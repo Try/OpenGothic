@@ -94,6 +94,9 @@ Renderer::Renderer(Tempest::Swapchain& swapchain)
   settings.swrEnabled       = Gothic::options().swRenderingPreset>0;
   settings.swrtEnabled      = Gothic::options().doSoftwareRT;
 
+  sky.sampler = Tempest::Sampler::bilinear();
+  sky.sampler.vClamp = ClampMode::ClampToEdge;
+
   sky.cloudsLut     = device.image2d   (sky.lutRGBAFormat,  2,  1);
   sky.transLut      = device.attachment(sky.lutRGBFormat, 256, 64);
   sky.multiScatLut  = device.attachment(sky.lutRGBFormat,  32, 32);
@@ -527,7 +530,7 @@ void Renderer::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldVi
 
     sz = Vec2(float(sky.multiScatLut.w()), float(sky.multiScatLut.h()));
     cmd.setFramebuffer({{sky.multiScatLut, Tempest::Discard, Tempest::Preserve}});
-    cmd.setBinding(0, sky.transLut, Sampler::bilinear(ClampMode::ClampToEdge));
+    cmd.setBinding(0, sky.transLut, sky.sampler);
     cmd.setPushData(&sz, sizeof(sz));
     cmd.setPipeline(shaders.skyMultiScattering);
     cmd.draw(nullptr, 0, 3);
@@ -536,9 +539,9 @@ void Renderer::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldVi
   auto sz = Vec2(float(sky.viewLut.w()), float(sky.viewLut.h()));
   cmd.setFramebuffer({{sky.viewLut, Tempest::Discard, Tempest::Preserve}});
   cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
-  cmd.setBinding(1, sky.transLut,     Sampler::bilinear(ClampMode::ClampToEdge));
-  cmd.setBinding(2, sky.multiScatLut, Sampler::bilinear(ClampMode::ClampToEdge));
-  cmd.setBinding(3, sky.cloudsLut,    Sampler::bilinear(ClampMode::ClampToEdge));
+  cmd.setBinding(1, sky.transLut,     sky.sampler);
+  cmd.setBinding(2, sky.multiScatLut, sky.sampler);
+  cmd.setBinding(3, sky.cloudsLut,    sky.sampler);
   cmd.setPushData(&sz, sizeof(sz));
   cmd.setPipeline(shaders.skyViewLut);
   cmd.draw(nullptr, 0, 3);
@@ -546,7 +549,7 @@ void Renderer::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldVi
   sz = Vec2(float(sky.viewCldLut.w()), float(sky.viewCldLut.h()));
   cmd.setFramebuffer({{sky.viewCldLut, Tempest::Discard, Tempest::Preserve}});
   cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
-  cmd.setBinding(1, sky.viewLut);
+  cmd.setBinding(1, sky.viewLut, sky.sampler);
   cmd.setBinding(2, *wview.sky().cloudsDay()  .lay[0], Sampler::trillinear());
   cmd.setBinding(3, *wview.sky().cloudsDay()  .lay[1], Sampler::trillinear());
   cmd.setBinding(4, *wview.sky().cloudsNight().lay[0], Sampler::trillinear());
@@ -1664,7 +1667,7 @@ void Renderer::drawReflections(Encoder<CommandBuffer>& cmd, const WorldView& wvi
   cmd.setBinding(3, gbufNormal,  Sampler::nearest (ClampMode::ClampToEdge));
   cmd.setBinding(4, zbuffer,     Sampler::nearest (ClampMode::ClampToEdge));
   cmd.setBinding(5, sceneDepth,  Sampler::nearest (ClampMode::ClampToEdge));
-  cmd.setBinding(6, sky.viewCldLut);
+  cmd.setBinding(6, sky.viewCldLut, sky.sampler);
   cmd.setPipeline(pso);
   if(Gothic::options().doMeshShading) {
     cmd.dispatchMeshThreads(gbufDiffuse.size());
@@ -1789,8 +1792,8 @@ void Renderer::drawSky(Encoder<CommandBuffer>& cmd, const WorldView& wview) {
   cmd.setDebugMarker("Sky");
   if(sky.quality==PathTrace) {
     cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
-    cmd.setBinding(1, sky.transLut,     Sampler::bilinear(ClampMode::ClampToEdge));
-    cmd.setBinding(2, sky.multiScatLut, Sampler::bilinear(ClampMode::ClampToEdge));
+    cmd.setBinding(1, sky.transLut,     sky.sampler);
+    cmd.setBinding(2, sky.multiScatLut, sky.sampler);
     cmd.setBinding(3, sky.cloudsLut,    Sampler::bilinear(ClampMode::ClampToEdge));
     cmd.setBinding(4, zbuffer, Sampler::nearest());
     cmd.setBinding(5, shadowMap[1], Resources::shadowSampler());
@@ -1801,10 +1804,10 @@ void Renderer::drawSky(Encoder<CommandBuffer>& cmd, const WorldView& wview) {
 
   auto& skyShader = sky.quality==VolumetricLQ ? shaders.sky : shaders.skySep;
   cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
-  cmd.setBinding(1, sky.transLut,     Sampler::bilinear(ClampMode::ClampToEdge));
-  cmd.setBinding(2, sky.multiScatLut, Sampler::bilinear(ClampMode::ClampToEdge));
-  cmd.setBinding(3, sky.viewLut,      Sampler::bilinear(ClampMode::ClampToEdge));
-  cmd.setBinding(4, sky.fogLut3D);
+  cmd.setBinding(1, sky.transLut,     sky.sampler);
+  cmd.setBinding(2, sky.multiScatLut, sky.sampler);
+  cmd.setBinding(3, sky.viewLut,      sky.sampler);
+  cmd.setBinding(4, sky.fogLut3D,     Sampler::bilinear(ClampMode::ClampToEdge));
   if(sky.quality!=VolumetricLQ)
     cmd.setBinding(5, sky.fogLut3DMs, Sampler::bilinear(ClampMode::ClampToEdge));
   cmd.setBinding(6, *wview.sky().cloudsDay()  .lay[0], Sampler::trillinear());
@@ -2170,7 +2173,7 @@ void Renderer::surfelsTrace(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
   cmd.setPushData(pass);
   cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
   cmd.setBinding(1, surfels);
-  cmd.setBinding(2, sky.viewCldLut);
+  cmd.setBinding(2, sky.viewCldLut, sky.sampler);
   cmd.setBinding(3, gbuffDiff);
   cmd.setBinding(4, gbuffNorm);
   cmd.setBinding(5, gbuffHitT);
@@ -2202,7 +2205,7 @@ void Renderer::prepareIrradiance(Encoder<CommandBuffer>& cmd, WorldView& wview) 
   cmd.setFramebuffer({});
   cmd.setBinding(0, sky.irradianceLut);
   cmd.setBinding(1, scene.uboGlobal[SceneGlobals::V_Main]);
-  cmd.setBinding(2, sky.viewCldLut);
+  cmd.setBinding(2, sky.viewCldLut, sky.sampler);
   cmd.setPipeline(shaders.irradiance);
   cmd.dispatch(1);
   }
@@ -2322,7 +2325,7 @@ void Renderer::prepareGi(Encoder<CommandBuffer>& cmd, WorldView& wview) {
   cmd.setBinding(2, probesGBuffDiff, Sampler::nearest());
   cmd.setBinding(3, probesGBuffNorm, Sampler::nearest());
   cmd.setBinding(4, probesGBuffRayT, Sampler::nearest());
-  cmd.setBinding(5, sky.viewCldLut,  Sampler::bilinear());
+  cmd.setBinding(5, sky.viewCldLut,  sky.sampler);
   cmd.setBinding(6, shadowMap[1],    Sampler::bilinear());
   cmd.setBinding(7, probesLightingPrev, Sampler::nearest());
   cmd.setBinding(8, hashTable);
@@ -2351,9 +2354,9 @@ void Renderer::prepareExposure(Encoder<CommandBuffer>& cmd, WorldView& wview) {
   cmd.setDebugMarker("Exposure");
   cmd.setFramebuffer({});
   cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
-  cmd.setBinding(1, sky.viewCldLut);
-  cmd.setBinding(2, sky.transLut,  Sampler::bilinear(ClampMode::ClampToEdge));
-  cmd.setBinding(3, sky.cloudsLut, Sampler::bilinear(ClampMode::ClampToEdge));
+  cmd.setBinding(1, sky.viewCldLut, sky.sampler);
+  cmd.setBinding(2, sky.transLut,   Sampler::bilinear(ClampMode::ClampToEdge));
+  cmd.setBinding(3, sky.cloudsLut,  Sampler::bilinear(ClampMode::ClampToEdge));
   cmd.setBinding(4, sky.irradianceLut);
   cmd.setPushData(&push, sizeof(push));
   cmd.setPipeline(shaders.skyExposure);
@@ -2417,7 +2420,7 @@ void Renderer::drawPathtrace(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Worl
   cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
   //cmd.setBinding(1, zbuffer);
   cmd.setBinding(2, sky.irradianceLut);
-  cmd.setBinding(3, sky.viewCldLut);
+  cmd.setBinding(3, sky.viewCldLut, sky.sampler);
   //cmd.setBinding(4, shadowMap[1], Sampler::bilinear());
   cmd.setBinding(4, Resources::fallbackBlack(), Sampler::bilinear());
   //

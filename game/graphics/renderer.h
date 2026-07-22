@@ -172,6 +172,8 @@ class Renderer final {
       Tempest::TextureFormat lutRGBFormat  = Tempest::TextureFormat::R11G11B10UF;
       Tempest::TextureFormat lutRGBAFormat = Tempest::TextureFormat::RGBA16F;
 
+      Tempest::Sampler       sampler = Tempest::Sampler::bilinear();
+
       bool                   lutIsInitialized = false;
       Tempest::Attachment    transLut, multiScatLut, viewLut, viewCldLut;
       Tempest::StorageImage  cloudsLut, fogLut3D, fogLut3DMs;
