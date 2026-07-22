@@ -34,10 +34,12 @@ void main() {
   if(p.radius==0)
     return; // disabled
 
+#if 0
   if(!(-DefaultCoverage <= p.fragCoord.x && p.fragCoord.x < sz.x+DefaultCoverage))
     return;
   if(!(-DefaultCoverage <= p.fragCoord.y && p.fragCoord.y < sz.y+DefaultCoverage))
     return;
+#endif
 
   const vec3   wpos   = p.pos;
   const vec3   norm   = decodeNormal(p.norm);
@@ -64,6 +66,7 @@ void main() {
 
     const Surfel s       = surfels[sId];
     const ivec2  sTileId = (s.fragCoord/int(tileSize));
+
     if(sTileId.x!=tileId.x && tileId.x%2==0)
       continue;
     if(sTileId.y!=tileId.y && tileId.y%2==0)

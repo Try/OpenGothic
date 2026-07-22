@@ -96,6 +96,12 @@ bool frustrumTest(const vec4 sphere) {
   return true;
   }
 
+vec3 unproject(ivec2 fragCoord) {
+  const float z  = texelFetch(depth,fragCoord,0).x;
+  const vec2  uv = vec2(fragCoord+0.5) * scene.screenResInv;
+  return projectiveUnproject(scene.projectInv, vec3(uv*2.0-1.0, z));
+  }
+
 bool isSurfelVisible(const vec4 p, float radiusMean, ivec2 fragCoord) {
   if(!frustrumTest(p))
     return false;
@@ -107,10 +113,17 @@ bool isSurfelVisible(const vec4 p, float radiusMean, ivec2 fragCoord) {
      0<=fragCoord.y && fragCoord.y<scene.screenRes.y) {
     const float z  = texelFetch(depth,fragCoord,0).x;
     const float lz = linearDepth(z, scene.clipInfo);
-    if((lz-viewPos.z) > radiusMean) {
+    if((lz-viewPos.z) > p.w) {
       // TODO: two-sided HiZ
       return false;
       }
+    /*
+    const vec3 dp = unproject(fragCoord) - viewPos;
+    if(dot(dp,dp) > p.w*p.w) {
+      // TODO: two-sided HiZ
+      return false;
+      }
+      */
     }
 #endif
 

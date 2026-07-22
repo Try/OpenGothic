@@ -8,7 +8,6 @@ layout(local_size_x = 16, local_size_y = 16) in;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
 
-const float NormalBias  = 0.0030;
 const uint  Salt        = 0x9D;
 const float MaxAttempts = 1;
 const int   MaxQueue    = 256;
@@ -33,11 +32,11 @@ shared int       pointQueueSize;
 
 shared uint fragVote;
 
-vec3 worldPos(float z, vec3 normal, ivec2 fragCoord, ivec2 screenSize) {
+vec3 worldPos(float z, ivec2 fragCoord) {
   const mat4 inv = scene.viewProjectLwcInv;
   const vec2 uv  = vec2(fragCoord+0.5)*scene.screenResInv;
   const vec4 pos = inv*vec4(uv * 2.0 - 1.0, z, 1);
-  return (pos.xyz + normal*NormalBias)/pos.w + originLwc;
+  return pos.xyz/pos.w + originLwc;
   }
 
 float pixelToWorld(float pixelRadius, float z) {
@@ -130,7 +129,7 @@ void allocSurfel(ivec2 fragCoord, const ivec2 screenSize, const uint vote) {
 
   const vec3  norm = normalFetch(gbufNormal, fragCoord);
   const float z    = texelFetch(depth, fragCoord, 0).x;
-  const vec3  wpos = worldPos(z, norm, fragCoord, screenSize);
+  const vec3  wpos = worldPos(z, fragCoord);
 
   if(laneID==0 && pointQueueSize<pointQueue.length()) {
     const float sz = max(pixelToWorld(DefaultCoverage, z), 0);
@@ -149,7 +148,7 @@ void mainSubtile(const ivec2 at, const ivec2 fragCoord, const ivec2 screenSize) 
   const bool  sky   = (z >= SKY_DEPTH);
 
   const vec3  norm  = normalFetch(gbufNormal, fragCoord);
-  const vec3  wpos  = worldPos(z, norm, fragCoord, screenSize);
+  const vec3  wpos  = worldPos(z, fragCoord);
 
   float coverage = (sky ? 1.0 : estimateCoverage(fragCoord, wpos, norm, 0));
 
