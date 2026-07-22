@@ -124,7 +124,7 @@ void main() {
   surfelCount = 0;
 
   vec4 clr = vec4(0);
-  for(uint i=0;; i+=NumThreads) {
+  for(uint i=0;;) {
     barrier();
 
     pullSurfels(bboxMin, bboxMax, ptr, cnt, i+laneID);
@@ -134,6 +134,7 @@ void main() {
       applyBatch(clr, wpos, norm, surfelCount);
       }
 
+    i += NumThreads;
     if(i>=cnt)
       break;
 

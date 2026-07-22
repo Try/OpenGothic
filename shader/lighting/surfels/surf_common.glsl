@@ -116,16 +116,19 @@ float calculteWeight(const vec3 spos, const vec3 snorm, float rEff, float rMax, 
   // An Approximate Global Illumination System for Computer Generated Films
   // https://www.tabellion.org/et/paper/siggraph_2004_gi_for_films.pdf
   // https://cgg.mff.cuni.cz/~jaroslav/papers/2008-irradiance_caching_class/03-greg-ic.pdf
-  vec3  ldir   = wpos - spos;
-  float dist   = length(ldir);
-  float dotN   = dot(wnorm, snorm);
+  float dotN  = dot(wnorm, snorm);
+  if(dotN <= 0)
+    return 0;
+
+  vec3  ldir  = wpos - spos;
+  float dist  = length(ldir);
 
   dist = max(dist, 0.0001);
   // Wendland C2 inspired falloff
   float q     = max(min(dist,rMax)-rEff, 0)/rDiff;
   float wPos  = pow(1-q, 4.0)*(4.0*q + 1.0);
   float wNorm = pow(max(dotN, 0.0), 2.0);
-  float wOccl = 1.0 - max(dot((ldir/dist), snorm), 0.0);
+  float wOccl = 1.0 - max(dot(ldir, snorm)/dist, 0.0);
   return wPos * wNorm * wOccl;
   }
 
