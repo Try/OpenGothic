@@ -1,6 +1,5 @@
 #version 460
 
-#define LIGHTING 1
 #define RAY_QUERY
 #define RAY_QUERY_AT
 
@@ -39,11 +38,18 @@ mat3 toTangent(vec3 norm) {
   return tangent;
   }
 
-HitResolve raycast(vec3 rayOrigin, vec3 rayDirection, inout Random rngState) {
-  HitResolve hit = rayQueryProceedPrimary(rayOrigin, rayDirection, -1, rngState);
+HitResolve raycast(vec3 rayOrigin, vec3 rayDirection, out float wHit) {
+  Random     rngState = Random(0); // inactive
+  HitResolve hit      = rayQueryProceedPrimary(rayOrigin, rayDirection, -1, rngState);
   if(hit.rayT<0) {
     hit.rayT = -hit.rayT; // backfaces are fine
     hit.norm = -hit.norm;
+    }
+  if(hit.water) {
+    wHit = hit.rayT;
+
+    const uint CM_Level = CM_Opaque | CM_Transparent;
+    hit  = rayQueryProceedPrimary(rayOrigin, rayDirection, -1, CM_Level, rngState);
     }
   if(hit.rayT==TMax)
     hit.diff = vec4(0,0,1,1);
@@ -64,13 +70,15 @@ void reduceIrr() {
     }
   }
 
-void storeGBuf(uint ptr, const HitResolve hit) {
+void storeGBuf(uint ptr, const HitResolve hit, const float wHit) {
   if(ptr==0)
     return; //error
 
+  float wHitUNorm = (wHit / hit.rayT);
+
   ivec2 at = unpackAtlassPos(ptr)*8 + ivec2(gl_LocalInvocationID.xy);
   imageStore(gbufDiff, at, vec4(hit.diff.rgb, 1));
-  imageStore(gbufNorm, at, vec4(hit.norm.xyz*0.5+0.5, 1));
+  imageStore(gbufNorm, at, vec4(hit.norm.xyz*0.5+0.5, wHitUNorm));
   imageStore(gbufHit,  at, vec4(hit.rayT/TMax));
   }
 
@@ -84,13 +92,12 @@ void main() {
   const Surfel p   = surfels[surfelId];
   const mat3   tbn = toTangent(decodeNormal(p.norm));
 
-  Random rngState = Random(pcgHash(gl_LocalInvocationIndex));
-
   const uint i   = gl_LocalInvocationIndex;
   const vec3 ray = tbn * sampleHemisphereCos(i,numPaths,0);
 
-  const HitResolve hit = raycast(p.pos, ray, rngState);
-  storeGBuf(p.payload, hit);
+  float wHit = 0;
+  const HitResolve hit = raycast(p.pos, ray, wHit);
+  storeGBuf(p.payload, hit, wHit);
 
   hitCnt = 0;
   barrier();

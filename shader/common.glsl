@@ -72,6 +72,12 @@ float fresnel(const vec3 incident, const vec3 normal, const float ior) {
   return kr;
   }
 
+vec3 waterTransmittance(float raylen) {
+  const float depth         = raylen / 5000.0; // 50 meters
+  const vec3  transmittance = exp(-depth * vec3(4,2,1) * 1.25);
+  return transmittance;
+  }
+
 float safeacos(const float x) {
   return acos(clamp(x, -1.0, 1.0));
   }

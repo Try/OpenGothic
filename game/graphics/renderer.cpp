@@ -1967,13 +1967,13 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
   const int32_t  LargeTile  = 128;
   const auto     binCount   = tileCount(zbuffer.size(), TileSize);
 
-  auto& scene     = wview.sceneGlobals();
-  auto& irrImage  = usesImage2d (surf.irrImage, TextureFormat::RGBA16F, zbuffer.size());
-  auto& surfels   = usesSsboInit(surf.surfels,  shaders.surfAlloc.sizeofBuffer(4, maxSurfels));
+  auto& scene    = wview.sceneGlobals();
+  auto& irrImage = usesImage2d (surf.irrImage, TextureFormat::RGBA16F, zbuffer.size());
+  auto& surfels  = usesSsboInit(surf.surfels,  shaders.surfAlloc.sizeofBuffer(4, maxSurfels));
 
-  auto& surfCnts  = usesImage2d(surf.surfCnts, TextureFormat::R32U, binCount);
-  auto& surfBins  = usesImage2d(surf.surfBins, TextureFormat::R32U, binCount);
-  auto& surfList  = usesSsbo   (surf.surfList, 16*maxSurfels*sizeof(uint32_t));
+  auto& surfCnts = usesImage2d(surf.surfCnts, TextureFormat::R32U, binCount);
+  auto& surfBins = usesImage2d(surf.surfBins, TextureFormat::R32U, binCount);
+  auto& surfList = usesSsbo   (surf.surfList, 16*maxSurfels*sizeof(uint32_t));
 
   struct Push {
     Vec3     originLwc;

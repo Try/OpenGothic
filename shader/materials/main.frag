@@ -268,8 +268,7 @@ vec4 underWaterColorDepth(vec3 normal) {
   }
 
 vec3 waterScatter(vec3 back, vec3 normal, float len) {
-  float depth         = len / 5000.0; // 50 meters
-  vec3  transmittance = exp(-depth * vec3(4,2,1)*1.25);
+  vec3  transmittance = waterTransmittance(len);
   // note: less sun light and less obsevable light
   transmittance = transmittance*transmittance;
 

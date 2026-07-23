@@ -1,6 +1,5 @@
 #version 460
 
-#define LIGHTING 1
 #define RAY_QUERY
 #define RAY_QUERY_AT
 
@@ -201,9 +200,7 @@ vec4 pathtrace(vec3 rayOrigin, vec3 rayDirection) {
       }
 
     if(underWater) {
-      const float depth         = hit.rayT / 5000.0; // 50 meters
-      const vec3  transmittance = exp(-depth * vec3(4,2,1) * 1.25);
-      thruput *= transmittance;
+      thruput *= waterTransmittance(hit.rayT);
       }
 
     if(hit.water) {

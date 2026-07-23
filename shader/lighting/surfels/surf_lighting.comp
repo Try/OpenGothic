@@ -30,6 +30,13 @@ layout(binding = 4)         uniform texture2D gbufNorm;
 layout(binding = 5)         uniform texture2D gbufHit;
 layout(binding = 12)        uniform sampler2D textureSm1;
 
+struct GBuf {
+  vec3  diff;
+  vec3  norm;
+  float rayT;
+  float rayW;
+  };
+
 float shadowResolve(in vec4 sh, float z) {
   z  = clamp(z,0,0.99);
   sh = step(sh,vec4(z));
@@ -76,19 +83,23 @@ float sampleDirectLight(vec3 norm, vec3 rayOrigin, vec3 rayDirection) {
   return (lamb * shadow);
   }
 
-vec3 evalLight(vec3 rayOrigin, vec3 rayDirection, HitResolve hit) {
-  vec3  thruput = min(textureAlbedo(hit.diff.rgb), 0.95);
-  float depth   = hit.rayT;
+vec3 evalLight(vec3 rayOrigin, vec3 rayDirection, GBuf hit) {
+  vec3  thruput = vec3(1.0);
   vec3  color   = vec3(0);
+
+  if(hit.rayW > 0) {
+    thruput *= waterTransmittance(hit.rayW);
+    }
 
   if(hit.rayT==TMax) {
     vec3 sky = textureSkyLUT(skyLUT, vec3(0,RPlanet+max(rayOrigin.y*0.01,0),0), rayDirection, scene.sunDir) * scene.GSunIntensity;
     color += sky;
     color += (vec3(0.3, 0.26, 1)*0.15); //HACK for the night sky
-    return color;
+    return thruput*color;
     }
 
-  rayOrigin    = (rayOrigin + rayDirection * hit.rayT);
+  thruput  *= min(textureAlbedo(hit.diff.rgb), 0.95);
+  rayOrigin = (rayOrigin + rayDirection * hit.rayT);
 
   vec3  direct = vec3(0);
   direct += sampleDirectLight(hit.norm, rayOrigin, scene.sunDir) * scene.sunColor;
@@ -97,16 +108,19 @@ vec3 evalLight(vec3 rayOrigin, vec3 rayDirection, HitResolve hit) {
   return color;
   }
 
-HitResolve loadGBuf(uint ptr) {
+GBuf loadGBuf(uint ptr) {
   uint x = ((ptr >>  0) & 0xFFF);
   uint y = ((ptr >> 12) & 0xFFF);
 
   ivec2 at = ivec2(x,y)*8 + ivec2(gl_LocalInvocationID.xy);
+  vec4  d  = texelFetch(gbufDiff, at, 0);
+  vec4  n  = texelFetch(gbufNorm, at, 0);
 
-  HitResolve hit;
-  hit.diff = texelFetch(gbufDiff, at, 0);
-  hit.norm = texelFetch(gbufNorm, at, 0).xyz*2.0-1.0;
-  hit.rayT = texelFetch(gbufHit,  at, 0).x*TMax;
+  GBuf hit;
+  hit.diff = d.rgb;
+  hit.norm = n.xyz*2.0-1.0;
+  hit.rayT = texelFetch(gbufHit,  at, 0).x * TMax;
+  hit.rayW = 0; //n.w * hit.rayT;
 
   return hit;
   }
@@ -138,8 +152,8 @@ void main() {
   const uint i   = gl_LocalInvocationIndex;
   const vec3 ray = tbn * sampleHemisphereCos(i,numPaths,0);
 
-  const HitResolve hit = loadGBuf(p.payload);
-  const vec3       pt  = evalLight(p.pos, ray, hit);
+  const GBuf hit = loadGBuf(p.payload);
+  const vec3 pt  = evalLight(p.pos, ray, hit);
 
   hitCnt = 0;
   barrier();

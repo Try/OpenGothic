@@ -48,13 +48,13 @@ float rayQueryProceedShadow(const vec3 rayOrigin, const vec3 rayDirection, inout
   return 0;
   }
 
-HitResolve rayQueryProceedPrimary(const vec3 rayOrigin, const vec3 rayDirection, float mipOverride, inout Random rngState) {
+HitResolve rayQueryProceedPrimary(const vec3 rayOrigin, const vec3 rayDirection, float mipOverride, uint mask, inout Random rngState) {
   // CullBack due to vegetation
   uint  flags = gl_RayFlagsSkipAABBEXT | gl_RayFlagsCullBackFacingTrianglesEXT;
   float tMin  = 2;
 
   rayQueryEXT rayQuery;
-  rayQueryInitializeEXT(rayQuery, topLevelAS, flags, 0xFF,
+  rayQueryInitializeEXT(rayQuery, topLevelAS, flags, mask,
                         rayOrigin, tMin, rayDirection, TMax);
   rayQueryProceedAlphaTest(rayQuery);
   // rayQueryProceedAlphaTest(rayQuery, rngState);
@@ -96,6 +96,10 @@ HitResolve rayQueryProceedPrimary(const vec3 rayOrigin, const vec3 rayDirection,
   ret.rayT  = face ? -rayT : rayT;
   ret.water = hit.water;
   return ret;
+  }
+
+HitResolve rayQueryProceedPrimary(const vec3 rayOrigin, const vec3 rayDirection, float mipOverride, inout Random rngState) {
+  return rayQueryProceedPrimary(rayOrigin, rayDirection, mipOverride, 0xFF, rngState);
   }
 
 #endif
