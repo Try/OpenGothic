@@ -2296,16 +2296,22 @@ void Npc::tickTimedEvt(Animation::EvCount& ev) {
   }
 
 void Npc::tickRegen(int32_t& v, const int32_t max, const int32_t chg, const uint64_t dt) {
-  uint64_t tick = owner.tickCount();
+  const uint64_t tick = owner.tickCount();
   if(tick<dt || chg==0)
     return;
-  int32_t time0 = int32_t(tick%1000);
-  int32_t time1 = time0+int32_t(dt);
+  // ATR_REGENERATE* is an interval: 1 point per 'chg' seconds.
+  // treating it as points-per-second made monsters in mods with hp-regeneration (L'Hiver)
+  // heal faster than the player can deal damage
+  const uint64_t amount = chg>0 ? uint64_t(chg) : uint64_t(-int64_t(chg));
+  const uint64_t period = amount*1000u;
+  const uint64_t prev   = tick-dt;
+  const uint64_t n      = tick/period-prev/period;
+  if(n==0)
+    return;
 
-  int32_t val0 = (time0*chg)/1000;
-  int32_t val1 = (time1*chg)/1000;
-
-  int32_t nextV = std::max(0,std::min(v+val1-val0,max));
+  const int64_t step  = chg>0 ? int64_t(n) : -int64_t(n);
+  const int64_t upper = std::max<int64_t>(0,max);
+  int32_t nextV = int32_t(std::clamp<int64_t>(int64_t(v)+step,0,upper));
   if(v!=nextV) {
     v = nextV;
     // check health, in case of negative chg
