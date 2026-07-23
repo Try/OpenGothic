@@ -58,20 +58,6 @@ HitResolve raycast(vec3 rayOrigin, vec3 rayDirection, inout float wHit) {
   return hit;
   }
 
-shared float reduction[NumThreads];
-shared uint  hitCnt;
-
-void reduceIrr() {
-  uint laneID = gl_LocalInvocationIndex;
-
-  for(uint stride = NumThreads/2; stride > 0; stride >>= 1) {
-    if(laneID < stride) {
-      reduction[laneID] += reduction[laneID + stride];
-      }
-    barrier();
-    }
-  }
-
 void storeGBuf(uint ptr, const HitResolve hit, const float wHit) {
   if(ptr==0)
     return; //error
@@ -100,20 +86,4 @@ void main() {
   float wHit = 0;
   const HitResolve hit = raycast(p.pos, ray, wHit);
   storeGBuf(p.payload, hit, wHit);
-
-  hitCnt = 0;
-  barrier();
-
-  if(hit.rayT!=TMax)
-    atomicAdd(hitCnt, 1);
-
-  reduction[i] = 1.0/clamp(hit.rayT*0.4, 10.0, 1*p.radius);
-  barrier();
-
-  reduceIrr();
-
-  if(gl_LocalInvocationIndex==0) {
-    const float hitMean = float(numPaths)/max(reduction[0], eps); //harmonic mean
-    surfels[surfelId].radiusMean = hitMean;
-    }
   }

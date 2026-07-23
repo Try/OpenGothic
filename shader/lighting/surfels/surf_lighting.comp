@@ -125,7 +125,7 @@ GBuf loadGBuf(uint ptr) {
   return hit;
   }
 
-shared vec3 reduction[NumThreads];
+shared vec4 reduction[NumThreads];
 shared uint hitCnt;
 
 void reduceIrr() {
@@ -158,16 +158,17 @@ void main() {
   hitCnt = 0;
   barrier();
 
-  if(hit.rayT!=TMax)
-    atomicAdd(hitCnt, 1);
+  //atomicAdd(hitCnt, 1);
 
-  reduction[i] = vec3(pt.rgb);
+  float hitInv = 1.0/clamp(hit.rayT*0.4, 10.0, p.radius);
+  reduction[i] = vec4(pt.rgb, hitInv);
   barrier();
 
   reduceIrr();
 
   if(gl_LocalInvocationIndex==0) {
-    //NOTE: not updating harmonic mean - it's frozen after RT-pass
+    const float hitMean = float(numPaths)/max(reduction[0].w, eps); //harmonic mean
     surfels[surfelId].irradiance = (reduction[0].rgb/float(numPaths));
+    surfels[surfelId].radiusMean = hitMean;
     }
   }
