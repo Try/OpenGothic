@@ -120,7 +120,7 @@ GBuf loadGBuf(uint ptr) {
   hit.diff = d.rgb;
   hit.norm = n.xyz*2.0-1.0;
   hit.rayT = texelFetch(gbufHit,  at, 0).x * TMax;
-  hit.rayW = 0; //n.w * hit.rayT;
+  hit.rayW = n.w * hit.rayT;
 
   return hit;
   }

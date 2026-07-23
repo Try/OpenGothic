@@ -38,7 +38,7 @@ mat3 toTangent(vec3 norm) {
   return tangent;
   }
 
-HitResolve raycast(vec3 rayOrigin, vec3 rayDirection, out float wHit) {
+HitResolve raycast(vec3 rayOrigin, vec3 rayDirection, inout float wHit) {
   Random     rngState = Random(0); // inactive
   HitResolve hit      = rayQueryProceedPrimary(rayOrigin, rayDirection, -1, rngState);
   if(hit.rayT<0) {
