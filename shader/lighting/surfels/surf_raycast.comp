@@ -46,7 +46,9 @@ HitResolve raycast(vec3 rayOrigin, vec3 rayDirection, inout float wHit) {
     hit.norm = -hit.norm;
     }
   if(hit.water) {
-    wHit = hit.rayT;
+    //NOTE: probably need to trace a 'helper' ray from surfel
+    //      to top/sun to determinate if surfel is underwater or now
+    wHit = hit.norm.y<0 ? hit.rayT : 0; // heuristic to track only underwater hits
 
     const uint CM_Level = CM_Opaque | CM_Transparent;
     hit  = rayQueryProceedPrimary(rayOrigin, rayDirection, -1, CM_Level, rngState);
@@ -74,7 +76,7 @@ void storeGBuf(uint ptr, const HitResolve hit, const float wHit) {
   if(ptr==0)
     return; //error
 
-  float wHitUNorm = (wHit / hit.rayT);
+  float wHitUNorm = (hit.rayT>0) ? (wHit / hit.rayT) : 0;
 
   ivec2 at = unpackAtlassPos(ptr)*8 + ivec2(gl_LocalInvocationID.xy);
   imageStore(gbufDiff, at, vec4(hit.diff.rgb, 1));

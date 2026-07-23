@@ -60,7 +60,10 @@ HitResolve rayQueryProceedPrimary(const vec3 rayOrigin, const vec3 rayDirection,
   // rayQueryProceedAlphaTest(rayQuery, rngState);
   if(rayQueryGetIntersectionTypeEXT(rayQuery, true) == gl_RayQueryCommittedIntersectionNoneEXT) {
     HitResolve ret;
-    ret.rayT = TMax;
+    ret.rayT  = TMax;
+    ret.diff  = vec4(0);
+    ret.norm  = vec3(0);
+    ret.water = false;
     return ret;
     }
 
