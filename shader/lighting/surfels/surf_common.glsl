@@ -10,7 +10,7 @@ const int   DefaultCoverage = 96;   // in pixels
 const int   LargeTile       = 128;  // in pixels
 const uint  MaxInTile       = 1024; // ~32px (~6x6) per surfel
 
-const float rErrScale       = 0.5;
+const float rEffScale       = 0.5;
 
 struct SurfHeader {
   uint count;
@@ -42,6 +42,10 @@ ivec2 unpackAtlassPos(uint ptr) {
   uint x = ((ptr >>  0) & 0xFFF);
   uint y = ((ptr >> 12) & 0xFFF);
   return ivec2(x, y);
+  }
+
+bool isSurfelAlive(const Surfel s) {
+  return s.radius >= 0;
   }
 
 bool isSurfelVisible(const Surfel s, ivec2 bboxMin, ivec2 bboxMax) {
@@ -148,7 +152,7 @@ float calculteWeight(const vec3 spos, const vec3 snorm, float rEff, float rMax, 
 
 float calculteWeight(const vec3 spos, const vec3 snorm, float rEff, float rMax, const vec3 wpos, const vec3 wnorm) {
   rMax  = min(rMax, 65000);
-  rEff  = min(rEff, rMax*rErrScale);
+  rEff  = min(rEff, rMax*rEffScale);
   return calculteWeight(spos, snorm, rEff, rMax, rMax-rEff, wpos, wnorm);
   }
 

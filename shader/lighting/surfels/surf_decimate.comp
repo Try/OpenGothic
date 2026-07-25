@@ -31,7 +31,7 @@ void main() {
   const Surfel p      = surfels[surfelId];
   const ivec2  sz     = scene.screenRes;
 
-  if(p.radius==0)
+  if(!isSurfelAlive(p))
     return; // disabled
 
 #if 0
@@ -53,7 +53,7 @@ void main() {
   /*
   if(cnt>1024) {
     // too many
-    surfels[surfelId].radius = 0;
+    surfels[surfelId].radius = -1;
     return;
     }
   */
@@ -77,7 +77,7 @@ void main() {
 
     if(weight>edge) {
       // too dense - can be removed
-      surfels[surfelId].radius = 0;
+      surfels[surfelId].radius = -1;
       return;
       }
     }

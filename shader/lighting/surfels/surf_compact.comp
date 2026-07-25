@@ -31,7 +31,7 @@ void main() {
   Surfel sx;
   for(uint ix=0; ix<surf.header.count; ix+=NumThreads) {
     const uint i    = ix+laneID;
-    const bool keep = i<surf.header.count && surf.surfels[i].radius>0;
+    const bool keep = i<surf.header.count && isSurfelAlive(surf.surfels[i]);
     if(keep) {
       sx = surf.surfels[i];
       }

@@ -2002,37 +2002,20 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
 
     cmd.setPipeline(shaders.surfUpdate);
     cmd.dispatchThreads(maxSurfels);
-  }
-
-  static bool gc = true;
-  if(gc) {
-    surfelsBinning(cmd, wview, TileSize, false);
 
     cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
     cmd.setBinding(1, hiz.hiZ);
     cmd.setBinding(2, zbuffer);
     cmd.setBinding(3, surfels);
     cmd.setBinding(4, surf.gbuffFree);
-    //
-    cmd.setBinding(6, surfCnts);
-    cmd.setBinding(7, surfBins);
-    cmd.setBinding(8, surfList);
-
     cmd.setPushData(scene.znear);
+
     cmd.setPipeline(shaders.surfCulling);
-    cmd.dispatchThreads(maxSurfels);
-
-    //cmd.setPushData(push);
-    //cmd.setPipeline(shaders.surfBinSort); // assist with stable GC
-    //cmd.dispatch(surfBins.size());
-
-    cmd.setPushData(push);
-    cmd.setPipeline(shaders.surfDecimate);
     cmd.dispatchThreads(maxSurfels);
 
     cmd.setPipeline(shaders.surfCompact);
     cmd.dispatch(1);
-    }
+  }
 
   static bool rays = true;
   if(rays) {
@@ -2055,13 +2038,30 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
     cmd.setBinding(3, zbuffer);
     cmd.setBinding(4, surfels);
     cmd.setBinding(5, surf.gbuffFree);
-    cmd.setBinding(6, surfCnts);
-    cmd.setBinding(7, surfBins);
-    cmd.setBinding(8, surfList);
 
     const auto tc = tileCount(zbuffer.size(), LargeTile);
     cmd.setPipeline(shaders.surfAlloc);
     cmd.dispatch(tc);
+    }
+
+  static bool gc = true;
+  if(gc) {
+    surfelsBinning(cmd, wview, TileSize, false);
+
+    cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
+    cmd.setBinding(3, surfels);
+    //
+    cmd.setBinding(6, surfCnts);
+    cmd.setBinding(7, surfBins);
+    cmd.setBinding(8, surfList);
+
+    //cmd.setPushData(push);
+    //cmd.setPipeline(shaders.surfBinSort); // assist with stable GC
+    //cmd.dispatch(surfBins.size());
+
+    cmd.setPushData(push);
+    cmd.setPipeline(shaders.surfDecimate);
+    cmd.dispatchThreads(maxSurfels);
     }
 
   if(rays) {

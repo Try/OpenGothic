@@ -14,7 +14,8 @@
 
 layout(local_size_x = 8, local_size_y = 8) in;
 
-const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
+const uint  NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
+const float NormalBias = 0.0015;
 
 layout(std140, push_constant) uniform Push {
   uint pass;
@@ -77,13 +78,18 @@ void main() {
   // if(surfelId>=header.count)
   //   return;
 
-  const Surfel p   = surfels[surfelId];
-  const mat3   tbn = toTangent(decodeNormal(p.norm));
+  const Surfel p = surfels[surfelId];
+  if(!isSurfelAlive(p))
+    return;
 
-  const uint i   = gl_LocalInvocationIndex;
-  const vec3 ray = tbn * sampleHemisphereCos(i,numPaths,0);
+  const vec3   norm = decodeNormal(p.norm);
+  const mat3   tbn  = toTangent(norm);
+  const vec3   pos  = p.pos;
+
+  const uint   i    = gl_LocalInvocationIndex;
+  const vec3   ray  = tbn * sampleHemisphereCos(i,numPaths,0);
 
   float wHit = 0;
-  const HitResolve hit = raycast(p.pos, ray, wHit);
+  const HitResolve hit = raycast(pos, ray, wHit);
   storeGBuf(p.payload, hit, wHit);
   }

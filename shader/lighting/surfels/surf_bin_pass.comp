@@ -32,7 +32,7 @@ void main() {
   const ivec2  fragCoord  = p.fragCoord;
   const int    radiusPix  = DefaultCoverage;
 
-  if(p.radius==0)
+  if(!isSurfelAlive(p))
     return;
 
   ivec2  pos0 = ivec2(fragCoord-radiusPix)/tileSize;

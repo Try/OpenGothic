@@ -148,6 +148,11 @@ void main() {
   const uint  surfelId = pass==0 ? gl_WorkGroupID.x : (header.count-gl_WorkGroupID.z-1);
 
   const Surfel p   = surfels[surfelId];
+  if(!isSurfelAlive(p)) {
+    surfels[surfelId].irradiance = vec3(1,1,0) / scene.exposure;
+    return;
+    }
+
   const mat3   tbn = toTangent(decodeNormal(p.norm));
 
   Random rngState = Random(pcgHash(gl_LocalInvocationIndex));
@@ -171,7 +176,7 @@ void main() {
 
     const float hitMean = float(numPaths)/max(reduction[0].w, eps); //harmonic mean
     surfels[surfelId].radius     = rMax;
-    surfels[surfelId].radiusMean = min(max(hitMean, rMin), rMax * rErrScale);
+    surfels[surfelId].radiusMean = min(max(hitMean, rMin), rMax * rEffScale);
 
     surfels[surfelId].irradiance = (reduction[0].rgb/float(numPaths));
     }
