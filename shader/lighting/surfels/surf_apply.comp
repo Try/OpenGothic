@@ -47,8 +47,11 @@ vec4 unpackHalf4x16(uvec2 packedVal) {
   }
 
 TSurfel packSurfel(const Surfel s) {
-  float rMax = min(s.radius, 65000);
-  float rEff = min(s.radiusMean, rMax*0.5);
+  // float rMax = min(s.radius, 65000);
+  // float rEff = min(s.radiusMean, rMax * MeanCoverageScale);
+
+  float rMax = s.radius;
+  float rEff = s.radiusMean;
 
   TSurfel sx;
   sx.pos  = vec4(s.pos, rEff);

@@ -37,6 +37,9 @@ struct GBuf {
   float rayW;
   };
 
+shared vec4 reduction[NumThreads];
+shared uint hitCnt;
+
 float shadowResolve(in vec4 sh, float z) {
   z  = clamp(z,0,0.99);
   sh = step(sh,vec4(z));
@@ -62,6 +65,10 @@ mat3 toTangent(vec3 norm) {
   tangent[1] = cross(norm, tangent[0]);
   tangent[2] = norm;
   return tangent;
+  }
+
+float pixelToWorld(float pixelRadius, float z) {
+  return pixelToWorld(scene, pixelRadius, z);
   }
 
 float sampleDirectLight(vec3 norm, vec3 rayOrigin, vec3 rayDirection) {
@@ -125,9 +132,6 @@ GBuf loadGBuf(uint ptr) {
   return hit;
   }
 
-shared vec4 reduction[NumThreads];
-shared uint hitCnt;
-
 void reduceIrr() {
   uint laneID = gl_LocalInvocationIndex;
 
@@ -155,9 +159,8 @@ void main() {
   const GBuf hit = loadGBuf(p.payload);
   const vec3 pt  = evalLight(p.pos, ray, hit);
 
-  hitCnt = 0;
-  barrier();
-
+  //hitCnt = 0;
+  //barrier();
   //atomicAdd(hitCnt, 1);
 
   float hitInv = 1.0/clamp(hit.rayT*0.4, 10.0, p.radius);
@@ -167,8 +170,14 @@ void main() {
   reduceIrr();
 
   if(gl_LocalInvocationIndex==0) {
+    const vec4   pos4 = scene.viewProject * vec4(p.pos, 1.0);
+    const float  rMin = pixelToWorld(MinCoverage, pos4.z/pos4.w);
+    const float  rMax = min(pixelToWorld(DefaultCoverage, pos4.z/pos4.w), 65000);
+
     const float hitMean = float(numPaths)/max(reduction[0].w, eps); //harmonic mean
+    surfels[surfelId].radius     = rMax;
+    surfels[surfelId].radiusMean = min(max(hitMean, rMin), rMax*MeanCoverageScale);
+
     surfels[surfelId].irradiance = (reduction[0].rgb/float(numPaths));
-    surfels[surfelId].radiusMean = hitMean;
     }
   }

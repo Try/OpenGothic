@@ -2,12 +2,15 @@
 #define SURF_COMMON_GLSL
 
 #include "common.glsl"
+#include "scene.glsl"
 
 const float SKY_DEPTH       = 0.999995;
 const int   MinCoverage     = 8;    // in pixels
 const int   DefaultCoverage = 96;   // in pixels
 const int   LargeTile       = 128;  // in pixels
 const uint  MaxInTile       = 1024; // ~32px (~6x6) per surfel
+
+const float MeanCoverageScale = 0.75;
 
 struct SurfHeader {
   uint count;
@@ -112,6 +115,17 @@ uint surfHash(vec3 pos, float cellSize, uint inorm) {
 #endif
   }
 
+float pixelToWorld(const SceneDesc scene, float pixelRadius, float z) {
+  z = linearDepth(z, scene.clipInfo);
+
+  float clipRadiusX  = (2.0 * pixelRadius) * scene.screenResInv.x;
+  float clipRadiusY  = (2.0 * pixelRadius) * scene.screenResInv.y;
+
+  float worldRadiusX = (clipRadiusX * z) / scene.project[0][0];
+  float worldRadiusY = (clipRadiusY * z) / scene.project[1][1];
+  return min(worldRadiusX, worldRadiusY);
+  }
+
 float calculteWeight(const vec3 spos, const vec3 snorm, float rEff, float rMax, float rDiff, const vec3 wpos, const vec3 wnorm) {
   // An Approximate Global Illumination System for Computer Generated Films
   // https://www.tabellion.org/et/paper/siggraph_2004_gi_for_films.pdf
@@ -134,7 +148,7 @@ float calculteWeight(const vec3 spos, const vec3 snorm, float rEff, float rMax, 
 
 float calculteWeight(const vec3 spos, const vec3 snorm, float rEff, float rMax, const vec3 wpos, const vec3 wnorm) {
   rMax  = min(rMax, 65000);
-  rEff  = min(rEff, rMax*0.5);
+  rEff  = min(rEff, rMax*MeanCoverageScale);
   return calculteWeight(spos, snorm, rEff, rMax, rMax-rEff, wpos, wnorm);
   }
 

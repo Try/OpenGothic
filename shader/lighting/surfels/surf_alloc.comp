@@ -40,14 +40,7 @@ vec3 worldPos(float z, ivec2 fragCoord) {
   }
 
 float pixelToWorld(float pixelRadius, float z) {
-  z = linearDepth(z, scene.clipInfo);
-
-  float clipRadiusX = (2.0 * pixelRadius) * scene.screenResInv.x;
-  float clipRadiusY = (2.0 * pixelRadius) * scene.screenResInv.y;
-
-  float worldRadiusX = (clipRadiusX * z) / scene.project[0][0];
-  float worldRadiusY = (clipRadiusY * z) / scene.project[1][1];
-  return min(worldRadiusX, worldRadiusY);
+  return pixelToWorld(scene, pixelRadius, z);
   }
 
 float calculteWeight(const Candidate s, const vec3 wpos, const vec3 norm) {

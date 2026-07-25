@@ -42,10 +42,7 @@ vec3 hasGridPos(vec3 wpos, float cellSize) {
   }
 
 float pixelToWorld(float pixelRadius, float z) {
-  z = linearDepth(z, scene.clipInfo);
-  float clipRadius  = (2.0 * pixelRadius) * scene.screenResInv.y;
-  float worldRadius = (clipRadius * z) / scene.project[1][1];
-  return worldRadius;
+  return pixelToWorld(scene, pixelRadius, z);
   }
 
 void main() {
