@@ -10,7 +10,7 @@ const int   DefaultCoverage = 96;   // in pixels
 const int   LargeTile       = 128;  // in pixels
 const uint  MaxInTile       = 1024; // ~32px (~6x6) per surfel
 
-const float MeanCoverageScale = 0.75;
+const float rErrScale       = 0.5;
 
 struct SurfHeader {
   uint count;
@@ -148,7 +148,7 @@ float calculteWeight(const vec3 spos, const vec3 snorm, float rEff, float rMax, 
 
 float calculteWeight(const vec3 spos, const vec3 snorm, float rEff, float rMax, const vec3 wpos, const vec3 wnorm) {
   rMax  = min(rMax, 65000);
-  rEff  = min(rEff, rMax*MeanCoverageScale);
+  rEff  = min(rEff, rMax*rErrScale);
   return calculteWeight(spos, snorm, rEff, rMax, rMax-rEff, wpos, wnorm);
   }
 

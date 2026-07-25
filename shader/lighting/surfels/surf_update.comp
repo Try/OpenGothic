@@ -29,7 +29,7 @@ void main() {
 
   const float  rMin       = pixelToWorld(MinCoverage,     pos4.z/pos4.w);
   const float  rMax       = pixelToWorld(DefaultCoverage, pos4.z/pos4.w);
-  const float  radiusMean = max(rMin, min(s.radiusMean, rMax * MeanCoverageScale));
+  const float  radiusMean = max(rMin, min(s.radiusMean, rMax * rErrScale));
 
   surfels[surfelId].fragCoord  = fragCoord;
   surfels[surfelId].radius     = rMax;
