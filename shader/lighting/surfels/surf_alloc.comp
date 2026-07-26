@@ -102,7 +102,7 @@ void storeSurfels() {
       sx.norm       = encodeNormal(p.norm.xyz);
       sx.fragCoord  = fragCoord;
       sx.radius     = p.pos.w;
-      sx.radiusMean = p.pos.w * 2;
+      sx.radiusMean = p.pos.w * rEffScale;
       sx.irradiance = debugColors[(gl_WorkGroupID.x*32+gl_WorkGroupID.y)%debugColors.length()] / scene.exposure;
       sx.payload    = allocPayload();
       surf.surfels[ptr] = sx;
