@@ -4668,16 +4668,26 @@ bool Npc::canRayHitPoint(const Tempest::Vec3 self, const Tempest::Vec3 pos, floa
   if(qDistTo(pos)>range*range)
     return false;
 
-  static const double ref = std::cos(100*M_PI/180.0); // spec requires +-100 view angle range
+  // The vector below points from the target back to this NPC. A >=100 degree separation from
+  // that reverse vector is the intended <=80 degree front arc.
+  static const double ref = std::cos(100*M_PI/180.0);
   const DynamicWorld* w   = owner.physic();
   bool freeLos = angOverride>=180.f;
   if(freeLos) {
     return !w->ray(self, pos).hasCol;
     }
 
-  float dx  = self.x-pos.x, dz=self.z-pos.z;
+  // cone from the object position, not the animated head bone: in melee the head dives into
+  // the target and the direction to it collapses to noise. a false negative here reads to some
+  // mods as a point-blank stealth hit and triggers a monster self-heal.
+  float dx  = x-pos.x, dz = z-pos.z;
   float dir = angleDir(dx,dz);
-  float da  = float(M_PI)*(visual.viewDirection()-dir)/180.f;
+
+  // Use the logical heading during normal movement/combat. While attached to a MOBSI the
+  // interaction animation owns the root rotation, so the visible pose remains authoritative.
+  // Flying monsters are not in that state and their model yaw must not flip the cone.
+  float viewAng = (interactive()!=nullptr) ? visual.viewDirection() : angle;
+  float da  = float(M_PI)*(viewAng-dir)/180.f;
   auto  ca  = angOverride > 0 ? std::cos(angOverride*M_PI/180.0) : ref;
   if(double(std::cos(da))<=ca) {
     if(!w->ray(self, pos).hasCol)
