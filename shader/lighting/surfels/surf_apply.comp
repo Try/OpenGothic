@@ -56,7 +56,7 @@ TSurfel packSurfel(const Surfel s) {
   TSurfel sx;
   sx.pos  = vec4(s.pos, rEff);
   sx.norm = packHalf4x16(vec4(decodeNormal(s.norm), rMax));
-  sx.irr  = packHalf4x16(vec4(s.irradiance, rMax-rEff));
+  sx.irr  = packHalf4x16(vec4(s.irradiance, 1.0/(rMax-rEff)));
   return sx;
   }
 
