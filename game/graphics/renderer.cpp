@@ -2482,7 +2482,7 @@ void Renderer::drawSurfelsDbg(Encoder<CommandBuffer>& cmd, const WorldView& wvie
   if(settings.giMethod!=GiMethod::IrrC)
     return;
 
-  static bool enable = true;
+  static bool enable = false;
   if(!enable)
     return;
 
