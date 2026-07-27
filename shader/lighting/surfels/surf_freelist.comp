@@ -1,0 +1,19 @@
+#version 450
+
+#include "lighting/surfels/surf_common.glsl"
+
+layout(local_size_x = 64) in;
+
+layout(std140, push_constant) uniform Push {
+  uint gbufTileX;
+  };
+layout(binding = 0, std430) buffer SB0 { int count; uint idx[]; };
+
+void main() {
+  const uint id = gl_GlobalInvocationID.x;
+  if(id==0)
+    count = 0;
+
+  if(id < idx.length())
+    idx[id] = packAtlassPos(id%gbufTileX, id/gbufTileX);
+  }

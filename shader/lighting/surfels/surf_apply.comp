@@ -20,17 +20,45 @@ layout(binding = 1, rgba16f) uniform image2D irradiance;
 layout(binding = 2) uniform utexture2D gbufNormal;
 layout(binding = 3) uniform texture2D  depth;
 layout(binding = 4, std430) readonly buffer SB0 { SurfHeader header; Surfel surfels[]; };
-layout(binding = 5, std430)          buffer SB1 { uint usage[]; };
+//
 layout(binding = 6, r32ui) uniform uimage2D surfCnts;
 layout(binding = 7, r32ui) uniform uimage2D surfBins;
 layout(binding = 8, std430) readonly buffer SB2 { uint surfelList[]; };
-//
-layout(binding = 11, rgba8) uniform image2D dbgImage;
 
-shared vec4 surfelsPos [NumThreads];
-shared vec4 surfelsNorm[NumThreads];
-shared vec4 surfelsIrr [NumThreads];
-shared uint surfelCount;
+struct TSurfel {
+  vec4  pos;
+  uvec2 norm;
+  uvec2 irr;
+  };
+
+shared TSurfel tSurfels[NumThreads];
+shared uint    surfelCount;
+
+uvec2 packHalf4x16(vec4 v) {
+  uint lowBits  = packHalf2x16(v.xy);
+  uint highBits = packHalf2x16(v.zw);
+  return uvec2(lowBits, highBits);
+  }
+
+vec4 unpackHalf4x16(uvec2 packedVal) {
+  vec2 xy = unpackHalf2x16(packedVal.x);
+  vec2 zw = unpackHalf2x16(packedVal.y);
+  return vec4(xy, zw);
+  }
+
+TSurfel packSurfel(const Surfel s) {
+  // float rMax = min(s.radius, 65000);
+  // float rEff = min(s.radiusMean, rMax * MeanCoverageScale);
+
+  float rMax = s.radius;
+  float rEff = s.radiusMean;
+
+  TSurfel sx;
+  sx.pos  = vec4(s.pos, rEff);
+  sx.norm = packHalf4x16(vec4(decodeNormal(s.norm), rMax));
+  sx.irr  = packHalf4x16(vec4(s.irradiance, 1.0/(rMax-rEff)));
+  return sx;
+  }
 
 vec3 worldPos(float z, ivec2 fragCoord, ivec2 screenSize) {
   const mat4 inv = scene.viewProjectLwcInv;
@@ -41,17 +69,19 @@ vec3 worldPos(float z, ivec2 fragCoord, ivec2 screenSize) {
 
 void applyBatch(inout vec4 clr, const vec3 wpos, const vec3 norm, const uint surfCount) {
   for(int i=0; i<surfCount; ++i) {
-    const float w     = calculteWeight(surfelsPos[i].xyz, surfelsNorm[i].xyz, surfelsIrr[i].w, surfelsNorm[i].w, wpos, norm);
-    const vec3  color = surfelsIrr[i].rgb;
+    const TSurfel sx  = tSurfels[i];
+    const vec4    pos = vec4(sx.pos);
+    const vec4    nx  = unpackHalf4x16(sx.norm);
+    const vec4    irr = unpackHalf4x16(sx.irr);
+    const float   w   = calculteWeight(pos.xyz, nx.xyz, pos.w, nx.w, irr.w, wpos, norm);
     if(w <= 0.0)
       continue;
+    const vec3 color = irr.rgb;
     clr += vec4(color*w, w);
     }
   }
 
 void pullSurfels(ivec2 bboxMin, ivec2 bboxMax, uint ptr, uint cnt, uint i) {
-  const uint laneID = gl_LocalInvocationIndex;
-
   if(i >= cnt)
     return;
 
@@ -62,9 +92,10 @@ void pullSurfels(ivec2 bboxMin, ivec2 bboxMax, uint ptr, uint cnt, uint i) {
     return;
 
   const uint id = atomicAdd(surfelCount, 1);
-  surfelsPos [id] = vec4(s.pos, uintBitsToFloat(sId));
-  surfelsNorm[id] = vec4(decodeNormal(s.norm), s.radius);
-  surfelsIrr [id] = vec4(s.irradiance, s.radiusMean);
+  if(id>=tSurfels.length())
+    return;
+
+  tSurfels[id] = packSurfel(s);
   }
 
 void main() {
@@ -96,7 +127,7 @@ void main() {
   surfelCount = 0;
 
   vec4 clr = vec4(0);
-  for(uint i=0; i<cnt; i+=NumThreads) {
+  for(uint i=0;;) {
     barrier();
 
     pullSurfels(bboxMin, bboxMax, ptr, cnt, i+laneID);
@@ -105,8 +136,12 @@ void main() {
     if(!sky) {
       applyBatch(clr, wpos, norm, surfelCount);
       }
-    barrier();
 
+    i += NumThreads;
+    if(i>=cnt)
+      break;
+
+    barrier();
     surfelCount = 0;
     }
 
@@ -115,7 +150,6 @@ void main() {
 
   if(sky) {
     imageStore(irradiance, fragCoord, vec4(0,0,0,1));
-    imageStore(dbgImage, fragCoord, vec4(1));
     return;
     }
 
@@ -130,10 +164,9 @@ void main() {
     // post pass
     const vec4 pre = imageLoad(irradiance, fragCoord);
     clr += vec4(pre.rgb*pre.a, pre.a);
+    //clr += vec4(pre.rgb, pre.a);
     if(clr.a>0)
       clr.rgb /= clr.a;
     imageStore(irradiance, fragCoord, vec4(clr.rgb, clr.a));
     }
-
-  imageStore(dbgImage, fragCoord, vec4(clr.a));
   }

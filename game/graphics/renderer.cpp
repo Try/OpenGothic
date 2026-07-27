@@ -94,6 +94,9 @@ Renderer::Renderer(Tempest::Swapchain& swapchain)
   settings.swrEnabled       = Gothic::options().swRenderingPreset>0;
   settings.swrtEnabled      = Gothic::options().doSoftwareRT;
 
+  sky.sampler = Tempest::Sampler::bilinear();
+  sky.sampler.vClamp = ClampMode::ClampToEdge;
+
   sky.cloudsLut     = device.image2d   (sky.lutRGBAFormat,  2,  1);
   sky.transLut      = device.attachment(sky.lutRGBFormat, 256, 64);
   sky.multiScatLut  = device.attachment(sky.lutRGBFormat,  32, 32);
@@ -368,6 +371,22 @@ ZBuffer& Renderer::usesZBuffer(Tempest::ZBuffer& ret, Tempest::TextureFormat frm
   return ret;
   }
 
+Attachment& Renderer::usesAttachment(Tempest::Attachment& ret, Tempest::TextureFormat frm, Tempest::Size size) {
+  if(textureCast<Texture2d&>(ret).format()==frm && ret.size()==size)
+    return ret;
+  Resources::recycle(std::move(ret));
+  ret = Resources::device().attachment(frm, size);
+  return ret;
+  }
+
+Attachment& Renderer::usesAttachment(Tempest::Attachment& ret, Tempest::TextureFormat frm, uint32_t w, uint32_t h) {
+  if(textureCast<Texture2d&>(ret).format()==frm && uint32_t(ret.w())==w && uint32_t(ret.h())==h)
+    return ret;
+  Resources::recycle(std::move(ret));
+  ret = Resources::device().attachment(frm, w, h);
+  return ret;
+  }
+
 StorageBuffer& Renderer::usesSsbo(Tempest::StorageBuffer& ret, size_t size) {
   if(ret.byteSize()==size)
     return ret;
@@ -416,7 +435,8 @@ void Renderer::resetShadowmap() {
   for(int i=0; i<Resources::ShadowLayers; ++i)
     Resources::recycle(std::move(shadowMap[i]));
 
-  const bool forceSm1 = (settings.giMethod==GiMethod::Probes || settings.pathTraceEnabled || sky.quality==PathTrace);
+  const bool forceSm1 = (settings.giMethod==GiMethod::Probes || settings.giMethod==GiMethod::IrrC ||
+                         settings.pathTraceEnabled || sky.quality==PathTrace);
   for(int i=0; i<Resources::ShadowLayers; ++i) {
     if(!(i==1 && forceSm1)) {
       if(settings.vsmEnabled && !(settings.rtsmEnabled && i==1))
@@ -510,7 +530,7 @@ void Renderer::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldVi
 
     sz = Vec2(float(sky.multiScatLut.w()), float(sky.multiScatLut.h()));
     cmd.setFramebuffer({{sky.multiScatLut, Tempest::Discard, Tempest::Preserve}});
-    cmd.setBinding(0, sky.transLut, Sampler::bilinear(ClampMode::ClampToEdge));
+    cmd.setBinding(0, sky.transLut, sky.sampler);
     cmd.setPushData(&sz, sizeof(sz));
     cmd.setPipeline(shaders.skyMultiScattering);
     cmd.draw(nullptr, 0, 3);
@@ -519,8 +539,8 @@ void Renderer::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldVi
   auto sz = Vec2(float(sky.viewLut.w()), float(sky.viewLut.h()));
   cmd.setFramebuffer({{sky.viewLut, Tempest::Discard, Tempest::Preserve}});
   cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
-  cmd.setBinding(1, sky.transLut,     Sampler::bilinear(ClampMode::ClampToEdge));
-  cmd.setBinding(2, sky.multiScatLut, Sampler::bilinear(ClampMode::ClampToEdge));
+  cmd.setBinding(1, sky.transLut,     sky.sampler);
+  cmd.setBinding(2, sky.multiScatLut, sky.sampler);
   cmd.setBinding(3, sky.cloudsLut,    Sampler::bilinear(ClampMode::ClampToEdge));
   cmd.setPushData(&sz, sizeof(sz));
   cmd.setPipeline(shaders.skyViewLut);
@@ -529,7 +549,7 @@ void Renderer::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldVi
   sz = Vec2(float(sky.viewCldLut.w()), float(sky.viewCldLut.h()));
   cmd.setFramebuffer({{sky.viewCldLut, Tempest::Discard, Tempest::Preserve}});
   cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
-  cmd.setBinding(1, sky.viewLut);
+  cmd.setBinding(1, sky.viewLut, sky.sampler);
   cmd.setBinding(2, *wview.sky().cloudsDay()  .lay[0], Sampler::trillinear());
   cmd.setBinding(3, *wview.sky().cloudsDay()  .lay[1], Sampler::trillinear());
   cmd.setBinding(4, *wview.sky().cloudsNight().lay[0], Sampler::trillinear());
@@ -579,8 +599,7 @@ void Renderer::dbgDraw(Tempest::Painter& p) {
   //tex.push_back(&textureCast<const Texture2d&>(shadowMap[0]));
   //tex.push_back(&textureCast<const Texture2d&>(vsm.pageData));
   //tex.push_back(&textureCast<const Texture2d&>(swrt.outputImage));
-  tex.push_back(&textureCast<const Texture2d&>(surf.dbgImage));
-  //tex.push_back(&textureCast<const Texture2d&>(surf.irrImage));
+  tex.push_back(&textureCast<const Texture2d&>(surf.irrImage));
 
   static int size = 400;
   int left = 10;
@@ -905,7 +924,7 @@ void Renderer::drawSunMoon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const 
 
   cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
   cmd.setBinding(1, isSun ? wview.sky().sunImage() : wview.sky().moonImage());
-  cmd.setBinding(2, sky.transLut, Sampler::bilinear(ClampMode::ClampToEdge));
+  cmd.setBinding(2, sky.transLut, sky.sampler);
   cmd.setPushData(push);
   cmd.setPipeline(shaders.sun);
   cmd.draw(nullptr, 0, 6);
@@ -1648,7 +1667,7 @@ void Renderer::drawReflections(Encoder<CommandBuffer>& cmd, const WorldView& wvi
   cmd.setBinding(3, gbufNormal,  Sampler::nearest (ClampMode::ClampToEdge));
   cmd.setBinding(4, zbuffer,     Sampler::nearest (ClampMode::ClampToEdge));
   cmd.setBinding(5, sceneDepth,  Sampler::nearest (ClampMode::ClampToEdge));
-  cmd.setBinding(6, sky.viewCldLut);
+  cmd.setBinding(6, sky.viewCldLut, sky.sampler);
   cmd.setPipeline(pso);
   if(Gothic::options().doMeshShading) {
     cmd.dispatchMeshThreads(gbufDiffuse.size());
@@ -1773,8 +1792,8 @@ void Renderer::drawSky(Encoder<CommandBuffer>& cmd, const WorldView& wview) {
   cmd.setDebugMarker("Sky");
   if(sky.quality==PathTrace) {
     cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
-    cmd.setBinding(1, sky.transLut,     Sampler::bilinear(ClampMode::ClampToEdge));
-    cmd.setBinding(2, sky.multiScatLut, Sampler::bilinear(ClampMode::ClampToEdge));
+    cmd.setBinding(1, sky.transLut,     sky.sampler);
+    cmd.setBinding(2, sky.multiScatLut, sky.sampler);
     cmd.setBinding(3, sky.cloudsLut,    Sampler::bilinear(ClampMode::ClampToEdge));
     cmd.setBinding(4, zbuffer, Sampler::nearest());
     cmd.setBinding(5, shadowMap[1], Resources::shadowSampler());
@@ -1785,10 +1804,10 @@ void Renderer::drawSky(Encoder<CommandBuffer>& cmd, const WorldView& wview) {
 
   auto& skyShader = sky.quality==VolumetricLQ ? shaders.sky : shaders.skySep;
   cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
-  cmd.setBinding(1, sky.transLut,     Sampler::bilinear(ClampMode::ClampToEdge));
-  cmd.setBinding(2, sky.multiScatLut, Sampler::bilinear(ClampMode::ClampToEdge));
-  cmd.setBinding(3, sky.viewLut,      Sampler::bilinear(ClampMode::ClampToEdge));
-  cmd.setBinding(4, sky.fogLut3D);
+  cmd.setBinding(1, sky.transLut,     sky.sampler);
+  cmd.setBinding(2, sky.multiScatLut, sky.sampler);
+  cmd.setBinding(3, sky.viewLut,      sky.sampler);
+  cmd.setBinding(4, sky.fogLut3D,     Sampler::bilinear(ClampMode::ClampToEdge));
   if(sky.quality!=VolumetricLQ)
     cmd.setBinding(5, sky.fogLut3DMs, Sampler::bilinear(ClampMode::ClampToEdge));
   cmd.setBinding(6, *wview.sky().cloudsDay()  .lay[0], Sampler::trillinear());
@@ -1840,12 +1859,12 @@ void Renderer::prepareFog(Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview
     auto& shader = sky.quality==VolumetricLQ ? shaders.fogViewLut3d : shaders.fogViewLutSep;
     cmd.setFramebuffer({});
     cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
-    cmd.setBinding(1, sky.transLut,     Sampler::bilinear(ClampMode::ClampToEdge));
-    cmd.setBinding(2, sky.multiScatLut, Sampler::bilinear(ClampMode::ClampToEdge));
+    cmd.setBinding(1, sky.transLut,     sky.sampler);
+    cmd.setBinding(2, sky.multiScatLut, sky.sampler);
     cmd.setBinding(3, sky.cloudsLut,    Sampler::bilinear(ClampMode::ClampToEdge));
-    cmd.setBinding(4, sky.fogLut3D);
+    cmd.setBinding(4, sky.fogLut3D,     Sampler::bilinear(ClampMode::ClampToEdge));
     if(sky.quality==VolumetricHQ || sky.quality==Epipolar)
-      cmd.setBinding(5, sky.fogLut3DMs, Sampler::bilinear(ClampMode::ClampToEdge));
+      cmd.setBinding(5, sky.fogLut3DMs);
     cmd.setPipeline(shader);
     cmd.dispatchThreads(uint32_t(sky.fogLut3D.w()), uint32_t(sky.fogLut3D.h()));
     }
@@ -1898,7 +1917,7 @@ void Renderer::prepareFog(Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview
       cmd.setBinding(2, wview.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
       cmd.setBinding(3, epipolar.epipoles);
       cmd.setBinding(4, zbuffer);
-      cmd.setBinding(5, sky.transLut,   Sampler::bilinear(ClampMode::ClampToEdge));
+      cmd.setBinding(5, sky.transLut,   sky.sampler);
       cmd.setBinding(6, sky.cloudsLut,  Sampler::bilinear(ClampMode::ClampToEdge));
       cmd.setBinding(7, sky.fogLut3DMs, Sampler::bilinear(ClampMode::ClampToEdge));
       cmd.setPipeline(shaders.vsmFogTrace);
@@ -1943,19 +1962,18 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
   if(settings.giMethod!=GiMethod::IrrC || !settings.zCloudShadowScale)
     return;
 
-  const uint32_t maxSurfels      = surf.maxSurfels;
-  const int32_t  tileSize        = 128;
-  const int32_t  DefaultCoverage = 128;
-  const auto     binCount        = tileCount(zbuffer.size(), DefaultCoverage);
+  const uint32_t maxSurfels = surf.maxSurfels;
+  const int32_t  TileSize   = 96;
+  const int32_t  LargeTile  = 128;
+  const auto     binCount   = tileCount(zbuffer.size(), TileSize);
 
-  auto& scene     = wview.sceneGlobals();
-  auto& dbgImage  = usesImage2d (surf.dbgImage, TextureFormat::RGBA8,   zbuffer.size());
-  auto& irrImage  = usesImage2d (surf.irrImage, TextureFormat::RGBA16F, zbuffer.size());
-  auto& surfels   = usesSsboInit(surf.surfels,  shaders.surfAlloc.sizeofBuffer(4, maxSurfels));
+  auto& scene    = wview.sceneGlobals();
+  auto& irrImage = usesImage2d (surf.irrImage, TextureFormat::RGBA16F, zbuffer.size());
+  auto& surfels  = usesSsboInit(surf.surfels,  shaders.surfAlloc.sizeofBuffer(4, maxSurfels));
 
-  auto& surfCnts  = usesImage2d(surf.surfCnts, TextureFormat::R32U, binCount);
-  auto& surfBins  = usesImage2d(surf.surfBins, TextureFormat::R32U, binCount);
-  auto& surfList  = usesSsbo   (surf.surfList, 16*maxSurfels*sizeof(uint32_t));
+  auto& surfCnts = usesImage2d(surf.surfCnts, TextureFormat::R32U, binCount);
+  auto& surfBins = usesImage2d(surf.surfBins, TextureFormat::R32U, binCount);
+  auto& surfList = usesSsbo   (surf.surfList, 16*maxSurfels*sizeof(uint32_t));
 
   struct Push {
     Vec3     originLwc;
@@ -1963,10 +1981,18 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
     uint32_t pass;
     } push = {};
   push.originLwc = scene.originLwc;
-  push.tileSize  = uint32_t(tileSize);
+  push.tileSize  = uint32_t(TileSize);
   push.pass      = 0;
 
   cmd.setDebugMarker("Surfels");
+
+  if(surf.gbuffFree.isEmpty()) {
+    auto& gbuffFree = usesSsbo(surf.gbuffFree, shaders.surfFList.sizeofBuffer(0, maxSurfels));
+    cmd.setPushData(surf.gbufTilesX);
+    cmd.setBinding(0, gbuffFree);
+    cmd.setPipeline(shaders.surfFList);
+    cmd.dispatchThreads(maxSurfels);
+    }
 
   // prev-frame
   {
@@ -1976,35 +2002,20 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
 
     cmd.setPipeline(shaders.surfUpdate);
     cmd.dispatchThreads(maxSurfels);
-  }
-
-  static bool gc = true;
-  if(gc) {
-    surfelsBinning(cmd, wview, tileSize, false);
 
     cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
     cmd.setBinding(1, hiz.hiZ);
     cmd.setBinding(2, zbuffer);
     cmd.setBinding(3, surfels);
-    //
-    cmd.setBinding(6, surfCnts);
-    cmd.setBinding(7, surfBins);
-    cmd.setBinding(8, surfList);
-
+    cmd.setBinding(4, surf.gbuffFree);
     cmd.setPushData(scene.znear);
+
     cmd.setPipeline(shaders.surfCulling);
-    cmd.dispatchThreads(maxSurfels);
-
-    cmd.setPushData(push);
-    cmd.setPipeline(shaders.surfBinSort); // assist with stable GC
-    cmd.dispatch(surfBins.size());
-
-    cmd.setPipeline(shaders.surfDecimate);
     cmd.dispatchThreads(maxSurfels);
 
     cmd.setPipeline(shaders.surfCompact);
     cmd.dispatch(1);
-    }
+  }
 
   static bool rays = true;
   if(rays) {
@@ -2013,23 +2024,8 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
 
   static bool apply = true;
   if(apply) {
-    surfelsBinning(cmd, wview, tileSize, false);
-
-    cmd.setPushData(push);
-    cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
-    cmd.setBinding(1, irrImage);
-    cmd.setBinding(2, gbufNormal);
-    cmd.setBinding(3, zbuffer);
-    cmd.setBinding(4, surfels);
-    //
-    cmd.setBinding(6, surfCnts);
-    cmd.setBinding(7, surfBins);
-    cmd.setBinding(8, surfList);
-    //
-    cmd.setBinding(11, dbgImage);
-
-    cmd.setPipeline(shaders.surfApply);
-    cmd.dispatchThreads(zbuffer.size());
+    surfelsBinning(cmd, wview, TileSize, false);
+    surfelsApply(cmd, wview, TileSize, false);
     }
 
   // current-frame
@@ -2041,16 +2037,31 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
     cmd.setBinding(2, gbufNormal);
     cmd.setBinding(3, zbuffer);
     cmd.setBinding(4, surfels);
+    cmd.setBinding(5, surf.gbuffFree);
+
+    const auto tc = tileCount(zbuffer.size(), LargeTile);
+    cmd.setPipeline(shaders.surfAlloc);
+    cmd.dispatch(tc);
+    }
+
+  static bool gc = true;
+  if(gc) {
+    surfelsBinning(cmd, wview, TileSize, false);
+
+    cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
+    cmd.setBinding(3, surfels);
     //
     cmd.setBinding(6, surfCnts);
     cmd.setBinding(7, surfBins);
     cmd.setBinding(8, surfList);
-    //
-    cmd.setBinding(11, dbgImage);
 
-    const auto tc = tileCount(zbuffer.size(), 128);
-    cmd.setPipeline(shaders.surfAlloc);
-    cmd.dispatch(tc);
+    //cmd.setPushData(push);
+    //cmd.setPipeline(shaders.surfBinSort); // assist with stable GC
+    //cmd.dispatch(surfBins.size());
+
+    cmd.setPushData(push);
+    cmd.setPipeline(shaders.surfDecimate);
+    cmd.dispatchThreads(maxSurfels);
     }
 
   if(rays) {
@@ -2058,25 +2069,45 @@ void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
     }
 
   if(apply) {
-    surfelsBinning(cmd, wview, tileSize, true);
-
-    push.pass = 1;
-    cmd.setPushData(push);
-    cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
-    cmd.setBinding(1, irrImage);
-    cmd.setBinding(2, gbufNormal);
-    cmd.setBinding(3, zbuffer);
-    cmd.setBinding(4, surfels);
-    //
-    cmd.setBinding(6, surfCnts);
-    cmd.setBinding(7, surfBins);
-    cmd.setBinding(8, surfList);
-    //
-    cmd.setBinding(11, dbgImage);
-
-    cmd.setPipeline(shaders.surfApply);
-    cmd.dispatchThreads(zbuffer.size());
+    surfelsBinning(cmd, wview, TileSize, true);
+    surfelsApply(cmd, wview, TileSize, true);
     }
+  }
+
+void Renderer::surfelsApply(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview, int32_t tileSize, bool postPass) {
+  auto& scene = wview.sceneGlobals();
+
+  auto& irrImage  = surf.irrImage;
+  auto& surfels   = surf.surfels;
+  auto& surfCnts  = surf.surfCnts;
+  auto& surfBins  = surf.surfBins;
+  auto& surfList  = surf.surfList;
+
+  // auto& irrImage2 = usesAttachment(surf.irrImage2, TextureFormat::RGBA16F, zbuffer.size());
+  // (void)irrImage2;
+
+  struct Push {
+    Vec3     originLwc;
+    uint32_t tileSize;
+    uint32_t pass;
+    } push = {};
+  push.originLwc = scene.originLwc;
+  push.tileSize  = uint32_t(tileSize);
+  push.pass      = postPass ? 1 : 0;
+
+  cmd.setPushData(push);
+  cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
+  cmd.setBinding(1, irrImage);
+  cmd.setBinding(2, gbufNormal);
+  cmd.setBinding(3, zbuffer);
+  cmd.setBinding(4, surfels);
+  //
+  cmd.setBinding(6, surfCnts);
+  cmd.setBinding(7, surfBins);
+  cmd.setBinding(8, surfList);
+
+  cmd.setPipeline(shaders.surfApply);
+  cmd.dispatchThreads(zbuffer.size());
   }
 
 void Renderer::surfelsBinning(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview, int32_t tileSize, bool postPass) {
@@ -2123,25 +2154,48 @@ void Renderer::surfelsBinning(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wor
   }
 
 void Renderer::surfelsTrace(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview, StorageBuffer& surfels, bool postPass) {
+  static int giMethod = 0;
+
   auto& scene = wview.sceneGlobals();
+
+  const Tempest::ComputePipeline* pso = &shaders.surfRaycast;
+  if(giMethod==1)
+    pso = &shaders.surfPathtrace;
+
+  const uint32_t gbufX = surf.gbufTilesX * uint32_t(surf.gbufTile.x);
+  const uint32_t gbufY = surf.gbufTilesY * uint32_t(surf.gbufTile.y);
+
+  auto& gbuffDiff = usesImage2d(surf.gbuffDiff, TextureFormat::RGBA8, gbufX, gbufY);
+  auto& gbuffNorm = usesImage2d(surf.gbuffNorm, TextureFormat::RGBA8, gbufX, gbufY);
+  auto& gbuffHitT = usesImage2d(surf.gbuffHitT, TextureFormat::R16,   gbufX, gbufY);
 
   const uint32_t pass = postPass ? 1 : 0;
   cmd.setPushData(pass);
   cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
   cmd.setBinding(1, surfels);
-  cmd.setBinding(2, sky.viewCldLut);
-  //
+  cmd.setBinding(2, sky.viewCldLut, sky.sampler);
+  cmd.setBinding(3, gbuffDiff);
+  cmd.setBinding(4, gbuffNorm);
+  cmd.setBinding(5, gbuffHitT);
   cmd.setBinding(6, scene.rtScene.tlas);
   cmd.setBinding(7, Sampler::trillinear());
   cmd.setBinding(8, scene.rtScene.tex);
   cmd.setBinding(9, scene.rtScene.vbo);
   cmd.setBinding(10,scene.rtScene.ibo);
   cmd.setBinding(11,scene.rtScene.rtDesc);
+  cmd.setBinding(12,shadowMap[1]);
 
-  cmd.setPipeline(shaders.surfPathtrace);
-  //cmd.dispatchThreads(maxSurfels);
+  cmd.setPipeline(*pso);
   const uint32_t offset = postPass ? sizeof(uint32_t) : 0;
-  cmd.dispatchIndirect(surfels, offset);
+  if(!(giMethod==0 && postPass==false)) {
+    cmd.dispatchIndirect(surfels, offset);
+    // cmd.dispatchThreads(maxSurfels);
+    }
+
+  if(giMethod==0) {
+    cmd.setPipeline(shaders.surLighting);
+    cmd.dispatchIndirect(surfels, offset);
+    }
   }
 
 void Renderer::prepareIrradiance(Encoder<CommandBuffer>& cmd, WorldView& wview) {
@@ -2151,7 +2205,7 @@ void Renderer::prepareIrradiance(Encoder<CommandBuffer>& cmd, WorldView& wview) 
   cmd.setFramebuffer({});
   cmd.setBinding(0, sky.irradianceLut);
   cmd.setBinding(1, scene.uboGlobal[SceneGlobals::V_Main]);
-  cmd.setBinding(2, sky.viewCldLut);
+  cmd.setBinding(2, sky.viewCldLut, sky.sampler);
   cmd.setPipeline(shaders.irradiance);
   cmd.dispatch(1);
   }
@@ -2271,7 +2325,7 @@ void Renderer::prepareGi(Encoder<CommandBuffer>& cmd, WorldView& wview) {
   cmd.setBinding(2, probesGBuffDiff, Sampler::nearest());
   cmd.setBinding(3, probesGBuffNorm, Sampler::nearest());
   cmd.setBinding(4, probesGBuffRayT, Sampler::nearest());
-  cmd.setBinding(5, sky.viewCldLut,  Sampler::bilinear());
+  cmd.setBinding(5, sky.viewCldLut,  sky.sampler);
   cmd.setBinding(6, shadowMap[1],    Sampler::bilinear());
   cmd.setBinding(7, probesLightingPrev, Sampler::nearest());
   cmd.setBinding(8, hashTable);
@@ -2300,9 +2354,9 @@ void Renderer::prepareExposure(Encoder<CommandBuffer>& cmd, WorldView& wview) {
   cmd.setDebugMarker("Exposure");
   cmd.setFramebuffer({});
   cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
-  cmd.setBinding(1, sky.viewCldLut);
-  cmd.setBinding(2, sky.transLut,  Sampler::bilinear(ClampMode::ClampToEdge));
-  cmd.setBinding(3, sky.cloudsLut, Sampler::bilinear(ClampMode::ClampToEdge));
+  cmd.setBinding(1, sky.viewCldLut, sky.sampler);
+  cmd.setBinding(2, sky.transLut,   Sampler::bilinear(ClampMode::ClampToEdge));
+  cmd.setBinding(3, sky.cloudsLut,  Sampler::bilinear(ClampMode::ClampToEdge));
   cmd.setBinding(4, sky.irradianceLut);
   cmd.setPushData(&push, sizeof(push));
   cmd.setPipeline(shaders.skyExposure);
@@ -2366,7 +2420,7 @@ void Renderer::drawPathtrace(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Worl
   cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
   //cmd.setBinding(1, zbuffer);
   cmd.setBinding(2, sky.irradianceLut);
-  cmd.setBinding(3, sky.viewCldLut);
+  cmd.setBinding(3, sky.viewCldLut, sky.sampler);
   //cmd.setBinding(4, shadowMap[1], Sampler::bilinear());
   cmd.setBinding(4, Resources::fallbackBlack(), Sampler::bilinear());
   //
@@ -2428,7 +2482,7 @@ void Renderer::drawSurfelsDbg(Encoder<CommandBuffer>& cmd, const WorldView& wvie
   if(settings.giMethod!=GiMethod::IrrC)
     return;
 
-  static bool enable = false;
+  static bool enable = true;
   if(!enable)
     return;
 

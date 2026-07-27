@@ -7,7 +7,7 @@
 layout(binding = 0, std140) uniform UboScene {
   SceneDesc scene;
   };
-layout(binding = 1, std430) readonly buffer SB0  { uvec4 count; Surfel surfels[]; };
+layout(binding = 1, std430) readonly buffer SB0  { SurfHeader header; Surfel surfels[]; };
 layout(binding = 3) uniform sampler2D  depth;
 
 layout(location = 0) out vec3      center;
@@ -42,15 +42,12 @@ vec3 hasGridPos(vec3 wpos, float cellSize) {
   }
 
 float pixelToWorld(float pixelRadius, float z) {
-  z = linearDepth(z, scene.clipInfo);
-  float clipRadius  = (2.0 * pixelRadius) * scene.screenResInv.y;
-  float worldRadius = (clipRadius * z) / scene.project[1][1];
-  return worldRadius;
+  return pixelToWorld(scene, pixelRadius, z);
   }
 
 void main() {
   const uint surfelId = gl_InstanceIndex;
-  if(surfelId>=count.x) {
+  if(surfelId>=header.count) {
     gl_Position = vec4(0);
     return;
     }

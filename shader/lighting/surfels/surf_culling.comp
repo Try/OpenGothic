@@ -96,30 +96,25 @@ bool frustrumTest(const vec4 sphere) {
   return true;
   }
 
-bool isSurfelVisible(const vec4 p, float radiusMean, ivec2 fragCoord) {
-  if(!frustrumTest(p))
+vec3 unproject(ivec2 fragCoord) {
+  const float z  = texelFetch(depth,fragCoord,0).x;
+  const vec2  uv = vec2(fragCoord+0.5) * scene.screenResInv;
+  return projectiveUnproject(scene.projectInv, vec3(uv*2.0-1.0, z));
+  }
+
+bool isSurfelVisible(const vec3 p, float radiusMean, float radius, ivec2 fragCoord) {
+  if(!frustrumTest(vec4(p, radius)))
     return false;
 
   const vec3 viewPos = (scene.view * vec4(p.xyz, 1)).xyz;
 
 #if 1
-  if(0<=fragCoord.x && fragCoord.x<scene.screenRes.x &&
-     0<=fragCoord.y && fragCoord.y<scene.screenRes.y) {
-    const float z  = texelFetch(depth,fragCoord,0).x;
-    const float lz = linearDepth(z, scene.clipInfo);
-    if((lz-viewPos.z) > radiusMean) {
-      // TODO: two-sided HiZ
-      return false;
-      }
-    }
-#endif
-
-#if 1
   vec4  aabb = vec4(0);
   float depthMin=0, depthMax=0;
-  if(!projectSphere(viewPos, p.w, aabb, depthMin, depthMax))
+  if(!projectSphere(viewPos, radius, aabb, depthMin, depthMax))
     return false;
 
+  // TODO: two-sided HiZ
   if(!hiZTest(aabb, depthMin))
     return false;
 #endif
@@ -133,8 +128,8 @@ void main() {
     return;
 
   const Surfel s = surfels[surfelId];
-  if(isSurfelVisible(vec4(s.pos, s.radius), s.radiusMean, s.fragCoord))
+  if(isSurfelVisible(s.pos, s.radiusMean, s.radius, s.fragCoord))
     return;
 
-  surfels[surfelId].radius = 0;
+  surfels[surfelId].radius = -1;
   }

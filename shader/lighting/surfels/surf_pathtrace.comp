@@ -78,7 +78,7 @@ vec4 pathtrace(vec3 rayOrigin, vec3 rayDirection, inout Random rngState) {
       return vec4(color, depth);
       }
 
-    HitResolve hit = rayQueryProceedPrimary(rayOrigin, rayDirection, (bounce==0 ? 0 : -1), rngState);
+    HitResolve hit = rayQueryProceedPrimary(rayOrigin, rayDirection, -1, rngState);
     if(bounce==0)
       depth = abs(hit.rayT);
 
@@ -100,9 +100,7 @@ vec4 pathtrace(vec3 rayOrigin, vec3 rayDirection, inout Random rngState) {
 
     /*
     if(underWater) {
-      const float depth         = hit.rayT / 5000.0; // 50 meters
-      const vec3  transmittance = exp(-depth * vec3(4,2,1) * 1.25);
-      thruput *= transmittance;
+      thruput *= waterTransmittance(hit.rayT);
       }
 
     if(hit.water) {
@@ -138,7 +136,6 @@ vec4 pathtrace(vec3 rayOrigin, vec3 rayDirection, inout Random rngState) {
   }
 
 shared vec4 reduction[NumThreads];
-shared uint hitCnt;
 
 void reduceIrr() {
   uint laneID = gl_LocalInvocationIndex;
@@ -173,16 +170,10 @@ void main() {
   // const vec3 ray = randCosWeightedHemisphereDirection(decodeNormal(p.norm), rngState);
   const vec4 pt  = pathtrace(p.pos, ray, rngState);
 
-  hitCnt = 0;
-  barrier();
-
-  if(pt.a!=TMax)
-    atomicAdd(hitCnt, 1);
-
 #if defined(USE_MIN_HIT_DIST)
   reduction[i] = vec4(pt.rgb, pt.a);
 #else
-  reduction[i] = vec4(pt.rgb, 1.0/clamp(pt.a*0.4, 10.0, 1*p.radius));
+  reduction[i] = vec4(pt.rgb, 1.0/clamp(pt.a*0.4, 10.0, p.radius));
 #endif
   barrier();
 
@@ -192,9 +183,6 @@ void main() {
 #if defined(USE_MIN_HIT_DIST)
     const float hitMin = max(4, reduction[0].a);
     surfels[surfelId].radiusMean = hitMin;
-#elif 0
-    const float hitMean = float(hitCnt)/max(reduction[0].a, eps); //harmonic mean
-    surfels[surfelId].radiusMean = hitCnt > 0 ? hitMean : p.radius;
 #else
     const float hitMean = float(numPaths)/max(reduction[0].a, eps); //harmonic mean
     surfels[surfelId].radiusMean = hitMean;

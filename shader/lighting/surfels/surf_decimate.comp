@@ -31,13 +31,15 @@ void main() {
   const Surfel p      = surfels[surfelId];
   const ivec2  sz     = scene.screenRes;
 
-  if(p.radius==0)
+  if(!isSurfelAlive(p))
     return; // disabled
 
+#if 0
   if(!(-DefaultCoverage <= p.fragCoord.x && p.fragCoord.x < sz.x+DefaultCoverage))
     return;
   if(!(-DefaultCoverage <= p.fragCoord.y && p.fragCoord.y < sz.y+DefaultCoverage))
     return;
+#endif
 
   const vec3   wpos   = p.pos;
   const vec3   norm   = decodeNormal(p.norm);
@@ -48,25 +50,34 @@ void main() {
   const uint   cnt     = imageLoad(surfCnts, cTileId).x;
   const uint   ptr     = imageLoad(surfBins, cTileId).x;
 
+  /*
+  if(cnt>1024) {
+    // too many
+    surfels[surfelId].radius = -1;
+    return;
+    }
+  */
+
   float weight = 0;
   for(uint i=0; i<cnt; ++i) {
     const uint   sId = surfelList[ptr+i];
-    if(sId>=surfelId)
-      break; // surfels are sorted
+    if(sId==surfelId)
+      break;
 
     const Surfel s       = surfels[sId];
     const ivec2  sTileId = (s.fragCoord/int(tileSize));
+
     if(sTileId.x!=tileId.x && tileId.x%2==0)
       continue;
     if(sTileId.y!=tileId.y && tileId.y%2==0)
       continue;
 
-    const float  w = calculteWeight(s.pos, decodeNormal(s.norm), s.radiusMean, s.radius, wpos, norm);
+    const float w = calculteWeight(s.pos, decodeNormal(s.norm), s.radiusMean, s.radius, wpos, norm);
     weight += w;
 
     if(weight>edge) {
       // too dense - can be removed
-      surfels[surfelId].radius = 0;
+      surfels[surfelId].radius = -1;
       return;
       }
     }

@@ -2,11 +2,15 @@
 #define SURF_COMMON_GLSL
 
 #include "common.glsl"
+#include "scene.glsl"
 
 const float SKY_DEPTH       = 0.999995;
-const int   MinCoverage     = 8;   // in pixels
-const int   DefaultCoverage = 128; // in pixels
-const uint  MaxInTile       = 512; // ~32px (~6x6) per surfel
+const int   MinCoverage     = 8;    // in pixels
+const int   DefaultCoverage = 96;   // in pixels
+const int   LargeTile       = 128;  // in pixels
+const uint  MaxInTile       = 1024; // ~32px (~6x6) per surfel
+
+const float rEffScale       = 0.5;
 
 struct SurfHeader {
   uint count;
@@ -22,7 +26,7 @@ struct Surfel {
   float radius;
   float radiusMean;
   vec3  irradiance;
-  int   radiusPix;
+  uint  payload;
   };
 
 struct Candidate {
@@ -30,9 +34,23 @@ struct Candidate {
   vec4  norm; // norm, padd
   };
 
+uint packAtlassPos(uint x, uint y) {
+  return (x) | (y << 12) | 0x80000000;
+  }
+
+ivec2 unpackAtlassPos(uint ptr) {
+  uint x = ((ptr >>  0) & 0xFFF);
+  uint y = ((ptr >> 12) & 0xFFF);
+  return ivec2(x, y);
+  }
+
+bool isSurfelAlive(const Surfel s) {
+  return s.radius >= 0;
+  }
+
 bool isSurfelVisible(const Surfel s, ivec2 bboxMin, ivec2 bboxMax) {
   const ivec2 at     = s.fragCoord;
-  const int   radius = s.radiusPix;
+  const int   radius = DefaultCoverage;
 
   if(bboxMax.x < at.x-radius || bboxMax.y < at.y-radius)
     return false;
@@ -101,48 +119,41 @@ uint surfHash(vec3 pos, float cellSize, uint inorm) {
 #endif
   }
 
-float calculteWeight(const vec3 spos, const vec3 snorm, float rEff, float rMax, const vec3 wpos, const vec3 wnorm) {
+float pixelToWorld(const SceneDesc scene, float pixelRadius, float z) {
+  z = linearDepth(z, scene.clipInfo);
+
+  float clipRadiusX  = (2.0 * pixelRadius) * scene.screenResInv.x;
+  float clipRadiusY  = (2.0 * pixelRadius) * scene.screenResInv.y;
+
+  float worldRadiusX = (clipRadiusX * z) / scene.project[0][0];
+  float worldRadiusY = (clipRadiusY * z) / scene.project[1][1];
+  return min(worldRadiusX, worldRadiusY);
+  }
+
+float calculteWeight(const vec3 spos, const vec3 snorm, float rEff, float rMax, float rDiffInv, const vec3 wpos, const vec3 wnorm) {
   // An Approximate Global Illumination System for Computer Generated Films
   // https://www.tabellion.org/et/paper/siggraph_2004_gi_for_films.pdf
   // https://cgg.mff.cuni.cz/~jaroslav/papers/2008-irradiance_caching_class/03-greg-ic.pdf
-  vec3  ldir   = wpos - spos;
-  float dist   = length(ldir);
-  float dotN   = dot(wnorm, snorm);
+  float dotN  = dot(wnorm, snorm);
+  if(dotN <= 0)
+    return 0;
+
+  vec3  ldir  = wpos - spos;
+  float dist  = length(ldir);
 
   dist = max(dist, 0.0001);
-#if 0
-  float ePos  = dist/rEff;
-  float eNorm = sqrt(max(1 - 1*dotN, 0)) / sqrt(1.0 - cos(M_PI/6.0)); // Eq. 4
-  float w     = 1.0 - max(ePos, eNorm); // Eq. 2
-
-  float eOccl = dot((ldir/dist), 0.5*(snorm+wnorm))*0.5+0.5; // allow small occlusion
-  //float eOccl = 1.0 - clamp(-dot(ldir, wnorm), 0, 1)*0.5; // allow small occlusion
-  //float eOccl = (dot(ldir, snorm) > 0.1*dist) ? 0.1 : 1;
-  return w*eOccl;
-#elif 1
   // Wendland C2 inspired falloff
-  rEff = min(rEff, rMax*0.5);
-  float q     = max(min(dist,rMax)-rEff, 0)/(rMax-rEff);
+  float q     = max(min(dist,rMax)-rEff, 0)*rDiffInv;
   float wPos  = pow(1-q, 4.0)*(4.0*q + 1.0);
-  float wNorm = pow(max(dotN, 0.0), 2.0);
-  float wOccl = 1.0 - max(dot((ldir/dist), snorm), 0.0);
+  float wNorm = dotN * dotN;
+  float wOccl = 1.0 - max(dot(ldir, snorm)/dist, 0.0);
   return wPos * wNorm * wOccl;
-#elif 0
-  float wPos  = 1.0 - smoothstep(min(rEff,rMax*0.6), rMax, dist);
-  float wNorm = pow(max(dotN, 0.0), 2.0);
-  float wOccl = 1.0 - max(dot((ldir/dist), snorm), 0.0);
-  return wPos * wNorm * wOccl;
-#elif 0
-  float wPos  = max(1.0 - dist/rMax, 0.0)*(rEff/dist);
-  float wNorm = pow(max(dotN, 0.0), 2.0);
-  float wOccl = dot((ldir/dist), snorm)*0.5+0.5; // allow small occlusion
-  return wPos * wNorm * wOccl;
-#else
-  float ePos  = max(dist/rEff, 0.0);
-  float eNorm = sqrt(max(1 - 1*dotN, 0));
-  float eOccl = dot((ldir/dist), 0.5*(snorm+wnorm))*0.5+0.5; // allow small occlusion
-  return (1.0*eOccl)/max(ePos + eNorm, 0.0001) - 1.0;
-#endif
+  }
+
+float calculteWeight(const vec3 spos, const vec3 snorm, float rEff, float rMax, const vec3 wpos, const vec3 wnorm) {
+  rMax  = min(rMax, 65000);
+  rEff  = min(rEff, rMax*rEffScale);
+  return calculteWeight(spos, snorm, rEff, rMax, 1.0/(rMax-rEff), wpos, wnorm);
   }
 
 vec3 surfDebugColor(Surfel s, uint sId) {

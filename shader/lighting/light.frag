@@ -21,9 +21,9 @@ layout(push_constant, std140) uniform Pbo {
 layout(binding = 0, std140) uniform UboScene {
   SceneDesc scene;
   };
-layout(binding  = 1) uniform sampler2D  gbufDiffuse;
-layout(binding  = 2) uniform usampler2D gbufNormal;
-layout(binding  = 3) uniform sampler2D  depth;
+layout(binding  = 1) uniform texture2D  gbufDiffuse;
+layout(binding  = 2) uniform utexture2D gbufNormal;
+layout(binding  = 3) uniform texture2D  depth;
 
 #if defined(VIRTUAL_SHADOW)
 layout(binding  = 5, std430) readonly buffer Omni  { uint pageTblOmni[]; };
