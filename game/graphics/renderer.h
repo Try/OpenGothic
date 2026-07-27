@@ -49,6 +49,8 @@ class Renderer final {
     Tempest::StorageImage&  usesImage2d(Tempest::StorageImage& ret, Tempest::TextureFormat frm, Tempest::Size sz, bool mips = false);
     Tempest::StorageImage&  usesImage3d(Tempest::StorageImage& ret, Tempest::TextureFormat frm, uint32_t w, uint32_t h, uint32_t d, bool mips = false);
     Tempest::ZBuffer&       usesZBuffer(Tempest::ZBuffer&      ret, Tempest::TextureFormat frm, uint32_t w, uint32_t h);
+    Tempest::Attachment&    usesAttachment(Tempest::Attachment&ret, Tempest::TextureFormat frm, Tempest::Size sz);
+    Tempest::Attachment&    usesAttachment(Tempest::Attachment&ret, Tempest::TextureFormat frm, uint32_t w, uint32_t h);
     Tempest::StorageBuffer& usesSsbo(Tempest::StorageBuffer& ret, size_t size);
     Tempest::StorageBuffer& usesSsboInit(Tempest::StorageBuffer& ret, size_t size);
     Tempest::StorageBuffer& usesScratch(Tempest::StorageBuffer& ret, size_t size);
@@ -66,6 +68,7 @@ class Renderer final {
     void prepareEpipolar  (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview);
 
     void prepareSurfels   (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview);
+    void surfelsApply     (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview, int32_t tileSize, bool postPass);
     void surfelsBinning   (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview, int32_t tileSize, bool postPass);
     void surfelsTrace     (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview, Tempest::StorageBuffer& surfels, bool postPass);
 
@@ -169,6 +172,8 @@ class Renderer final {
       Tempest::TextureFormat lutRGBFormat  = Tempest::TextureFormat::R11G11B10UF;
       Tempest::TextureFormat lutRGBAFormat = Tempest::TextureFormat::RGBA16F;
 
+      Tempest::Sampler       sampler = Tempest::Sampler::bilinear();
+
       bool                   lutIsInitialized = false;
       Tempest::Attachment    transLut, multiScatLut, viewLut, viewCldLut;
       Tempest::StorageImage  cloudsLut, fogLut3D, fogLut3DMs;
@@ -210,14 +215,18 @@ class Renderer final {
       } gi;
 
     struct {
-      const uint32_t            maxSurfels = 16*1024;
+      const Tempest::IVec2      gbufTile   = {8, 8};
+      const uint32_t            gbufTilesX = 256;
+      const uint32_t            gbufTilesY = 256;
+      const uint32_t            maxSurfels = gbufTilesX*gbufTilesY;
       Tempest::StorageBuffer    surfels;
 
       Tempest::StorageImage     irrImage;
       Tempest::StorageImage     surfCnts, surfBins;
       Tempest::StorageBuffer    surfBinsCtrl, surfList;
 
-      Tempest::StorageImage     dbgImage;
+      Tempest::StorageBuffer    gbuffFree;
+      Tempest::StorageImage     gbuffDiff, gbuffNorm, gbuffHitT;
       } surf;
 
     struct {

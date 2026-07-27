@@ -766,8 +766,11 @@ void GameScript::fixNpcPosition(Npc& npc, float angle0, float distBias) {
   auto  pos0 = npc.position();
 
   if(!npc.hasCollision()) {
-    npc.updateTransform();
-    return;
+    auto ray = dyn.ray(pos0+Vec3(0,100,0), pos0+Vec3(0,-200,0));
+    if(ray.hasCol && std::abs(pos0.y-ray.v.y) < 10.f) {
+      npc.updateTransform();
+      return;
+      }
     }
 
   for(int r = 0; r<=800; r+=20) {

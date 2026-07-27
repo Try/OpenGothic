@@ -12,16 +12,8 @@ layout(binding = 0, std140) uniform UboScene {
 layout(binding = 1) uniform texture2D depth;
 layout(binding = 2, std430) buffer SB0 { SurfHeader header; Surfel surfels[]; };
 
-
 float pixelToWorld(float pixelRadius, float z) {
-  z = linearDepth(z, scene.clipInfo);
-
-  float clipRadiusX  = (2.0 * pixelRadius) * scene.screenResInv.x;
-  float clipRadiusY  = (2.0 * pixelRadius) * scene.screenResInv.y;
-
-  float worldRadiusX = (clipRadiusX * z) / scene.project[0][0];
-  float worldRadiusY = (clipRadiusY * z) / scene.project[1][1];
-  return min(worldRadiusX, worldRadiusY);
+  return pixelToWorld(scene, pixelRadius, z);
   }
 
 void main() {
@@ -31,16 +23,18 @@ void main() {
 
   const Surfel s = surfels[surfelId];
 
+  if(!isSurfelAlive(s))
+    return; // disabled
+
   const vec4   pos4       = scene.viewProject * vec4(s.pos, 1.0);
   const vec2   posNdc     = ((pos4.xy/pos4.w)*0.5+0.5);
   const ivec2  fragCoord  = ivec2(posNdc*scene.screenRes + 0.5);
+
   const float  rMin       = pixelToWorld(MinCoverage,     pos4.z/pos4.w);
   const float  rMax       = pixelToWorld(DefaultCoverage, pos4.z/pos4.w);
-  const float  radiusMean = max(rMin, min(s.radiusMean, rMax));
-  const int    radiusPix  = DefaultCoverage; //min(worldToPixel(s.pos, s.radiusMean), DefaultCoverage);
+  const float  radiusMean = max(rMin, min(s.radiusMean, rMax * rEffScale));
 
   surfels[surfelId].fragCoord  = fragCoord;
-  surfels[surfelId].radiusPix  = radiusPix;
   surfels[surfelId].radius     = rMax;
   surfels[surfelId].radiusMean = radiusMean;
   }

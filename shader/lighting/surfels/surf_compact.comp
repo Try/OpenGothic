@@ -9,8 +9,18 @@ layout(local_size_x = 256) in;
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
 
 layout(binding = 3, std430) buffer SB0 { SurfHeader header; Surfel surfels[]; } surf;
+layout(binding = 4, std430) buffer SB1 { int count; uint ids[]; } freelist;
 
 shared uint wPtr;
+
+void freeGBuf(uint id) {
+  if(id==0)
+    return;
+  uint i = atomicAdd(freelist.count, -1) - 1;
+  if(i<0)
+    return;
+  freelist.ids[i] = id;
+  }
 
 void main() {
   const uint laneID = gl_LocalInvocationIndex;
@@ -21,9 +31,12 @@ void main() {
   Surfel sx;
   for(uint ix=0; ix<surf.header.count; ix+=NumThreads) {
     const uint i    = ix+laneID;
-    const bool keep = i<surf.header.count && surf.surfels[i].radius>0;
+    const bool keep = i<surf.header.count && isSurfelAlive(surf.surfels[i]);
     if(keep) {
       sx = surf.surfels[i];
+      }
+    else if(i<surf.header.count) {
+      freeGBuf(surf.surfels[i].payload);
       }
     barrier();
 

@@ -3,7 +3,7 @@
 
 #include "random.glsl"
 
-const float TMax = 1e30f;
+const float TMax = 500*100;
 
 struct HitResolve {
   vec4  diff;
@@ -40,7 +40,7 @@ float rayQueryProceedShadow(const vec3 rayOrigin, const vec3 rayDirection, inout
 
   rayQueryEXT rayQuery;
   rayQueryInitializeEXT(rayQuery, topLevelAS, flags, CM_ShadowCaster,
-                        rayOrigin, tMin, rayDirection, 500*100);
+                        rayOrigin, tMin, rayDirection, TMax);
   rayQueryProceedAlphaTest(rayQuery);
   // rayQueryProceedAlphaTest(rayQuery, rngState);
   if(rayQueryGetIntersectionTypeEXT(rayQuery, true) == gl_RayQueryCommittedIntersectionNoneEXT)
@@ -48,19 +48,22 @@ float rayQueryProceedShadow(const vec3 rayOrigin, const vec3 rayDirection, inout
   return 0;
   }
 
-HitResolve rayQueryProceedPrimary(const vec3 rayOrigin, const vec3 rayDirection, float mipOverride, inout Random rngState) {
+HitResolve rayQueryProceedPrimary(const vec3 rayOrigin, const vec3 rayDirection, float mipOverride, uint mask, inout Random rngState) {
   // CullBack due to vegetation
   uint  flags = gl_RayFlagsSkipAABBEXT | gl_RayFlagsCullBackFacingTrianglesEXT;
   float tMin  = 2;
 
   rayQueryEXT rayQuery;
-  rayQueryInitializeEXT(rayQuery, topLevelAS, flags, 0xFF,
-                        rayOrigin, tMin, rayDirection, 500*100);
+  rayQueryInitializeEXT(rayQuery, topLevelAS, flags, mask,
+                        rayOrigin, tMin, rayDirection, TMax);
   rayQueryProceedAlphaTest(rayQuery);
   // rayQueryProceedAlphaTest(rayQuery, rngState);
   if(rayQueryGetIntersectionTypeEXT(rayQuery, true) == gl_RayQueryCommittedIntersectionNoneEXT) {
     HitResolve ret;
-    ret.rayT = TMax;
+    ret.rayT  = TMax;
+    ret.diff  = vec4(0);
+    ret.norm  = vec3(0);
+    ret.water = false;
     return ret;
     }
 
@@ -96,6 +99,10 @@ HitResolve rayQueryProceedPrimary(const vec3 rayOrigin, const vec3 rayDirection,
   ret.rayT  = face ? -rayT : rayT;
   ret.water = hit.water;
   return ret;
+  }
+
+HitResolve rayQueryProceedPrimary(const vec3 rayOrigin, const vec3 rayDirection, float mipOverride, inout Random rngState) {
+  return rayQueryProceedPrimary(rayOrigin, rayDirection, mipOverride, 0xFF, rngState);
   }
 
 #endif

@@ -1,0 +1,95 @@
+#version 460
+
+#define RAY_QUERY
+#define RAY_QUERY_AT
+
+#include "lighting/rt/rt_common.glsl"
+#include "lighting/pt/pathtrace_common.glsl"
+#include "lighting/surfels/surf_common.glsl"
+#include "lighting/tonemapping.glsl"
+
+#include "scene.glsl"
+#include "common.glsl"
+#include "random.glsl"
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+const uint  NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
+const float NormalBias = 0.0015;
+
+layout(std140, push_constant) uniform Push {
+  uint pass;
+  };
+layout(binding = 0, std140) uniform UboScene {
+  SceneDesc scene;
+  };
+layout(binding = 1, std430) buffer SB0 { SurfHeader header; Surfel surfels[]; };
+layout(binding = 2)         uniform sampler2D skyLUT;
+layout(binding = 3, rgba8)  uniform image2D   gbufDiff;
+layout(binding = 4, rgba8)  uniform image2D   gbufNorm;
+layout(binding = 5, r16)    uniform image2D   gbufHit;
+
+mat3 toTangent(vec3 norm) {
+  mat3 tangent;
+  // Compute a tangent frame and rotate the half vector to world space
+  vec3 up   = abs(norm.z) < 0.999f ? vec3(0.0f, 0.0f, 1.0f) : vec3(1.0f, 0.0f, 0.0f);
+  tangent[0] = normalize(cross(up, norm));
+  tangent[1] = cross(norm, tangent[0]);
+  tangent[2] = norm;
+  return tangent;
+  }
+
+HitResolve raycast(vec3 rayOrigin, vec3 rayDirection, inout float wHit) {
+  Random     rngState = Random(0); // inactive
+  HitResolve hit      = rayQueryProceedPrimary(rayOrigin, rayDirection, -1, rngState);
+  if(hit.rayT<0) {
+    hit.rayT = -hit.rayT; // backfaces are fine
+    hit.norm = -hit.norm;
+    }
+  if(hit.water) {
+    //NOTE: probably need to trace a 'helper' ray from surfel
+    //      to top/sun to determinate if surfel is underwater or now
+    wHit = hit.norm.y<0 ? hit.rayT : 0; // heuristic to track only underwater hits
+
+    const uint CM_Level = CM_Opaque | CM_Transparent;
+    hit  = rayQueryProceedPrimary(rayOrigin, rayDirection, -1, CM_Level, rngState);
+    }
+  if(hit.rayT==TMax)
+    hit.diff = vec4(0,0,1,1);
+  return hit;
+  }
+
+void storeGBuf(uint ptr, const HitResolve hit, const float wHit) {
+  if(ptr==0)
+    return; //error
+
+  float wHitUNorm = (hit.rayT>0) ? (wHit / hit.rayT) : 0;
+
+  ivec2 at = unpackAtlassPos(ptr)*8 + ivec2(gl_LocalInvocationID.xy);
+  imageStore(gbufDiff, at, vec4(hit.diff.rgb, 1));
+  imageStore(gbufNorm, at, vec4(hit.norm.xyz*0.5+0.5, wHitUNorm));
+  imageStore(gbufHit,  at, vec4(hit.rayT/TMax));
+  }
+
+void main() {
+  const float eps      = 0.0001;
+  const uint  numPaths = NumThreads;
+  const uint  surfelId = pass==0 ? gl_WorkGroupID.x : (header.count-gl_WorkGroupID.z-1);
+  // if(surfelId>=header.count)
+  //   return;
+
+  const Surfel p = surfels[surfelId];
+  if(!isSurfelAlive(p))
+    return;
+
+  const vec3   norm = decodeNormal(p.norm);
+  const mat3   tbn  = toTangent(norm);
+  const vec3   pos  = p.pos;
+
+  const uint   i    = gl_LocalInvocationIndex;
+  const vec3   ray  = tbn * sampleHemisphereCos(i,numPaths,0);
+
+  float wHit = 0;
+  const HitResolve hit = raycast(pos, ray, wHit);
+  storeGBuf(p.payload, hit, wHit);
+  }

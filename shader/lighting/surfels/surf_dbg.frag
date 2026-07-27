@@ -7,7 +7,7 @@
 layout(binding = 0, std140) uniform UboScene {
   SceneDesc scene;
   };
-layout(binding = 1, std430) readonly buffer SB0  { uvec4 count; Surfel surfels[]; };
+layout(binding = 1, std430) readonly buffer SB0  { SurfHeader header; Surfel surfels[]; };
 layout(binding = 2) uniform usampler2D gbufNormal;
 layout(binding = 3) uniform sampler2D  depth;
 
@@ -44,8 +44,11 @@ void main(void) {
     ;//discard;
 
   //vec3 clr = surfDebugColor(p, instanceIndex) * (1.0-qDist);
-  //vec3 clr = 3.0 * p.irradiance * (1.0-qDist) * scene.exposure;
-  vec3 clr = p.irradiance * (1.0-qDist);
+  vec3 clr = 4.0 * p.irradiance * (1.0-qDist) * scene.exposure;
+  if(instanceIndex >= header.count-header.added)
+    clr = vec3(0,1,0);
+  if(!isSurfelAlive(p))
+    clr = vec3(1,0,0);
   outColor = vec4(clr,1.0);
   // outColor = vec4(1,0,0,1.0);
   }
