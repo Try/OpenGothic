@@ -78,7 +78,7 @@ void main() {
   if(!isSurfelAlive(p))
     return;
 
-#if 0
+#if 1
   ivec2  pos0 = ivec2(fragCoord-radiusPix)/tileSize;
   ivec2  pos1 = ivec2(fragCoord+radiusPix)/tileSize + 1;
 #else
