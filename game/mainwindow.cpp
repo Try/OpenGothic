@@ -1051,7 +1051,7 @@ void MainWindow::startGame(std::string_view slot) {
   }
 
 void MainWindow::loadGame(std::string_view slot) {
-  if(Gothic::inst().checkLoading()==Gothic::LoadState::Idle){
+  if(Gothic::inst().checkLoading()==Gothic::LoadState::Idle) {
     setGameImpl(nullptr);
     }
 
@@ -1199,6 +1199,9 @@ void MainWindow::onBenchmarkFinished() {
   }
 
 void MainWindow::setGameImpl(std::unique_ptr<GameSession> &&w) {
+  // clear pointers to outdated game-state
+  inventory.onWorldChanged();
+  dialogs  .onWorldChanged();
   Gothic::inst().setGame(std::move(w));
   }
 

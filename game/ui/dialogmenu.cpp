@@ -164,7 +164,6 @@ void DialogMenu::clear() {
   }
 
 void DialogMenu::onWorldChanged() {
-  assert(state==State::Idle);
   close();
   clear();
   }
