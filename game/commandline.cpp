@@ -159,7 +159,7 @@ CommandLine::CommandLine(int argc, const char** argv) {
         isRtSm = boolArg(argv[i]);
       }
     else {
-      Log::i("unreacognized commandline option: \"", arg, "\"");
+      Log::i("unrecognized commandline option: \"", arg, "\"");
       }
     }
 
