@@ -333,6 +333,9 @@ add_shader(surf_lighting.comp        lighting/surfels/surf_lighting.comp)
 # Pathtracing
 add_shader(pathtrace.frag            lighting/pt/pathtrace.frag -DRAY_QUERY -DRAY_QUERY_AT)
 
+add_shader(lightstree_bvh.comp       lighting/lightstree/lightstree_bvh.comp)
+add_shader(lightstree_dbg.frag       lighting/lightstree/lightstree_dbg.frag)
+
 # CMAA2
 add_shader(cmaa2_edges_color2x2_quality_0.comp     antialiasing/cmaa2/edge_color2x2.comp -DCMAA2_STATIC_QUALITY_PRESET=0)
 add_shader(cmaa2_edges_color2x2_quality_1.comp     antialiasing/cmaa2/edge_color2x2.comp -DCMAA2_STATIC_QUALITY_PRESET=1)

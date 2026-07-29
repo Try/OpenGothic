@@ -3,7 +3,7 @@
 #define RAY_QUERY
 #define RAY_QUERY_AT
 
-#define SOFT_SHADOW
+// #define SOFT_SHADOW
 // #define RESCALE
 
 #include "lighting/rt/rt_common.glsl"

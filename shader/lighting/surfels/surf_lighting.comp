@@ -7,6 +7,7 @@
 #include "lighting/rt/rt_common.glsl"
 #include "lighting/pt/pathtrace_common.glsl"
 #include "lighting/surfels/surf_common.glsl"
+#include "lighting/lightstree/lightstree_common.glsl"
 #include "lighting/tonemapping.glsl"
 
 #include "scene.glsl"
@@ -28,7 +29,11 @@ layout(binding = 2)         uniform sampler2D skyLUT;
 layout(binding = 3)         uniform texture2D gbufDiff;
 layout(binding = 4)         uniform texture2D gbufNorm;
 layout(binding = 5)         uniform texture2D gbufHit;
+
 layout(binding = 12)        uniform sampler2D textureSm1;
+layout(binding = 13, std430) readonly buffer BVH {
+  BVHNode node[];
+  } bvhData;
 
 struct GBuf {
   vec3  diff;
@@ -89,6 +94,56 @@ float sampleDirectLight(vec3 norm, vec3 rayOrigin, vec3 rayDirection) {
   return (lamb * shadow);
   }
 
+vec3 traverseLightTree(const vec3 wpos, const vec3 norm) {
+  vec3 ret = vec3(0);
+
+  uint stack[64];
+  uint ptr = 0;
+
+  uint node = 0 | BVH_BoxNode;
+  while(true) {
+    if(ptr==stack.length()) {
+      // stack overflow
+      return vec3(1,0,0);
+      }
+
+    const uint    type = bvhGetNodeType(node);
+    const BVHNode n    = bvhData.node[node & 0x0FFFFFFF];
+
+    if(type==BVH_LightNode) {
+      // light
+      const vec4  src       = n.rmin;
+      const vec3  distance  = wpos - src.xyz;
+      const float tMax      = length(distance);
+      const vec3  ldir      = distance/tMax;
+      const float intensity = lightIntensity(norm, tMax, ldir, src.w);
+      ret += intensity * n.rmax.rgb;
+      }
+    else {
+      const bool left  = bvhIntersectBox(wpos, n.lmin.xyz, n.lmax.xyz);
+      const bool right = bvhIntersectBox(wpos, n.rmin.xyz, n.rmax.xyz);
+      if(left && right) {
+        node         = floatBitsToUint(n.lmin.w);
+        stack[ptr++] = floatBitsToUint(n.rmin.w);
+        continue;
+        }
+      else if(left) {
+        node = floatBitsToUint(n.lmin.w);
+        continue;
+        }
+      else if(right) {
+        node = floatBitsToUint(n.rmin.w);
+        continue;
+        }
+      }
+    if(ptr == 0)
+      break;
+    node = stack[--ptr];
+    }
+
+  return ret;
+  }
+
 vec3 evalLight(vec3 rayOrigin, vec3 rayDirection, GBuf hit) {
   vec3  thruput = vec3(1.0);
   vec3  color   = vec3(0);
@@ -101,15 +156,16 @@ vec3 evalLight(vec3 rayOrigin, vec3 rayDirection, GBuf hit) {
     vec3 sky = textureSkyLUT(skyLUT, vec3(0,RPlanet+max(rayOrigin.y*0.01,0),0), rayDirection, scene.sunDir) * scene.GSunIntensity;
     color += sky;
     color += (vec3(0.3, 0.26, 1)*0.15); //HACK for the night sky
-    return thruput*color;
+    return thruput*color * scene.exposure;
     }
 
   thruput  *= min(textureAlbedo(hit.diff.rgb), 0.95);
   rayOrigin = (rayOrigin + rayDirection * hit.rayT);
 
   vec3  direct = vec3(0);
-  direct += sampleDirectLight(hit.norm, rayOrigin, scene.sunDir) * scene.sunColor;
-  color  += thruput*direct*Fd_Lambert;
+  direct += sampleDirectLight(hit.norm, rayOrigin, scene.sunDir) * scene.sunColor * Fd_Lambert * scene.exposure;
+  direct += traverseLightTree(rayOrigin, hit.norm) * max(1.0, scene.exposure);
+  color  += thruput*direct;
 
   return color;
   }

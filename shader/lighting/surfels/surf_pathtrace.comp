@@ -187,6 +187,6 @@ void main() {
     const float hitMean = float(numPaths)/max(reduction[0].a, eps); //harmonic mean
     surfels[surfelId].radiusMean = hitMean;
 #endif
-    surfels[surfelId].irradiance = (reduction[0].rgb/float(numPaths));
+    surfels[surfelId].irradiance = (reduction[0].rgb/float(numPaths)) * scene.exposure;
     }
   }

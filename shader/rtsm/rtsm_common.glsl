@@ -39,42 +39,6 @@ struct LightId {
   };
 
 // utility
-uint floatToOrderedUint(float value) {
-  uint uvalue = floatBitsToUint(value);
-  uint mask = -int(uvalue >> 31) | 0x80000000;
-  return uvalue ^ mask;
-  }
-
-uvec4 floatToOrderedUint(vec4 value) {
-  uvec4 r;
-  r.x = floatToOrderedUint(value.x);
-  r.y = floatToOrderedUint(value.y);
-  r.z = floatToOrderedUint(value.z);
-  r.w = floatToOrderedUint(value.w);
-  return r;
-  }
-
-float orderedUintToFloat(uint value) {
-  uint mask = ((value >> 31) - 1) | 0x80000000;
-  return uintBitsToFloat(value ^ mask);
-  }
-
-vec3 orderedUintToFloat(uvec3 value) {
-  vec3 r;
-  r.x = orderedUintToFloat(value.x);
-  r.y = orderedUintToFloat(value.y);
-  r.z = orderedUintToFloat(value.z);
-  return r;
-  }
-
-vec4 orderedUintToFloat(uvec4 value) {
-  vec4 r;
-  r.x = orderedUintToFloat(value.x);
-  r.y = orderedUintToFloat(value.y);
-  r.z = orderedUintToFloat(value.z);
-  r.w = orderedUintToFloat(value.w);
-  return r;
-  }
 
 float edgeFunction(const vec2 a, const vec2 b, const vec2 c) {
   return (c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x);
