@@ -193,7 +193,7 @@ vec3 sampleLocalLight(vec3 norm, vec3 rayOrigin, inout Random rngState) {
   float key  = randf(rngState);
   uint  node = 0 | BVH_BoxNode;
 
-  while(node!=0) {
+  while(true) {
     const uint type = bvhGetNodeType(node);
     if(type==BVH_LightNode) {
       // light
@@ -221,24 +221,9 @@ vec3 sampleLocalLight(vec3 norm, vec3 rayOrigin, inout Random rngState) {
     }
 
   // light
-  const BVHNode n         = bvhData.node[node & 0x0FFFFFFF];
-  /*
-  const float   range     = n.weightR;
-  const vec3    distance  = rayOrigin - n.centerL;
-  const float   dirLength = length(distance);
-  const vec3    ldir      = distance/dirLength;
-  const float   intensity = lightIntensity(norm, dirLength, ldir, range);
-
-  if(intensity<=0)
-    return vec3(0);
-
-  float rayDistance = dirLength - range*0.0375; //NOTE: padding of ~3%, in case if light inside wall
-  if(rayDistance<=0)
-    return vec3(0);
-  float shadow      = rayQueryProceedShadow(rayOrigin, -ldir, rayDistance, rngState);
-  */
-  vec3  color     = n.centerR;
-  float intensity = samplePointLight(norm, rayOrigin, n.centerL, n.weightR, true, 0, rngState);
+  BVHNode n         = bvhData.node[node & 0x0FFFFFFF];
+  vec3    color     = n.centerR;
+  float   intensity = samplePointLight(norm, rayOrigin, n.centerL, n.weightR, true, 0, rngState);
   return (intensity * color) / max(pdf, 0.00001);
   }
 
