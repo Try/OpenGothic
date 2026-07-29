@@ -14,7 +14,7 @@
 #include "common.glsl"
 #include "random.glsl"
 
-layout(local_size_x = 8, local_size_y = 8) in;
+layout(local_size_x = GBufTile.x, local_size_y = GBufTile.y) in;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
 
@@ -171,10 +171,7 @@ vec3 evalLight(vec3 rayOrigin, vec3 rayDirection, GBuf hit) {
   }
 
 GBuf loadGBuf(uint ptr) {
-  uint x = ((ptr >>  0) & 0xFFF);
-  uint y = ((ptr >> 12) & 0xFFF);
-
-  ivec2 at = ivec2(x,y)*8 + ivec2(gl_LocalInvocationID.xy);
+  ivec2 at = unpackAtlassPos(ptr)*GBufTile + ivec2(gl_LocalInvocationID.xy);
   vec4  d  = texelFetch(gbufDiff, at, 0);
   vec4  n  = texelFetch(gbufNorm, at, 0);
 
