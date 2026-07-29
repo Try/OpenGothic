@@ -2488,7 +2488,7 @@ void Renderer::drawPathtrace(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Worl
   cmd.setBinding(3, sky.viewCldLut, sky.sampler);
   //cmd.setBinding(4, shadowMap[1], Sampler::bilinear());
   cmd.setBinding(4, Resources::fallbackBlack(), Sampler::bilinear());
-  //
+  cmd.setBinding(5, lightsTree.bvh);
   cmd.setBinding(6, scene.rtScene.tlas);
   cmd.setBinding(7, Sampler::trillinear());
   cmd.setBinding(8, scene.rtScene.tex);

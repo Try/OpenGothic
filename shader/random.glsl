@@ -14,7 +14,10 @@ Random srand(uvec2 fragCoord, uint seed) {
   }
 
 float randf(inout Random r) {
-  return float(wangHash(r.state)) / 4294967296.0;
+  // return float(wangHash(r.state)) / 4294967296.0;
+  // return float(wangHash(r.state) >> 8) * (1.0 / 16777216.0); // 2^-24
+  uint x = wangHash(r.state);
+  return uintBitsToFloat(0x3F800000u | (x >> 9)) - 1.0;
   }
 
 vec3 randVec3(inout Random rng) {

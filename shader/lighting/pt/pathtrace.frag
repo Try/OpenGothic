@@ -5,9 +5,11 @@
 
 // #define SOFT_SHADOW
 // #define RESCALE
+#define LOCAL_LIGHTS
 
 #include "lighting/rt/rt_common.glsl"
 #include "lighting/pt/pathtrace_common.glsl"
+#include "lighting/lightstree/lightstree_common.glsl"
 #include "lighting/tonemapping.glsl"
 #include "scene.glsl"
 #include "common.glsl"
@@ -26,6 +28,9 @@ layout(binding = 0, std140) uniform UboScene {
 layout(binding = 2) uniform texture2D irradiance;
 layout(binding = 3) uniform sampler2D skyLUT;
 layout(binding = 4) uniform sampler2D textureSm1;
+layout(binding = 5, std430) readonly buffer BVH {
+  BVHNode node[];
+  } bvhData;
 
 vec3 skyIrradiance(vec3 n) {
   ivec3 d;
@@ -159,6 +164,84 @@ float sampleDirectLight(vec3 norm, vec3 rayOrigin, vec3 rayDirection, bool shado
   return (lamb * shadow);
   }
 
+float samplePointLight(vec3 norm, vec3 rayOrigin, vec3 lightPos, float range, bool shadowed, float softAngle, inout Random rngState) {
+  const vec3    rayDirection = rayOrigin - lightPos;
+  const float   dirLength    = length(rayDirection);
+  const vec3    ldir         = rayDirection/dirLength;
+  const float   intensity    = lightIntensity(norm, dirLength, ldir, range);
+  if(!shadowed || intensity<=0)
+    return 0;
+
+  float rayDistance = dirLength - range*0.0375; //NOTE: padding of ~3%, in case if light inside wall
+  if(rayDistance<=0)
+    return intensity;
+
+  float shadow = rayQueryProceedShadow(rayOrigin, -ldir, rayDistance, rngState);
+  return (intensity * shadow);
+  }
+
+float bvhLightsNodeWeight(const vec3 wpos, const vec3 norm, const vec3 cen, float wFlux) {
+  vec3  dlen                = wpos - cen;
+  float distSq              = max(dot(dlen, dlen), 0.0001f);
+  float distanceAttenuation = 1.0 / distSq;
+
+  return distanceAttenuation * wFlux;
+  }
+
+vec3 sampleLocalLight(vec3 norm, vec3 rayOrigin, inout Random rngState) {
+  float pdf  = 1.0;
+  float key  = randf(rngState);
+  uint  node = 0 | BVH_BoxNode;
+
+  while(node!=0) {
+    const uint type = bvhGetNodeType(node);
+    if(type==BVH_LightNode) {
+      // light
+      break;
+      }
+    if(type!=BVH_BoxNode) {
+      // something else
+      return vec3(0);
+      }
+
+    const BVHNode n      = bvhData.node[node & 0x0FFFFFFF];
+    const float   wLeft  = bvhLightsNodeWeight(rayOrigin, norm, n.centerL, n.weightL);
+    const float   wRight = bvhLightsNodeWeight(rayOrigin, norm, n.centerR, n.weightR);
+    const float   pLeft  = wLeft /(wLeft + wRight);
+    const float   pRight = wRight/(wLeft + wRight);
+    if(key < pLeft) {
+      pdf *= pLeft;
+      node = n.ptrL;
+      key = key/pLeft;
+      } else {
+      pdf *= pRight;
+      node = n.ptrR;
+      key = (key-pLeft)/pRight;
+      }
+    }
+
+  // light
+  const BVHNode n         = bvhData.node[node & 0x0FFFFFFF];
+  /*
+  const float   range     = n.weightR;
+  const vec3    distance  = rayOrigin - n.centerL;
+  const float   dirLength = length(distance);
+  const vec3    ldir      = distance/dirLength;
+  const float   intensity = lightIntensity(norm, dirLength, ldir, range);
+
+  if(intensity<=0)
+    return vec3(0);
+
+  float rayDistance = dirLength - range*0.0375; //NOTE: padding of ~3%, in case if light inside wall
+  if(rayDistance<=0)
+    return vec3(0);
+  float shadow      = rayQueryProceedShadow(rayOrigin, -ldir, rayDistance, rngState);
+  */
+  vec3  color     = n.centerR;
+  float intensity = samplePointLight(norm, rayOrigin, n.centerL, n.weightR, true, 0, rngState);
+  return (intensity * color) / max(pdf, 0.00001);
+  }
+
 vec4 pathtrace(vec3 rayOrigin, vec3 rayDirection) {
   const int numBounces = 5;
 
@@ -232,6 +315,9 @@ vec4 pathtrace(vec3 rayOrigin, vec3 rayDirection) {
     vec3  direct = vec3(0);
     direct += sampleDirectLight(hit.norm, rayOrigin, scene.sunDir, true, 0.54*M_PI/180.0, rngState) * scene.sunColor;
     //direct += sampleDirectLight(hit.norm, rayOrigin, normalize(vec3(-1,1,0)), false, 0.56*M_PI/180.0, rngState) * (vec3(0.3, 0.26, 1)*GMoonIntensity);
+#if defined(LOCAL_LIGHTS)
+    direct += sampleLocalLight(hit.norm, rayOrigin, rngState) * (max(1.0, scene.exposure) / scene.exposure);
+#endif
 
     //if(bounce==0)
       color += thruput*direct*Fd_Lambert;

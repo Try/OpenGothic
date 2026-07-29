@@ -18,7 +18,7 @@ struct BVHAlux {
   };
 
 layout(std140, push_constant) uniform Push {
-  uint lightLengthPot;
+  uint lightsLengthPot;
   };
 
 layout(binding = 0, std430) readonly buffer LS {
@@ -43,11 +43,7 @@ layout(binding = 4, std430) buffer B4 {
 
 shared uvec3 bboxMinU, bboxMaxU;
 shared vec3  bboxMin,  bboxMax;
-
-float areaOf(const vec3 bbMin, const vec3 bbMax) {
-  vec3 sz = bbMax - bbMin;
-  return 2*(sz.x*sz.y + sz.x*sz.z + sz.y*sz.z);
-  }
+shared uint  numActiveLights;
 
 uint expandBits(uint v) {
   v = (v * 0x00010001u) & 0xFF0000FFu;
@@ -88,12 +84,18 @@ void bboxMinMax() {
     bboxMaxU.x = 0u;
     bboxMaxU.y = 0u;
     bboxMaxU.z = 0u;
+
+    numActiveLights = 0;
     }
   barrier();
 
   for(uint i=laneID; i<lights.length(); i+=NumThreads) {
-    vec3 p = lights[i].pos;
+    if(lights[i].range<=0)
+      continue;
 
+    atomicAdd(numActiveLights, 1);
+
+    const vec3 p = lights[i].pos;
     atomicMin(bboxMinU.x, floatToOrderedUint(p.x));
     atomicMin(bboxMinU.y, floatToOrderedUint(p.y));
     atomicMin(bboxMinU.z, floatToOrderedUint(p.z));
@@ -114,10 +116,10 @@ void computeMorton() {
   const uint laneID = gl_LocalInvocationIndex;
 
   for(uint i=laneID; i<lights.length(); i+=NumThreads) {
-    morton[i].key = morton3D(lights[i].pos);
+    morton[i].key = lights[i].range>0 ? morton3D(lights[i].pos) : 0xFFFFFFFF;
     morton[i].id  = i;
     }
-  for(uint i=lights.length()+laneID; i<lightLengthPot; i+=NumThreads) {
+  for(uint i=lights.length()+laneID; i<lightsLengthPot; i+=NumThreads) {
     morton[i].key = 0xFFFFFFFF;
     morton[i].id  = 0xFFFFFFFF;
     }
@@ -127,9 +129,9 @@ void computeMorton() {
 void bitonicSort() {
   const uint laneID = gl_LocalInvocationIndex;
 
-  for(uint k = 2; k <= lightLengthPot; k <<= 1) {
+  for(uint k = 2; k <= lightsLengthPot; k <<= 1) {
     for(uint j = k >> 1; j > 0; j >>= 1) {
-      for(uint i = laneID; i < lightLengthPot; i += NumThreads) {
+      for(uint i = laneID; i < lightsLengthPot; i += NumThreads) {
         uint ixj = i ^ j;
 
         if(ixj > i) {
@@ -144,14 +146,14 @@ void bitonicSort() {
   }
 
 int delta(int i, uint codeI, int j) {
-  if(j < 0 || j > lights.length() - 1)
+  if(j < 0 || j >= numActiveLights)
     return -1;
 
   uint codeJ = morton[j].key;
   if(codeI == codeJ) {
     // handle duplicate morton codes
-    uint elementIdxI = i;// morton[i].id;
-    uint elementIdxJ = j;// morton[j].id;
+    uint elementIdxI = morton[i].id;
+    uint elementIdxJ = morton[j].id;
     // add 32 for common prefix of codeI ^ codeJ
     return 32 + 31 - findMSB(elementIdxI ^ elementIdxJ);
     }
@@ -210,7 +212,7 @@ void determineRange(int idx, out int lower, out int upper) {
   }
 
 uint bvhAnnotate(uint ptr) {
-  uint internalCount = lights.length() - 1;
+  uint internalCount = numActiveLights - 1;
   uint nodeType      = (ptr < internalCount ? BVH_BoxNode : BVH_LightNode);
   return ptr | nodeType;
   }
@@ -218,7 +220,7 @@ uint bvhAnnotate(uint ptr) {
 void buildTopology() {
   const uint laneID = gl_LocalInvocationIndex;
 
-  uint internalCount = lights.length() - 1;
+  uint internalCount = numActiveLights - 1;
   for(uint i=laneID; i<internalCount; i+=NumThreads) {
     int first = 0;
     int last  = 0;
@@ -228,10 +230,8 @@ void buildTopology() {
     uint left  = (split   == first) ? uint(internalCount + split)     : uint(split);
     uint right = (split+1 == last ) ? uint(internalCount + split + 1) : uint(split + 1);
 
-    nodes[i].lmin = vec4(vec3(0), uintBitsToFloat(bvhAnnotate(left)));
-    nodes[i].lmax = vec4(0);
-    nodes[i].rmin = vec4(vec3(0), uintBitsToFloat(bvhAnnotate(right)));
-    nodes[i].rmax = vec4(0);
+    nodes[i].ptrL = bvhAnnotate(left);
+    nodes[i].ptrR = bvhAnnotate(right);
 
     alux[left ].parent = i;
     alux[right].parent = i;
@@ -240,78 +240,78 @@ void buildTopology() {
   memoryBarrierBuffer();
   }
 
-float importance(const LightSource light) {
-  // return grayscale(light.color) * light.range;
-  return grayscale(light.color) * (4.0/3.0)*M_PI*pow(light.range, 3);
-  }
+void computeHeirarchy(const LightSource light, uint nodeId) {
+  float weight = light.range * grayscale(light.color) + 1;
+  vec3  center = light.pos;
 
-void swap(inout vec4 a, inout vec4 b) {
-  vec4 tmp = a;
-  a = b;
-  b = tmp;
-  }
-
-void computeBoxes(const LightSource light, uint nodeId) {
-  nodes[nodeId].lmin = vec4(light.pos - light.range, 0);
-  nodes[nodeId].lmax = vec4(light.pos + light.range, 0);
-  nodes[nodeId].rmin = vec4(light.pos,   light.range);
-  nodes[nodeId].rmax = vec4(light.color, importance(light));
-  memoryBarrierBuffer();
+  nodes[nodeId].centerL = center;
+  nodes[nodeId].weightL = weight;
+  nodes[nodeId].centerR = light.color;
+  nodes[nodeId].weightR = light.range;
 
   while(nodeId>0) {
-    const uint parent = alux[nodeId].parent;
-
-    vec3  nmin = min(nodes[nodeId].lmin.xyz, nodes[nodeId].rmin.xyz);
-    vec3  nmax = max(nodes[nodeId].lmax.xyz, nodes[nodeId].rmax.xyz);
-    // float imp  = nodes[nodeId].rmax.w;
-
-    const uint parentL = floatBitsToUint(nodes[parent].lmin.w) & 0x0FFFFFFF;
+    const uint parent  = alux[nodeId].parent;
+    const uint parentL = nodes[parent].ptrL & 0x0FFFFFFF;
     if(parentL==nodeId) {
-      nodes[parent].lmin.xyz = nmin;
-      nodes[parent].lmax.xyz = nmax;
+      nodes[parent].centerL = center;
+      nodes[parent].weightL = weight;
       } else {
-      nodes[parent].rmin.xyz = nmin;
-      nodes[parent].rmax.xyz = nmax;
+      nodes[parent].centerR = center;
+      nodes[parent].weightR = weight;
       }
-    memoryBarrierBuffer();
 
     const uint bit = 1u << (parent%32);
-    if((atomicXor(parentbits[parent/32], bit) & bit)!=0) {
-      nodeId = parent;
-      continue;
+    memoryBarrierBuffer();
+    if((atomicXor(parentbits[parent/32], bit) & bit)==0) {
+      break;
       }
-    break;
+
+    nodeId = parent;
+
+    BVHNode node = nodes[nodeId];
+    weight = node.weightL + node.weightR;
+    center = node.centerL*node.weightL + node.centerR*node.weightR;
+    if(weight>0) {
+      center /= weight;
+      }
     }
   }
 
-void computeBoxes() {
+void computeHeirarchy() {
   const uint laneID = gl_LocalInvocationIndex;
 
-  uint internalCount = lights.length() - 1;
-  for(uint i=laneID; i<lights.length(); i+=NumThreads) {
-    computeBoxes(lights[i], internalCount + i);
+  if(numActiveLights == 0)
+    return;
+
+  uint internalCount = numActiveLights - 1;
+  for(uint i=laneID; i<numActiveLights; i+=NumThreads) {
+    computeHeirarchy(lights[morton[i].id], internalCount + i);
     }
   }
 
-void reorderNodes() {
-  const uint laneID = gl_LocalInvocationIndex;
+void emitTrivialBVH() {
+  //TODO
+  /*
+  uint  idx    = lights[morton[0].id];
+  float weight = light.range * grayscale(light.color) + 1;
+  vec3  center = light.pos;
 
-  uint internalCount = lights.length() - 1;
-  for(uint i=laneID; i<internalCount; i+=NumThreads) {
-    float sahL = areaOf(nodes[i].lmin.xyz, nodes[i].lmax.xyz);
-    float sahR = areaOf(nodes[i].rmin.xyz, nodes[i].rmax.xyz);
-    if(sahL < sahR) {
-      // keep best SAH on the left
-      swap(nodes[i].lmin, nodes[i].rmin);
-      swap(nodes[i].lmax, nodes[i].rmax);
-      }
-    nodes[i].lmax.w = sahL/max(sahL+sahR,0.00001);
-    }
+  const uint nodeId = 0;
+  nodes[nodeId].centerL = center;
+  nodes[nodeId].weightL = weight;
+  nodes[nodeId].centerR = light.color;
+  nodes[nodeId].weightR = light.range;
+  */
   }
 
 void main() {
   bboxMinMax();
   barrier();
+
+  if(numActiveLights < 2) {
+    emitTrivialBVH();
+    return;
+    }
 
   computeMorton();
   barrier();
@@ -322,8 +322,5 @@ void main() {
   buildTopology();
   barrier();
 
-  computeBoxes();
-  barrier();
-
-  reorderNodes();
+  computeHeirarchy();
   }

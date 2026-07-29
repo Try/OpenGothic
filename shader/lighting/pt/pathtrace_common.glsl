@@ -33,19 +33,23 @@ void rayQueryProceedAlphaTest(in rayQueryEXT rayQuery, inout Random rng) {
     }
   }
 
-float rayQueryProceedShadow(const vec3 rayOrigin, const vec3 rayDirection, inout Random rngState) {
+float rayQueryProceedShadow(const vec3 rayOrigin, const vec3 rayDirection, float tMax, inout Random rngState) {
   // CullBack due to vegetation
   uint  flags = gl_RayFlagsSkipAABBEXT | gl_RayFlagsCullBackFacingTrianglesEXT;
   float tMin  = 1;
 
   rayQueryEXT rayQuery;
   rayQueryInitializeEXT(rayQuery, topLevelAS, flags, CM_ShadowCaster,
-                        rayOrigin, tMin, rayDirection, TMax);
+                        rayOrigin, tMin, rayDirection, tMax);
   rayQueryProceedAlphaTest(rayQuery);
   // rayQueryProceedAlphaTest(rayQuery, rngState);
   if(rayQueryGetIntersectionTypeEXT(rayQuery, true) == gl_RayQueryCommittedIntersectionNoneEXT)
     return 1;
   return 0;
+  }
+
+float rayQueryProceedShadow(const vec3 rayOrigin, const vec3 rayDirection, inout Random rngState) {
+  return rayQueryProceedShadow(rayOrigin, rayDirection, TMax, rngState);
   }
 
 HitResolve rayQueryProceedPrimary(const vec3 rayOrigin, const vec3 rayDirection, float mipOverride, uint mask, inout Random rngState) {

@@ -5,8 +5,6 @@
 #include "common.glsl"
 #include "random.glsl"
 
-#define ALL_LIGHTS
-
 layout(location = 0) in  vec2 inUV;
 layout(location = 0) out vec4 outColor;
 
@@ -22,76 +20,52 @@ layout(binding = 3, std430) readonly buffer BVH {
   BVHNode node[];
   } bvhData;
 
+float bvhLightsNodeWeight(const vec3 wpos, const vec3 norm, const vec3 cen, float wFlux) {
+  vec3  dlen                = wpos - cen;
+  float distSq              = max(dot(dlen, dlen), 0.0001f);
+  float distanceAttenuation = 1.0 / distSq;
+
+  return distanceAttenuation * wFlux;
+  }
+
 vec3 traverseLightTree(const vec3 wpos, const vec3 norm, inout Random rng) {
-  vec3 ret = vec3(0);
+  float pdf  = 1.0;
+  float key  = randf(rng);
+  uint  node = 0 | BVH_BoxNode;
 
-  uint stack[64];
-  uint ptr = 0;
-
-  uint node = 0 | BVH_BoxNode;
-  while(true) {
-    if(ptr==stack.length()) {
-      // stack overflow
-      return vec3(1,0,0);
-      }
-
+  while(node!=0) {
     const uint    type = bvhGetNodeType(node);
     const BVHNode n    = bvhData.node[node & 0x0FFFFFFF];
 
+    // if(n.ptrL==0) {
     if(type==BVH_LightNode) {
       // light
-      const vec4  src       = n.rmin;
-      const vec3  distance  = wpos - src.xyz;
+      const vec3  distance  = wpos - n.centerL;
       const float tMax      = length(distance);
       const vec3  ldir      = distance/tMax;
-      const float intensity = lightIntensity(norm, tMax, ldir, src.w);
-      ret += intensity * n.rmax.rgb;
+      const float intensity = lightIntensity(norm, tMax, ldir, n.weightR);
+      return intensity * n.centerR;
       }
-    else {
-      const bool left  = bvhIntersectBox(wpos, n.lmin.xyz, n.lmax.xyz);
-      const bool right = bvhIntersectBox(wpos, n.rmin.xyz, n.rmax.xyz);
-#if defined(ALL_LIGHTS)
-      if(left && right) {
-        node         = floatBitsToUint(n.lmin.w);
-        stack[ptr++] = floatBitsToUint(n.rmin.w);
-        continue;
-        }
-      else if(left) {
-        node = floatBitsToUint(n.lmin.w);
-        continue;
-        }
-      else if(right) {
-        node = floatBitsToUint(n.rmin.w);
-        continue;
-        }
-#else
-      if(left && right) {
-        node = randf(rng) < 0.5 ? floatBitsToUint(n.lmin.w) : floatBitsToUint(n.rmin.w);
-        continue;
-        }
-      else if(left) {
-        node = floatBitsToUint(n.lmin.w);
-        continue;
-        }
-      else if(right) {
-        node = floatBitsToUint(n.rmin.w);
-        continue;
-        }
-#endif
+
+    const float wLeft  = bvhLightsNodeWeight(wpos, norm, n.centerL, n.weightL);
+    const float wRight = bvhLightsNodeWeight(wpos, norm, n.centerR, n.weightR);
+    const float pLeft  = wLeft /(wLeft + wRight);
+    const float pRight = wRight/(wLeft + wRight);
+    if(key < pLeft) {
+      pdf *= pLeft;
+      node = n.ptrL;
+      key = key/pLeft;
+      } else {
+      pdf *= pRight;
+      node = n.ptrR;
+      key = (key-pLeft)/pRight;
       }
-#if defined(ALL_LIGHTS)
-    if(ptr == 0)
-      break;
-    node = stack[--ptr];
-#else
-    break;
-#endif
     }
 
-  return ret;
+  return vec3(0);
   }
 
-void main(void) {
+void main() {
   const float d = texelFetch(depth, ivec2(gl_FragCoord.xy), 0).r;
   if(d>=1.0)
     discard;

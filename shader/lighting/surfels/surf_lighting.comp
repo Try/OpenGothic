@@ -94,54 +94,45 @@ float sampleDirectLight(vec3 norm, vec3 rayOrigin, vec3 rayDirection) {
   return (lamb * shadow);
   }
 
+float bvhLightsNodeWeight(const vec3 wpos, const vec3 norm, const vec3 cen, float wFlux) {
+  vec3  dlen                = wpos - cen;
+  float distSq              = max(dot(dlen, dlen), 0.0001f);
+  float distanceAttenuation = 1.0 / distSq;
+
+  return distanceAttenuation * wFlux;
+  }
+
 vec3 traverseLightTree(const vec3 wpos, const vec3 norm) {
-  vec3 ret = vec3(0);
+  float pdf  = 1.0;
+  uint  node = 0 | BVH_BoxNode;
 
-  uint stack[64];
-  uint ptr = 0;
-
-  uint node = 0 | BVH_BoxNode;
-  while(true) {
-    if(ptr==stack.length()) {
-      // stack overflow
-      return vec3(1,0,0);
-      }
-
+  while(node!=0) {
     const uint    type = bvhGetNodeType(node);
     const BVHNode n    = bvhData.node[node & 0x0FFFFFFF];
 
     if(type==BVH_LightNode) {
       // light
-      const vec4  src       = n.rmin;
-      const vec3  distance  = wpos - src.xyz;
+      const vec3  distance  = wpos - n.centerL;
       const float tMax      = length(distance);
       const vec3  ldir      = distance/tMax;
-      const float intensity = lightIntensity(norm, tMax, ldir, src.w);
-      ret += intensity * n.rmax.rgb;
+      const float intensity = lightIntensity(norm, tMax, ldir, n.weightR);
+      return intensity * n.centerR;
       }
-    else {
-      const bool left  = bvhIntersectBox(wpos, n.lmin.xyz, n.lmax.xyz);
-      const bool right = bvhIntersectBox(wpos, n.rmin.xyz, n.rmax.xyz);
-      if(left && right) {
-        node         = floatBitsToUint(n.lmin.w);
-        stack[ptr++] = floatBitsToUint(n.rmin.w);
-        continue;
-        }
-      else if(left) {
-        node = floatBitsToUint(n.lmin.w);
-        continue;
-        }
-      else if(right) {
-        node = floatBitsToUint(n.rmin.w);
-        continue;
-        }
+
+    const float wLeft  = bvhLightsNodeWeight(wpos, norm, n.centerL, n.weightL);
+    const float wRight = bvhLightsNodeWeight(wpos, norm, n.centerR, n.weightR);
+    const float pLeft  = wLeft /(wLeft + wRight);
+    const float pRight = wRight/(wLeft + wRight);
+    if(pLeft > pRight) {
+      pdf *= pLeft;
+      node = n.ptrL;
+      } else {
+      pdf *= pRight;
+      node = n.ptrR;
       }
-    if(ptr == 0)
-      break;
-    node = stack[--ptr];
     }
 
-  return ret;
+  return vec3(0);
   }
 
 vec3 evalLight(vec3 rayOrigin, vec3 rayDirection, GBuf hit) {

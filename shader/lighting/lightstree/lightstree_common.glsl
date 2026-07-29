@@ -8,10 +8,10 @@ const uint BVH_BoxNode   = 0x10000000;
 const uint BVH_LightNode = 0x40000000;
 
 struct BVHNode {
-  vec4 lmin; // unsigned left in w
-  vec4 lmax; // unsigned right in w
-  vec4 rmin; // unsigned triCount in w
-  vec4 rmax; // unsigned firstTri in w
+  vec3  centerL; float weightL;
+  uvec3 padd0;   uint  ptrL;
+  vec3  centerR; float weightR;
+  uvec3 padd1;   uint  ptrR;
   };
 
 uint bvhGetNodeType(uint ptr) {
