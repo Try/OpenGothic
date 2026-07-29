@@ -44,6 +44,7 @@ class Renderer final {
 
     void updateCamera(const Camera &camera);
     bool requiresTlas() const;
+    bool requiresLightsTree() const;
 
     Tempest::StorageImage&  usesImage2d(Tempest::StorageImage& ret, Tempest::TextureFormat frm, uint32_t w, uint32_t h, bool mips = false);
     Tempest::StorageImage&  usesImage2d(Tempest::StorageImage& ret, Tempest::TextureFormat frm, Tempest::Size sz, bool mips = false);
@@ -66,6 +67,8 @@ class Renderer final {
     void prepareGi        (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview);
     void prepareExposure  (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview);
     void prepareEpipolar  (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview);
+
+    void prepareLightsBvh (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview);
 
     void prepareSurfels   (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview);
     void surfelsApply     (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview, int32_t tileSize, bool postPass);
@@ -107,6 +110,7 @@ class Renderer final {
     void drawSwrDbg       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
     void drawRtsmDbg      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
     void drawHashDbg      (Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
+    void drawLightTreeDbg (Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
 
     void setupSettings();
     void toggleGi();
@@ -165,6 +169,11 @@ class Renderer final {
     struct Lights {
       Tempest::RenderPipeline* directLightPso = nullptr;
       } lights;
+
+    struct {
+      Tempest::StorageBuffer bvh;
+      Tempest::StorageBuffer bvhMorton, bvhAlux, bvhPB;
+      } lightsTree;
 
     struct Sky {
       Quality                quality       = Quality::None;

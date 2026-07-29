@@ -339,6 +339,14 @@ bool Renderer::requiresTlas() const {
   return false;
   }
 
+bool Renderer::requiresLightsTree() const {
+  if(!Shaders::isLightsTreeSupported())
+    return false;
+  if(settings.giMethod==GiMethod::IrrC || settings.pathTraceEnabled)
+    return true;
+  return true;
+  }
+
 StorageImage& Renderer::usesImage3d(Tempest::StorageImage& ret, Tempest::TextureFormat frm, uint32_t w, uint32_t h, uint32_t d, bool mips) {
   if(ret.format()==frm && uint32_t(ret.w())==w && uint32_t(ret.h())==h && uint32_t(ret.d())==d && bool(ret.mipCount()>1)==mips)
     return ret;
@@ -634,6 +642,9 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
     wview->updateRtScene();
   wview->updateLights();
 
+  if(requiresLightsTree())
+    prepareLightsBvh(cmd, *wview);
+
   updateCamera(*camera);
 
   static bool updFr = true;
@@ -693,6 +704,7 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
   drawAmbient(cmd,*wview);
   drawLights(cmd,*wview);
   drawSky(cmd,*wview);
+  drawLightTreeDbg(sceneLinear, cmd, *wview);
 
   stashSceneAux(cmd);
 
@@ -1046,6 +1058,30 @@ void Renderer::drawHashDbg(Attachment& result, Tempest::Encoder<Tempest::Command
 
   cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}});
   cmd.setPipeline(shaders.hashDbg);
+  cmd.draw(nullptr, 0, 3);
+  }
+
+void Renderer::drawLightTreeDbg(Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview) {
+  static bool enable = false;
+  if(!enable)
+    return;
+
+  auto& scene = wview.sceneGlobals();
+
+  struct Push {
+    Vec3 originLwc;
+    } push;
+  push.originLwc = scene.originLwc;
+
+  cmd.setDebugMarker("LightTree-dbg");
+  cmd.setPushData(push);
+  cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
+  cmd.setBinding(1, gbufNormal);
+  cmd.setBinding(2, zbuffer);
+  cmd.setBinding(3, lightsTree.bvh);
+
+  cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}});
+  cmd.setPipeline(shaders.lightsTreeDbg);
   cmd.draw(nullptr, 0, 3);
   }
 
@@ -1954,6 +1990,34 @@ void Renderer::prepareEpipolar(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wo
   cmd.dispatch(uint32_t(epTrace.h()));
   }
 
+void Renderer::prepareLightsBvh(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview) {
+  if(!Shaders::isLightsTreeSupported())
+    return;
+
+  struct Push {
+    uint32_t lightLengthPot;
+    } push = {};
+  const uint32_t numLights = uint32_t(wview.lights().size());
+  push.lightLengthPot = nextPot(numLights);
+
+  auto& lightsSsbo = wview.lights().lightsSsbo();
+  auto& bvhMorton  = usesSsbo(lightsTree.bvhMorton, shaders.lightsTreeBvh.sizeofBuffer(1, push.lightLengthPot));
+  auto& bvh        = usesSsbo(lightsTree.bvh,       shaders.lightsTreeBvh.sizeofBuffer(2, numLights * 2));
+  auto& bvhAlux    = usesSsbo(lightsTree.bvhAlux,   shaders.lightsTreeBvh.sizeofBuffer(3, numLights * 2));
+  auto& bvhPB      = usesSsboInit(lightsTree.bvhPB, shaders.lightsTreeBvh.sizeofBuffer(4, (numLights + 31 )/32));
+
+  cmd.setDebugMarker("LightsTree");
+  cmd.setFramebuffer({});
+  cmd.setPushData(push);
+  cmd.setBinding(0, lightsSsbo);
+  cmd.setBinding(1, bvhMorton);
+  cmd.setBinding(2, bvh);
+  cmd.setBinding(3, bvhAlux);
+  cmd.setBinding(4, bvhPB);
+  cmd.setPipeline(shaders.lightsTreeBvh);
+  cmd.dispatch(1); // single pass, for simplicity
+  }
+
 void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview) {
   static bool enable = true;
   if(!enable)
@@ -2193,6 +2257,7 @@ void Renderer::surfelsTrace(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
     }
 
   if(giMethod==0) {
+    cmd.setBinding(13,lightsTree.bvh);
     cmd.setPipeline(shaders.surLighting);
     cmd.dispatchIndirect(surfels, offset);
     }
