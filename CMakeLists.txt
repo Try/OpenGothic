@@ -99,17 +99,34 @@ elseif(UNIX)
 endif()
 
 # ZenKit
-set(BUILD_SQUISH_WITH_SSE2     OFF CACHE INTERNAL "")
-set(ZK_ENABLE_ASAN             OFF CACHE INTERNAL "")
-set(ZK_ENABLE_DEPRECATION      OFF CACHE INTERNAL "")
-
-add_subdirectory(lib/ZenKit)
+# CHANGE: Added USE_SYSTEM_ZENKIT option to allow linking against system-installed ZenKit.
+option(USE_SYSTEM_ZENKIT "Use system ZenKit instead of bundled submodule" OFF)
+if(USE_SYSTEM_ZENKIT)
+  find_path(ZENKIT_INCLUDE_DIR NAMES zenkit/World.hh)
+  find_library(ZENKIT_LIBRARY NAMES zenkit)
+  find_library(SQUISH_LIBRARY NAMES squish)
+  if(NOT ZENKIT_INCLUDE_DIR OR NOT ZENKIT_LIBRARY OR NOT SQUISH_LIBRARY)
+    message(FATAL_ERROR "ZenKit or Squish not found")
+  endif()
+  # Create an imported target to properly handle include dirs and link squish as a dependency
+  add_library(zenkit IMPORTED UNKNOWN)
+  set_target_properties(zenkit PROPERTIES
+    IMPORTED_LOCATION "${ZENKIT_LIBRARY}"
+    INTERFACE_INCLUDE_DIRECTORIES "${ZENKIT_INCLUDE_DIR}"
+    INTERFACE_LINK_LIBRARIES "${SQUISH_LIBRARY}"
+  )
+else()
+  # Original bundled behavior preserved when option is OFF
+  set(BUILD_SQUISH_WITH_SSE2	OFF CACHE INTERNAL "")
+  set(ZK_ENABLE_ASAN		OFF CACHE INTERNAL "")
+  set(ZK_ENABLE_DEPRECATION	OFF CACHE INTERNAL "")
+  add_subdirectory(lib/ZenKit)
+endif()
 target_link_libraries(${PROJECT_NAME} zenkit)
 
 # dmusic
-set(DM_BUILD_STATIC            ON  CACHE INTERNAL "")
-set(DM_ENABLE_ASAN             OFF CACHE INTERNAL "")
-
+set(DM_BUILD_STATIC ON CACHE INTERNAL "")
+set(DM_ENABLE_ASAN OFF CACHE INTERNAL "")
 add_subdirectory(lib/dmusic)
 target_link_libraries(${PROJECT_NAME} dmusic)
 
@@ -118,9 +135,28 @@ add_definitions(-DTSF_NO_STDIO)
 include_directories(lib/TinySoundFont)
 
 # Tempest
-set(TEMPEST_BUILD_SHARED ON  CACHE INTERNAL "")
-add_subdirectory(lib/Tempest/Engine)
-include_directories(lib/Tempest/Engine/include)
+# CHANGE: Added USE_SYSTEM_TEMPEST option to allow linking against system-installed Tempest.
+option(USE_SYSTEM_TEMPEST "Use system Tempest instead of bundled submodule" OFF)
+if(USE_SYSTEM_TEMPEST)
+  find_path(TEMPEST_INCLUDE_DIR NAMES Tempest)
+  find_library(TEMPEST_LIBRARY NAMES Tempest)
+  find_library(OPENAL_LIBRARY NAMES openal)
+  if(NOT TEMPEST_INCLUDE_DIR OR NOT TEMPEST_LIBRARY OR NOT OPENAL_LIBRARY)
+    message(FATAL_ERROR "Tempest or OpenAL not found")
+  endif()
+  # Create an imported target to properly handle include dirs and link openal as a dependency
+  add_library(Tempest IMPORTED UNKNOWN)
+  set_target_properties(Tempest PROPERTIES
+    IMPORTED_LOCATION "${TEMPEST_LIBRARY}"
+    INTERFACE_INCLUDE_DIRECTORIES "${TEMPEST_INCLUDE_DIR}"
+    INTERFACE_LINK_LIBRARIES "${OPENAL_LIBRARY}"
+  )
+else()
+  # Original bundled behavior preserved when option is OFF
+  set(TEMPEST_BUILD_SHARED ON CACHE INTERNAL "")
+  add_subdirectory(lib/Tempest/Engine)
+  include_directories(lib/Tempest/Engine/include)
+endif()
 target_link_libraries(${PROJECT_NAME} Tempest)
 
 # zip
@@ -129,38 +165,48 @@ add_library(miniz STATIC "lib/miniz/miniz.h" "lib/miniz/miniz.c")
 target_link_libraries(${PROJECT_NAME} miniz)
 
 # bullet physics
-set(BULLET2_MULTITHREADING       ON  CACHE INTERNAL "")
-set(USE_MSVC_RUNTIME_LIBRARY_DLL ON  CACHE INTERNAL "")
-set(USE_GRAPHICAL_BENCHMARK      OFF CACHE INTERNAL "")
-set(BUILD_BULLET2_DEMOS          OFF CACHE INTERNAL "") # No samples
-set(BUILD_OPENGL3_DEMOS          OFF CACHE INTERNAL "") # No samples
-set(BUILD_UNIT_TESTS             OFF CACHE INTERNAL "") # No tests
-set(BUILD_CPU_DEMOS              OFF CACHE INTERNAL "") # No samples
-set(BUILD_EXTRAS                 OFF CACHE INTERNAL "") # No bugs
-set(GLFW_BUILD_EXAMPLES          OFF CACHE INTERNAL "")
-set(GLFW_BUILD_TESTS             OFF CACHE INTERNAL "")
-set(GLFW_BUILD_DOCS              OFF CACHE INTERNAL "")
-set(BUILD_BULLET3                OFF CACHE INTERNAL "") # Can use bullet2, bullet3 wants to build examples...
-add_subdirectory(lib/bullet3)
-if(NOT MSVC)
-  target_compile_options(BulletDynamics         PRIVATE -Wno-argument-outside-range)
-  target_compile_options(BulletInverseDynamics  PRIVATE -Wno-argument-outside-range)
-  target_compile_options(BulletSoftBody         PRIVATE -Wno-argument-outside-range)
-  target_compile_options(Bullet3Common          PRIVATE -Wno-argument-outside-range)
-  target_compile_options(BulletCollision        PRIVATE -Wno-argument-outside-range)
-  target_compile_options(LinearMath             PRIVATE -Wno-argument-outside-range)
-endif()
-if(NOT MSVC AND NOT APPLE AND NOT ${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
-  target_compile_options(BulletDynamics         PRIVATE -Wno-stringop-overflow)
-  target_compile_options(BulletInverseDynamics  PRIVATE -Wno-stringop-overflow)
-  target_compile_options(BulletSoftBody         PRIVATE -Wno-stringop-overflow)
-  target_compile_options(Bullet3Common          PRIVATE -Wno-stringop-overflow)
-  target_compile_options(BulletCollision        PRIVATE -Wno-stringop-overflow)
-  target_compile_options(LinearMath             PRIVATE -Wno-stringop-overflow)
-endif()
+# CHANGE: Added USE_SYSTEM_BULLET option to allow linking against system-installed Bullet.
+option(USE_SYSTEM_BULLET "Use system Bullet instead of bundled submodule" OFF)
+if(USE_SYSTEM_BULLET)
+  # Use standard CMake find_package for system Bullet
+  find_package(Bullet REQUIRED)
+  include_directories(${BULLET_INCLUDE_DIRS})
+  target_link_libraries(${PROJECT_NAME} ${BULLET_LIBRARIES})
+else()
+  # Original bundled behavior preserved when option is OFF
+  set(BULLET2_MULTITHREADING       ON  CACHE INTERNAL "")
+  set(USE_MSVC_RUNTIME_LIBRARY_DLL ON  CACHE INTERNAL "")
+  set(USE_GRAPHICAL_BENCHMARK      OFF CACHE INTERNAL "")
+  set(BUILD_BULLET2_DEMOS          OFF CACHE INTERNAL "") # No samples
+  set(BUILD_OPENGL3_DEMOS          OFF CACHE INTERNAL "") # No samples
+  set(BUILD_UNIT_TESTS             OFF CACHE INTERNAL "") # No tests
+  set(BUILD_CPU_DEMOS              OFF CACHE INTERNAL "") # No samples
+  set(BUILD_EXTRAS                 OFF CACHE INTERNAL "") # No bugs
+  set(GLFW_BUILD_EXAMPLES          OFF CACHE INTERNAL "")
+  set(GLFW_BUILD_TESTS             OFF CACHE INTERNAL "")
+  set(GLFW_BUILD_DOCS              OFF CACHE INTERNAL "")
+  set(BUILD_BULLET3                OFF CACHE INTERNAL "") # Can use bullet2, bullet3 wants to build examples...
 
-include_directories(lib/bullet3/src)
-target_link_libraries(${PROJECT_NAME} BulletDynamics BulletCollision LinearMath)
+  # CHANGE: Restored proper compiler warning suppressions for bundled Bullet that were previously left in empty if() blocks.
+  if(NOT MSVC)
+    target_compile_options(BulletDynamics	 PRIVATE -Wno-argument-outside-range)
+    target_compile_options(BulletInverseDynamics PRIVATE -Wno-argument-outside-range)
+    target_compile_options(BulletSoftBody	 PRIVATE -Wno-argument-outside-range)
+    target_compile_options(Bullet3Common	 PRIVATE -Wno-argument-outside-range)
+    target_compile_options(BulletCollision	 PRIVATE -Wno-argument-outside-range)
+    target_compile_options(LinearMath		 PRIVATE -Wno-argument-outside-range)
+  endif()
+  if(NOT MSVC AND NOT APPLE AND NOT ${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
+    target_compile_options(BulletDynamics	 PRIVATE -Wno-stringop-overflow)
+    target_compile_options(BulletInverseDynamics PRIVATE -Wno-stringop-overflow)
+    target_compile_options(BulletSoftBody	 PRIVATE -Wno-stringop-overflow)
+    target_compile_options(Bullet3Common	 PRIVATE -Wno-stringop-overflow)
+    target_compile_options(BulletCollision	 PRIVATE -Wno-stringop-overflow)
+    target_compile_options(LinearMath		 PRIVATE -Wno-stringop-overflow)
+  endif()
+  include_directories(lib/bullet3/src)
+  target_link_libraries(${PROJECT_NAME} BulletDynamics BulletCollision LinearMath)
+endif()
 
 # script for launching in binary directory
 if(WIN32)
