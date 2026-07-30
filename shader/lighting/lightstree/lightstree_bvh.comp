@@ -17,7 +17,7 @@ struct BVHAlux {
   uint parent;
   };
 
-layout(std140, push_constant) uniform Push {
+layout(push_constant, std140) uniform Push {
   uint lightsLengthPot;
   };
 

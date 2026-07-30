@@ -237,7 +237,7 @@ float lightIntensity(const vec3 normal, const float distance, const vec3 ldir, c
 
   float lambert = max(0.0,-dot(ldir,normal));
   float lx      = (lambert/max(factor, 0.05)) * (smoothFactor*smoothFactor);
-  return lx * Fd_Lambert * 0.1;
+  return lx * 0.1;
   }
 
 shared uint meshletsIds[NumThreads];
@@ -298,7 +298,7 @@ void processLight(const vec3 wpos, const vec3 normal, const LightId lId) {
 
   const float       tMax     = length(distance);
   const vec3        ldir     = distance/tMax;
-  const float       lpow     = lightIntensity(normal, tMax, ldir, src.range);
+  const float       lpow     = lightIntensity(normal, tMax, ldir, src.range) * Fd_Lambert;
 
   rayBboxses(ldir, tMax, lpow>0);
   barrier();

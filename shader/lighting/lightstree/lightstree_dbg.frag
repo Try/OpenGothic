@@ -77,5 +77,5 @@ void main() {
   Random rng  = srand(uvec2(gl_FragCoord.xy), 0);
   vec3   clr  = traverseLightTree(wpos, norm, rng) * max(1.0, scene.exposure);
 
-  outColor = vec4(clr, 1);
+  outColor = vec4(clr * Fd_Lambert, 1);
   }

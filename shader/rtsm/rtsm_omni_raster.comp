@@ -173,7 +173,7 @@ float lightIntensity(const vec3 normal, const float distance, const vec3 ldir, c
   float falloff = squareFalloffAttenuation(distance, 1.0/lightRange);
   float lambert = max(0.0,-dot(ldir,normal));
 
-  return lambert * falloff * Fd_Lambert * 0.25;
+  return lambert * falloff * 0.25;
   }
 
 const  uint  MaxChunk = NumThreads/2;
@@ -270,7 +270,7 @@ void setupLight(uint ptr, const vec3 wpos, const vec3 normal, out float lightPow
   const vec3  distance = wpos - src.xyz;
   const float tMax     = length(distance);
   const vec3  ldir     = distance/tMax;
-  lightPower           = lightIntensity(normal, tMax, ldir, src.w);
+  lightPower           = lightIntensity(normal, tMax, ldir, src.w) * Fd_Lambert;
   lightOrigin          = vec4(src.xyz, src.w*0.0375); // position and tMin
 
   inactiveRays = 0;

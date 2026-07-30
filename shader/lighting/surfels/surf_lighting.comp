@@ -154,9 +154,9 @@ vec3 evalLight(vec3 rayOrigin, vec3 rayDirection, GBuf hit) {
   rayOrigin = (rayOrigin + rayDirection * hit.rayT);
 
   vec3  direct = vec3(0);
-  direct += sampleDirectLight(hit.norm, rayOrigin, scene.sunDir) * scene.sunColor * Fd_Lambert * scene.exposure;
+  direct += sampleDirectLight(hit.norm, rayOrigin, scene.sunDir) * scene.sunColor * scene.exposure;
   direct += traverseLightTree(rayOrigin, hit.norm) * max(1.0, scene.exposure);
-  color  += thruput*direct;
+  color  += thruput * direct * Fd_Lambert;
 
   return color;
   }

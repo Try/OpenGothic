@@ -41,7 +41,7 @@ float lightIntensity(const vec3 normal, const float distance, const vec3 ldir, c
   float falloff = squareFalloffAttenuation(distance, 1.0/lightRange);
   float lambert = max(0.0,-dot(ldir,normal));
 
-  return lambert * falloff * Fd_Lambert * 0.25;
+  return lambert * falloff * 0.25;
   }
 
 #endif
