@@ -269,9 +269,10 @@ void Shaders::compileShaders() {
     }
 
   if(Shaders::isLightsTreeSupported()) {
-    lightsTreeMorton   = computeShader("lightstree_morton.comp.sprv");
-    lightsTreeTopology = computeShader("lightstree_topology.comp.sprv");
-    lightsTreeBvh      = computeShader("lightstree_bvh.comp.sprv");
+    lightsMorton   = computeShader("lights_morton.comp.sprv");
+    lightsTopology = computeShader("lights_topology.comp.sprv");
+    lightsTree     = computeShader("lights_tree.comp.sprv");
+    lightsBvh      = computeShader("lights_bvh.comp.sprv");
 
     lightsTreeDbg    = postEffect("triangle_uv", "lightstree_dbg");
     }

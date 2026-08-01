@@ -2001,28 +2001,44 @@ void Renderer::prepareLightsBvh(Tempest::Encoder<Tempest::CommandBuffer>& cmd, W
   push.lightLengthPot = nextPot(numLights);
 
   auto& lightsSsbo = wview.lights().lightsSsbo();
-  auto& bvhMorton  = usesSsbo(lightsTree.bvhMorton, shaders.lightsTreeBvh.sizeofBuffer(1, push.lightLengthPot));
-  auto& bvh        = usesSsbo(lightsTree.bvh,       shaders.lightsTreeBvh.sizeofBuffer(2, numLights * 2));
-  auto& bvhAlux    = usesSsbo(lightsTree.bvhAlux,   shaders.lightsTreeBvh.sizeofBuffer(3, numLights * 2));
-  auto& bvhPB      = usesSsboInit(lightsTree.bvhPB, shaders.lightsTreeBvh.sizeofBuffer(4, (numLights + 31 )/32));
+  auto& bvhMorton  = usesSsbo(lightsTree.bvhMorton,   shaders.lightsBvh.sizeofBuffer(1, push.lightLengthPot));
+  auto& bvhAlux    = usesSsbo(lightsTree.bvhAlux,     shaders.lightsBvh.sizeofBuffer(3, numLights * 2));
+  auto& ctrl       = usesSsboInit(lightsTree.bvhCtrl, shaders.lightsBvh.sizeofBuffer(4, (numLights + 31 )/32));
+
+  const bool ltree = settings.pathTraceEnabled;
+  const bool lbvh  = (settings.giMethod==GiMethod::IrrC);
 
   cmd.setDebugMarker("LightsTree");
   cmd.setFramebuffer({});
   cmd.setPushData(push);
   cmd.setBinding(0, lightsSsbo);
   cmd.setBinding(1, bvhMorton);
-  cmd.setBinding(2, bvh);
+  //
   cmd.setBinding(3, bvhAlux);
-  cmd.setBinding(4, bvhPB);
+  cmd.setBinding(4, ctrl);
 
-  cmd.setPipeline(shaders.lightsTreeMorton);
+  cmd.setPipeline(shaders.lightsMorton);
   cmd.dispatch(1); // single pass, for simplicity
 
-  cmd.setPipeline(shaders.lightsTreeTopology);
-  cmd.dispatchThreads(numLights);
+  if(ltree) {
+    auto& tree = usesSsbo(lightsTree.tree, shaders.lightsBvh.sizeofBuffer(2, numLights * 2));
+    cmd.setBinding(2, tree);
+    cmd.setPipeline(shaders.lightsTopology);
+    cmd.dispatchThreads(numLights);
 
-  cmd.setPipeline(shaders.lightsTreeBvh);
-  cmd.dispatchThreads(numLights);
+    cmd.setPipeline(shaders.lightsTree);
+    cmd.dispatchThreads(numLights);
+    }
+
+  if(lbvh) {
+    auto& bvh = usesSsbo(lightsTree.bvh, shaders.lightsBvh.sizeofBuffer(2, numLights * 2));
+    cmd.setBinding(2, bvh);
+    cmd.setPipeline(shaders.lightsTopology);
+    cmd.dispatchThreads(numLights);
+
+    cmd.setPipeline(shaders.lightsBvh);
+    cmd.dispatchThreads(numLights);
+    }
   }
 
 void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview) {
@@ -2495,7 +2511,7 @@ void Renderer::drawPathtrace(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Worl
   cmd.setBinding(3, sky.viewCldLut, sky.sampler);
   //cmd.setBinding(4, shadowMap[1], Sampler::bilinear());
   cmd.setBinding(4, Resources::fallbackBlack(), Sampler::bilinear());
-  cmd.setBinding(5, lightsTree.bvh);
+  cmd.setBinding(5, lightsTree.tree);
   cmd.setBinding(6, scene.rtScene.tlas);
   cmd.setBinding(7, Sampler::trillinear());
   cmd.setBinding(8, scene.rtScene.tex);

@@ -1,7 +1,7 @@
 #version 450
 
 #include "lighting/lightstree/bvh_build_common.glsl"
-#include "lighting/lightstree/lightstree_common.glsl"
+#include "lighting/lightstree/lights_common.glsl"
 #include "scene.glsl"
 #include "common.glsl"
 

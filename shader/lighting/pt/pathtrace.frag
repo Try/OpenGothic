@@ -3,13 +3,13 @@
 #define RAY_QUERY
 #define RAY_QUERY_AT
 
-// #define SOFT_SHADOW
+#define SOFT_SHADOW
 // #define RESCALE
 #define LOCAL_LIGHTS
 
 #include "lighting/rt/rt_common.glsl"
 #include "lighting/pt/pathtrace_common.glsl"
-#include "lighting/lightstree/lightstree_common.glsl"
+#include "lighting/lightstree/lights_common.glsl"
 #include "lighting/tonemapping.glsl"
 #include "scene.glsl"
 #include "common.glsl"
@@ -29,7 +29,7 @@ layout(binding = 2) uniform texture2D irradiance;
 layout(binding = 3) uniform sampler2D skyLUT;
 layout(binding = 4) uniform sampler2D textureSm1;
 layout(binding = 5, std430) readonly buffer BVH {
-  BVHNode node[];
+  PTreeNode node[];
   } bvhData;
 
 vec3 skyIrradiance(vec3 n) {
@@ -67,7 +67,10 @@ float shadowFactor(vec3 pos) {
   }
 
 
-vec3 randomizeRay(vec3 ray, float angle, inout Random rngState) {
+vec3 randomizeRay(vec3 ray, float off, inout Random rngState) {
+#if !defined(SOFT_SHADOW)
+  return ray;
+#else
   // https://www.shadertoy.com/view/3sfBWs
   const vec2 blueNoiseInDisk[64] = vec2[64](
       vec2(0.478712,0.875764),
@@ -138,7 +141,7 @@ vec3 randomizeRay(vec3 ray, float angle, inout Random rngState) {
 
   // get a blue noise sample position
   vec2 samplePos = blueNoiseInDisk[wangHash(rngState.state)%blueNoiseInDisk.length()];
-  samplePos *= tan(angle);
+  samplePos *= off; //tan(angle);
 
   vec3  r  = normalize(vec3(0,0,1) + vec3(samplePos,0));
 
@@ -146,16 +149,12 @@ vec3 randomizeRay(vec3 ray, float angle, inout Random rngState) {
   vec3  vv = normalize( cross( uu, ray ) );
 
   return vec3( r.x*uu + r.y*vv + r.z*ray );
+#endif
   }
 
 float sampleDirectLight(vec3 norm, vec3 rayOrigin, vec3 rayDirection, bool shadowed, float softAngle, inout Random rngState) {
-#if defined(SOFT_SHADOW)
-  vec3  shRay  = randomizeRay(rayDirection, 0.5*M_PI/180.0, rngState);
-#else
-  vec3  shRay  = rayDirection;
-#endif
-
-  float lamb   = max(dot(norm, rayDirection), 0);
+  vec3  shRay = randomizeRay(rayDirection, tan(0.5*M_PI/180.0), rngState);
+  float lamb  = max(dot(norm, rayDirection), 0);
   if(!shadowed || lamb==0)
     return lamb;
 
@@ -165,10 +164,12 @@ float sampleDirectLight(vec3 norm, vec3 rayOrigin, vec3 rayDirection, bool shado
   }
 
 float samplePointLight(vec3 norm, vec3 rayOrigin, vec3 lightPos, float range, bool shadowed, float softAngle, inout Random rngState) {
-  const vec3    rayDirection = rayOrigin - lightPos;
-  const float   dirLength    = length(rayDirection);
-  const vec3    ldir         = rayDirection/dirLength;
-  const float   intensity    = lightIntensity(norm, dirLength, ldir, range);
+  const vec3    ldir         = lightPos - rayOrigin;
+  const float   dirLength    = length(ldir);
+  const vec3    rayDirection = ldir/dirLength;
+  const vec3    shRay        = randomizeRay(rayDirection, 0.0375, rngState);
+
+  const float   intensity    = lightIntensity(norm, dirLength, -shRay, range);
   if(!shadowed || intensity<=0)
     return 0;
 
@@ -176,16 +177,8 @@ float samplePointLight(vec3 norm, vec3 rayOrigin, vec3 lightPos, float range, bo
   if(rayDistance<=0)
     return intensity;
 
-  float shadow = rayQueryProceedShadow(rayOrigin, -ldir, rayDistance, rngState);
+  float shadow = rayQueryProceedShadow(rayOrigin, shRay, rayDistance, rngState);
   return (intensity * shadow);
-  }
-
-float bvhLightsNodeWeight(const vec3 wpos, const vec3 norm, const vec3 cen, float wFlux) {
-  vec3  dlen                = wpos - cen;
-  float distSq              = max(dot(dlen, dlen), 0.0001f);
-  float distanceAttenuation = 1.0 / distSq;
-
-  return distanceAttenuation * wFlux;
   }
 
 vec3 sampleLocalLight(vec3 norm, vec3 rayOrigin, inout Random rngState) {
@@ -204,11 +197,11 @@ vec3 sampleLocalLight(vec3 norm, vec3 rayOrigin, inout Random rngState) {
       return vec3(0);
       }
 
-    const BVHNode n      = bvhData.node[node & 0x0FFFFFFF];
-    const float   wLeft  = bvhLightsNodeWeight(rayOrigin, norm, n.centerL, n.weightL);
-    const float   wRight = bvhLightsNodeWeight(rayOrigin, norm, n.centerR, n.weightR);
-    const float   pLeft  = wLeft /(wLeft + wRight);
-    const float   pRight = wRight/(wLeft + wRight);
+    const PTreeNode n      = bvhData.node[node & 0x0FFFFFFF];
+    const float     wLeft  = bvhLightsNodeWeight(rayOrigin, norm, n.centerL, n.weightL);
+    const float     wRight = bvhLightsNodeWeight(rayOrigin, norm, n.centerR, n.weightR);
+    const float     pLeft  = wLeft /(wLeft + wRight);
+    const float     pRight = wRight/(wLeft + wRight);
     if(key < pLeft) {
       pdf *= pLeft;
       node = n.ptrL;
@@ -221,10 +214,12 @@ vec3 sampleLocalLight(vec3 norm, vec3 rayOrigin, inout Random rngState) {
     }
 
   // light
-  BVHNode n         = bvhData.node[node & 0x0FFFFFFF];
-  vec3    color     = n.centerR;
-  float   intensity = samplePointLight(norm, rayOrigin, n.centerL, n.weightR, true, 0, rngState);
-  return (intensity * color) / max(pdf, 0.00001);
+  PTreeNode n         = bvhData.node[node & 0x0FFFFFFF];
+  vec3      color     = n.centerR;
+  float     intensity = samplePointLight(norm, rayOrigin, n.centerL, n.weightR, true, 0, rngState);
+  if(pdf < 0.001)
+    return vec3(0); // numerically unstable + fireflys
+  return (intensity * color) / pdf;
   }
 
 vec4 pathtrace(vec3 rayOrigin, vec3 rayDirection) {

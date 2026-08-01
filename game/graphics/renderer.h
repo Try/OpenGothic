@@ -171,8 +171,8 @@ class Renderer final {
       } lights;
 
     struct {
-      Tempest::StorageBuffer bvh;
-      Tempest::StorageBuffer bvhMorton, bvhAlux, bvhPB;
+      Tempest::StorageBuffer bvh, tree;
+      Tempest::StorageBuffer bvhMorton, bvhAlux, bvhCtrl;
       } lightsTree;
 
     struct Sky {

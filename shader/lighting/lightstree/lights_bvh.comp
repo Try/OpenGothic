@@ -1,6 +1,6 @@
 #version 450
 
-#include "lighting/lightstree/lightstree_common.glsl"
+#include "lighting/lightstree/lights_common.glsl"
 #include "lighting/lightstree/bvh_build_common.glsl"
 #include "scene.glsl"
 #include "common.glsl"
@@ -30,24 +30,22 @@ layout(binding = 4, std430) buffer B4 {
   };
 
 void computeHeirarchy(const LightSource light, uint nodeId) {
-  float weight = light.range * grayscale(light.color) + 1;
-  vec3  center = light.pos;
+  vec3 bboxMin = light.pos - light.range;
+  vec3 bboxMax = light.pos + light.range;
 
-  nodes[nodeId].centerL = center;
-  nodes[nodeId].weightL = weight;
-  nodes[nodeId].centerR = light.color;
-  nodes[nodeId].weightR = light.range;
-  //TODO: ball-tree?
+  nodes[nodeId].lmin = light.pos;
+  nodes[nodeId].lmax = light.color;
+  nodes[nodeId].ptrL = floatBitsToUint(light.range);
 
   while(nodeId>0) {
     const uint parent  = alux[nodeId].parent;
     const uint parentL = nodes[parent].ptrL & 0x0FFFFFFF;
     if(parentL==nodeId) {
-      nodes[parent].centerL = center;
-      nodes[parent].weightL = weight;
+      nodes[parent].lmin = bboxMin;
+      nodes[parent].lmax = bboxMax;
       } else {
-      nodes[parent].centerR = center;
-      nodes[parent].weightR = weight;
+      nodes[parent].rmin = bboxMin;
+      nodes[parent].rmax = bboxMax;
       }
 
     const uint bit = 1u << (parent%32);
@@ -59,11 +57,8 @@ void computeHeirarchy(const LightSource light, uint nodeId) {
     nodeId = parent;
 
     BVHNode node = nodes[nodeId];
-    weight = node.weightL + node.weightR;
-    center = node.centerL*node.weightL + node.centerR*node.weightR;
-    if(weight>0) {
-      center /= weight;
-      }
+    bboxMin = min(node.lmin, node.rmin);
+    bboxMax = max(node.lmax, node.rmax);
     }
   }
 

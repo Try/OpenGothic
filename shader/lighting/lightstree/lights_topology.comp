@@ -1,6 +1,6 @@
 #version 450
 
-#include "lighting/lightstree/lightstree_common.glsl"
+#include "lighting/lightstree/lights_common.glsl"
 #include "lighting/lightstree/bvh_build_common.glsl"
 #include "scene.glsl"
 #include "common.glsl"
@@ -18,15 +18,11 @@ layout(binding = 1, std430) readonly buffer B1 {
   };
 
 layout(binding = 2, std430) buffer B2 {
-  BVHNode nodes[];
+  PTreeNode nodes[];
   };
 
 layout(binding = 3, std430) buffer B3 {
   BVHAlux alux[];
-  };
-
-layout(binding = 4, std430) buffer B4 {
-  uint parentbits[];
   };
 
 int delta(int i, uint codeI, int j) {
