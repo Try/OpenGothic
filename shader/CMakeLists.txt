@@ -333,7 +333,10 @@ add_shader(surf_lighting.comp        lighting/surfels/surf_lighting.comp)
 # Pathtracing
 add_shader(pathtrace.frag            lighting/pt/pathtrace.frag -DRAY_QUERY -DRAY_QUERY_AT)
 
+add_shader(lightstree_morton.comp    lighting/lightstree/lightstree_morton.comp)
+add_shader(lightstree_topology.comp  lighting/lightstree/lightstree_topology.comp)
 add_shader(lightstree_bvh.comp       lighting/lightstree/lightstree_bvh.comp)
+
 add_shader(lightstree_dbg.frag       lighting/lightstree/lightstree_dbg.frag)
 
 # CMAA2

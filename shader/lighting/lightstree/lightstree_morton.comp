@@ -1,0 +1,138 @@
+#version 450
+
+#include "lighting/lightstree/bvh_build_common.glsl"
+#include "lighting/lightstree/lightstree_common.glsl"
+#include "scene.glsl"
+#include "common.glsl"
+
+layout(local_size_x = 512) in;
+
+const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
+
+layout(push_constant, std140) uniform Push {
+  uint lightsLengthPot;
+  };
+
+layout(binding = 0, std430) readonly buffer LS {
+  LightSource lights[];
+  };
+
+layout(binding = 1, std430) buffer B1 {
+  MortonHeader header; MortonPair morton[];
+  };
+
+shared uvec3 bboxMinU, bboxMaxU;
+shared vec3  bboxMin,  bboxMax;
+shared uint  numActiveLights;
+
+void bboxMinMax() {
+  const uint laneID = gl_LocalInvocationIndex;
+
+  if(laneID == 0) {
+    bboxMinU.x = 0xFFFFFFFFu;
+    bboxMinU.y = 0xFFFFFFFFu;
+    bboxMinU.z = 0xFFFFFFFFu;
+
+    bboxMaxU.x = 0u;
+    bboxMaxU.y = 0u;
+    bboxMaxU.z = 0u;
+
+    numActiveLights = 0;
+    }
+  barrier();
+
+  for(uint i=laneID; i<lights.length(); i+=NumThreads) {
+    if(lights[i].range<=0)
+      continue;
+
+    atomicAdd(numActiveLights, 1);
+
+    const vec3 p = lights[i].pos;
+    atomicMin(bboxMinU.x, floatToOrderedUint(p.x));
+    atomicMin(bboxMinU.y, floatToOrderedUint(p.y));
+    atomicMin(bboxMinU.z, floatToOrderedUint(p.z));
+
+    atomicMax(bboxMaxU.x, floatToOrderedUint(p.x));
+    atomicMax(bboxMaxU.y, floatToOrderedUint(p.y));
+    atomicMax(bboxMaxU.z, floatToOrderedUint(p.z));
+    }
+  barrier();
+
+  if(laneID == 0) {
+    bboxMin = vec3(orderedUintToFloat(bboxMinU));
+    bboxMax = vec3(orderedUintToFloat(bboxMaxU));
+
+    header.numActiveLights = numActiveLights;
+    }
+  }
+
+uint expandBits(uint v) {
+  v = (v * 0x00010001u) & 0xFF0000FFu;
+  v = (v * 0x00000101u) & 0x0F00F00Fu;
+  v = (v * 0x00000011u) & 0xC30C30C3u;
+  v = (v * 0x00000005u) & 0x49249249u;
+  return v;
+  }
+
+uint morton3D(vec3 p) {
+  vec3 extent = max(bboxMax - bboxMin, vec3(1e-6));
+
+  vec3  q = (p - bboxMin) / extent;
+  uvec3 v = clamp(uvec3(q * 1024.0), 0, 1023);
+
+  return (expandBits(v.x)) | (expandBits(v.y) << 1u) | (expandBits(v.z) << 2u);
+  }
+
+void compareSwap(uint a, uint b, bool ascending) {
+  MortonPair A = morton[a];
+  MortonPair B = morton[b];
+
+  const bool swap = ascending ? (A.key > B.key) : (A.key < B.key);
+  if(swap) {
+    morton[a] = B;
+    morton[b] = A;
+    }
+  }
+
+void computeMorton() {
+  const uint laneID = gl_LocalInvocationIndex;
+
+  for(uint i=laneID; i<lights.length(); i+=NumThreads) {
+    morton[i].key = lights[i].range>0 ? morton3D(lights[i].pos) : 0xFFFFFFFF;
+    morton[i].id  = i;
+    }
+  for(uint i=lights.length()+laneID; i<lightsLengthPot; i+=NumThreads) {
+    morton[i].key = 0xFFFFFFFF;
+    morton[i].id  = 0xFFFFFFFF;
+    }
+  memoryBarrierBuffer();
+  }
+
+void bitonicSort() {
+  const uint laneID = gl_LocalInvocationIndex;
+
+  for(uint k = 2; k <= lightsLengthPot; k <<= 1) {
+    for(uint j = k >> 1; j > 0; j >>= 1) {
+      for(uint i = laneID; i < lightsLengthPot; i += NumThreads) {
+        uint ixj = i ^ j;
+
+        if(ixj > i) {
+          bool ascending = ((i & k) == 0);
+          compareSwap(i, ixj, ascending);
+          }
+        }
+      memoryBarrierBuffer();
+      barrier();
+      }
+    }
+  }
+
+void main() {
+  bboxMinMax();
+  barrier();
+
+  computeMorton();
+  barrier();
+
+  bitonicSort();
+  }

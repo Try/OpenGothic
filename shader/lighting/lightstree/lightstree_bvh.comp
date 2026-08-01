@@ -1,32 +1,20 @@
 #version 450
 
 #include "lighting/lightstree/lightstree_common.glsl"
+#include "lighting/lightstree/bvh_build_common.glsl"
 #include "scene.glsl"
 #include "common.glsl"
 
-layout(local_size_x = 512) in;
+layout(local_size_x = 64) in;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
-
-struct MortonPair {
-  uint key;
-  uint id;
-  };
-
-struct BVHAlux {
-  uint parent;
-  };
-
-layout(push_constant, std140) uniform Push {
-  uint lightsLengthPot;
-  };
 
 layout(binding = 0, std430) readonly buffer LS {
   LightSource lights[];
   };
 
-layout(binding = 1, std430) buffer B1 {
-  MortonPair morton[];
+layout(binding = 1, std430) readonly buffer B1 {
+  MortonHeader header; MortonPair morton[];
   };
 
 layout(binding = 2, std430) buffer B2 {
@@ -41,205 +29,6 @@ layout(binding = 4, std430) buffer B4 {
   uint parentbits[];
   };
 
-shared uvec3 bboxMinU, bboxMaxU;
-shared vec3  bboxMin,  bboxMax;
-shared uint  numActiveLights;
-
-uint expandBits(uint v) {
-  v = (v * 0x00010001u) & 0xFF0000FFu;
-  v = (v * 0x00000101u) & 0x0F00F00Fu;
-  v = (v * 0x00000011u) & 0xC30C30C3u;
-  v = (v * 0x00000005u) & 0x49249249u;
-  return v;
-  }
-
-uint morton3D(vec3 p) {
-  vec3 extent = max(bboxMax - bboxMin, vec3(1e-6));
-
-  vec3  q = (p - bboxMin) / extent;
-  uvec3 v = clamp(uvec3(q * 1024.0), 0, 1023);
-
-  return (expandBits(v.x)) | (expandBits(v.y) << 1u) | (expandBits(v.z) << 2u);
-  }
-
-void compareSwap(uint a, uint b, bool ascending) {
-  MortonPair A = morton[a];
-  MortonPair B = morton[b];
-
-  const bool swap = ascending ? (A.key > B.key) : (A.key < B.key);
-  if(swap) {
-    morton[a] = B;
-    morton[b] = A;
-    }
-  }
-
-void bboxMinMax() {
-  const uint laneID = gl_LocalInvocationIndex;
-
-  if(laneID == 0) {
-    bboxMinU.x = 0xFFFFFFFFu;
-    bboxMinU.y = 0xFFFFFFFFu;
-    bboxMinU.z = 0xFFFFFFFFu;
-
-    bboxMaxU.x = 0u;
-    bboxMaxU.y = 0u;
-    bboxMaxU.z = 0u;
-
-    numActiveLights = 0;
-    }
-  barrier();
-
-  for(uint i=laneID; i<lights.length(); i+=NumThreads) {
-    if(lights[i].range<=0)
-      continue;
-
-    atomicAdd(numActiveLights, 1);
-
-    const vec3 p = lights[i].pos;
-    atomicMin(bboxMinU.x, floatToOrderedUint(p.x));
-    atomicMin(bboxMinU.y, floatToOrderedUint(p.y));
-    atomicMin(bboxMinU.z, floatToOrderedUint(p.z));
-
-    atomicMax(bboxMaxU.x, floatToOrderedUint(p.x));
-    atomicMax(bboxMaxU.y, floatToOrderedUint(p.y));
-    atomicMax(bboxMaxU.z, floatToOrderedUint(p.z));
-    }
-  barrier();
-
-  if(laneID == 0) {
-    bboxMin = vec3(orderedUintToFloat(bboxMinU));
-    bboxMax = vec3(orderedUintToFloat(bboxMaxU));
-    }
-  }
-
-void computeMorton() {
-  const uint laneID = gl_LocalInvocationIndex;
-
-  for(uint i=laneID; i<lights.length(); i+=NumThreads) {
-    morton[i].key = lights[i].range>0 ? morton3D(lights[i].pos) : 0xFFFFFFFF;
-    morton[i].id  = i;
-    }
-  for(uint i=lights.length()+laneID; i<lightsLengthPot; i+=NumThreads) {
-    morton[i].key = 0xFFFFFFFF;
-    morton[i].id  = 0xFFFFFFFF;
-    }
-  memoryBarrierBuffer();
-  }
-
-void bitonicSort() {
-  const uint laneID = gl_LocalInvocationIndex;
-
-  for(uint k = 2; k <= lightsLengthPot; k <<= 1) {
-    for(uint j = k >> 1; j > 0; j >>= 1) {
-      for(uint i = laneID; i < lightsLengthPot; i += NumThreads) {
-        uint ixj = i ^ j;
-
-        if(ixj > i) {
-          bool ascending = ((i & k) == 0);
-          compareSwap(i, ixj, ascending);
-          }
-        }
-      memoryBarrierBuffer();
-      barrier();
-      }
-    }
-  }
-
-int delta(int i, uint codeI, int j) {
-  if(j < 0 || j >= numActiveLights)
-    return -1;
-
-  uint codeJ = morton[j].key;
-  if(codeI == codeJ) {
-    // handle duplicate morton codes
-    uint elementIdxI = morton[i].id;
-    uint elementIdxJ = morton[j].id;
-    // add 32 for common prefix of codeI ^ codeJ
-    return 32 + 31 - findMSB(elementIdxI ^ elementIdxJ);
-    }
-  return 31 - findMSB(codeI ^ codeJ);
-  }
-
-int findSplit(int first, int last) {
-  uint firstCode = morton[first].key;
-
-  // Calculate the number of highest bits that are the same
-  // for all objects, using the count-leading-zeros intrinsic.
-  int commonPrefix = delta(first, firstCode, last);
-  int split        = first; // initial guess
-  int stride       = last - first;
-
-  do {
-    stride = (stride + 1) >> 1;// exponential decrease
-    int newSplit = split + stride;// proposed new position
-    if (newSplit < last) {
-      int splitPrefix = delta(first, firstCode, newSplit);
-      if(splitPrefix > commonPrefix) {
-        split = newSplit;  // accept proposal
-        }
-      }
-    } while (stride > 1);
-
-  return split;
-  }
-
-void determineRange(int idx, out int lower, out int upper) {
-  // determine direction of the range (+1 or -1)
-  const uint code   = morton[idx].key;
-  const int  deltaL = delta(idx, code, idx - 1);
-  const int  deltaR = delta(idx, code, idx + 1);
-  const int  d      = (deltaR >= deltaL) ? 1 : -1;
-
-  // compute upper bound for the length of the range
-  const int deltaMin = min(deltaL, deltaR); // delta(idx, code, idx - d);
-  int lMax = 2;
-  while (delta(idx, code, idx + lMax * d) > deltaMin) {
-    lMax = lMax << 1;
-    }
-
-  // find the other end using binary search
-  int l = 0;
-  for(int t = lMax >> 1; t > 0; t >>= 1) {
-    if(delta(idx, code, idx + (l + t) * d) > deltaMin) {
-      l += t;
-      }
-    }
-  int jdx = idx + l * d;
-
-  // ensure idx < jdx
-  lower = min(idx, jdx);
-  upper = max(idx, jdx);
-  }
-
-uint bvhAnnotate(uint ptr) {
-  uint internalCount = numActiveLights - 1;
-  uint nodeType      = (ptr < internalCount ? BVH_BoxNode : BVH_LightNode);
-  return ptr | nodeType;
-  }
-
-void buildTopology() {
-  const uint laneID = gl_LocalInvocationIndex;
-
-  uint internalCount = numActiveLights - 1;
-  for(uint i=laneID; i<internalCount; i+=NumThreads) {
-    int first = 0;
-    int last  = 0;
-    determineRange(int(i), first, last);
-
-    int  split = findSplit(first,last);
-    uint left  = (split   == first) ? uint(internalCount + split)     : uint(split);
-    uint right = (split+1 == last ) ? uint(internalCount + split + 1) : uint(split + 1);
-
-    nodes[i].ptrL = bvhAnnotate(left);
-    nodes[i].ptrR = bvhAnnotate(right);
-
-    alux[left ].parent = i;
-    alux[right].parent = i;
-    }
-
-  memoryBarrierBuffer();
-  }
-
 void computeHeirarchy(const LightSource light, uint nodeId) {
   float weight = light.range * grayscale(light.color) + 1;
   vec3  center = light.pos;
@@ -248,6 +37,7 @@ void computeHeirarchy(const LightSource light, uint nodeId) {
   nodes[nodeId].weightL = weight;
   nodes[nodeId].centerR = light.color;
   nodes[nodeId].weightR = light.range;
+  //TODO: ball-tree?
 
   while(nodeId>0) {
     const uint parent  = alux[nodeId].parent;
@@ -277,18 +67,6 @@ void computeHeirarchy(const LightSource light, uint nodeId) {
     }
   }
 
-void computeHeirarchy() {
-  const uint laneID = gl_LocalInvocationIndex;
-
-  if(numActiveLights == 0)
-    return;
-
-  uint internalCount = numActiveLights - 1;
-  for(uint i=laneID; i<numActiveLights; i+=NumThreads) {
-    computeHeirarchy(lights[morton[i].id], internalCount + i);
-    }
-  }
-
 void emitTrivialBVH() {
   //TODO
   /*
@@ -305,22 +83,10 @@ void emitTrivialBVH() {
   }
 
 void main() {
-  bboxMinMax();
-  barrier();
-
-  if(numActiveLights < 2) {
-    emitTrivialBVH();
+  const uint i = gl_GlobalInvocationID.x;
+  if(i >= header.numActiveLights)
     return;
-    }
 
-  computeMorton();
-  barrier();
-
-  bitonicSort();
-  barrier();
-
-  buildTopology();
-  barrier();
-
-  computeHeirarchy();
+  const uint internalCount = header.numActiveLights - 1;
+  computeHeirarchy(lights[morton[i].id], internalCount + i);
   }

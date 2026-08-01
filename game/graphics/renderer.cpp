@@ -2014,8 +2014,15 @@ void Renderer::prepareLightsBvh(Tempest::Encoder<Tempest::CommandBuffer>& cmd, W
   cmd.setBinding(2, bvh);
   cmd.setBinding(3, bvhAlux);
   cmd.setBinding(4, bvhPB);
-  cmd.setPipeline(shaders.lightsTreeBvh);
+
+  cmd.setPipeline(shaders.lightsTreeMorton);
   cmd.dispatch(1); // single pass, for simplicity
+
+  cmd.setPipeline(shaders.lightsTreeTopology);
+  cmd.dispatchThreads(numLights);
+
+  cmd.setPipeline(shaders.lightsTreeBvh);
+  cmd.dispatchThreads(numLights);
   }
 
 void Renderer::prepareSurfels(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview) {

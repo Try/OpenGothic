@@ -97,7 +97,7 @@ class Shaders {
     Tempest::ComputePipeline surfPathtrace, surfRaycast, surLighting;
 
     // Lights tree
-    Tempest::ComputePipeline lightsTreeBvh;
+    Tempest::ComputePipeline lightsTreeMorton, lightsTreeTopology, lightsTreeBvh;
     Tempest::RenderPipeline  lightsTreeDbg;
 
     // Epipolar
