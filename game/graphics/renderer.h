@@ -224,7 +224,7 @@ class Renderer final {
       } gi;
 
     struct {
-      const Tempest::IVec2      gbufTile   = {8, 8};
+      const Tempest::IVec2      gbufTile   = {16};
       const uint32_t            gbufTilesX = 256;
       const uint32_t            gbufTilesY = 256;
       const uint32_t            maxSurfels = gbufTilesX*gbufTilesY;

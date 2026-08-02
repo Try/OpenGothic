@@ -2271,6 +2271,7 @@ void Renderer::surfelsTrace(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
   cmd.setBinding(10,scene.rtScene.ibo);
   cmd.setBinding(11,scene.rtScene.rtDesc);
   cmd.setBinding(12,shadowMap[1]);
+  cmd.setBinding(13,lightsTree.bvh);
 
   cmd.setPipeline(*pso);
   const uint32_t offset = postPass ? sizeof(uint32_t) : 0;
@@ -2280,7 +2281,6 @@ void Renderer::surfelsTrace(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
     }
 
   if(giMethod==0) {
-    cmd.setBinding(13,lightsTree.bvh);
     cmd.setPipeline(shaders.surLighting);
     cmd.dispatchIndirect(surfels, offset);
     }

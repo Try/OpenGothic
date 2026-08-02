@@ -5,11 +5,11 @@
 #include "scene.glsl"
 
 const float SKY_DEPTH       = 0.999995;
-const int   MinCoverage     = 8;    // in pixels
+const int   MinCoverage     = 4;    // in pixels
 const int   DefaultCoverage = 96;   // in pixels
 const int   LargeTile       = 128;  // in pixels
 const uint  MaxInTile       = 1024; // ~32px (~6x6) per surfel
-const ivec2 GBufTile        = ivec2(8, 8);
+const ivec2 GBufTile        = ivec2(16);
 
 const float rEffScale       = 0.5;
 
