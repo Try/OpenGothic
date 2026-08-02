@@ -44,7 +44,9 @@ void main(void) {
     ;//discard;
 
   //vec3 clr = 4.0 * p.irradiance * (1.0-qDist) * scene.exposure;
-  vec3 clr = vec3(0.9) * (1.0-qDist);
+  float k = p.radiusMean/p.radius;
+
+  vec3 clr = mix(vec3(1,0,0), vec3(0,1,0), 2*k) * (1.0-qDist);
   if(instanceIndex >= header.count-header.added)
     clr = vec3(0,1,0);
   if(!isSurfelAlive(p))

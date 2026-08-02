@@ -81,6 +81,9 @@ float sampleDirectLight(vec3 norm, vec3 rayOrigin, vec3 rayDirection) {
   if(lamb==0)
     return lamb;
 
+  if(planetOcclusion(rayOrigin.y, rayDirection))
+    return 0;
+
   vec4 shCoord = scene.viewShadow[1]*vec4(rayOrigin,1);
   if(abs(shCoord.x)>=shCoord.w && abs(shCoord.y)>=shCoord.w) {
 #if 1
@@ -163,7 +166,7 @@ vec3 evalLight(vec3 rayOrigin, vec3 rayDirection, GBuf hit) {
   rayOrigin = (rayOrigin + rayDirection * hit.rayT);
 
   vec3  direct = vec3(0);
-  direct += sampleDirectLight(hit.norm, rayOrigin, scene.sunDir) * scene.sunColor;// * scene.exposure;
+  direct += sampleDirectLight(hit.norm, rayOrigin, scene.sunDir) * scene.sunColor;
   direct += traverseLightTree(rayOrigin, hit.norm) * (max(1.0, scene.exposure) / scene.exposure);
   color  += thruput * direct * Fd_Lambert;
 
@@ -210,9 +213,15 @@ float estimateSurfelScale(vec3 mean, vec3 meanSq) {
 
   return radiusScale;
 #else
-  const float k = 10.0;
+  const float k = 0.2;
   // return k*grayscale(meanSq - mean*mean);
-  return 1.0 - k * max(0, grayscale(meanSq - mean*mean));
+  // return 1.0 - k * max(0, grayscale(meanSq - mean*mean));
+  // return 1.0 - k*max(0, grayscale(meanSq - mean*mean))/max(grayscale(meanSq), 0.0001);
+  vec3  mean2 = max(mean*mean, 0.0001);
+  meanSq      = max(meanSq,    0.0001);
+
+  float cv    = max(grayscale(meanSq/mean2) - 1.0, 0.0);
+  return 4.0 - k*cv*cv;
 #endif
   }
 
@@ -229,7 +238,7 @@ void main() {
 
   const mat3   tbn = toTangent(decodeNormal(p.norm));
 
-  Random rngState = Random(pcgHash(gl_LocalInvocationIndex));
+  //Random rngState = Random(pcgHash(gl_LocalInvocationIndex));
 
   const uint i   = gl_LocalInvocationIndex;
   const vec3 ray = tbn * sampleHemisphereCos(i,numPaths,0);
@@ -256,7 +265,8 @@ void main() {
     const float scale        = estimateSurfelScale(irradiance, irradianceSq);
 
     surfels[surfelId].radius     = rMax;
-    surfels[surfelId].radiusMean = min(max(hitMean*scale, rMin), rMax * rEffScale);
+    //surfels[surfelId].radiusMean = min(max(hitMean*scale, rMin), rMax * rEffScale);
+    surfels[surfelId].radiusMean = min(max(rMax*scale, rMin), rMax * rEffScale);
 
     surfels[surfelId].irradiance = irradiance;
     // surfels[surfelId].irradiance = vec3(scale * scene.exposure);
