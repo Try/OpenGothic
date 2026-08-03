@@ -62,25 +62,31 @@ void computeHeirarchy(const LightSource light, uint nodeId) {
     }
   }
 
-void emitTrivialBVH() {
-  //TODO
-  /*
-  uint  idx    = lights[morton[0].id];
-  float weight = light.range * grayscale(light.color) + 1;
-  vec3  center = light.pos;
+void emitTrivialBVH(const LightSource light) {
+  vec3 bboxMin = light.pos - light.range;
+  vec3 bboxMax = light.pos + light.range;
 
-  const uint nodeId = 0;
-  nodes[nodeId].centerL = center;
-  nodes[nodeId].weightL = weight;
-  nodes[nodeId].centerR = light.color;
-  nodes[nodeId].weightR = light.range;
-  */
+  nodes[1].lmin = light.pos;
+  nodes[1].lmax = light.color;
+  nodes[1].ptrL = floatBitsToUint(light.range);
+
+  nodes[0].lmin = bboxMin;
+  nodes[0].lmax = bboxMax;
+  nodes[0].ptrL = 1 | BVH_LightNode;
+  nodes[0].rmin = vec3(0);
+  nodes[0].rmax = vec3(0);
+  nodes[0].ptrR = BVH_NullNode;
   }
 
 void main() {
   const uint i = gl_GlobalInvocationID.x;
   if(i >= header.numActiveLights)
     return;
+
+  if(header.numActiveLights==1) {
+    emitTrivialBVH(lights[0]);
+    return;
+    }
 
   const uint internalCount = header.numActiveLights - 1;
   computeHeirarchy(lights[morton[i].id], internalCount + i);

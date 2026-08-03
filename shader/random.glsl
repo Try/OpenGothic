@@ -7,6 +7,18 @@ struct Random {
   uint state;
   };
 
+Random srand(uint seed) {
+  Random r;
+  r.state = uint(uint(seed) * uint(26699)) | uint(1);
+  return r;
+  }
+
+Random srand(uvec3 v3) {
+  Random r;
+  r.state = uint(v3.x * uint(1973) + v3.y * uint(9277) + v3.z * uint(26699)) | uint(1);
+  return r;
+  }
+
 Random srand(uvec2 fragCoord, uint seed) {
   Random r;
   r.state = uint(uint(fragCoord.x) * uint(1973) + uint(fragCoord.y) * uint(9277) + uint(seed) * uint(26699)) | uint(1);

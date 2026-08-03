@@ -20,7 +20,7 @@ layout(binding = 1) uniform usampler2D gbufNormal;
 layout(binding = 2) uniform texture2D  depth;
 layout(binding = 3, std430) readonly buffer BVH {
 #if defined(LIGHTS_BVH)
-  BVHNode node[];
+  BVHNode   node[];
 #else
   PTreeNode node[];
 #endif

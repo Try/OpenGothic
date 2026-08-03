@@ -21,6 +21,10 @@ layout(binding = 1, std430) buffer B1 {
   MortonHeader header; MortonPair morton[];
   };
 
+layout(binding = 2, std430) buffer B2 {
+  mat4 nodes[];
+  };
+
 shared uvec3 bboxMinU, bboxMaxU;
 shared vec3  bboxMin,  bboxMax;
 shared uint  numActiveLights;
@@ -127,12 +131,23 @@ void bitonicSort() {
     }
   }
 
+void emitTrivialBVH() {
+  if(gl_LocalInvocationIndex!=0)
+    return;
+  nodes[0] = mat4(0);
+  }
+
 void main() {
   bboxMinMax();
   barrier();
 
   computeMorton();
   barrier();
+
+  if(header.numActiveLights==0) {
+    emitTrivialBVH();
+    return;
+    }
 
   bitonicSort();
   }

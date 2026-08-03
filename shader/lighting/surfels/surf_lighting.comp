@@ -236,12 +236,12 @@ void main() {
     return;
     }
 
-  const mat3   tbn = toTangent(decodeNormal(p.norm));
+  // Random rngState = srand(uvec3(p.pos));
 
-  //Random rngState = Random(pcgHash(gl_LocalInvocationIndex));
-
-  const uint i   = gl_LocalInvocationIndex;
-  const vec3 ray = tbn * sampleHemisphereCos(i,numPaths,0);
+  const mat3  tbn = toTangent(decodeNormal(p.norm));
+  const uint  i   = gl_LocalInvocationIndex;
+  const float f0  = 0; //randf(rngState)*2.0*M_PI;
+  const vec3  ray = tbn * sampleHemisphereCos(i,numPaths,f0);
 
   const GBuf hit = loadGBuf(p.payload);
   const vec3 pt  = evalLight(p.pos, ray, hit) * scene.exposure;
