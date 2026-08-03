@@ -1995,13 +1995,15 @@ void Renderer::prepareLightsBvh(Tempest::Encoder<Tempest::CommandBuffer>& cmd, W
     return;
 
   struct Push {
-    uint32_t lightLengthPot;
+    uint32_t numLightsPot;
+    uint32_t numLights;
     } push = {};
   const uint32_t numLights = uint32_t(wview.lights().size());
-  push.lightLengthPot = nextPot(numLights);
+  push.numLightsPot = nextPot(numLights);
+  push.numLights    = numLights;
 
   auto& lightsSsbo = wview.lights().lightsSsbo();
-  auto& bvhMorton  = usesSsbo(lightsTree.bvhMorton,   shaders.lightsBvh.sizeofBuffer(1, push.lightLengthPot));
+  auto& bvhMorton  = usesSsbo(lightsTree.bvhMorton,   shaders.lightsBvh.sizeofBuffer(1, push.numLightsPot));
   auto& bvhAlux    = usesSsbo(lightsTree.bvhAlux,     shaders.lightsBvh.sizeofBuffer(3, numLights * 2));
   auto& ctrl       = usesSsboInit(lightsTree.bvhCtrl, shaders.lightsBvh.sizeofBuffer(4, (numLights + 31 )/32));
 

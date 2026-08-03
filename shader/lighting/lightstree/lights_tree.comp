@@ -91,7 +91,7 @@ void main() {
     return;
 
   if(header.numActiveLights==1) {
-    emitTrivialBVH(lights[0]);
+    emitTrivialBVH(lights[morton[0].id]);
     return;
     }
 

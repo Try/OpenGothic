@@ -10,7 +10,8 @@ layout(local_size_x = 512) in;
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
 
 layout(push_constant, std140) uniform Push {
-  uint lightsLengthPot;
+  uint numLightsPot;
+  uint numLights;
   };
 
 layout(binding = 0, std430) readonly buffer LS {
@@ -45,7 +46,7 @@ void bboxMinMax() {
     }
   barrier();
 
-  for(uint i=laneID; i<lights.length(); i+=NumThreads) {
+  for(uint i=laneID; i<numLights; i+=NumThreads) {
     if(lights[i].range<=0)
       continue;
 
@@ -101,11 +102,11 @@ void compareSwap(uint a, uint b, bool ascending) {
 void computeMorton() {
   const uint laneID = gl_LocalInvocationIndex;
 
-  for(uint i=laneID; i<lights.length(); i+=NumThreads) {
+  for(uint i=laneID; i<numLights; i+=NumThreads) {
     morton[i].key = lights[i].range>0 ? morton3D(lights[i].pos) : 0xFFFFFFFF;
     morton[i].id  = i;
     }
-  for(uint i=lights.length()+laneID; i<lightsLengthPot; i+=NumThreads) {
+  for(uint i=numLights+laneID; i<numLightsPot; i+=NumThreads) {
     morton[i].key = 0xFFFFFFFF;
     morton[i].id  = 0xFFFFFFFF;
     }
@@ -115,9 +116,9 @@ void computeMorton() {
 void bitonicSort() {
   const uint laneID = gl_LocalInvocationIndex;
 
-  for(uint k = 2; k <= lightsLengthPot; k <<= 1) {
+  for(uint k = 2; k <= numLightsPot; k <<= 1) {
     for(uint j = k >> 1; j > 0; j >>= 1) {
-      for(uint i = laneID; i < lightsLengthPot; i += NumThreads) {
+      for(uint i = laneID; i < numLightsPot; i += NumThreads) {
         uint ixj = i ^ j;
 
         if(ixj > i) {
