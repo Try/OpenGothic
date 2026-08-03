@@ -4,12 +4,12 @@
 #define RAY_QUERY
 #define RAY_QUERY_AT
 
-// #define USE_MIN_HIT_DIST
 // #define RTAO
 
 #include "lighting/rt/rt_common.glsl"
 #include "lighting/pt/pathtrace_common.glsl"
 #include "lighting/surfels/surf_common.glsl"
+#include "lighting/lightstree/lights_common.glsl"
 #include "lighting/tonemapping.glsl"
 
 #include "scene.glsl"
@@ -31,6 +31,10 @@ layout(binding = 0, std140) uniform UboScene {
 layout(binding = 1, std430) buffer SB0 { SurfHeader header; Surfel surfels[]; };
 layout(binding = 2) uniform sampler2D skyLUT;
 
+layout(binding = 13, std430) readonly buffer BVH {
+  BVHNode node[];
+  } bvhData;
+
 mat3 toTangent(vec3 norm) {
   mat3 tangent;
   // Compute a tangent frame and rotate the half vector to world space
@@ -39,6 +43,10 @@ mat3 toTangent(vec3 norm) {
   tangent[1] = cross(norm, tangent[0]);
   tangent[2] = norm;
   return tangent;
+  }
+
+float pixelToWorld(float pixelRadius, float z) {
+  return pixelToWorld(scene, pixelRadius, z);
   }
 
 float sampleDirectLight(vec3 norm, vec3 rayOrigin, vec3 rayDirection, bool shadowed, float softAngle, inout Random rngState) {
@@ -55,6 +63,55 @@ float sampleDirectLight(vec3 norm, vec3 rayOrigin, vec3 rayDirection, bool shado
   float shadow = rayQueryProceedShadow(rayOrigin, shRay, rngState);
   // float shadow = shadowFactor(rayOrigin);
   return (lamb * shadow);
+  }
+
+vec3 traverseLightTree(const vec3 wpos, const vec3 norm) {
+  uint stack[32];
+  uint ptr = 0;
+
+  vec3 ret  = vec3(0);
+  uint node = 0 | BVH_BoxNode;
+  while(node!=0) {
+    const uint    type = bvhGetNodeType(node);
+    const BVHNode n    = bvhData.node[node & 0x0FFFFFFF];
+
+    if(ptr==stack.length()) {
+      // stack overflow
+      return vec3(1,0,0);
+      }
+
+    if(type==BVH_LightNode) {
+      // light
+      const vec3  src       = n.lmin;
+      const vec3  distance  = wpos - src;
+      const float tMax      = length(distance);
+      const vec3  ldir      = distance/tMax;
+      const float intensity = lightIntensity(norm, tMax, ldir, uintBitsToFloat(n.ptrL));
+      ret += intensity * n.lmax.rgb;
+      }
+    else {
+      const bool left  = bvhIntersectBox(wpos, n.lmin, n.lmax);
+      const bool right = bvhIntersectBox(wpos, n.rmin, n.rmax);
+      if(left && right) {
+        node         = n.ptrL;
+        stack[ptr++] = n.ptrR;
+        continue;
+        }
+      else if(left) {
+        node = n.ptrL;
+        continue;
+        }
+      else if(right) {
+        node = n.ptrR;
+        continue;
+        }
+      }
+    if(ptr == 0)
+      break;
+    node = stack[--ptr];
+    }
+
+  return ret;
   }
 
 vec4 pathtrace(vec3 rayOrigin, vec3 rayDirection, inout Random rngState) {
@@ -98,25 +155,6 @@ vec4 pathtrace(vec3 rayOrigin, vec3 rayDirection, inout Random rngState) {
     return vec4(color, depth);
 #endif
 
-    /*
-    if(underWater) {
-      thruput *= waterTransmittance(hit.rayT);
-      }
-
-    if(hit.water) {
-      const float ior  = (underWater ? IorAir : IorWater);
-      const vec3  refl = reflect(rayDirection, hit.norm);
-      const float f    = fresnel(refl,hit.norm,ior);
-      const bool  path = (f>randf(rngState));
-
-      rayOrigin    = (rayOrigin + rayDirection * hit.rayT);
-      rayDirection = path ? refl : refract(rayDirection, hit.norm, ior);
-      underWater   = path ? underWater : !underWater;
-      thruput    *= WaterAlbedo;
-      continue;
-      }
-    */
-
     rayOrigin    = (rayOrigin + rayDirection * hit.rayT);
     rayDirection = randCosWeightedHemisphereDirection(hit.norm, rngState);
     thruput     *= min(textureAlbedo(hit.diff.rgb), 0.95);
@@ -128,7 +166,8 @@ vec4 pathtrace(vec3 rayOrigin, vec3 rayDirection, inout Random rngState) {
     //  thruput    *= textureAlbedo(hit.diff.rgb);
 
     vec3  direct = vec3(0);
-    direct += sampleDirectLight(hit.norm, rayOrigin, scene.sunDir, true, 0.54*M_PI/180.0, rngState) * scene.sunColor;
+    direct += sampleDirectLight(hit.norm, rayOrigin, scene.sunDir, true, 0.54*M_PI/180.0, rngState);
+    direct += traverseLightTree(rayOrigin, hit.norm) * (max(1.0, scene.exposure) / scene.exposure);
     color  += thruput*direct*Fd_Lambert;
     }
 
@@ -142,12 +181,7 @@ void reduceIrr() {
 
   for(uint stride = NumThreads/2; stride > 0; stride >>= 1) {
     if(laneID < stride) {
-      reduction[laneID].rgb += reduction[laneID + stride].rgb;
-#if defined(USE_MIN_HIT_DIST)
-      reduction[laneID].a = min(reduction[laneID].a, reduction[laneID + stride].a);
-#else
-      reduction[laneID].a += reduction[laneID + stride].a;
-#endif
+      reduction[laneID] += reduction[laneID + stride];
       }
     barrier();
     }
@@ -170,23 +204,21 @@ void main() {
   // const vec3 ray = randCosWeightedHemisphereDirection(decodeNormal(p.norm), rngState);
   const vec4 pt  = pathtrace(p.pos, ray, rngState);
 
-#if defined(USE_MIN_HIT_DIST)
-  reduction[i] = vec4(pt.rgb, pt.a);
-#else
-  reduction[i] = vec4(pt.rgb, 1.0/clamp(pt.a*0.4, 10.0, p.radius));
-#endif
+  float hitInv = 1.0/clamp(pt.a*0.4, 10.0, p.radius);
+  reduction[i] = vec4(pt.rgb*scene.exposure, hitInv);
   barrier();
 
   reduceIrr();
 
   if(gl_LocalInvocationIndex==0) {
-#if defined(USE_MIN_HIT_DIST)
-    const float hitMin = max(4, reduction[0].a);
-    surfels[surfelId].radiusMean = hitMin;
-#else
-    const float hitMean = float(numPaths)/max(reduction[0].a, eps); //harmonic mean
-    surfels[surfelId].radiusMean = hitMean;
-#endif
+    const vec4   pos4 = scene.viewProject * vec4(p.pos, 1.0);
+    const float  rMin = pixelToWorld(MinCoverage, pos4.z/pos4.w);
+    const float  rMax = min(pixelToWorld(DefaultCoverage, pos4.z/pos4.w), 65000);
+
+    const float hitMean = float(numPaths)/max(reduction[0].w, eps); //harmonic mean
+    surfels[surfelId].radius     = rMax;
+    surfels[surfelId].radiusMean = min(max(hitMean, rMin), rMax * rEffScale);
+
     surfels[surfelId].irradiance = (reduction[0].rgb/float(numPaths));
     }
   }

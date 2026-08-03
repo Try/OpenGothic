@@ -268,6 +268,15 @@ void Shaders::compileShaders() {
     surLighting   = computeShader("surf_lighting.comp.sprv");
     }
 
+  if(Shaders::isLightsTreeSupported()) {
+    lightsMorton   = computeShader("lights_morton.comp.sprv");
+    lightsTopology = computeShader("lights_topology.comp.sprv");
+    lightsTree     = computeShader("lights_tree.comp.sprv");
+    lightsBvh      = computeShader("lights_bvh.comp.sprv");
+
+    lightsTreeDbg    = postEffect("triangle_uv", "lightstree_dbg");
+    }
+
   if(Shaders::isVsmSupported()) {
     fogEpipolarOcclusion = computeShader("fog_epipolar_occlusion.comp.sprv");
     fogEpipolarVsm       = computeShader("fog_epipolar_vsm.comp.sprv");
@@ -385,6 +394,13 @@ bool Shaders::isRtsmSupported() {
   if(gpu.compute.maxInvocations<512 || gpu.compute.maxSharedMemory<32*1024 || !gpu.descriptors.nonUniformIndexing) {
     return false;
     }
+  return true;
+  }
+
+bool Shaders::isLightsTreeSupported() {
+  auto& gpu = Resources::device().properties();
+  if(gpu.compute.maxInvocations<512 || gpu.compute.maxSharedMemory<16*1024)
+    return false;
   return true;
   }
 

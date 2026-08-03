@@ -17,7 +17,7 @@ layout(binding = 0, std140) uniform UboScene {
   SceneDesc scene;
   };
 
-layout(binding = 4, std140) readonly buffer SsboLighting {
+layout(binding = 4, std430) readonly buffer SsboLighting {
   LightSource lights[];
   };
 

@@ -69,8 +69,10 @@ void RtScene::addInstance(const Matrix4x4& pos, const AccelerationStructure& bla
     ix.flags = RtInstanceFlags::Opaque;
   ix.flags = ix.flags | RtInstanceFlags::CullFlip;
 
+#if 1
   if(mat.alpha==Material::Solid)
     ix.flags = ix.flags | RtInstanceFlags::CullDisable;
+#endif
 
   if(mat.alpha==Material::Solid)
     ix.mask = CullMask::CM_Opaque;

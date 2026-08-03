@@ -7,6 +7,18 @@ struct Random {
   uint state;
   };
 
+Random srand(uint seed) {
+  Random r;
+  r.state = uint(uint(seed) * uint(26699)) | uint(1);
+  return r;
+  }
+
+Random srand(uvec3 v3) {
+  Random r;
+  r.state = uint(v3.x * uint(1973) + v3.y * uint(9277) + v3.z * uint(26699)) | uint(1);
+  return r;
+  }
+
 Random srand(uvec2 fragCoord, uint seed) {
   Random r;
   r.state = uint(uint(fragCoord.x) * uint(1973) + uint(fragCoord.y) * uint(9277) + uint(seed) * uint(26699)) | uint(1);
@@ -14,7 +26,10 @@ Random srand(uvec2 fragCoord, uint seed) {
   }
 
 float randf(inout Random r) {
-  return float(wangHash(r.state)) / 4294967296.0;
+  // return float(wangHash(r.state)) / 4294967296.0;
+  // return float(wangHash(r.state) >> 8) * (1.0 / 16777216.0); // 2^-24
+  uint x = wangHash(r.state);
+  return uintBitsToFloat(0x3F800000u | (x >> 9)) - 1.0;
   }
 
 vec3 randVec3(inout Random rng) {

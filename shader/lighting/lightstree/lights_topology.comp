@@ -1,0 +1,121 @@
+#version 450
+
+#include "lighting/lightstree/lights_common.glsl"
+#include "lighting/lightstree/bvh_build_common.glsl"
+#include "scene.glsl"
+#include "common.glsl"
+
+layout(local_size_x = 64) in;
+
+const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
+
+layout(binding = 0, std430) readonly buffer LS {
+  LightSource lights[];
+  };
+
+layout(binding = 1, std430) readonly buffer B1 {
+  MortonHeader header; MortonPair morton[];
+  };
+
+layout(binding = 2, std430) buffer B2 {
+  PTreeNode nodes[];
+  };
+
+layout(binding = 3, std430) buffer B3 {
+  BVHAlux alux[];
+  };
+
+int delta(int i, uint codeI, int j) {
+  if(j < 0 || j >= header.numActiveLights)
+    return -1;
+
+  uint codeJ = morton[j].key;
+  if(codeI == codeJ) {
+    // handle duplicate morton codes
+    uint elementIdxI = morton[i].id;
+    uint elementIdxJ = morton[j].id;
+    // add 32 for common prefix of codeI ^ codeJ
+    return 32 + 31 - findMSB(elementIdxI ^ elementIdxJ);
+    }
+  return 31 - findMSB(codeI ^ codeJ);
+  }
+
+int findSplit(int first, int last) {
+  uint firstCode = morton[first].key;
+
+  // Calculate the number of highest bits that are the same
+  // for all objects, using the count-leading-zeros intrinsic.
+  int commonPrefix = delta(first, firstCode, last);
+  int split        = first; // initial guess
+  int stride       = last - first;
+
+  do {
+    stride = (stride + 1) >> 1;// exponential decrease
+    int newSplit = split + stride;// proposed new position
+    if (newSplit < last) {
+      int splitPrefix = delta(first, firstCode, newSplit);
+      if(splitPrefix > commonPrefix) {
+        split = newSplit;  // accept proposal
+        }
+      }
+    } while (stride > 1);
+
+  return split;
+  }
+
+void determineRange(int idx, out int lower, out int upper) {
+  // determine direction of the range (+1 or -1)
+  const uint code   = morton[idx].key;
+  const int  deltaL = delta(idx, code, idx - 1);
+  const int  deltaR = delta(idx, code, idx + 1);
+  const int  d      = (deltaR >= deltaL) ? 1 : -1;
+
+  // compute upper bound for the length of the range
+  const int deltaMin = min(deltaL, deltaR); // delta(idx, code, idx - d);
+  int lMax = 2;
+  while (delta(idx, code, idx + lMax * d) > deltaMin) {
+    lMax = lMax << 1;
+    }
+
+  // find the other end using binary search
+  int l = 0;
+  for(int t = lMax >> 1; t > 0; t >>= 1) {
+    if(delta(idx, code, idx + (l + t) * d) > deltaMin) {
+      l += t;
+      }
+    }
+  int jdx = idx + l * d;
+
+  // ensure idx < jdx
+  lower = min(idx, jdx);
+  upper = max(idx, jdx);
+  }
+
+uint bvhAnnotate(uint ptr) {
+  uint internalCount = header.numActiveLights - 1;
+  uint nodeType      = (ptr < internalCount ? BVH_BoxNode : BVH_LightNode);
+  return ptr | nodeType;
+  }
+
+void main() {
+
+  const uint i = gl_GlobalInvocationID.x;
+  if(i > header.numActiveLights)
+    return;
+
+  const uint internalCount = header.numActiveLights - 1;
+
+  int first = 0;
+  int last  = 0;
+  determineRange(int(i), first, last);
+
+  int  split = findSplit(first,last);
+  uint left  = (split   == first) ? uint(internalCount + split)     : uint(split);
+  uint right = (split+1 == last ) ? uint(internalCount + split + 1) : uint(split + 1);
+
+  nodes[i].ptrL = bvhAnnotate(left);
+  nodes[i].ptrR = bvhAnnotate(right);
+
+  alux[left ].parent = i;
+  alux[right].parent = i;
+  }

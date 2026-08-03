@@ -1,0 +1,93 @@
+#version 450
+
+#include "lighting/lightstree/lights_common.glsl"
+#include "lighting/lightstree/bvh_build_common.glsl"
+#include "scene.glsl"
+#include "common.glsl"
+
+layout(local_size_x = 64) in;
+
+const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
+
+layout(binding = 0, std430) readonly buffer LS {
+  LightSource lights[];
+  };
+
+layout(binding = 1, std430) readonly buffer B1 {
+  MortonHeader header; MortonPair morton[];
+  };
+
+layout(binding = 2, std430) buffer B2 {
+  BVHNode nodes[];
+  };
+
+layout(binding = 3, std430) buffer B3 {
+  BVHAlux alux[];
+  };
+
+layout(binding = 4, std430) buffer B4 {
+  uint parentbits[];
+  };
+
+void computeHeirarchy(const LightSource light, uint nodeId) {
+  vec3 bboxMin = light.pos - light.range;
+  vec3 bboxMax = light.pos + light.range;
+
+  nodes[nodeId].lmin = light.pos;
+  nodes[nodeId].lmax = light.color;
+  nodes[nodeId].ptrL = floatBitsToUint(light.range);
+
+  while(nodeId>0) {
+    const uint parent  = alux[nodeId].parent;
+    const uint parentL = nodes[parent].ptrL & 0x0FFFFFFF;
+    if(parentL==nodeId) {
+      nodes[parent].lmin = bboxMin;
+      nodes[parent].lmax = bboxMax;
+      } else {
+      nodes[parent].rmin = bboxMin;
+      nodes[parent].rmax = bboxMax;
+      }
+
+    const uint bit = 1u << (parent%32);
+    memoryBarrierBuffer();
+    if((atomicXor(parentbits[parent/32], bit) & bit)==0) {
+      break;
+      }
+
+    nodeId = parent;
+
+    BVHNode node = nodes[nodeId];
+    bboxMin = min(node.lmin, node.rmin);
+    bboxMax = max(node.lmax, node.rmax);
+    }
+  }
+
+void emitTrivialBVH(const LightSource light) {
+  vec3 bboxMin = light.pos - light.range;
+  vec3 bboxMax = light.pos + light.range;
+
+  nodes[1].lmin = light.pos;
+  nodes[1].lmax = light.color;
+  nodes[1].ptrL = floatBitsToUint(light.range);
+
+  nodes[0].lmin = bboxMin;
+  nodes[0].lmax = bboxMax;
+  nodes[0].ptrL = 1 | BVH_LightNode;
+  nodes[0].rmin = vec3(0);
+  nodes[0].rmax = vec3(0);
+  nodes[0].ptrR = BVH_NullNode;
+  }
+
+void main() {
+  const uint i = gl_GlobalInvocationID.x;
+  if(i >= header.numActiveLights)
+    return;
+
+  if(header.numActiveLights==1) {
+    emitTrivialBVH(lights[morton[0].id]);
+    return;
+    }
+
+  const uint internalCount = header.numActiveLights - 1;
+  computeHeirarchy(lights[morton[i].id], internalCount + i);
+  }

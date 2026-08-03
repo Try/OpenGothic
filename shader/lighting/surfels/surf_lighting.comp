@@ -7,13 +7,14 @@
 #include "lighting/rt/rt_common.glsl"
 #include "lighting/pt/pathtrace_common.glsl"
 #include "lighting/surfels/surf_common.glsl"
+#include "lighting/lightstree/lights_common.glsl"
 #include "lighting/tonemapping.glsl"
 
 #include "scene.glsl"
 #include "common.glsl"
 #include "random.glsl"
 
-layout(local_size_x = 8, local_size_y = 8) in;
+layout(local_size_x = GBufTile.x, local_size_y = GBufTile.y) in;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
 
@@ -28,7 +29,11 @@ layout(binding = 2)         uniform sampler2D skyLUT;
 layout(binding = 3)         uniform texture2D gbufDiff;
 layout(binding = 4)         uniform texture2D gbufNorm;
 layout(binding = 5)         uniform texture2D gbufHit;
+
 layout(binding = 12)        uniform sampler2D textureSm1;
+layout(binding = 13, std430) readonly buffer BVH {
+  BVHNode node[];
+  } bvhData;
 
 struct GBuf {
   vec3  diff;
@@ -38,6 +43,7 @@ struct GBuf {
   };
 
 shared vec4 reduction[NumThreads];
+shared vec3 reductionSq[NumThreads];
 
 float shadowResolve(in vec4 sh, float z) {
   z  = clamp(z,0,0.99);
@@ -75,6 +81,9 @@ float sampleDirectLight(vec3 norm, vec3 rayOrigin, vec3 rayDirection) {
   if(lamb==0)
     return lamb;
 
+  if(planetOcclusion(rayOrigin.y, rayDirection))
+    return 0;
+
   vec4 shCoord = scene.viewShadow[1]*vec4(rayOrigin,1);
   if(abs(shCoord.x)>=shCoord.w && abs(shCoord.y)>=shCoord.w) {
 #if 1
@@ -89,6 +98,55 @@ float sampleDirectLight(vec3 norm, vec3 rayOrigin, vec3 rayDirection) {
   return (lamb * shadow);
   }
 
+vec3 traverseLightTree(const vec3 wpos, const vec3 norm) {
+  uint stack[32];
+  uint ptr = 0;
+
+  vec3 ret  = vec3(0);
+  uint node = 0 | BVH_BoxNode;
+  while(node!=0) {
+    const uint    type = bvhGetNodeType(node);
+    const BVHNode n    = bvhData.node[node & 0x0FFFFFFF];
+
+    if(ptr==stack.length()) {
+      // stack overflow
+      return vec3(1,0,0);
+      }
+
+    if(type==BVH_LightNode) {
+      // light
+      const vec3  src       = n.lmin;
+      const vec3  distance  = wpos - src;
+      const float tMax      = length(distance);
+      const vec3  ldir      = distance/tMax;
+      const float intensity = lightIntensity(norm, tMax, ldir, uintBitsToFloat(n.ptrL));
+      ret += intensity * n.lmax.rgb;
+      }
+    else {
+      const bool left  = bvhIntersectBox(wpos, n.lmin, n.lmax);
+      const bool right = bvhIntersectBox(wpos, n.rmin, n.rmax);
+      if(left && right) {
+        node         = n.ptrL;
+        stack[ptr++] = n.ptrR;
+        continue;
+        }
+      else if(left) {
+        node = n.ptrL;
+        continue;
+        }
+      else if(right) {
+        node = n.ptrR;
+        continue;
+        }
+      }
+    if(ptr == 0)
+      break;
+    node = stack[--ptr];
+    }
+
+  return ret;
+  }
+
 vec3 evalLight(vec3 rayOrigin, vec3 rayDirection, GBuf hit) {
   vec3  thruput = vec3(1.0);
   vec3  color   = vec3(0);
@@ -101,7 +159,7 @@ vec3 evalLight(vec3 rayOrigin, vec3 rayDirection, GBuf hit) {
     vec3 sky = textureSkyLUT(skyLUT, vec3(0,RPlanet+max(rayOrigin.y*0.01,0),0), rayDirection, scene.sunDir) * scene.GSunIntensity;
     color += sky;
     color += (vec3(0.3, 0.26, 1)*0.15); //HACK for the night sky
-    return thruput*color;
+    return thruput*color;//*scene.exposure;
     }
 
   thruput  *= min(textureAlbedo(hit.diff.rgb), 0.95);
@@ -109,16 +167,14 @@ vec3 evalLight(vec3 rayOrigin, vec3 rayDirection, GBuf hit) {
 
   vec3  direct = vec3(0);
   direct += sampleDirectLight(hit.norm, rayOrigin, scene.sunDir) * scene.sunColor;
-  color  += thruput*direct*Fd_Lambert;
+  direct += traverseLightTree(rayOrigin, hit.norm) * (max(1.0, scene.exposure) / scene.exposure);
+  color  += thruput * direct * Fd_Lambert;
 
   return color;
   }
 
 GBuf loadGBuf(uint ptr) {
-  uint x = ((ptr >>  0) & 0xFFF);
-  uint y = ((ptr >> 12) & 0xFFF);
-
-  ivec2 at = ivec2(x,y)*8 + ivec2(gl_LocalInvocationID.xy);
+  ivec2 at = unpackAtlassPos(ptr)*GBufTile + ivec2(gl_LocalInvocationID.xy);
   vec4  d  = texelFetch(gbufDiff, at, 0);
   vec4  n  = texelFetch(gbufNorm, at, 0);
 
@@ -136,10 +192,37 @@ void reduceIrr() {
 
   for(uint stride = NumThreads/2; stride > 0; stride >>= 1) {
     if(laneID < stride) {
-      reduction[laneID] += reduction[laneID + stride];
+      reduction  [laneID] += reduction  [laneID + stride];
+      reductionSq[laneID] += reductionSq[laneID + stride];
       }
     barrier();
     }
+  }
+
+float estimateSurfelScale(vec3 mean, vec3 meanSq) {
+#if 0
+  const float k = 1.0;
+
+  vec3  variance = max(meanSq - mean * mean, 0.0);
+  float mu       = grayscale(mean);
+  float sigma    = sqrt(grayscale(variance));
+
+  float cv = sigma / max(mu, 1e-3);
+  // float radiusScale = 1.0 / (1.0 + k * cv);
+  float radiusScale = exp(-k * cv);
+
+  return radiusScale;
+#else
+  const float k = 0.2;
+  // return k*grayscale(meanSq - mean*mean);
+  // return 1.0 - k * max(0, grayscale(meanSq - mean*mean));
+  // return 1.0 - k*max(0, grayscale(meanSq - mean*mean))/max(grayscale(meanSq), 0.0001);
+  vec3  mean2 = max(mean*mean, 0.0001);
+  meanSq      = max(meanSq,    0.0001);
+
+  float cv    = max(grayscale(meanSq/mean2) - 1.0, 0.0);
+  return 4.0 - k*cv*cv;
+#endif
   }
 
 void main() {
@@ -153,18 +236,19 @@ void main() {
     return;
     }
 
-  const mat3   tbn = toTangent(decodeNormal(p.norm));
+  // Random rngState = srand(uvec3(p.pos));
 
-  Random rngState = Random(pcgHash(gl_LocalInvocationIndex));
-
-  const uint i   = gl_LocalInvocationIndex;
-  const vec3 ray = tbn * sampleHemisphereCos(i,numPaths,0);
+  const mat3  tbn = toTangent(decodeNormal(p.norm));
+  const uint  i   = gl_LocalInvocationIndex;
+  const float f0  = 0; //randf(rngState)*2.0*M_PI;
+  const vec3  ray = tbn * sampleHemisphereCos(i,numPaths,f0);
 
   const GBuf hit = loadGBuf(p.payload);
-  const vec3 pt  = evalLight(p.pos, ray, hit);
+  const vec3 pt  = evalLight(p.pos, ray, hit) * scene.exposure;
 
   float hitInv = 1.0/clamp(hit.rayT*0.4, 10.0, p.radius);
-  reduction[i] = vec4(pt.rgb, hitInv);
+  reduction  [i] = vec4(pt.rgb, hitInv);
+  reductionSq[i] = pt.rgb * pt.rgb;
   barrier();
 
   reduceIrr();
@@ -175,9 +259,16 @@ void main() {
     const float  rMax = min(pixelToWorld(DefaultCoverage, pos4.z/pos4.w), 65000);
 
     const float hitMean = float(numPaths)/max(reduction[0].w, eps); //harmonic mean
-    surfels[surfelId].radius     = rMax;
-    surfels[surfelId].radiusMean = min(max(hitMean, rMin), rMax * rEffScale);
 
-    surfels[surfelId].irradiance = (reduction[0].rgb/float(numPaths));
+    const vec3  irradiance   = (reduction[0].rgb  /float(numPaths));
+    const vec3  irradianceSq = (reductionSq[0].rgb/float(numPaths));
+    const float scale        = estimateSurfelScale(irradiance, irradianceSq);
+
+    surfels[surfelId].radius     = rMax;
+    //surfels[surfelId].radiusMean = min(max(hitMean*scale, rMin), rMax * rEffScale);
+    surfels[surfelId].radiusMean = min(max(rMax*scale, rMin), rMax * rEffScale);
+
+    surfels[surfelId].irradiance = irradiance;
+    // surfels[surfelId].irradiance = vec3(scale * scene.exposure);
     }
   }

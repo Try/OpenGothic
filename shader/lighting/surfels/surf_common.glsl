@@ -5,10 +5,11 @@
 #include "scene.glsl"
 
 const float SKY_DEPTH       = 0.999995;
-const int   MinCoverage     = 8;    // in pixels
+const int   MinCoverage     = 4;    // in pixels
 const int   DefaultCoverage = 96;   // in pixels
 const int   LargeTile       = 128;  // in pixels
 const uint  MaxInTile       = 1024; // ~32px (~6x6) per surfel
+const ivec2 GBufTile        = ivec2(8);
 
 const float rEffScale       = 0.5;
 
@@ -57,6 +58,13 @@ bool isSurfelVisible(const Surfel s, ivec2 bboxMin, ivec2 bboxMax) {
   if(at.x+radius < bboxMin.x || at.y+radius < bboxMin.y)
     return false;
   return true;
+  }
+
+bool planetOcclusion(float viewPos, vec3 sunDir) {
+  const float y = RPlanet + max(viewPos*0.1, 0);
+  if(rayIntersect(vec3(0,y,0), sunDir, RPlanet)>=0)
+    return true;
+  return false;
   }
 
 float computeTargetCellSize(float d, float aperture, vec2 resolution, float pixelFeatureSize) {

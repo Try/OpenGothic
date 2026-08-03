@@ -246,6 +246,43 @@ vec3 i_octahedral_32( uint data ) {
   return normalize(nor);
   }
 
+uint floatToOrderedUint(float value) {
+  uint uvalue = floatBitsToUint(value);
+  uint mask = -int(uvalue >> 31) | 0x80000000;
+  return uvalue ^ mask;
+  }
+
+uvec4 floatToOrderedUint(vec4 value) {
+  uvec4 r;
+  r.x = floatToOrderedUint(value.x);
+  r.y = floatToOrderedUint(value.y);
+  r.z = floatToOrderedUint(value.z);
+  r.w = floatToOrderedUint(value.w);
+  return r;
+  }
+
+float orderedUintToFloat(uint value) {
+  uint mask = ((value >> 31) - 1) | 0x80000000;
+  return uintBitsToFloat(value ^ mask);
+  }
+
+vec3 orderedUintToFloat(uvec3 value) {
+  vec3 r;
+  r.x = orderedUintToFloat(value.x);
+  r.y = orderedUintToFloat(value.y);
+  r.z = orderedUintToFloat(value.z);
+  return r;
+  }
+
+vec4 orderedUintToFloat(uvec4 value) {
+  vec4 r;
+  r.x = orderedUintToFloat(value.x);
+  r.y = orderedUintToFloat(value.y);
+  r.z = orderedUintToFloat(value.z);
+  r.w = orderedUintToFloat(value.w);
+  return r;
+  }
+
 // the next packing/unpacking methods are taken from
 // https://github.com/Microsoft/DirectX-Graphics-Samples/blob/master/MiniEngine/Core/Shaders/PixelPacking_R11G11B10.hlsli
 uint packR11G11B10F(vec3 rgb) {

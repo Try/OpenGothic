@@ -43,8 +43,10 @@ void main(void) {
   if(length(delta) > radius)
     ;//discard;
 
-  //vec3 clr = surfDebugColor(p, instanceIndex) * (1.0-qDist);
-  vec3 clr = 4.0 * p.irradiance * (1.0-qDist) * scene.exposure;
+  //vec3 clr = 4.0 * p.irradiance * (1.0-qDist) * scene.exposure;
+  float k = p.radiusMean/p.radius;
+
+  vec3 clr = mix(vec3(1,0,0), vec3(0,1,0), 2*k) * (1.0-qDist);
   if(instanceIndex >= header.count-header.added)
     clr = vec3(0,1,0);
   if(!isSurfelAlive(p))

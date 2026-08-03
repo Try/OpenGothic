@@ -12,10 +12,10 @@
 #include "common.glsl"
 #include "random.glsl"
 
-layout(local_size_x = 8, local_size_y = 8) in;
+layout(local_size_x = GBufTile.x, local_size_y = GBufTile.y) in;
 
 const uint  NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
-const float NormalBias = 0.0015;
+// const float NormalBias = 0.0015;
 
 layout(std140, push_constant) uniform Push {
   uint pass;
@@ -65,7 +65,7 @@ void storeGBuf(uint ptr, const HitResolve hit, const float wHit) {
 
   float wHitUNorm = (hit.rayT>0) ? (wHit / hit.rayT) : 0;
 
-  ivec2 at = unpackAtlassPos(ptr)*8 + ivec2(gl_LocalInvocationID.xy);
+  ivec2 at = unpackAtlassPos(ptr)*GBufTile + ivec2(gl_LocalInvocationID.xy);
   imageStore(gbufDiff, at, vec4(hit.diff.rgb, 1));
   imageStore(gbufNorm, at, vec4(hit.norm.xyz*0.5+0.5, wHitUNorm));
   imageStore(gbufHit,  at, vec4(hit.rayT/TMax));
@@ -82,12 +82,15 @@ void main() {
   if(!isSurfelAlive(p))
     return;
 
+  //Random rngState = srand(uvec3(p.pos));
+
   const vec3   norm = decodeNormal(p.norm);
-  const mat3   tbn  = toTangent(norm);
   const vec3   pos  = p.pos;
 
+  const mat3   tbn  = toTangent(norm);
   const uint   i    = gl_LocalInvocationIndex;
-  const vec3   ray  = tbn * sampleHemisphereCos(i,numPaths,0);
+  const float  f0   = 0; //randf(rngState)*2.0*M_PI;
+  const vec3   ray  = tbn * sampleHemisphereCos(i,numPaths,f0);
 
   float wHit = 0;
   const HitResolve hit = raycast(pos, ray, wHit);

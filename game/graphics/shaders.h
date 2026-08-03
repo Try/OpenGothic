@@ -27,6 +27,7 @@ class Shaders {
     static Shaders& inst();
     static bool isVsmSupported();
     static bool isRtsmSupported();
+    static bool isLightsTreeSupported();
     static bool isGi1Supported();
     static bool isGi2Supported();
 
@@ -94,6 +95,10 @@ class Shaders {
     Tempest::ComputePipeline surfUpdate, surfCulling, surfDecimate, surfCompact;
 
     Tempest::ComputePipeline surfPathtrace, surfRaycast, surLighting;
+
+    // Lights tree
+    Tempest::ComputePipeline lightsMorton, lightsTopology, lightsTree, lightsBvh;
+    Tempest::RenderPipeline  lightsTreeDbg;
 
     // Epipolar
     Tempest::ComputePipeline fogEpipolarVsm;

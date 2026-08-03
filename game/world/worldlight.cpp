@@ -4,6 +4,11 @@
 
 WorldLight::WorldLight(Vob* parent, World& world, const zenkit::VLight& vob, Flags flags)
   : Vob(parent,world,vob,flags) {
+#if 0
+  if(!(flags&Startup))
+    return;
+#endif
+
   light = world.addLight(vob);
   if(!vob.is_static && !vob.on) {
     light.setEnabled(false);
