@@ -78,6 +78,7 @@ jobs:
 
       - name: Build Debian package
         run: |
+          ln -s linux/debian debian
           dpkg-buildpackage -us -uc -b
           cp ../opengothic_*.deb opengothic_${{ needs.setup.outputs.semver }}_linux_x64.deb
 
