@@ -265,6 +265,8 @@ void WorldSound::tickSoundZone(Npc& player) {
   for(auto zone:zTry)
     for(auto day:dayTry)
       for(auto mode:modeTry) {
+        if(zone==nullptr)
+          continue;
         const size_t sep = zone->name.find('_');
         const char*  tag = zone->name.c_str();
         if(sep!=std::string::npos)
