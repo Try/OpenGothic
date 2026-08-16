@@ -17,16 +17,16 @@ layout(binding = 1, std430) readonly buffer B1 {
   MortonHeader header; MortonPair morton[];
   };
 
-layout(binding = 2, std430) buffer B2 {
-  BVHNode nodes[];
-  };
-
-layout(binding = 3, std430) buffer B3 {
+layout(binding = 2, std430) buffer B3 {
   BVHAlux alux[];
   };
 
-layout(binding = 4, std430) buffer B4 {
+layout(binding = 3, std430) buffer B4 {
   uint parentbits[];
+  };
+
+layout(binding = 4, std430) buffer B2 {
+  BVHNode nodes[];
   };
 
 void computeHeirarchy(const LightSource light, uint nodeId) {
@@ -62,6 +62,15 @@ void computeHeirarchy(const LightSource light, uint nodeId) {
     }
   }
 
+void emitTrivialBVH() {
+  nodes[0].lmin = vec3(0);
+  nodes[0].lmax = vec3(0);
+  nodes[0].ptrL = BVH_NullNode;
+  nodes[0].rmin = vec3(0);
+  nodes[0].rmax = vec3(0);
+  nodes[0].ptrR = BVH_NullNode;
+  }
+
 void emitTrivialBVH(const LightSource light) {
   vec3 bboxMin = light.pos - light.range;
   vec3 bboxMax = light.pos + light.range;
@@ -80,6 +89,11 @@ void emitTrivialBVH(const LightSource light) {
 
 void main() {
   const uint i = gl_GlobalInvocationID.x;
+  if(header.numActiveLights==0) {
+    emitTrivialBVH();
+    return;
+    }
+
   if(i >= header.numActiveLights)
     return;
 

@@ -17,12 +17,12 @@ layout(binding = 1, std430) readonly buffer B1 {
   MortonHeader header; MortonPair morton[];
   };
 
-layout(binding = 2, std430) buffer B2 {
-  PTreeNode nodes[];
+layout(binding = 2, std430) buffer B3 {
+  BVHAlux alux[];
   };
 
-layout(binding = 3, std430) buffer B3 {
-  BVHAlux alux[];
+layout(binding = 4, std430) buffer B2 {
+  PTreeNode nodes[];
   };
 
 int delta(int i, uint codeI, int j) {

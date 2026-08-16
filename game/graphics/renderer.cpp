@@ -2015,16 +2015,15 @@ void Renderer::prepareLightsBvh(Tempest::Encoder<Tempest::CommandBuffer>& cmd, W
   cmd.setPushData(push);
   cmd.setBinding(0, lightsSsbo);
   cmd.setBinding(1, bvhMorton);
-  //
-  cmd.setBinding(3, bvhAlux);
-  cmd.setBinding(4, ctrl);
+  cmd.setBinding(2, bvhAlux);
+  cmd.setBinding(3, ctrl);
 
   cmd.setPipeline(shaders.lightsMorton);
   cmd.dispatch(1); // single pass, for simplicity
 
   if(ltree) {
     auto& tree = usesSsbo(lightsTree.tree, shaders.lightsTree.sizeofBuffer(2, numLights * 2));
-    cmd.setBinding(2, tree);
+    cmd.setBinding(4, tree);
     cmd.setPipeline(shaders.lightsTopology);
     cmd.dispatchThreads(numLights);
 
@@ -2034,7 +2033,7 @@ void Renderer::prepareLightsBvh(Tempest::Encoder<Tempest::CommandBuffer>& cmd, W
 
   if(lbvh) {
     auto& bvh = usesSsbo(lightsTree.bvh, shaders.lightsBvh.sizeofBuffer(2, numLights * 2));
-    cmd.setBinding(2, bvh);
+    cmd.setBinding(4, bvh);
     cmd.setPipeline(shaders.lightsTopology);
     cmd.dispatchThreads(numLights);
 
