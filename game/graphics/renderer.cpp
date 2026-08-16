@@ -344,7 +344,7 @@ bool Renderer::requiresLightsTree() const {
     return false;
   if(settings.giMethod==GiMethod::IrrC || settings.pathTraceEnabled)
     return true;
-  return true;
+  return false;
   }
 
 StorageImage& Renderer::usesImage3d(Tempest::StorageImage& ret, Tempest::TextureFormat frm, uint32_t w, uint32_t h, uint32_t d, bool mips) {
@@ -2023,7 +2023,7 @@ void Renderer::prepareLightsBvh(Tempest::Encoder<Tempest::CommandBuffer>& cmd, W
   cmd.dispatch(1); // single pass, for simplicity
 
   if(ltree) {
-    auto& tree = usesSsbo(lightsTree.tree, shaders.lightsBvh.sizeofBuffer(2, numLights * 2));
+    auto& tree = usesSsbo(lightsTree.tree, shaders.lightsTree.sizeofBuffer(2, numLights * 2));
     cmd.setBinding(2, tree);
     cmd.setPipeline(shaders.lightsTopology);
     cmd.dispatchThreads(numLights);

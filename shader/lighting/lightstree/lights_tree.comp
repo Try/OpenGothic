@@ -67,6 +67,15 @@ void computeHeirarchy(const LightSource light, uint nodeId) {
     }
   }
 
+void emitTrivialBVH() {
+  nodes[0].centerL = vec3(0);
+  nodes[0].weightL = 0;
+  nodes[0].ptrL    = BVH_NullNode;
+  nodes[0].centerR = vec3(0);
+  nodes[0].weightR = 0;
+  nodes[0].ptrR    = BVH_NullNode;
+  }
+
 void emitTrivialBVH(const LightSource light) {
   float weight = light.range * grayscale(light.color) + 1;
   vec3  center = light.pos;
@@ -87,6 +96,11 @@ void emitTrivialBVH(const LightSource light) {
 
 void main() {
   const uint i = gl_GlobalInvocationID.x;
+  if(header.numActiveLights==0) {
+    emitTrivialBVH();
+    return;
+    }
+
   if(i >= header.numActiveLights)
     return;
 
