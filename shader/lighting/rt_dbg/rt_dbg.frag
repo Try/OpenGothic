@@ -66,6 +66,7 @@ float computeTextureLOD(float dist, vec3 dir, vec3 norm) {
 vec4 raySampleScene(const vec3 rayOrigin, const vec3 rayDirection) {
   // CullBack due to vegetation
   uint  flags = gl_RayFlagsSkipAABBEXT | gl_RayFlagsCullBackFacingTrianglesEXT;
+  // uint  flags = gl_RayFlagsSkipAABBEXT;
   float tMin  = 0;
 
   rayQueryEXT rayQuery;

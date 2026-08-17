@@ -55,7 +55,7 @@ float rayQueryProceedShadow(const vec3 rayOrigin, const vec3 rayDirection, inout
 HitResolve rayQueryProceedPrimary(const vec3 rayOrigin, const vec3 rayDirection, float mipOverride, uint mask, inout Random rngState) {
   // CullBack due to vegetation
   uint  flags = gl_RayFlagsSkipAABBEXT | gl_RayFlagsCullBackFacingTrianglesEXT;
-  float tMin  = 2;
+  float tMin  = 0;
 
   rayQueryEXT rayQuery;
   rayQueryInitializeEXT(rayQuery, topLevelAS, flags, mask,

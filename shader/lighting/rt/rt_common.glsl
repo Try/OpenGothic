@@ -147,9 +147,11 @@ void rayQueryProceedAlphaTest(in rayQueryEXT rayQuery) {
   while(rayQueryProceedEXT(rayQuery)) {
     const uint type = rayQueryGetIntersectionTypeEXT(rayQuery,false);
     if(type==gl_RayQueryCandidateIntersectionTriangleEXT) {
-      const bool opaqueHit = isOpaqueHit(rayQuery);
-      if(opaqueHit)
-        rayQueryConfirmIntersectionEXT(rayQuery);
+      if(!rayQueryGetIntersectionFrontFaceEXT(rayQuery, false))
+        continue;
+      if(!isOpaqueHit(rayQuery))
+        continue;
+      rayQueryConfirmIntersectionEXT(rayQuery);
       }
     }
   }

@@ -69,11 +69,6 @@ void RtScene::addInstance(const Matrix4x4& pos, const AccelerationStructure& bla
     ix.flags = RtInstanceFlags::Opaque;
   ix.flags = ix.flags | RtInstanceFlags::CullFlip;
 
-#if 1
-  if(mat.alpha==Material::Solid)
-    ix.flags = ix.flags | RtInstanceFlags::CullDisable;
-#endif
-
   if(mat.alpha==Material::Solid)
     ix.mask = CullMask::CM_Opaque;
   else if(mat.alpha==Material::AlphaTest)
@@ -116,7 +111,7 @@ void RtScene::addInstance(const BuildBlas& ctx, Tempest::AccelerationStructure& 
 void RtScene::buildTlas() {
   needToUpdate = false;
 
-  addInstance(build.staticOpaque, blasStaticOpaque, Tempest::RtInstanceFlags::Opaque | RtInstanceFlags::CullDisable);
+  addInstance(build.staticOpaque, blasStaticOpaque, Tempest::RtInstanceFlags::Opaque);
   addInstance(build.staticAt, blasStaticAt, Tempest::RtInstanceFlags::NonOpaque);
 
   Resources::recycle(std::move(tex));
