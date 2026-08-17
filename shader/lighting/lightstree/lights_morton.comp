@@ -135,7 +135,7 @@ void main() {
   computeMorton();
   barrier();
 
-  if(header.numActiveLights==0) {
+  if(numActiveLights==0) {
     return;
     }
 

@@ -252,6 +252,9 @@ void Renderer::toggleGi() {
 
   device.waitIdle();
   setupSettings();
+  if(auto wview  = Gothic::inst().worldView()) {
+    wview->resetRendering();
+    }
   }
 
 void Renderer::toggleVsm() {
@@ -2004,8 +2007,8 @@ void Renderer::prepareLightsBvh(Tempest::Encoder<Tempest::CommandBuffer>& cmd, W
 
   auto& lightsSsbo = wview.lights().lightsSsbo();
   auto& bvhMorton  = usesSsbo(lightsTree.bvhMorton,   shaders.lightsBvh.sizeofBuffer(1, push.numLightsPot));
-  auto& bvhAlux    = usesSsbo(lightsTree.bvhAlux,     shaders.lightsBvh.sizeofBuffer(3, numLights * 2));
-  auto& ctrl       = usesSsboInit(lightsTree.bvhCtrl, shaders.lightsBvh.sizeofBuffer(4, (numLights + 31 )/32));
+  auto& bvhAlux    = usesSsbo(lightsTree.bvhAlux,     shaders.lightsBvh.sizeofBuffer(2, numLights * 2));
+  auto& ctrl       = usesSsboInit(lightsTree.bvhCtrl, shaders.lightsBvh.sizeofBuffer(3, (numLights + 31 )/32));
 
   const bool ltree = settings.pathTraceEnabled;
   const bool lbvh  = (settings.giMethod==GiMethod::IrrC);
@@ -2022,7 +2025,7 @@ void Renderer::prepareLightsBvh(Tempest::Encoder<Tempest::CommandBuffer>& cmd, W
   cmd.dispatch(1); // single pass, for simplicity
 
   if(ltree) {
-    auto& tree = usesSsbo(lightsTree.tree, shaders.lightsTree.sizeofBuffer(2, numLights * 2));
+    auto& tree = usesSsbo(lightsTree.tree, shaders.lightsTree.sizeofBuffer(4, numLights * 2));
     cmd.setBinding(4, tree);
     cmd.setPipeline(shaders.lightsTopology);
     cmd.dispatchThreads(numLights);
@@ -2032,7 +2035,7 @@ void Renderer::prepareLightsBvh(Tempest::Encoder<Tempest::CommandBuffer>& cmd, W
     }
 
   if(lbvh) {
-    auto& bvh = usesSsbo(lightsTree.bvh, shaders.lightsBvh.sizeofBuffer(2, numLights * 2));
+    auto& bvh = usesSsbo(lightsTree.bvh, shaders.lightsBvh.sizeofBuffer(4, numLights * 2));
     cmd.setBinding(4, bvh);
     cmd.setPipeline(shaders.lightsTopology);
     cmd.dispatchThreads(numLights);
