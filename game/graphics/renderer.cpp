@@ -252,9 +252,6 @@ void Renderer::toggleGi() {
 
   device.waitIdle();
   setupSettings();
-  if(auto wview  = Gothic::inst().worldView()) {
-    wview->resetRendering();
-    }
   }
 
 void Renderer::toggleVsm() {
@@ -268,9 +265,6 @@ void Renderer::toggleVsm() {
 
   setupSettings();
   resetSwapchain();
-  if(auto wview  = Gothic::inst().worldView()) {
-    wview->resetRendering();
-    }
   }
 
 void Renderer::toggleRtsm() {
@@ -284,9 +278,6 @@ void Renderer::toggleRtsm() {
 
   setupSettings();
   resetSwapchain();
-  if(auto wview  = Gothic::inst().worldView()) {
-    wview->resetRendering();
-    }
   }
 
 void Renderer::togglePathtrace() {
@@ -299,9 +290,6 @@ void Renderer::togglePathtrace() {
 
   setupSettings();
   resetSwapchain();
-  if(auto wview  = Gothic::inst().worldView()) {
-    wview->resetRendering();
-    }
   }
 
 void Renderer::onWorldChanged() {

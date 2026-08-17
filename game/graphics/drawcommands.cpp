@@ -12,10 +12,12 @@
 
 using namespace Tempest;
 
-static bool needtoReallocate(const StorageBuffer& b, const size_t desiredSz) {
-  return b.byteSize()<desiredSz || b.byteSize()>=2*desiredSz;
+static void usesSsbo(StorageBuffer& b, const size_t desiredSz) {
+  if(b.byteSize()<desiredSz || b.byteSize()>=2*desiredSz) {
+    Resources::recycle(std::move(b));
+    b = Resources::device().ssbo(Tempest::Uninitialized, desiredSz);
+    }
   }
-
 
 bool DrawCommands::DrawCmd::isForwardShading() const {
   return Material::isForwardShading(alpha);
@@ -180,17 +182,19 @@ void DrawCommands::addClusters(uint16_t cmdId, uint32_t meshletCount) {
   cmd[cmdId].maxPayload += meshletCount;
   }
 
-void DrawCommands::resetRendering() {
-  for(auto& v:views) {
-    Resources::recycle(std::move(v.indirectCmd));
-    Resources::recycle(std::move(v.visClusters));
-    Resources::recycle(std::move(v.vsmClusters));
-    }
-  cmdDurtyBit = true;
-  }
-
 void DrawCommands::commit(Encoder<CommandBuffer>& enc) {
-  if(!cmdDurtyBit)
+  bool cmdChg = false;
+  for(auto& v:views) {
+    if(isViewEnabled(v.viewport)) {
+      cmdChg |= (v.indirectCmd.byteSize() != sizeof(IndirectCmd)*cmd.size());
+      } else {
+      Resources::recycle(std::move(v.indirectCmd));
+      Resources::recycle(std::move(v.visClusters));
+      Resources::recycle(std::move(v.vsmClusters));
+      }
+    }
+
+  if(!cmdDurtyBit && !cmdChg)
     return;
   cmdDurtyBit = false;
 
@@ -210,14 +214,9 @@ void DrawCommands::commit(Encoder<CommandBuffer>& enc) {
     }
 
   totalPayload = (totalPayload + 0xFF) & ~size_t(0xFF);
-  const size_t visClustersSz = totalPayload*sizeof(uint32_t)*4;
-
-  auto& v      = views[SceneGlobals::V_Main];
-  bool  cmdChg = needtoReallocate(v.indirectCmd, sizeof(IndirectCmd)*cmd.size());
-  bool  visChg = needtoReallocate(v.visClusters, visClustersSz);
   this->maxPayload = totalPayload;
 
-  if(!layChg && !visChg) {
+  if(!cmdChg && !layChg) {
     return;
     }
 
@@ -235,18 +234,7 @@ void DrawCommands::commit(Encoder<CommandBuffer>& enc) {
   for(auto& v:views) {
     if(!isViewEnabled(v.viewport))
       continue;
-
-    if(visChg) {
-      const size_t vsmMax = 1024*1024*4*4; // arbitrary: ~1k clusters per page
-      const size_t size   = v.viewport==SceneGlobals::V_Vsm ? vsmMax : visClustersSz;
-      Resources::recycle(std::move(v.visClusters));
-      v.visClusters = device.ssbo(nullptr, size);
-      }
-    if(visChg && v.viewport==SceneGlobals::V_Vsm) {
-      Resources::recycle(std::move(v.vsmClusters));
-      v.vsmClusters = device.ssbo(nullptr, v.visClusters.byteSize());
-      }
-    if(cmdChg) {
+    if(v.indirectCmd.byteSize() != sizeof(IndirectCmd)*cmd.size()) {
       Resources::recycle(std::move(v.indirectCmd));
       v.indirectCmd = device.ssbo(cx.data(), sizeof(IndirectCmd)*cx.size());
       }
@@ -294,6 +282,11 @@ void DrawCommands::visibilityPass(Encoder<CommandBuffer>& cmd, int pass) {
     if(!isViewEnabled(viewport))
       continue;
 
+    auto& view = views[viewport];
+
+    const size_t visClustersSz = maxPayload*sizeof(uint32_t)*4;
+    usesSsbo(view.visClusters, visClustersSz);
+
     struct Push { uint32_t firstMeshlet; uint32_t meshletCount; float znear; } push = {};
     push.firstMeshlet = 0;
     push.meshletCount = uint32_t(clusters.size());
@@ -306,10 +299,10 @@ void DrawCommands::visibilityPass(Encoder<CommandBuffer>& cmd, int pass) {
       pso = &Shaders::inst().visibilityPassHiZCr;
 
     cmd.setBinding(T_Scene,    scene.uboGlobal[viewport]);
-    cmd.setBinding(T_Payload,  views[viewport].visClusters);
+    cmd.setBinding(T_Payload,  view.visClusters);
     cmd.setBinding(T_Instance, owner.instanceSsbo());
     cmd.setBinding(T_Bucket,   buckets.ssbo());
-    cmd.setBinding(T_Indirect, views[viewport].indirectCmd);
+    cmd.setBinding(T_Indirect, view.indirectCmd);
     cmd.setBinding(T_Clusters, clusters.ssbo());
     cmd.setBinding(T_HiZ,      *scene.hiZ);
     cmd.setPushData(push);
@@ -321,10 +314,16 @@ void DrawCommands::visibilityPass(Encoder<CommandBuffer>& cmd, int pass) {
 void DrawCommands::visibilityVsm(Encoder<CommandBuffer>& cmd) {
   auto& shaders = Shaders::inst();
 
+  auto& view = views[SceneGlobals::V_Vsm];
+  const size_t vsmMax = 1024*1024*4*4; // arbitrary: ~1k clusters per page
+  const size_t visClustersSz = vsmMax*sizeof(uint32_t)*4;
+
+  usesSsbo(view.vsmClusters, visClustersSz);
+  usesSsbo(view.visClusters, visClustersSz);
+
   struct Push { uint32_t meshletCount; } push = {};
   push.meshletCount = uint32_t(clusters.size());
 
-  auto& view = views[SceneGlobals::V_Vsm];
   cmd.setBinding(T_Scene,    scene.uboGlobal[SceneGlobals::V_Vsm]);
   cmd.setBinding(T_Payload,  view.vsmClusters); //unsorted clusters
   cmd.setBinding(T_Instance, owner.instanceSsbo());

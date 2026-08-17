@@ -69,8 +69,6 @@ class VisualObjects final {
     const DrawCommands& drawCommands() const { return drawCmd; }
     const DrawBuckets&  drawBuckets()  const { return bucketsMem; };
 
-    void resetRendering();
-
     void preFrameUpdate ();
     void prepareGlobals (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void postFrameupdate();

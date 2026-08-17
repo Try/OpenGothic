@@ -40,10 +40,6 @@ void WorldView::tick(uint64_t /*dt*/) {
   pfxGroup.setViewerPos(cam.originLwc());
   }
 
-void WorldView::resetRendering() {
-  visuals.resetRendering();
-  }
-
 void WorldView::preFrameUpdate(const Camera& camera, uint64_t tickCount, uint8_t fId) {
   const auto ldir = gSky.sunLight().dir();
   Tempest::Matrix4x4 shadow   [Resources::ShadowLayers];

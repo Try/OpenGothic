@@ -53,8 +53,6 @@ class DrawCommands {
     uint16_t commandId(const Material& m, Type type, uint32_t bucketId);
     void     addClusters(uint16_t cmdId, uint32_t meshletCount);
 
-    void     resetRendering();
-
     void     visibilityPass(Tempest::Encoder<Tempest::CommandBuffer>& cmd, int pass);
     void     visibilityVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd);
 

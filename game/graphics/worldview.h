@@ -33,8 +33,6 @@ class WorldView {
 
     void tick(uint64_t dt);
 
-    void resetRendering();
-
     void preFrameUpdate(const Camera& camera, uint64_t tickCount, uint8_t fId);
     void postFrameupdate();
 
