@@ -1444,14 +1444,14 @@ void DirectMemory::setupWinapiFunctions() {
 
   cpu.register_stdcall(WINAPI__LOADLIBRARY, [this](ptr32_t pname) {
     auto [ptr, size] = mem32.deref(pname);
-    auto name = std::string_view(reinterpret_cast<const char*>(ptr), reinterpret_cast<const char*>(ptr)+size);
+    auto name = std::string_view(reinterpret_cast<const char*>(ptr), size_t(size));
     Log::d("suppress LoadLibrary: ", name);
     return 0x1;
     });
 
   cpu.register_stdcall(WINAPI__GETPROCADDRESS, [this](ptr32_t module, ptr32_t pname) {
     auto [ptr, size] = mem32.deref(pname);
-    auto name = std::string_view(reinterpret_cast<const char*>(ptr), reinterpret_cast<const char*>(ptr)+size);
+    auto name = std::string_view(reinterpret_cast<const char*>(ptr), size_t(size));
     Log::d("suppress GetProcAddress: ",name);
     return 0x1;
     });
