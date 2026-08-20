@@ -5,6 +5,7 @@
 #include <vector>
 #include <functional>
 #include <string>
+#include <unordered_map>
 
 #include "mem32instances.h"
 

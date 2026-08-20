@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <functional>
 #include <type_traits>
+#include <unordered_map>
 
 #include <Tempest/Log>
 
