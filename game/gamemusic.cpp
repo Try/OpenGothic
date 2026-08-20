@@ -105,7 +105,7 @@ struct GameMusic::OpenGothicMusicProvider : GameMusic::MusicProvider {
 
   void renderSound(int16_t *out, size_t n) override {
     if(!isEnabled()) {
-      std::memset(out, 0, n * sizeof(int16_t) * 2);
+      std::memset(out, 0, n * sizeof(out[0]) * 2);
       return;
       }
     updateTheme();
@@ -239,7 +239,7 @@ struct GameMusic::GothicKitMusicProvider : GameMusic::MusicProvider {
 
   void renderSound(int16_t *out, size_t n) override {
     if(!isEnabled()) {
-      std::memset(out, 0, n * sizeof(int16_t) * 2);
+      std::memset(out, 0, n * sizeof(out[0]) * 2);
       return;
       }
     updateTheme();
