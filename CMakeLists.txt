@@ -120,6 +120,9 @@ target_link_libraries(${PROJECT_NAME} dmusic)
 add_definitions(-DTSF_NO_STDIO)
 include_directories(lib/TinySoundFont)
 
+# Rapidjson
+include_directories(lib/rapidjson/include)
+
 # Tempest
 if(WIN32)
   set(TEMPEST_BUILD_SHARED ON  CACHE INTERNAL "")
