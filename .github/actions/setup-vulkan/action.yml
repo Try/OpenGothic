@@ -12,10 +12,10 @@ runs:
   steps:
     - name: Cache Vulkan SDK
       id: cache-vulkan
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ${{ github.workspace }}/VulkanSDK/${{ inputs.vk-sdk }}/
-        key: ${{ runner.os }}-${{ inputs.vk-sdk }}-v0
+        key: vulkan-${{ runner.os }}-${{ inputs.vk-sdk }}-v0
 
     - name: Install VulkanSDK
       if: steps.cache-vulkan.outputs.cache-hit != 'true'
@@ -37,8 +37,10 @@ runs:
         $env:VULKAN_SDK      = "${{ github.workspace }}/VulkanSDK/${{ inputs.vk-sdk }}/x86_64"
         $env:VK_LAYER_PATH   = "$env:VULKAN_SDK/etc/vulkan/explicit_layers.d"
         $env:LD_LIBRARY_PATH = "$env:VULKAN_SDK/lib"
+        $env:LIBRARY_PATH    = "$env:VULKAN_SDK/lib/VulkanLoader/lib"
 
         echo "VULKAN_SDK=$env:VULKAN_SDK"           >> $env:GITHUB_ENV
         echo "VK_LAYER_PATH=$env:VK_LAYER_PATH"     >> $env:GITHUB_ENV
         echo "LD_LIBRARY_PATH=$env:LD_LIBRARY_PATH" >> $env:GITHUB_ENV
         echo "$env:VULKAN_SDK/Bin"                  >> $env:GITHUB_PATH
+        echo "LIBRARY_PATH=$env:LIBRARY_PATH"       >> $env:GITHUB_ENV
