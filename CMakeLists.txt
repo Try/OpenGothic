@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(Gothic2Notr LANGUAGES C CXX)
+project(OpenGothic LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(BUILD_SHARED_LIBS OFF)
 
@@ -11,7 +11,9 @@ set(CMAKE_RELWITHDEBINFO_POSTFIX "")
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_SKIP_RPATH ON)
 
-add_executable(${PROJECT_NAME})
+add_library(${PROJECT_NAME} STATIC)
+add_executable(Gothic2Notr)
+add_executable(Spacer)
 
 if(MSVC)
   add_definitions(-D_USE_MATH_DEFINES)
@@ -64,26 +66,25 @@ elseif(APPLE)
 endif()
 
 if(IOS)
-  file(GLOB_RECURSE ObjCSOURCES "game/*.mm")
+  file(GLOB_RECURSE ObjCSOURCES "common/*.mm")
 elseif(APPLE)
   target_link_libraries(${PROJECT_NAME} "-framework AppKit")
-  file(GLOB_RECURSE ObjCSOURCES "game/*.mm")
+  file(GLOB_RECURSE ObjCSOURCES "common/*.mm")
 endif()
 
 ## OpenGothic
 
 # sources
-file(GLOB_RECURSE OPENGOTHIC_SOURCES
-    "game/*.h"
-    "game/*.cpp")
+file(GLOB_RECURSE OPENGOTHIC_SOURCES "common/*.h" "common/*.cpp")
+file(GLOB_RECURSE SPACER_SOURCES "spacer/*.h" "spacer/*.cpp")
 
-target_sources(${PROJECT_NAME} PRIVATE ${OPENGOTHIC_SOURCES} ${ObjCSOURCES} icon.rc)
+target_sources(${PROJECT_NAME} PRIVATE ${OPENGOTHIC_SOURCES} ${ObjCSOURCES})
 
 # shaders
 add_subdirectory(shader)
 target_link_libraries(${PROJECT_NAME} GothicShaders)
 
-include_directories("game")
+include_directories("common")
 
 ## submodule dependencies
 
@@ -132,7 +133,7 @@ target_link_libraries(${PROJECT_NAME} Tempest)
 # zip
 include_directories(lib/miniz)
 add_definitions(-DMINIZ_NO_STDIO)
-add_library(miniz STATIC "lib/miniz/miniz.h" "lib/miniz/miniz.c")
+add_library(miniz STATIC EXCLUDE_FROM_ALL "lib/miniz/miniz.h" "lib/miniz/miniz.c")
 target_link_libraries(${PROJECT_NAME} miniz)
 
 # bullet physics
@@ -183,8 +184,16 @@ if(${CMAKE_BUILD_TYPE} MATCHES "Debug")
   add_compile_options(-fsanitize=address)
   add_compile_options(-fsanitize=leak)
   add_link_options   (-fsanitize=address)
-  add_link_options   (-fsanitize=leak)
+#  add_link_options   (-fsanitize=leak)
 endif()
+
+# the game
+target_sources(Gothic2Notr PRIVATE game/main.cpp icon.rc)
+target_link_libraries(Gothic2Notr PRIVATE OpenGothic)
+
+# editor
+target_sources(Spacer PRIVATE ${SPACER_SOURCES} spacer/main.cpp)
+target_link_libraries(Spacer PRIVATE OpenGothic)
 
 # installation
 install(TARGETS ${PROJECT_NAME} DESTINATION bin)
