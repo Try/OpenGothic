@@ -8,6 +8,9 @@ on:
     branches: [master]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 env:
   BUILD_TYPE: RelWithDebInfo
   BUILD_OFFSET: 3623  # continue from AppVeyor build numbers
@@ -32,10 +35,14 @@ jobs:
         with:
           submodules: recursive
 
+      - uses: ./.github/actions/setup-vulkan
+        with:
+          os: Linux
+
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y glslang-tools libvulkan-dev libasound2-dev libx11-dev libxcursor-dev
+          sudo apt-get install -y glslang-tools libasound2-dev libx11-dev libxcursor-dev
 
       - name: Generate build version
         run: |
@@ -64,11 +71,15 @@ jobs:
         with:
           submodules: recursive
 
+      - uses: ./.github/actions/setup-vulkan
+        with:
+          os: Linux
+
       - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential devscripts debhelper cmake g++ \
-            glslang-tools libvulkan-dev libasound2-dev libx11-dev libxcursor-dev
+            glslang-tools libasound2-dev libx11-dev libxcursor-dev
 
       - name: Setup ./debian
         run: |
@@ -102,6 +113,10 @@ jobs:
         with:
           submodules: recursive
 
+      - uses: ./.github/actions/setup-vulkan
+        with:
+          os: Windows
+
       - uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
@@ -111,7 +126,6 @@ jobs:
             mingw-w64-x86_64-cmake
             mingw-w64-x86_64-ninja
             mingw-w64-x86_64-glslang
-            mingw-w64-x86_64-vulkan-devel
 
       - name: Generate build version
         shell: pwsh
@@ -182,7 +196,7 @@ jobs:
           submodules: recursive
 
       - name: Install dependencies
-        run: brew install glslang molten-vk
+        run: brew install glslang
 
       - name: Generate build version
         run: |
