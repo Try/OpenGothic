@@ -8,6 +8,9 @@ on:
     branches: [master]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 env:
   BUILD_TYPE: RelWithDebInfo
   BUILD_OFFSET: 3623  # continue from AppVeyor build numbers
