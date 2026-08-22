@@ -1,7 +1,9 @@
 name: Build
 
 env:
-  VK_SDK: '1.4.357.0'
+  VK_SDK:       '1.4.357.0'
+  BUILD_TYPE:   RelWithDebInfo
+  BUILD_OFFSET: 3623  # continue from AppVeyor build numbers
 
 on:
   push:
@@ -13,10 +15,6 @@ on:
 
 permissions:
   contents: read
-
-env:
-  BUILD_TYPE: RelWithDebInfo
-  BUILD_OFFSET: 3623  # continue from AppVeyor build numbers
 
 jobs:
   setup:
