@@ -1,5 +1,8 @@
 name: Build
 
+env:
+  VK_SDK: '1.4.357.0'
+
 on:
   push:
     branches: [master]
@@ -38,6 +41,7 @@ jobs:
       - uses: ./.github/actions/setup-vulkan
         with:
           os: Linux
+          vk-sdk: ${{ env.VK_SDK }}
 
       - name: Install dependencies
         run: |
@@ -74,6 +78,7 @@ jobs:
       - uses: ./.github/actions/setup-vulkan
         with:
           os: Linux
+          vk-sdk: ${{ env.VK_SDK }}
 
       - name: Install dependencies
         run: |
@@ -116,6 +121,7 @@ jobs:
       - uses: ./.github/actions/setup-vulkan
         with:
           os: Windows
+          vk-sdk: ${{ env.VK_SDK }}
 
       - uses: msys2/setup-msys2@v2
         with:
