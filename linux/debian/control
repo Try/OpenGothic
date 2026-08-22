@@ -6,7 +6,6 @@ Build-Depends: debhelper-compat (= 13),
                cmake,
                g++,
                glslang-tools,
-               libvulkan-dev,
                libasound2-dev,
                libx11-dev,
                libxcursor-dev
