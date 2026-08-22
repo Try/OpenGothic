@@ -23,6 +23,7 @@
 #include "gothic.h"
 #include "build.h"
 #include "commandline.h"
+#include "editorsettings.h"
 
 #include <dmusic.h>
 
@@ -143,6 +144,7 @@ int main(int argc,const char** argv) {
   Tempest::Application app;
   app.setFont(Tempest::Application::defaultFont());
 
+  EditorSettings settings;
   EditorWindow wx(device);
   return app.exec();
   }

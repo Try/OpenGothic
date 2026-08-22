@@ -1,34 +1,22 @@
 #include "editorwindow.h"
 
 #include <Tempest/Device>
-
 #include <Tempest/Panel>
 #include <Tempest/ComboBox>
+
+#include "ui/rootview.h"
 
 using namespace Tempest;
 
 EditorWindow::EditorWindow(Tempest::Device& device)
   : Window(Maximized), device(device), swapchain(device,hwnd()), texAtlass(device) {
-  resetSwapchain();
-  setupUi();
+  setWindowTitle("Spacer");
+  setLayout(Horizontal);
+  addWidget(new RootView()).setFocus(true);
   }
 
 EditorWindow::~EditorWindow() {
   device.waitIdle();
-  }
-
-void EditorWindow::setupUi() {
-  auto& p = addWidget(new Panel());
-  p.setDragable(true);
-
-  auto& cb0 = p.addWidget(new ComboBox());
-  cb0.setItems({"Item0", "Item1"});
-
-  auto& cb1 = p.addWidget(new ComboBox());
-  cb1.setItems({"Item0", "Item1", "Item2"});
-
-  p.addWidget(new Widget());
-  p.setLayout(Vertical);
   }
 
 void EditorWindow::render() {
@@ -37,8 +25,8 @@ void EditorWindow::render() {
 
     cmdId = (cmdId+1)%MaxFramesInFlight;
 
-    auto&       sync = fence   [cmdId];
-    auto&       cmd  = commands[cmdId];
+    auto& sync = fence   [cmdId];
+    auto& cmd  = commands[cmdId];
     sync.wait();
 
     dispatchPaintEvent(uiLayer,texAtlass);
@@ -56,11 +44,7 @@ void EditorWindow::render() {
     device.present(swapchain);
     }
   catch(const Tempest::SwapchainSuboptimal&) {
-    resetSwapchain();
+    swapchain.reset();
     update();
     }
-  }
-
-void EditorWindow::resetSwapchain() {
-  swapchain.reset();
   }

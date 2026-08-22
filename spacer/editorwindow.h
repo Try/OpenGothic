@@ -16,9 +16,7 @@ class EditorWindow : public Tempest::Window {
       };
 
   protected:
-    void setupUi();
     void render() override;
-    void resetSwapchain();
 
   private:
     Tempest::Device&           device;
