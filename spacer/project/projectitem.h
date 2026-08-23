@@ -1,7 +1,9 @@
 #pragma once
 
 #include <string_view>
+#include <string>
 #include <vector>
+#include <memory>
 
 class ProjectItem {
   public:

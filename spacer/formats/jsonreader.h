@@ -6,6 +6,7 @@
 #include <rapidjson/document.h>
 #include <filesystem>
 #include <string_view>
+#include <vector>
 
 class ProjectItem;
 
