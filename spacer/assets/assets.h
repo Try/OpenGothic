@@ -15,7 +15,7 @@ class Assets {
       Tempest::Color workspace  = {0.260f, 0.260f, 0.260f, 1.f};
       Tempest::Color workspaceD = {0.100f, 0.100f, 0.100f, 1.f};
       Tempest::Color menu       = {0.250f, 0.250f, 0.250f, 1.f};
-      Tempest::Color highlight  = {0.29f,  0.51f,  0.90f,  1.f};
+      Tempest::Color highlight  = {0.f,    0.45f,  0.900f, 1.f};
       } colors;
 
     struct {
@@ -24,7 +24,8 @@ class Assets {
       Tempest::Icon more;
       Tempest::Icon add;
       Tempest::Icon down, up;
-      Tempest::Icon tri_open, tri_close;
+      Tempest::Icon tri_open, tri_close, tri_open_small;
+      Tempest::Icon check_off, check_on;
 
       Tempest::Icon file_project;
       Tempest::Icon folder_large;

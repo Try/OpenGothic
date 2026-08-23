@@ -24,6 +24,7 @@
 #include "build.h"
 #include "commandline.h"
 #include "editorsettings.h"
+#include "ui/uistyle.h"
 
 #include <dmusic.h>
 
@@ -139,9 +140,10 @@ int main(int argc,const char** argv) {
   Resources            resources{device};
   Gothic               gothic;
   GameMusic            music;
-  gothic.setupGlobalScripts();
+  gothic.setupGlobalScripts(); //TODO: move to PIE or remove
 
   Tempest::Application app;
+  app.setStyle(new UiStyle());
   app.setFont(Tempest::Application::defaultFont());
 
   EditorSettings settings;
