@@ -1,6 +1,8 @@
 #include "jsonwriter.h"
 
+#include <string>
 #include <cstring>
+#include <cstdio>
 
 JsonWriter::JsonWriter(Tempest::WFile& out)
   :JsonWriter(out,Obj,0) {
