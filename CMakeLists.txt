@@ -196,6 +196,7 @@ target_link_libraries(Gothic2Notr PRIVATE OpenGothic)
 
 # editor
 target_sources(Spacer PRIVATE ${SPACER_SOURCES} spacer/main.cpp)
+target_include_directories(Spacer PRIVATE "spacer")
 target_link_libraries(Spacer PRIVATE OpenGothic)
 
 # installation

@@ -24,6 +24,11 @@ class Assets {
       Tempest::Icon more;
       Tempest::Icon add;
       Tempest::Icon down, up;
+      Tempest::Icon tri_open, tri_close;
+
+      Tempest::Icon file_project;
+      Tempest::Icon folder_large;
+      Tempest::Icon file_large;
       } ic;
 
     Tempest::Font fntSmall, fntApp;
