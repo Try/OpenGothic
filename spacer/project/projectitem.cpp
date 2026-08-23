@@ -23,10 +23,6 @@ size_t ProjectItem::depth() const {
   return data ? data->depth : 0;
   }
 
-ProjectItem* ProjectItem::projectFile() const {
-  return nullptr;
-  }
-
 bool ProjectItem::isVisible() const {
   return true;
   }

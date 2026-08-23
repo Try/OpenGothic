@@ -64,9 +64,6 @@ void ProjectItemView::mouseUpEvent(Tempest::MouseEvent& event) {
 
   if(0<=event.x && event.x<w() &&
      0<=event.y && event.y<h()){
-    if(auto pro = it.projectFile())
-      if(!pro->isVisible())
-        return;
     if(!ddEnd)
       onClick(this,it);
     }

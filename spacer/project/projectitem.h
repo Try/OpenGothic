@@ -1,7 +1,6 @@
 #pragma once
 
 #include <string_view>
-#include <filesystem>
 #include <vector>
 
 class ProjectItem {
@@ -16,11 +15,11 @@ class ProjectItem {
 
     std::string_view      displayName() const;
     std::string_view      name() const;
+    Type                  type() const;
+    bool                  isVisible() const;
+
     std::string_view      path() const;
     size_t                depth() const;
-    Type                  type() const;
-    ProjectItem*          projectFile() const;
-    bool                  isVisible() const;
 
     size_t                itemsCount() const;
     ProjectItem           item(size_t i) const;
