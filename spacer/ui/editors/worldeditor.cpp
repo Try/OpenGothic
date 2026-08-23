@@ -1,4 +1,4 @@
-#include "leveleditor.h"
+#include "worldeditor.h"
 
 #include <Tempest/Painter>
 
@@ -7,7 +7,7 @@
 
 using namespace Tempest;
 
-LevelEditor::LevelEditor() {
+WorldEditor::WorldEditor() {
   props = {
     {"Vob"},
     {"vobName",               Property::Type::Int1},
@@ -26,14 +26,14 @@ LevelEditor::LevelEditor() {
     };
   }
 
-LevelEditor::~LevelEditor() {
+WorldEditor::~WorldEditor() {
   }
 
-std::string_view LevelEditor::title() const {
+std::string_view WorldEditor::title() const {
   return "World editor";
   }
 
-BaseEditor::BaseTool* LevelEditor::createToolpanel(ToolWindow::Tool tool) {
+BaseEditor::BaseTool* WorldEditor::createToolpanel(ToolWindow::Tool tool) {
   if(tool!=ToolWindow::T_VobProp)
     return nullptr;
   auto ctrl = new BaseTool();
@@ -43,19 +43,19 @@ BaseEditor::BaseTool* LevelEditor::createToolpanel(ToolWindow::Tool tool) {
   return ctrl;
   }
 
-void LevelEditor::undo() {
+void WorldEditor::undo() {
   }
 
-void LevelEditor::redo() {
+void WorldEditor::redo() {
   }
 
-void LevelEditor::moveDropOver(DropOverEvent& ev) {
+void WorldEditor::moveDropOver(DropOverEvent& ev) {
   }
 
-void LevelEditor::dropDone(DropOverEvent& ev) {
+void WorldEditor::dropDone(DropOverEvent& ev) {
   }
 
-void LevelEditor::paintEvent(Tempest::PaintEvent& e) {
+void WorldEditor::paintEvent(Tempest::PaintEvent& e) {
   Painter p(e);
   p.setBrush(Color(0,0,0.4,1));
   p.drawRect(0, 0, w(), h());

@@ -6,7 +6,7 @@
 #include <Tempest/Log>
 
 #include "ui/editors/baseeditor.h"
-#include "ui/editors/leveleditor.h"
+#include "ui/editors/worldeditor.h"
 #include "ui/views/projecttree.h"
 #include "ui/views/menubar.h"
 #include "ui/dialogs/questionbox.h"
@@ -371,7 +371,7 @@ EditorArea::~EditorArea() {
   }
 
 void EditorArea::load() {
-  implLoad<LevelEditor>();
+  implLoad<WorldEditor>();
   }
 
 template<class T>

@@ -4,11 +4,11 @@
 #include "ui/property/propertylist.h"
 #include "ui/dragdrop.h"
 
-class LevelEditor: public BaseEditor,
+class WorldEditor: public BaseEditor,
                    public DropReciver  {
   public:
-    LevelEditor();
-    ~LevelEditor() override;
+    WorldEditor();
+    ~WorldEditor() override;
 
   protected:
     std::string_view   title  () const override;
