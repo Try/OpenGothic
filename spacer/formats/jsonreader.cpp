@@ -96,7 +96,7 @@ std::string_view JsonReader::toString() const {
 
 std::filesystem::path JsonReader::toPath() const {
   if(isString())
-    return std::filesystem::u8path(val->GetString());
+    return std::filesystem::path(reinterpret_cast<const char8_t*>(val->GetString()));
   return "";
   }
 

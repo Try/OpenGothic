@@ -9,7 +9,7 @@
 using namespace Tempest;
 
 EditorWindow::EditorWindow(Tempest::Device& device)
-  : Window(Maximized), device(device), swapchain(device,hwnd()), texAtlass(device) {
+  : Window(Maximized), device(device), swapchain(device,hwnd()), texAtlass(device), assets(texAtlass) {
   setWindowTitle("Spacer");
   setLayout(Horizontal);
   addWidget(new RootView()).setFocus(true);

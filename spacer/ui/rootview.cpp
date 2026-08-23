@@ -2,7 +2,7 @@
 
 #include "editorarea.h"
 #include "editorsettings.h"
-#include "assets/assets.h"
+#include "assets.h"
 
 #include <Tempest/Log>
 #include <Tempest/Painter>

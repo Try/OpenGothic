@@ -7,7 +7,7 @@
 #include "editorsettings.h"
 
 #include "toolwindow.h"
-#include "assets/assets.h"
+#include "assets.h"
 #include "resizablearea.h"
 
 using namespace Tempest;

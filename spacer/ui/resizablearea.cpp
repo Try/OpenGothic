@@ -4,7 +4,7 @@
 #include <Tempest/Layout>
 
 #include "ui/editorarea.h"
-#include "assets/assets.h"
+#include "assets.h"
 
 using namespace Tempest;
 

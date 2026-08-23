@@ -7,7 +7,7 @@
 #include "ui/editorarea.h"
 
 #include "ui/uihelper.h"
-#include "assets/assets.h"
+#include "assets.h"
 
 using namespace Tempest;
 

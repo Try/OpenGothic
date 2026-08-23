@@ -4,7 +4,7 @@
 #include <Tempest/Painter>
 #include <Tempest/WidgetState>
 
-#include "assets/assets.h"
+#include "assets.h"
 
 using namespace Tempest;
 

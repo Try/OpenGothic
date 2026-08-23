@@ -5,7 +5,7 @@
 #include "project/projectmgr.h"
 #include "project/projectitem.h"
 
-#include "assets/assets.h"
+#include "assets.h"
 
 using namespace Tempest;
 

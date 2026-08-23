@@ -6,6 +6,8 @@
 #include <Tempest/Fence>
 #include <Tempest/CommandBuffer>
 
+#include "assets.h"
+
 class EditorWindow : public Tempest::Window {
   public:
     explicit EditorWindow(Tempest::Device& device);
@@ -22,6 +24,7 @@ class EditorWindow : public Tempest::Window {
     Tempest::Device&           device;
     Tempest::Swapchain         swapchain;
     Tempest::TextureAtlas      texAtlass;
+    Assets                     assets;
 
     Tempest::VectorImage       uiLayer;
     Tempest::VectorImage::Mesh uiMesh[MaxFramesInFlight];

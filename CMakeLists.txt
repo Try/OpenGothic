@@ -84,6 +84,9 @@ target_sources(${PROJECT_NAME} PRIVATE ${OPENGOTHIC_SOURCES} ${ObjCSOURCES})
 add_subdirectory(shader)
 target_link_libraries(${PROJECT_NAME} GothicShaders)
 
+# editor icons and such
+add_subdirectory(spacer/assets)
+
 include_directories("common")
 
 ## submodule dependencies
@@ -187,7 +190,7 @@ if(${CMAKE_BUILD_TYPE} MATCHES "Debug")
   add_compile_options(-fsanitize=address)
   add_compile_options(-fsanitize=leak)
   add_link_options   (-fsanitize=address)
-#  add_link_options   (-fsanitize=leak)
+  add_link_options   (-fsanitize=leak)
 endif()
 
 # the game
@@ -197,7 +200,7 @@ target_link_libraries(Gothic2Notr PRIVATE OpenGothic)
 # editor
 target_sources(Spacer PRIVATE ${SPACER_SOURCES} spacer/main.cpp)
 target_include_directories(Spacer PRIVATE "spacer")
-target_link_libraries(Spacer PRIVATE OpenGothic)
+target_link_libraries(Spacer PRIVATE OpenGothic SpacerAssets)
 
 # installation
 install(TARGETS ${PROJECT_NAME} DESTINATION bin)

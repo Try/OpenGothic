@@ -7,7 +7,7 @@
 #include "widgetheader.h"
 #include "floatwidget.h"
 #include "numberedit.h"
-#include "assets/assets.h"
+#include "assets.h"
 
 using namespace Tempest;
 

@@ -19,7 +19,7 @@
 
 #include "toolgroup.h"
 #include "toolwindow.h"
-#include "assets/assets.h"
+#include "assets.h"
 
 using namespace Tempest;
 
