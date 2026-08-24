@@ -26,6 +26,7 @@
 #include "editorsettings.h"
 #include "ui/uistyle.h"
 #include "workers/dataworker.h"
+#include "project/projectmgr.h"
 
 #include <dmusic.h>
 
@@ -149,6 +150,7 @@ int main(int argc,const char** argv) {
   app.setStyle(new UiStyle());
   app.setFont(Tempest::Application::defaultFont());
 
+  ProjectMgr     projectMgr;
   EditorSettings settings;
   EditorWindow wx(device);
   return app.exec();

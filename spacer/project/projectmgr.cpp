@@ -3,17 +3,19 @@
 #include "projectitem.h"
 #include "resources.h"
 
+static ProjectMgr* instance = nullptr;
+
 ProjectMgr::ProjectMgr() {
+  instance = this;
   rootItem = mkIndex(Resources::vdfsIndex().root(), size_t(-1), "");
   }
 
 ProjectMgr::~ProjectMgr() {
+  instance = nullptr;
   }
 
 ProjectMgr& ProjectMgr::inst() {
-  //FIXME: need to have well defined life-time
-  static ProjectMgr p;
-  return p;
+  return *instance;
   }
 
 std::shared_ptr<ProjectItem::Data> ProjectMgr::mkIndex(const zenkit::VfsNode& node, size_t depth, const std::string& prefix) {
