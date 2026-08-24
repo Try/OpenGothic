@@ -56,6 +56,7 @@ struct PropertyList::Delegate : ListDelegate {
         return ParameterWidget::createEditor(slt, Variant(1), 0);
         }
       }
+    return nullptr;
     };
 
   void emitChange(size_t id,const Variant& v,bool commit) {
