@@ -3,6 +3,12 @@
 #include <Tempest/Except>
 #include <Tempest/Log>
 
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#pragma GCC diagnostic ignored "-Wtemplate-body"
+#endif
+
 #include <rapidjson/error/en.h>
 #include <rapidjson/document.h>
 
