@@ -19,7 +19,7 @@
 #include "world/triggers/trigger.h"
 #include "world/triggers/touchdamage.h"
 #include "world/triggers/cscamera.h"
-#include "world/worldlight.h"
+#include "world/voblight.h"
 #include "world/world.h"
 #include "game/serialize.h"
 
@@ -209,7 +209,7 @@ std::unique_ptr<Vob> Vob::load(Vob* parent, World& world, const zenkit::VirtualO
       return std::unique_ptr<Vob>(new Vob(parent,world,vob,flags));
       }
     case zenkit::VirtualObjectType::zCVobLight: {
-      return std::unique_ptr<Vob>(new WorldLight(parent,world,reinterpret_cast<const zenkit::VLight&>(vob),flags));
+      return std::unique_ptr<Vob>(new VobLight(parent,world,reinterpret_cast<const zenkit::VLight&>(vob),flags));
       }
     case zenkit::VirtualObjectType::zCCSCamera:
       return std::unique_ptr<Vob>(new CsCamera(parent,world,reinterpret_cast<const zenkit::VCutsceneCamera&>(vob),flags));

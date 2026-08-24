@@ -1,8 +1,8 @@
-#include "worldlight.h"
+#include "voblight.h"
 
 #include "world.h"
 
-WorldLight::WorldLight(Vob* parent, World& world, const zenkit::VLight& vob, Flags flags)
+VobLight::VobLight(Vob* parent, World& world, const zenkit::VLight& vob, Flags flags)
   : Vob(parent,world,vob,flags) {
 #if 0
   if(!(flags&Startup))
@@ -41,6 +41,6 @@ WorldLight::WorldLight(Vob* parent, World& world, const zenkit::VLight& vob, Fla
     }
   }
 
-void WorldLight::moveEvent() {
+void VobLight::moveEvent() {
   light.setPosition(position());
   }
