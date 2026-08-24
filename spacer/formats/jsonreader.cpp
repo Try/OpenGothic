@@ -4,9 +4,13 @@
 #include <Tempest/Log>
 
 #include <rapidjson/error/en.h>
+#include <rapidjson/document.h>
 
 using namespace rapidjson;
 using namespace Tempest;
+
+struct JsonReader::Document : rapidjson::Document {};
+struct JsonReader::Value : rapidjson::Value {};
 
 JsonReader::JsonReader(Tempest::RFile& fin) : json(fin.size(),' '), ownDoc(true) {
   if(fin.read(json.data(),json.size())!=json.size())
@@ -33,7 +37,7 @@ void JsonReader::initDocument() {
     return;
     }
   doc = d.release();
-  val = doc;
+  val = reinterpret_cast<Value*>(doc);
   }
 
 JsonReader::JsonReader(const JsonReader* owner) : doc(owner->doc) {
@@ -64,7 +68,7 @@ size_t JsonReader::size() const {
 JsonReader JsonReader::operator [](const char* name) const {
   JsonReader rd(this);
   if(val!=nullptr && val->IsObject() && val->HasMember(name))
-    rd.val = &(*val)[name];
+    rd.val = reinterpret_cast<Value*>(&(*val)[name]);
   return rd;
   }
 
@@ -73,14 +77,14 @@ JsonReader JsonReader::operator [](std::string_view name) const {
   std::snprintf(buf,sizeof(buf),"%.*s",int(name.size()),name.data());
   JsonReader rd(this);
   if(val!=nullptr && val->IsObject() && val->HasMember(buf))
-    rd.val = &(*val)[buf];
+    rd.val = reinterpret_cast<Value*>(&(*val)[buf]);
   return rd;
   }
 
 JsonReader JsonReader::operator [](size_t id) const {
   JsonReader rd(this);
   if(isArray())
-    rd.val = &(*val)[SizeType(id)];
+    rd.val = reinterpret_cast<Value*>(&(*val)[SizeType(id)]);
   return rd;
   }
 

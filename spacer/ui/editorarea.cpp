@@ -437,10 +437,10 @@ bool EditorArea::closeApp() {
     std::snprintf(buf,sizeof(buf),"Save changes to project?");
     }
 
-  switch(QuestionBox::ask(buf,QuestionBox::R_No|QuestionBox::R_Yes|QuestionBox::R_Cancel)) {
-    case QuestionBox::R_Cancel:
+  switch(QuestionBox::ask(buf,QuestionBox::No|QuestionBox::Yes|QuestionBox::Cancel)) {
+    case QuestionBox::Cancel:
       return true;
-    case QuestionBox::R_Yes:
+    case QuestionBox::Yes:
       for(auto& i:editor) {
         i->save();
         }
@@ -509,13 +509,13 @@ void EditorArea::closeEditor(size_t i) {
     char buf[256]={};
     // std::snprintf(buf,sizeof(buf),"Save changes to \"%s\"?", ed->item.name().c_str());
     std::snprintf(buf,sizeof(buf),"Save changes to the file?");
-    switch(QuestionBox::ask(buf,QuestionBox::R_No|QuestionBox::R_Yes|QuestionBox::R_Cancel)) {
-      case QuestionBox::R_Cancel:
+    switch(QuestionBox::ask(buf,QuestionBox::No|QuestionBox::Yes|QuestionBox::Cancel)) {
+      case QuestionBox::Cancel:
         return;
-      case QuestionBox::R_Yes:
+      case QuestionBox::Yes:
         ed->save();
         break;
-      case QuestionBox::R_No:
+      case QuestionBox::No:
       default:
         ed->discardChanges();
         break;

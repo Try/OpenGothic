@@ -3,7 +3,6 @@
 #include <Tempest/File>
 #include <Tempest/Vec>
 
-#include <rapidjson/document.h>
 #include <filesystem>
 #include <string_view>
 #include <vector>
@@ -55,9 +54,12 @@ class JsonReader final {
     JsonReader(const JsonReader* owner);
     void initDocument();
 
-    std::string          json;
-    rapidjson::Document* doc    = nullptr;
-    rapidjson::Value*    val    = nullptr;
-    bool                 ownDoc = false;
+    class Document;
+    class Value;
+
+    std::string json;
+    Document*   doc    = nullptr;
+    Value*      val    = nullptr;
+    bool        ownDoc = false;
   };
 

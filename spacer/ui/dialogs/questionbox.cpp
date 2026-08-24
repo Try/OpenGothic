@@ -67,10 +67,10 @@ QuestionBox::QuestionBox() {
   ok    ->setButtonType(Button::T_FlatButton);
   cancel->setButtonType(Button::T_FlatButton);
 
-  yes   ->onClick.bind(this,&QuestionBox::onButton<R_Yes>);
-  no    ->onClick.bind(this,&QuestionBox::onButton<R_No>);
-  ok    ->onClick.bind(this,&QuestionBox::onButton<R_OK>);
-  cancel->onClick.bind(this,&QuestionBox::onButton<R_Cancel>);
+  yes   ->onClick.bind(this,&QuestionBox::onButton<Yes>);
+  no    ->onClick.bind(this,&QuestionBox::onButton<No>);
+  ok    ->onClick.bind(this,&QuestionBox::onButton<OK>);
+  cancel->onClick.bind(this,&QuestionBox::onButton<Cancel>);
 
   bot.setMinimumSize(yes->sizeHint());
   auto wr = UiHelper::wrapContent(*this,Vertical);
@@ -91,10 +91,10 @@ QuestionBox::Ret QuestionBox::ask(const char* title, Ret buttons) {
   QuestionBox box;
   box.setTitle(title);
 
-  box.yes   ->setVisible(buttons & R_Yes);
-  box.no    ->setVisible(buttons & R_No);
-  box.ok    ->setVisible(buttons & R_OK);
-  box.cancel->setVisible(buttons & R_Cancel);
+  box.yes   ->setVisible(buttons & Yes);
+  box.no    ->setVisible(buttons & No);
+  box.ok    ->setVisible(buttons & OK);
+  box.cancel->setVisible(buttons & Cancel);
 
   box.exec();
   return box.ret;

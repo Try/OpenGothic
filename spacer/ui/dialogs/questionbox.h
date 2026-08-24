@@ -8,10 +8,10 @@ class QuestionBox : public Tempest::Dialog {
     QuestionBox();
 
     enum Ret : uint8_t {
-      R_Cancel = 1 << 0,
-      R_OK     = 1 << 1,
-      R_No     = 1 << 2,
-      R_Yes    = 1 << 3,
+      Cancel = 1 << 0,
+      OK     = 1 << 1,
+      No     = 1 << 2,
+      Yes    = 1 << 3,
       };
 
     friend Ret operator | (Ret a, Ret b) {
@@ -32,7 +32,7 @@ class QuestionBox : public Tempest::Dialog {
     template<Ret r>
     void       onButton();
 
-    Ret              ret    = R_Cancel;
+    Ret              ret    = Cancel;
     Title*           title  = nullptr;
     Tempest::Button* yes    = nullptr;
     Tempest::Button* no     = nullptr;
