@@ -32,6 +32,9 @@ class JsonWriter final {
     void       val(std::string_view name, std::nullptr_t);
     void       val(std::string_view name, const std::vector<float>& v);
 
+    template<class T, std::enable_if_t<!std::is_same<T,uint32_t>::value && !std::is_same<T,uint64_t>::value && std::is_same<T,size_t>::value,bool> = true>
+    void       val(std::string_view name, T ) = delete;
+
   private:
     enum Type : uint8_t {
       None,

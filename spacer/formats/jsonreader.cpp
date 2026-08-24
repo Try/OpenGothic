@@ -6,7 +6,9 @@
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#if !defined(__clang__)
 #pragma GCC diagnostic ignored "-Wtemplate-body"
+#endif
 #endif
 
 #include <rapidjson/error/en.h>

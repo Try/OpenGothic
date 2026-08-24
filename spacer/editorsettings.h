@@ -24,8 +24,8 @@ class EditorSettings final {
 
     struct Tool {
       BaseEditor::ToolType parent = BaseEditor::ToolType::Right;
-      size_t               group  = 0;
-      size_t               order  = 0;
+      uint32_t             group  = 0;
+      uint32_t             order  = 0;
       };
 
     struct Shortcut {
