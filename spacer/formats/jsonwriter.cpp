@@ -3,6 +3,7 @@
 #include <string>
 #include <cstring>
 #include <cstdio>
+#include <cinttypes>
 
 JsonWriter::JsonWriter(Tempest::WFile& out)
   :JsonWriter(out,Obj,0) {
@@ -85,7 +86,7 @@ void JsonWriter::val(std::string_view name, uint32_t v) {
 
 void JsonWriter::val(std::string_view name, uint64_t v) {
   char buf[32]={};
-  std::snprintf(buf,sizeof(buf),"%llu",v);
+  std::snprintf(buf,sizeof(buf),"%" PRIu64,v);
   implVal(name,buf);
   }
 

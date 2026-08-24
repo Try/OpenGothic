@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Tempest/Dialog>
+#include <cstdint>
 
 class QuestionBox : public Tempest::Dialog {
   public:
