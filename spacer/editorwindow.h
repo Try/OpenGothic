@@ -6,6 +6,8 @@
 #include <Tempest/Fence>
 #include <Tempest/CommandBuffer>
 
+#include "graphics/shaders.h"
+
 #include "assets.h"
 
 class EditorWindow : public Tempest::Window {
@@ -25,6 +27,7 @@ class EditorWindow : public Tempest::Window {
     Tempest::Swapchain         swapchain;
     Tempest::TextureAtlas      texAtlass;
     Assets                     assets;
+    Shaders                    shaders;
 
     Tempest::VectorImage       uiLayer;
     Tempest::VectorImage::Mesh uiMesh[MaxFramesInFlight];

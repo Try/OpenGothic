@@ -35,6 +35,7 @@ class SceneGlobals final {
     void setSky(const Sky& s);
     void setWorld(const WorldView& wview);
     void setUnderWater(bool w);
+    void setupSettings();
 
     void setTime(uint64_t time);
     void commitUbo(uint8_t fId);
@@ -134,8 +135,6 @@ class SceneGlobals final {
     RtScene                           rtScene;
 
   private:
-    void                              initSettings();
-
     UboGlobal                         uboGlobalCpu;
   };
 

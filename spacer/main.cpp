@@ -25,6 +25,7 @@
 #include "commandline.h"
 #include "editorsettings.h"
 #include "ui/uistyle.h"
+#include "workers/dataworker.h"
 
 #include <dmusic.h>
 
@@ -138,6 +139,8 @@ int main(int argc,const char** argv) {
   CrashLog::setGpu(device.properties().name);
 
   Resources            resources{device};
+  DataWorker           dataWorker;
+
   Gothic               gothic;
   GameMusic            music;
   gothic.setupGlobalScripts(); //TODO: move to PIE or remove

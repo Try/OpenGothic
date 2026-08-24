@@ -24,7 +24,9 @@ std::shared_ptr<ProjectItem::Data> ProjectMgr::mkIndex(const zenkit::VfsNode& no
     d->path = prefix + node.name();
 
   if(node.type()==zenkit::VfsNodeType::DIRECTORY) {
-    auto path = d->path + "/";
+    auto path = d->path;
+    if(!path.empty())
+      path += "/";
     for(auto& i:node.children()) {
       d->files.emplace_back(mkIndex(i, depth+1, path));
       }

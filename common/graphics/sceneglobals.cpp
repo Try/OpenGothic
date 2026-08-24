@@ -17,9 +17,6 @@ static uint32_t nextPot(uint32_t x) {
 SceneGlobals::SceneGlobals() {
   auto& device = Resources::device();
 
-  Gothic::inst().onSettingsChanged.bind(this,&SceneGlobals::initSettings);
-  initSettings();
-
   uboGlobalCpu.sunDir=Tempest::Vec3::normalize({1,1,-1});
   uboGlobalCpu.viewProject.identity();
   uboGlobalCpu.viewProjectInv.identity();
@@ -45,7 +42,6 @@ SceneGlobals::SceneGlobals() {
   }
 
 SceneGlobals::~SceneGlobals() {
-  Gothic::inst().onSettingsChanged.ubind(this,&SceneGlobals::initSettings);
   }
 
 bool SceneGlobals::isShadowView(VisCamera v) {
@@ -62,7 +58,7 @@ bool SceneGlobals::isShadowView(VisCamera v) {
   return false;
   }
 
-void SceneGlobals::initSettings() {
+void SceneGlobals::setupSettings() {
   zWindEnabled = Gothic::inst().settingsGetI("ENGINE","zWindEnabled")!=0;
 
   float period  = Gothic::inst().settingsGetF("ENGINE","zWindCycleTime");

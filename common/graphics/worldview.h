@@ -37,6 +37,7 @@ class WorldView {
     void postFrameupdate();
 
     void prepareGlobals(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t fId);
+    void setupSettings();
 
     void setGbuffer(const Tempest::Texture2d& diffuse,
                     const Tempest::Texture2d& norm);

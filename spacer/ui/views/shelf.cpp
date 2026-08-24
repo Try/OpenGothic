@@ -17,7 +17,7 @@ using namespace Tempest;
 struct Shelf::Item : ProjectItemView {
   enum {
     Marg    = 2,
-    DefSize = 64,
+    DefSize = 128,
     TextSz  = 16,
 
     Height  = DefSize+Marg*2+TextSz
@@ -61,6 +61,12 @@ struct Shelf::Item : ProjectItemView {
       }
     else if(it.type()==ProjectItem::T_Dir) {
       drawIcon(p, Assets::inst().ic.folder_large);
+      }
+    else if(it.type()==ProjectItem::T_StaticMesh) {
+      auto pr = it.preview();
+      if(pr!=nullptr)
+        drawIcon(p, *pr); else
+        drawIcon(p, Assets::inst().ic.file_large);
       }
     else {
       drawIcon(p, Assets::inst().ic.file_large);

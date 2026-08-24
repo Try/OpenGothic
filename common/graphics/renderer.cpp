@@ -415,6 +415,9 @@ void Renderer::prepareUniforms() {
   if(wview==nullptr)
     return;
 
+  // wind and such
+  wview->setupSettings();
+
   const Texture2d* sh[Resources::ShadowLayers] = {};
   for(size_t i=0; i<Resources::ShadowLayers; ++i)
     if(!shadowMap[i].isEmpty()) {

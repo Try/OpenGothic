@@ -72,6 +72,10 @@ void WorldView::prepareGlobals(Tempest::Encoder<Tempest::CommandBuffer>& cmd, ui
   visuals.prepareGlobals(cmd, fId);
   }
 
+void WorldView::setupSettings() {
+  sGlobal.setupSettings();
+  }
+
 void WorldView::setGbuffer(const Texture2d& diffuse, const Texture2d& norm) {
   sGlobal.gbufDiffuse = &diffuse;
   sGlobal.gbufNormals = &norm;

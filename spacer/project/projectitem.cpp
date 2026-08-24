@@ -1,5 +1,7 @@
 #include "projectitem.h"
 
+#include "workers/dataworker.h"
+#include "utils/fileext.h"
 
 ProjectItem::ProjectItem() {
   }
@@ -28,8 +30,17 @@ bool ProjectItem::isVisible() const {
   }
 
 ProjectItem::Type ProjectItem::type() const {
-  if(data && data->files.size()>0)
+  if(data==nullptr)
+    return T_File;
+
+  if(data->files.size()>0)
     return T_Dir;
+
+  if(FileExt::hasExt(data->name,"3DS"))
+    return T_StaticMesh;
+  if(FileExt::hasExt(data->name,"MRM"))
+    return T_StaticMesh;
+
   return T_File;
   }
 
@@ -39,4 +50,20 @@ size_t ProjectItem::itemsCount() const {
 
 ProjectItem ProjectItem::item(size_t i) const {
   return ProjectItem(data->files[i]);
+  }
+
+auto ProjectItem::preview() const -> std::shared_ptr<Tempest::Texture2d> {
+  if(data==nullptr)
+    return nullptr;
+  std::lock_guard<SpinLock> guard(data->sync);
+  if(data->preview==nullptr)
+    DataWorker::load(*this);
+  return data->preview;
+  }
+
+void ProjectItem::setPreview(std::shared_ptr<Tempest::Texture2d> preview) {
+  if(data==nullptr)
+    return;
+  std::lock_guard<SpinLock> guard(data->sync);
+  data->preview = preview;
   }
