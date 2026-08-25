@@ -149,8 +149,8 @@ void SceneGlobals::setSky(const Sky& s) {
   uboGlobalCpu.lightCl       = s.sunLight().color();
   uboGlobalCpu.GSunIntensity = s.sunIntensity();
   uboGlobalCpu.lightAmb      = s.ambientLight();
-  uboGlobalCpu.cloudsDir[0]  = s.cloudsOffset(0);
-  uboGlobalCpu.cloudsDir[1]  = s.cloudsOffset(1);
+  uboGlobalCpu.cloudsDir[0]  = s.cloudsOffset(0, tickCount);
+  uboGlobalCpu.cloudsDir[1]  = s.cloudsOffset(1, tickCount);
   uboGlobalCpu.isNight       = s.isNight();
   uboGlobalCpu.exposure      = 1;
   }

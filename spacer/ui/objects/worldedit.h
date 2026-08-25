@@ -6,6 +6,7 @@
 #include <zenkit/vobs/VirtualObject.hh>
 
 class DynamicWorld;
+class WorldView;
 
 class WorldEdit {
   public:
@@ -22,5 +23,6 @@ class WorldEdit {
 
     Vob                           root;
     std::unique_ptr<DynamicWorld> physics;
+    std::unique_ptr<WorldView>    wview;
   };
 

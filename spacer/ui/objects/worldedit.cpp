@@ -4,6 +4,8 @@
 #include <future>
 #include <zenkit/World.hh>
 
+#include "graphics/mesh/submesh/packedmesh.h"
+#include "graphics/worldview.h"
 #include "physics/dynamicworld.h"
 #include "utils/workers.h"
 #include "resources.h"
@@ -28,9 +30,15 @@ WorldEdit::WorldEdit(std::string_view wname) {
     Workers::setThreadName("Loading: BVH thread");
     return std::unique_ptr<DynamicWorld>(new DynamicWorld(nullptr, worldMesh));
     });
+  auto wviewFut = std::async(std::launch::async, [&]() {
+    Workers::setThreadName("Loading: PackedMesh thread");
+    PackedMesh vmesh(worldMesh,PackedMesh::PK_VisualLnd);
+    return std::unique_ptr<WorldView>(new WorldView(vmesh, wname));
+    });
 
   load(root, world.world_vobs);
   physics = wdynamicFut.get();
+  wview   = wviewFut.get();
   }
 
 WorldEdit::~WorldEdit() {

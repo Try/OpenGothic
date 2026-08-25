@@ -16,7 +16,7 @@ class Sky final {
       const Tempest::Texture2d* lay[2] = {};
       };
 
-    Sky(const SceneGlobals& scene, const World& world);
+    Sky(std::string_view wname);
     ~Sky();
 
     void updateLight(const gtime gameTime);
@@ -31,7 +31,7 @@ class Sky final {
 
     const State&              cloudsDay()   const { return clouds[0]; }
     const State&              cloudsNight() const { return clouds[1]; }
-    Tempest::Vec2             cloudsOffset(int layer) const;
+    Tempest::Vec2             cloudsOffset(int layer, uint64_t tickCount) const;
     float                     isNight() const;
 
   private:
@@ -41,7 +41,6 @@ class Sky final {
     LightSource                   sun;
     Tempest::Vec3                 ambient;
 
-    const SceneGlobals&           scene;
     State                         clouds[2]; //day, night;
 
     const Tempest::Texture2d*     sunImg   = &Resources::fallbackBlack();

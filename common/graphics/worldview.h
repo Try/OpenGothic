@@ -23,7 +23,7 @@ class gtime;
 
 class WorldView {
   public:
-    WorldView(const World &world, const PackedMesh& wmesh);
+    WorldView(const PackedMesh& wmesh, std::string_view skyPreset);
     ~WorldView();
 
     const LightSource&        mainLight() const;

@@ -88,7 +88,7 @@ World::World(GameSession& game, std::string_view file, bool startup, std::functi
     auto wviewFut = std::async(std::launch::async, [&]() {
       Workers::setThreadName("Loading: PackedMesh thread");
       PackedMesh vmesh(worldMesh,PackedMesh::PK_VisualLnd);
-      return std::unique_ptr<WorldView>(new WorldView(*this,vmesh));
+      return std::unique_ptr<WorldView>(new WorldView(vmesh, wname));
       });
 
     loadProgress(30);

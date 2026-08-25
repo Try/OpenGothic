@@ -3,14 +3,15 @@
 #include <Tempest/Application>
 
 #include "graphics/mesh/submesh/packedmesh.h"
-#include "world/world.h"
+#include "game/gametime.h"
+#include "camera.h"
 #include "gothic.h"
 
 using namespace Tempest;
 
-WorldView::WorldView(const World& world, const PackedMesh& wmesh)
-    : aabb(wmesh.bbox()), gSky(sGlobal,world), gLights(sGlobal), visuals(sGlobal,wmesh.bbox()),
-    objGroup(visuals),pfxGroup(*this,sGlobal,visuals),land(visuals,wmesh) {
+WorldView::WorldView(const PackedMesh& wmesh, std::string_view skyPreset)
+    : aabb(wmesh.bbox()), gSky(skyPreset), gLights(sGlobal), visuals(sGlobal,wmesh.bbox()),
+    objGroup(visuals), pfxGroup(*this,sGlobal,visuals), land(visuals,wmesh) {
   pfxGroup.resetTicks();
   }
 

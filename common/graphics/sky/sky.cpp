@@ -45,11 +45,9 @@ static float linearstep(float edge0, float edge1, float x) {
   return t;
   };
 
-Sky::Sky(const SceneGlobals& scene, const World& world)
-  :scene(scene) {
-  auto wname  = world.name();
-  auto dot    = wname.rfind('.');
-  auto name   = dot==std::string::npos ? wname : wname.substr(0,dot);
+Sky::Sky(std::string_view wname) {
+  auto dot  = wname.rfind('.');
+  auto name = dot==std::string::npos ? wname : wname.substr(0,dot);
   for(size_t i=0; i<2; ++i) {
     clouds[0].lay[i] = skyTexture(name,true, i);
     clouds[1].lay[i] = skyTexture(name,false,i);
@@ -66,8 +64,8 @@ Sky::Sky(const SceneGlobals& scene, const World& world)
     zMoonSize=400
     zMoonAlpha=255
     */
-  sunImg       = Resources::loadTexture(Gothic::settingsGetS("SKY_OUTDOOR","zSunName"));
-  moonImg      = Resources::loadTexture(Gothic::settingsGetS("SKY_OUTDOOR","zMoonName"));
+  sunImg  = Resources::loadTexture(Gothic::settingsGetS("SKY_OUTDOOR","zSunName"));
+  moonImg = Resources::loadTexture(Gothic::settingsGetS("SKY_OUTDOOR","zMoonName"));
   if(sunImg==nullptr)
     sunImg = &Resources::fallbackBlack();
   if(moonImg==nullptr)
@@ -151,10 +149,9 @@ void Sky::updateLight(const gtime gameTime) {
   ambient = ambient*ambMul;
   }
 
-Vec2 Sky::cloudsOffset(int layer) const {
-  auto ticks = scene.tickCount;
-  auto t0    = float(ticks%90000 )/90000.f;
-  auto t1    = float(ticks%270000)/270000.f;
+Vec2 Sky::cloudsOffset(int layer, uint64_t tickCount) const {
+  auto t0 = float(tickCount%90000 )/90000.f;
+  auto t1 = float(tickCount%270000)/270000.f;
 
   Vec2 ret = {};
   if(layer==0)
