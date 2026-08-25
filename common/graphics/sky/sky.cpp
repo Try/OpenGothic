@@ -81,7 +81,9 @@ float Sky::isNight() const {
   return 1.f - linearstep(-0.18f, 0.f, sun.dir().y);
   }
 
-void Sky::updateLight(const int64_t now) {
+void Sky::updateLight(const gtime gameTime) {
+  const int64_t now = gameTime.timeInDay().toInt();
+
   // https://www.suncalc.org/#/52.4561,13.4033,5/2020.06.28/13:09/1/3
   const int64_t rise         = gtime( 4,45).toInt();
   const int64_t meridian     = gtime(13, 9).toInt();

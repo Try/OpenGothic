@@ -8,6 +8,7 @@
 #include "resources.h"
 
 class World;
+class gtime;
 
 class Sky final {
   public:
@@ -18,7 +19,7 @@ class Sky final {
     Sky(const SceneGlobals& scene, const World& world);
     ~Sky();
 
-    void updateLight(const int64_t now);
+    void updateLight(const gtime gameTime);
 
     const LightSource&        sunLight()         const { return sun;     }
     const Tempest::Vec3&      ambientLight()     const { return ambient; }

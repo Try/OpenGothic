@@ -370,7 +370,7 @@ void InventoryMenu::mouseDownEvent(MouseEvent &e) {
     close();
 
   adjustScroll();
-}
+  }
 
 void InventoryMenu::mouseUpEvent(MouseEvent&) {
   takeTimer.stop();
@@ -397,10 +397,6 @@ void InventoryMenu::mouseWheelEvent(MouseEvent &e) {
     scrollDelta %= 120;
     }
   adjustScroll();
-  }
-
-const World *InventoryMenu::world() const {
-  return Gothic::inst().world();
   }
 
 size_t InventoryMenu::rowsCount() const {
@@ -674,7 +670,7 @@ void InventoryMenu::drawSlot(Painter &p, DrawPass pass, const Inventory::Iterato
 void InventoryMenu::drawGold(Painter &p, Npc &player, int x, int y) {
   if(!slot)
     return;
-  auto           w    = world();
+  auto           w    = Gothic::inst().world();
   auto           txt  = w ? w->script().currencyName() : "";
   const size_t   gold = player.inventory().goldCount();
   if(txt.empty())

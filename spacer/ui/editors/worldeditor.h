@@ -4,6 +4,8 @@
 #include "ui/property/propertylist.h"
 #include "ui/dragdrop.h"
 
+class WorldEdit;
+
 class WorldEditor: public BaseEditor,
                    public DropReciver  {
   public:
@@ -23,5 +25,9 @@ class WorldEditor: public BaseEditor,
     void paintEvent(Tempest::PaintEvent& e) override;
 
   private:
+    void load(std::string_view wname);
+
     std::vector<PropertyList::Prop> props;
+
+    std::unique_ptr<WorldEdit> level;
   };

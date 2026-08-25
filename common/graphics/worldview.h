@@ -19,6 +19,7 @@ class World;
 class Camera;
 class ParticleFx;
 class PackedMesh;
+class gtime;
 
 class WorldView {
   public:
@@ -30,8 +31,6 @@ class WorldView {
     std::pair<Tempest::Vec3, Tempest::Vec3> bbox() const;
 
     bool isInPfxRange(const Tempest::Vec3& pos) const;
-
-    void tick(uint64_t dt);
 
     void preFrameUpdate(const Camera& camera, uint64_t tickCount, uint8_t fId);
     void postFrameupdate();
@@ -52,7 +51,7 @@ class WorldView {
 
     void dbgLights      (DbgPainter& p) const;
 
-    bool updateLights();
+    bool updateLights(const gtime gameTime);
     bool updateRtScene();
 
     void updateFrustrum (const Frustrum fr[]);
@@ -73,8 +72,8 @@ class WorldView {
     MeshObjects::Mesh   addStaticView(const ProtoMesh* visual, bool staticDraw = false);
     MeshObjects::Mesh   addStaticView(std::string_view visual);
     MeshObjects::Mesh   addDecalView (const zenkit::VisualDecal& vob);
-    LightGroup::Light   addLight     (const zenkit::VLight& vob);
-    LightGroup::Light   addLight     (std::string_view preset);
+    LightGroup::Light   addLight     (const zenkit::VLight& vob, const uint64_t timeOffset);
+    LightGroup::Light   addLight     (std::string_view preset, const uint64_t timeOffset);
 
     void                dbgClusters(Tempest::Painter& p, Tempest::Vec2 wsz);
 
@@ -88,7 +87,6 @@ class WorldView {
     auto                instanceSsbo() const -> const Tempest::StorageBuffer&;
 
   private:
-    const World&  owner;
     std::pair<Tempest::Vec3, Tempest::Vec3> aabb;
     SceneGlobals  sGlobal;
     Sky           gSky;

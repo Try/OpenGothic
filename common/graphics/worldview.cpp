@@ -9,7 +9,7 @@
 using namespace Tempest;
 
 WorldView::WorldView(const World& world, const PackedMesh& wmesh)
-    : owner(world),aabb(wmesh.bbox()),gSky(sGlobal,world),gLights(sGlobal),visuals(sGlobal,wmesh.bbox()),
+    : aabb(wmesh.bbox()), gSky(sGlobal,world), gLights(sGlobal), visuals(sGlobal,wmesh.bbox()),
     objGroup(visuals),pfxGroup(*this,sGlobal,visuals),land(visuals,wmesh) {
   pfxGroup.resetTicks();
   }
@@ -35,11 +35,6 @@ bool WorldView::isInPfxRange(const Vec3& pos) const {
   return pfxGroup.isInPfxRange(pos);
   }
 
-void WorldView::tick(uint64_t /*dt*/) {
-  auto& cam = owner.gameSession().camera();
-  pfxGroup.setViewerPos(cam.originLwc());
-  }
-
 void WorldView::preFrameUpdate(const Camera& camera, uint64_t tickCount, uint8_t fId) {
   const auto ldir = gSky.sunLight().dir();
   Tempest::Matrix4x4 shadow   [Resources::ShadowLayers];
@@ -57,6 +52,7 @@ void WorldView::preFrameUpdate(const Camera& camera, uint64_t tickCount, uint8_t
   sGlobal.setSky(gSky);
   sGlobal.setWorld(*this);
 
+  pfxGroup.setViewerPos(camera.originLwc());
   pfxGroup.tick(tickCount);
   gLights.tick(tickCount);
   sGlobal.setTime(tickCount);
@@ -196,15 +192,15 @@ MeshObjects::Mesh WorldView::addDecalView(const zenkit::VisualDecal& vob) {
   return MeshObjects::Mesh();
   }
 
-LightGroup::Light WorldView::addLight(const zenkit::VLight& vob) {
+LightGroup::Light WorldView::addLight(const zenkit::VLight& vob, const uint64_t timeOffset) {
   auto l = gLights.add(vob);
-  l.setTimeOffset(owner.tickCount());
+  l.setTimeOffset(timeOffset);
   return l;
   }
 
-LightGroup::Light WorldView::addLight(std::string_view preset) {
+LightGroup::Light WorldView::addLight(std::string_view preset, const uint64_t timeOffset) {
   auto l = gLights.add(preset);
-  l.setTimeOffset(owner.tickCount());
+  l.setTimeOffset(timeOffset);
   return l;
   }
 
@@ -228,9 +224,8 @@ const Tempest::StorageBuffer& WorldView::instanceSsbo() const {
   return visuals.instanceSsbo();
   }
 
-bool WorldView::updateLights() {
-  const int64_t now = owner.time().timeInDay().toInt();
-  gSky.updateLight(now);
+bool WorldView::updateLights(const gtime gameTime) {
+  gSky.updateLight(gameTime);
   if(!gLights.updateLights())
     return false;
   sGlobal.lights = &gLights.lightsSsbo();

@@ -1,9 +1,13 @@
 #include "worldeditor.h"
 
 #include <Tempest/Painter>
+#include <Tempest/Log>
 
 #include "ui/property/property.h"
 #include "ui/property/propertylist.h"
+#include "ui/objects/worldedit.h"
+
+#include "resources.h"
 
 using namespace Tempest;
 
@@ -24,6 +28,13 @@ WorldEditor::WorldEditor() {
     {"zbias",                 Property::Type::Vec1},
     {"isAmbient",             Property::Type::Bool1},
     };
+
+  try {
+    level.reset(new WorldEdit("dragonisland.zen"));
+    }
+  catch(...) {
+    Tempest::Log::e("unable to load landscape mesh");
+    }
   }
 
 WorldEditor::~WorldEditor() {

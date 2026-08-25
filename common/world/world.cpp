@@ -83,7 +83,7 @@ World::World(GameSession& game, std::string_view file, bool startup, std::functi
 
     auto wdynamicFut = std::async(std::launch::async, [&]() {
       Workers::setThreadName("Loading: BVH thread");
-      return std::unique_ptr<DynamicWorld>(new DynamicWorld(*this,worldMesh));
+      return std::unique_ptr<DynamicWorld>(new DynamicWorld(this,worldMesh));
       });
     auto wviewFut = std::async(std::launch::async, [&]() {
       Workers::setThreadName("Loading: PackedMesh thread");
@@ -281,11 +281,11 @@ MeshObjects::Mesh World::addDecalView(const zenkit::VisualDecal& decal) {
   }
 
 LightGroup::Light World::addLight(const zenkit::VLight& vob) {
-  return view()->addLight(vob);
+  return view()->addLight(vob, tickCount());
   }
 
 LightGroup::Light World::addLight(std::string_view preset) {
-  return view()->addLight(preset);
+  return view()->addLight(preset, tickCount());
   }
 
 void World::updateAnimation(uint64_t dt) {
@@ -378,7 +378,6 @@ void World::tick(uint64_t dt) {
     return;
   wobj.tick(dt,dt);
   wdynamic->tick(dt);
-  wview->tick(dt);
   if(auto pl = player())
     wsound.tick(*pl);
   globFx->tick(dt);

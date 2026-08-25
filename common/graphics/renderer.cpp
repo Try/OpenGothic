@@ -625,16 +625,17 @@ void Renderer::dbgDraw(Tempest::Painter& p) {
   }
 
 void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, uint8_t fId) {
+  auto world  = Gothic::inst().world();
   auto wview  = Gothic::inst().worldView();
   auto camera = Gothic::inst().camera();
-  if(wview==nullptr || camera==nullptr) {
+  if(world==nullptr || wview==nullptr || camera==nullptr) {
     cmd.setFramebuffer({{result, Vec4(), Tempest::Preserve}});
     return;
     }
 
   if(requiresTlas())
     wview->updateRtScene();
-  wview->updateLights();
+  wview->updateLights(world->time());
 
   if(requiresLightsTree())
     prepareLightsBvh(cmd, *wview);
@@ -656,7 +657,7 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
     wview->updateFrustrum(frustrum);
     }
 
-  wview->preFrameUpdate(*camera,Gothic::inst().world()->tickCount(),fId);
+  wview->preFrameUpdate(*camera,world->tickCount(),fId);
   wview->prepareGlobals(cmd,fId);
 
   if(settings.pathTraceEnabled) {

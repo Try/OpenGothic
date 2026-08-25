@@ -107,7 +107,6 @@ class InventoryMenu : public Tempest::Widget {
 
     const Page&               activePage();
     PageLocal&                activePageSel();
-    const World*              world() const;
 
     void          processMove(Tempest::KeyEvent& e);
     void          moveLeft(bool usePage);
