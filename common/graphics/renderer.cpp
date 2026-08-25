@@ -43,8 +43,7 @@ static Size tileCount(Size sz, int s) {
   return sz;
   }
 
-Renderer::Renderer(Tempest::Swapchain& swapchain)
-  : swapchain(swapchain) {
+Renderer::Renderer() {
   auto& device = Resources::device();
 
   static const TextureFormat sfrm[] = {
@@ -111,67 +110,6 @@ Renderer::~Renderer() {
   Gothic::inst().onSettingsChanged.ubind(this,&Renderer::setupSettings);
   }
 
-void Renderer::resetSwapchain(Tempest::Swapchain& swapchain) {
-  auto& device = Resources::device();
-  device.waitIdle();
-
-  const auto     res    = internalResolution();
-  const uint32_t w      = uint32_t(res.w);
-  const uint32_t h      = uint32_t(res.h);
-
-  sceneLinear = device.attachment(TextureFormat::R11G11B10UF,w,h);
-
-  if(settings.aaEnabled) {
-    cmaa2.workingEdges               = device.image2d(TextureFormat::R8, (w + 1) / 2, h);
-    cmaa2.shapeCandidates            = device.ssbo(Tempest::Uninitialized, w * h / 4 * sizeof(uint32_t));
-    cmaa2.deferredBlendLocationList  = device.ssbo(Tempest::Uninitialized, (w * h + 3) / 6 * sizeof(uint32_t));
-    cmaa2.deferredBlendItemList      = device.ssbo(Tempest::Uninitialized, w * h * sizeof(uint32_t));
-    cmaa2.deferredBlendItemListHeads = device.image2d(TextureFormat::R32U, (w + 1) / 2, (h + 1) / 2);
-    cmaa2.controlBuffer              = device.ssbo(nullptr, 5 * sizeof(uint32_t));
-    cmaa2.indirectBuffer             = device.ssbo(nullptr, sizeof(DispatchIndirectCommand) + sizeof(DrawIndirectCommand));
-    }
-
-  zbuffer = device.zbuffer(zBufferFormat,w,h);
-  if(w!=swapchain.w() || h!=swapchain.h())
-    zbufferUi = device.zbuffer(zBufferFormat, swapchain.w(), swapchain.h()); else
-    zbufferUi = ZBuffer();
-
-  uint32_t pw = nextPot(w);
-  uint32_t ph = nextPot(h);
-
-  uint32_t hw = pw;
-  uint32_t hh = ph;
-  while(hw>64 || hh>64) {
-    hw = std::max(1u, (hw+1)/2u);
-    hh = std::max(1u, (hh+1)/2u);
-    }
-
-  hiz.hiZ       = device.image2d(TextureFormat::R16,  hw, hh, true);
-  hiz.counter   = device.ssbo(nullptr, sizeof(uint32_t));
-
-  sceneOpaque   = device.attachment(TextureFormat::R11G11B10UF,w,h);
-  sceneDepth    = device.attachment(TextureFormat::R32F,       w,h);
-
-  gbufDiffuse   = device.attachment(TextureFormat::RGBA8,w,h);
-  gbufNormal    = device.attachment(TextureFormat::R32U, w,h);
-
-  ssao.ssaoBuf  = device.image2d(ssao.aoFormat, w, h);
-  ssao.ssaoBlur = device.image2d(ssao.aoFormat, w, h);
-
-  epipolar = decltype(epipolar)();
-  vsm      = decltype(vsm)();
-  rtsm     = decltype(rtsm)();
-
-  // software renderer
-  swr.outputImage = StorageImage();
-
-  // swrt
-  swrt.outputImage = StorageImage();
-
-  resetSkyFog();
-  prepareUniforms();
-  }
-
 void Renderer::setupSettings() {
   settings.zEnvMappingEnabled = Gothic::settingsGetI("ENGINE","zEnvMappingEnabled")!=0;
   settings.zCloudShadowScale  = Gothic::settingsGetI("ENGINE","zCloudShadowScale") !=0;
@@ -188,11 +126,9 @@ void Renderer::setupSettings() {
   if(settings.moonSize<=1)
     settings.moonSize = 400;
 
-  auto prevVidResIndex = settings.vidResIndex;
   settings.vidResIndex = Gothic::inst().settingsGetF("INTERNAL","vidResIndex");
   settings.aaEnabled   = (Gothic::options().aaPreset>0) && (settings.vidResIndex==0);
 
-  shaders.waitCompiler();
   // direct lighting
   if(settings.rtsmEnabled)
     shadow.directLightPso = &shaders.rtsmDirectLight;
@@ -225,17 +161,17 @@ void Renderer::setupSettings() {
     settings.giMethod = GiMethod::None;
     }
 
-  if(prevVidResIndex!=settings.vidResIndex) {
-    resetSwapchain(swapchain);
-    }
   if(settings.giMethod!=GiMethod::None) {
     // need a projective shadow, for gi
     resetShadowmap();
     }
+
   resetSkyFog();
   resetShadowmap();
-
   prepareUniforms();
+
+  // wind and such
+  // wview->setupSettings();
   }
 
 void Renderer::toggleGi() {
@@ -264,7 +200,6 @@ void Renderer::toggleVsm() {
   device.waitIdle();
 
   setupSettings();
-  resetSwapchain(swapchain);
   }
 
 void Renderer::toggleRtsm() {
@@ -272,29 +207,17 @@ void Renderer::toggleRtsm() {
     return;
 
   settings.rtsmEnabled = !settings.rtsmEnabled;
-
-  auto& device = Resources::device();
-  device.waitIdle();
-
   setupSettings();
-  resetSwapchain(swapchain);
   }
 
 void Renderer::togglePathtrace() {
   settings.pathTraceEnabled = !settings.pathTraceEnabled;
-
   pt.numFrames = 0;
-
-  auto& device = Resources::device();
-  device.waitIdle();
-
   setupSettings();
-  resetSwapchain(swapchain);
   }
 
 void Renderer::onWorldChanged() {
   sky.lutIsInitialized = false;
-  resetSwapchain(swapchain);
   resetSkyFog();
   prepareUniforms();
   }
@@ -413,6 +336,7 @@ void Renderer::prepareUniforms() {
   if(wview==nullptr)
     return;
 
+  //TODO: remove
   // wind and such
   wview->setupSettings();
 
@@ -427,6 +351,67 @@ void Renderer::prepareUniforms() {
   wview->setHiZ(textureCast<const Texture2d&>(hiz.hiZ));
   wview->setGbuffer(textureCast<const Texture2d&>(gbufDiffuse), textureCast<const Texture2d&>(gbufNormal));
   wview->setSceneImages(textureCast<const Texture2d&>(sceneOpaque), textureCast<const Texture2d&>(sceneDepth), zbuffer);
+  }
+
+void Renderer::resetViewport(Tempest::Size res, Tempest::Size fullRes) {
+  auto& device = Resources::device();
+  device.waitIdle();
+
+  const uint32_t w = uint32_t(res.w);
+  const uint32_t h = uint32_t(res.h);
+
+  sceneLinear = device.attachment(TextureFormat::R11G11B10UF,w,h);
+
+  if(settings.aaEnabled) {
+    cmaa2.workingEdges               = device.image2d(TextureFormat::R8, (w + 1) / 2, h);
+    cmaa2.shapeCandidates            = device.ssbo(Tempest::Uninitialized, w * h / 4 * sizeof(uint32_t));
+    cmaa2.deferredBlendLocationList  = device.ssbo(Tempest::Uninitialized, (w * h + 3) / 6 * sizeof(uint32_t));
+    cmaa2.deferredBlendItemList      = device.ssbo(Tempest::Uninitialized, w * h * sizeof(uint32_t));
+    cmaa2.deferredBlendItemListHeads = device.image2d(TextureFormat::R32U, (w + 1) / 2, (h + 1) / 2);
+    cmaa2.controlBuffer              = device.ssbo(nullptr, 5 * sizeof(uint32_t));
+    cmaa2.indirectBuffer             = device.ssbo(nullptr, sizeof(DispatchIndirectCommand) + sizeof(DrawIndirectCommand));
+    }
+
+  zbuffer = device.zbuffer(zBufferFormat,w,h);
+  if(res!=fullRes)
+    zbufferUi = device.zbuffer(zBufferFormat, fullRes); else
+    zbufferUi = ZBuffer();
+
+  uint32_t pw = nextPot(w);
+  uint32_t ph = nextPot(h);
+
+  uint32_t hw = pw;
+  uint32_t hh = ph;
+  while(hw>64 || hh>64) {
+    hw = std::max(1u, (hw+1)/2u);
+    hh = std::max(1u, (hh+1)/2u);
+    }
+
+  hiz.hiZ       = device.image2d(TextureFormat::R16,  hw, hh, true);
+  hiz.counter   = device.ssbo(nullptr, sizeof(uint32_t));
+
+  sceneOpaque   = device.attachment(TextureFormat::R11G11B10UF,w,h);
+  sceneDepth    = device.attachment(TextureFormat::R32F,       w,h);
+
+  gbufDiffuse   = device.attachment(TextureFormat::RGBA8,w,h);
+  gbufNormal    = device.attachment(TextureFormat::R32U, w,h);
+
+  ssao     = decltype(ssao)();
+  epipolar = decltype(epipolar)();
+  vsm      = decltype(vsm)();
+  rtsm     = decltype(rtsm)();
+
+  // volumetric sky
+  sky.occlusionLut = StorageImage();
+
+  // software renderer
+  swr.outputImage = StorageImage();
+
+  // swrt
+  swrt.outputImage = StorageImage();
+
+  resetSkyFog();
+  prepareUniforms();
   }
 
 void Renderer::resetShadowmap() {
@@ -451,10 +436,6 @@ void Renderer::resetShadowmap() {
 void Renderer::resetSkyFog() {
   auto& device = Resources::device();
 
-  const auto     res = internalResolution();
-  const uint32_t w   = uint32_t(res.w);
-  const uint32_t h   = uint32_t(res.h);
-
   {
     auto q = Quality::VolumetricLQ;
     if(!settings.zFogRadial) {
@@ -467,7 +448,7 @@ void Renderer::resetSkyFog() {
     if(skyPathTrace)
       q = PathTrace;
 
-    if(sky.quality==q && (sky.occlusionLut.isEmpty() || sky.occlusionLut.size()==res)) {
+    if(sky.quality==q) {
       return;
       }
 
@@ -476,26 +457,22 @@ void Renderer::resetSkyFog() {
 
   Resources::recycle(std::move(sky.fogLut3D));
   Resources::recycle(std::move(sky.fogLut3DMs));
-  Resources::recycle(std::move(sky.occlusionLut));
 
   sky.lutIsInitialized = false;
 
   switch(sky.quality) {
     case None:
     case VolumetricLQ:
-      sky.fogLut3D     = device.image3d(sky.lutRGBAFormat, 160, 90, 64);
-      sky.occlusionLut = StorageImage();
+      sky.fogLut3D   = device.image3d(sky.lutRGBAFormat, 160, 90, 64);
       break;
     case VolumetricHQ:
       // fogLut and oclussion are decupled
-      sky.fogLut3D      = device.image3d(sky.lutRGBFormat,  128,64,32);
-      sky.fogLut3DMs    = device.image3d(sky.lutRGBAFormat, 128,64,32);
-      sky.occlusionLut  = device.image2d(TextureFormat::R32U, w, h);
+      sky.fogLut3D   = device.image3d(sky.lutRGBFormat,  128,64,32);
+      sky.fogLut3DMs = device.image3d(sky.lutRGBAFormat, 128,64,32);
       break;
     case Epipolar:
-      sky.fogLut3D      = device.image3d(sky.lutRGBFormat,  128,64,32);
-      sky.fogLut3DMs    = device.image3d(sky.lutRGBAFormat, 128,64,32);
-      sky.occlusionLut  = device.image2d(TextureFormat::R32U, w, h); //TODO: remove
+      sky.fogLut3D   = device.image3d(sky.lutRGBFormat,  128,64,32);
+      sky.fogLut3DMs = device.image3d(sky.lutRGBAFormat, 128,64,32);
       break;
     case PathTrace:
       break;
@@ -630,6 +607,11 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
     }
 
   shaders.waitCompiler();
+
+  const auto res = internalResolution(result.size());
+  if(res!=zbuffer.size()) {
+    resetViewport(res, result.size());
+    }
 
   if(requiresTlas())
     wview->updateRtScene();
@@ -831,7 +813,7 @@ void Renderer::drawCMAA2(Tempest::Attachment& result, Tempest::Encoder<Tempest::
   }
 
 void Renderer::drawFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview) {
-  auto& scene  = wview.sceneGlobals();
+  auto& scene = wview.sceneGlobals();
 
   switch(sky.quality) {
     case None:
@@ -1859,6 +1841,14 @@ void Renderer::prepareSSAO(Encoder<CommandBuffer>& cmd, WorldView& wview) {
   push.projInv = proj;
   push.projInv.inverse();
 
+  auto& device = Resources::device();
+  if(ssao.ssaoBuf.size()!=zbuffer.size()) {
+    Resources::recycle(std::move(ssao.ssaoBuf));
+    Resources::recycle(std::move(ssao.ssaoBlur));
+    ssao.ssaoBuf  = device.image2d(ssao.aoFormat, zbuffer.size());
+    ssao.ssaoBlur = device.image2d(ssao.aoFormat, zbuffer.size());
+    }
+
   cmd.setFramebuffer({});
   cmd.setDebugMarker("SSAO");
 
@@ -1915,9 +1905,10 @@ void Renderer::prepareFog(Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview
     case VolumetricLQ:
       break;
     case VolumetricHQ: {
+      auto& occlusionLut = usesImage2d(sky.occlusionLut, TextureFormat::R32U, zbuffer.size());
       if(settings.vsmEnabled && !settings.rtsmEnabled && !settings.pathTraceEnabled) {
         cmd.setFramebuffer({});
-        cmd.setBinding(0, sky.occlusionLut);
+        cmd.setBinding(0, occlusionLut);
         cmd.setBinding(1, epipolar.epTrace);
         cmd.setBinding(2, wview.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
         cmd.setBinding(3, epipolar.epipoles);
@@ -1928,17 +1919,17 @@ void Renderer::prepareFog(Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview
         cmd.setFramebuffer({});
         cmd.setBinding(2, zbuffer, Sampler::nearest());
         cmd.setBinding(3, scene.uboGlobal[SceneGlobals::V_Main]);
-        cmd.setBinding(4, sky.occlusionLut);
+        cmd.setBinding(4, occlusionLut);
         cmd.setBinding(5, shadowMap[1], Resources::shadowSampler());
         cmd.setPipeline(shaders.fogOcclusion);
-        cmd.dispatchThreads(sky.occlusionLut.size());
+        cmd.dispatchThreads(occlusionLut.size());
         }
       break;
       }
     case Epipolar:{
       // experimental
       if(vsm.fogDbg.isEmpty())
-        vsm.fogDbg   = device.image2d(sky.lutRGBFormat,    1024, 2*1024);
+        vsm.fogDbg = device.image2d(sky.lutRGBFormat, 1024, 2*1024);
       cmd.setFramebuffer({});
       cmd.setDebugMarker("VSM-trace");
       cmd.setBinding(0, vsm.fogDbg);
@@ -1966,12 +1957,13 @@ void Renderer::prepareEpipolar(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wo
 
   auto& scene  = wview.sceneGlobals();
 
-  auto& epTrace  = usesImage2d(epipolar.epTrace,  TextureFormat::R16,  1024, 2*1024);
-  auto& epipoles = usesSsbo   (epipolar.epipoles, shaders.fogEpipolarVsm.sizeofBuffer(3, size_t(epipolar.epTrace.h())));
+  auto& epTrace      = usesImage2d(epipolar.epTrace,  TextureFormat::R16,  1024, 2*1024);
+  auto& epipoles     = usesSsbo   (epipolar.epipoles, shaders.fogEpipolarVsm.sizeofBuffer(3, size_t(epipolar.epTrace.h())));
+  auto& occlusionLut = usesImage2d(sky.occlusionLut, TextureFormat::R32U, zbuffer.size());
 
   cmd.setDebugMarker("Fog-epipolar");
   cmd.setFramebuffer({});
-  cmd.setBinding(0, sky.occlusionLut);
+  cmd.setBinding(0, occlusionLut);
   cmd.setBinding(1, epTrace);
   cmd.setBinding(2, scene.uboGlobal[SceneGlobals::V_Main]);
   cmd.setBinding(3, epipoles);
@@ -2701,11 +2693,11 @@ float Renderer::internalResolutionScale() const {
   return 0.5;
   }
 
-Size Renderer::internalResolution() const {
+Size Renderer::internalResolution(Tempest::Size src) const {
   if(settings.vidResIndex==0)
-     return Size(int(swapchain.w()), int(swapchain.h()));
+     return src;
   if(settings.vidResIndex==1)
-    return Size(int(3*swapchain.w()/4), int(3*swapchain.h()/4));
-  return Size(int(swapchain.w()/2), int(swapchain.h()/2));
+    return Size(3*src.w/4, 3*src.h/4);
+  return Size(src.w/2, src.h/2);
   }
 

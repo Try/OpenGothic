@@ -17,10 +17,9 @@ class VideoWidget;
 
 class Renderer final {
   public:
-    Renderer(Tempest::Swapchain& swapchain);
+    Renderer();
     ~Renderer();
 
-    void resetSwapchain(Tempest::Swapchain& swapchain);
     void onWorldChanged();
 
     void draw(Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t cmdId,
@@ -40,7 +39,7 @@ class Renderer final {
       Epipolar,
       PathTrace,
       };
-    Tempest::Size internalResolution() const;
+    Tempest::Size internalResolution(Tempest::Size src) const;
     float         internalResolutionScale() const;
 
     void updateCamera(const Camera &camera);
@@ -58,6 +57,7 @@ class Renderer final {
     Tempest::StorageBuffer& usesScratch(Tempest::StorageBuffer& ret, size_t size);
 
     void prepareUniforms();
+    void resetViewport(Tempest::Size size, Tempest::Size fullRes);
     void resetShadowmap();
     void resetSkyFog();
 
@@ -146,7 +146,6 @@ class Renderer final {
       } settings;
 
     Frustrum                  frustrum[SceneGlobals::V_Count];
-    Tempest::Swapchain&       swapchain;
     Tempest::Matrix4x4        proj, viewProj, viewProjLwc;
     Tempest::Matrix4x4        shadowMatrix[Resources::ShadowLayers];
     Tempest::Matrix4x4        shadowMatrixVsm;

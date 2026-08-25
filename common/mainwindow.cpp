@@ -30,8 +30,7 @@ using namespace Tempest;
 
 MainWindow::MainWindow(Device& device)
   : Window(Maximized),device(device),swapchain(device,hwnd()),
-    atlas(device),renderer(swapchain),
-    rootMenu(keycodec),inventory(keycodec),
+    atlas(device),rootMenu(keycodec),inventory(keycodec),
     dialogs(inventory),document(keycodec),
     console(*this),
 #if defined(__MOBILE_PLATFORM__)
@@ -293,7 +292,6 @@ void MainWindow::resizeEvent(SizeEvent&) {
   for(auto& i:fence)
     i.wait();
   swapchain.reset();
-  renderer.resetSwapchain(swapchain);
   if(auto camera = Gothic::inst().camera())
     camera->setViewport(swapchain.w(),swapchain.h());
 
@@ -1294,7 +1292,6 @@ void MainWindow::render(){
     Log::e("swapchain is outdated - reset renderer");
     device.waitIdle();
     swapchain.reset();
-    renderer.resetSwapchain(swapchain);
     }
   }
 
