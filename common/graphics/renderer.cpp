@@ -111,10 +111,9 @@ Renderer::~Renderer() {
   Gothic::inst().onSettingsChanged.ubind(this,&Renderer::setupSettings);
   }
 
-void Renderer::resetSwapchain() {
+void Renderer::resetSwapchain(Tempest::Swapchain& swapchain) {
   auto& device = Resources::device();
   device.waitIdle();
-  shaders.waitCompiler();
 
   const auto     res    = internalResolution();
   const uint32_t w      = uint32_t(res.w);
@@ -193,6 +192,7 @@ void Renderer::setupSettings() {
   settings.vidResIndex = Gothic::inst().settingsGetF("INTERNAL","vidResIndex");
   settings.aaEnabled   = (Gothic::options().aaPreset>0) && (settings.vidResIndex==0);
 
+  shaders.waitCompiler();
   // direct lighting
   if(settings.rtsmEnabled)
     shadow.directLightPso = &shaders.rtsmDirectLight;
@@ -226,7 +226,7 @@ void Renderer::setupSettings() {
     }
 
   if(prevVidResIndex!=settings.vidResIndex) {
-    resetSwapchain();
+    resetSwapchain(swapchain);
     }
   if(settings.giMethod!=GiMethod::None) {
     // need a projective shadow, for gi
@@ -264,7 +264,7 @@ void Renderer::toggleVsm() {
   device.waitIdle();
 
   setupSettings();
-  resetSwapchain();
+  resetSwapchain(swapchain);
   }
 
 void Renderer::toggleRtsm() {
@@ -277,7 +277,7 @@ void Renderer::toggleRtsm() {
   device.waitIdle();
 
   setupSettings();
-  resetSwapchain();
+  resetSwapchain(swapchain);
   }
 
 void Renderer::togglePathtrace() {
@@ -289,14 +289,12 @@ void Renderer::togglePathtrace() {
   device.waitIdle();
 
   setupSettings();
-  resetSwapchain();
+  resetSwapchain(swapchain);
   }
 
 void Renderer::onWorldChanged() {
   sky.lutIsInitialized = false;
-  shaders.waitCompiler();
-
-  resetSwapchain();
+  resetSwapchain(swapchain);
   resetSkyFog();
   prepareUniforms();
   }
@@ -561,11 +559,9 @@ void Renderer::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldVi
   cmd.draw(nullptr, 0, 3);
   }
 
-void Renderer::draw(Encoder<CommandBuffer>& cmd, uint8_t cmdId, size_t imgId,
+void Renderer::draw(Attachment& result, Encoder<CommandBuffer>& cmd, uint8_t cmdId,
                     VectorImage::Mesh& uiLayer, VectorImage::Mesh& numOverlay,
                     InventoryMenu& inventory, VideoWidget& video) {
-  auto& result = swapchain[imgId];
-
   if(!video.isActive()) {
     draw(result, cmd, cmdId);
     } else {
@@ -632,6 +628,8 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
     cmd.setFramebuffer({{result, Vec4(), Tempest::Preserve}});
     return;
     }
+
+  shaders.waitCompiler();
 
   if(requiresTlas())
     wview->updateRtScene();
@@ -2668,8 +2666,8 @@ Tempest::Attachment Renderer::screenshoot(uint8_t frameId) {
   return img;
 
   // debug
-  auto d16     = device.attachment(TextureFormat::R16,    swapchain.w(),swapchain.h());
-  auto normals = device.attachment(TextureFormat::RGBA16, swapchain.w(),swapchain.h());
+  auto d16     = device.attachment(TextureFormat::R16,    w, h);
+  auto normals = device.attachment(TextureFormat::RGBA16, w, h);
 
   {
   auto enc = cmd.startEncoding(device);

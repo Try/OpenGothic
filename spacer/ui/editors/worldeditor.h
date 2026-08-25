@@ -4,6 +4,8 @@
 #include "ui/property/propertylist.h"
 #include "ui/dragdrop.h"
 
+#include "graphics/renderer.h"
+
 class WorldEdit;
 
 class WorldEditor: public BaseEditor,
@@ -30,4 +32,6 @@ class WorldEditor: public BaseEditor,
     std::vector<PropertyList::Prop> props;
 
     std::unique_ptr<WorldEdit> level;
+
+    //Renderer renderer;
   };

@@ -24,7 +24,7 @@ class Shaders {
       T_Main,
       };
 
-    static Shaders& inst();
+    static Shaders& inst(bool waitCompiler = true);
     static bool isVsmSupported();
     static bool isRtsmSupported();
     static bool isLightsTreeSupported();

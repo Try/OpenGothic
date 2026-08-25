@@ -293,7 +293,7 @@ void MainWindow::resizeEvent(SizeEvent&) {
   for(auto& i:fence)
     i.wait();
   swapchain.reset();
-  renderer.resetSwapchain();
+  renderer.resetSwapchain(swapchain);
   if(auto camera = Gothic::inst().camera())
     camera->setViewport(swapchain.w(),swapchain.h());
 
@@ -1268,7 +1268,7 @@ void MainWindow::render(){
     CommandBuffer& cmd = commands[cmdId];
     {
     auto enc = cmd.startEncoding(device);
-    renderer.draw(enc,cmdId,swapchain.currentImage(),uiMesh[cmdId],numMesh[cmdId],inventory,video);
+    renderer.draw(swapchain[swapchain.currentImage()],enc,cmdId,uiMesh[cmdId],numMesh[cmdId],inventory,video);
     }
     sync = device.submit(cmd);
     device.present(swapchain);
@@ -1294,7 +1294,7 @@ void MainWindow::render(){
     Log::e("swapchain is outdated - reset renderer");
     device.waitIdle();
     swapchain.reset();
-    renderer.resetSwapchain();
+    renderer.resetSwapchain(swapchain);
     }
   }
 
