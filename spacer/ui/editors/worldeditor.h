@@ -7,6 +7,7 @@
 #include "ui/dragdrop.h"
 
 #include "graphics/renderer.h"
+#include "utils/keycodec.h"
 #include "camera.h"
 
 class WorldEdit;
@@ -24,6 +25,12 @@ class WorldEditor: public BaseEditor,
     void undo() override;
     void redo() override;
 
+    void keyDownEvent(Tempest::KeyEvent& e) override;
+    void keyUpEvent(Tempest::KeyEvent& e) override;
+
+    void mouseDownEvent(Tempest::MouseEvent& e) override;
+    void mouseDragEvent(Tempest::MouseEvent& e) override;
+
     void moveDropOver (DropOverEvent& ev) override;
     void dropDone     (DropOverEvent& ev) override;
 
@@ -33,6 +40,8 @@ class WorldEditor: public BaseEditor,
   private:
     void load(std::string_view wname);
     void update3d(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t cmdId);
+    void processKeyboard(Tempest::KeyEvent& e);
+    void tickCamera(uint64_t dt);
 
     std::vector<PropertyList::Prop> props;
 
@@ -45,4 +54,7 @@ class WorldEditor: public BaseEditor,
 
     Tempest::Attachment    sceneImage;
     Renderer               renderer;
+
+    bool                   ctrl[KeyCodec::Last] = {};
+    Tempest::Point         mpos = {};
   };

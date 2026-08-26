@@ -13,6 +13,8 @@
 using namespace Tempest;
 
 WorldEditor::WorldEditor() {
+  setFocusPolicy(Tempest::ClickFocus);
+
   props = {
     {"Vob"},
     {"vobName",               Property::Type::Int1},
@@ -33,9 +35,11 @@ WorldEditor::WorldEditor() {
   try {
     // level.reset(new WorldEdit("dragonisland.zen"));
     level.reset(new WorldEdit("oldworld.zen"));
+
     camera.setMarvinMode(Camera::M_Free);
-    camera.reset();
     camera.setPosition(Vec3(0,500,0));
+    camera.setSpin(PointF(0));
+    camera.setAngles(camera.spin());
     }
   catch(...) {
     Tempest::Log::e("unable to load landscape mesh");
@@ -66,6 +70,50 @@ void WorldEditor::undo() {
   }
 
 void WorldEditor::redo() {
+  }
+
+void WorldEditor::processKeyboard(Tempest::KeyEvent& e) {
+  const bool dw = e.type()==KeyEvent::KeyDown;
+  if(e.key==KeyEvent::K_W)
+    ctrl[KeyCodec::Forward] = dw;
+  if(e.key==KeyEvent::K_A)
+    ctrl[KeyCodec::Left] = dw;
+  if(e.key==KeyEvent::K_S)
+    ctrl[KeyCodec::Back] = dw;
+  if(e.key==KeyEvent::K_D)
+    ctrl[KeyCodec::Right] = dw;
+  }
+
+void WorldEditor::keyDownEvent(Tempest::KeyEvent& e) {
+  processKeyboard(e);
+  update();
+  }
+
+void WorldEditor::keyUpEvent(Tempest::KeyEvent& e) {
+  processKeyboard(e);
+  update();
+  }
+
+void WorldEditor::mouseDownEvent(Tempest::MouseEvent& e) {
+  mpos = e.pos();
+  update();
+  }
+
+void WorldEditor::mouseDragEvent(Tempest::MouseEvent& e) {
+  const auto dp = (e.pos()-mpos);
+  mpos = e.pos();
+
+  PointF dpScaled = PointF(dp.x, dp.y);
+  dpScaled.x/=float(w());
+  dpScaled.y/=float(h());
+
+  static float mul = 270.f;
+  dpScaled *= mul;
+
+  auto rot = camera.spin() + PointF(dpScaled.y,-dpScaled.x);
+  camera.setSpin(rot);
+  camera.setAngles(camera.spin());
+  update();
   }
 
 void WorldEditor::moveDropOver(DropOverEvent& ev) {
@@ -102,6 +150,26 @@ void WorldEditor::update3d(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_
   if(!hasFocus() && !needToUpdate())
     return;
 
-  camera.tick(16); //TODO
+  tickCamera(16); //TODO
   renderer.draw(sceneImage, cmd, cmdId, level->view(), camera);
+  }
+
+void WorldEditor::tickCamera(uint64_t dt) {
+  if(ctrl[KeyCodec::Forward]) {
+    camera.moveForward(dt);
+    update();
+    }
+  if(ctrl[KeyCodec::Left]) {
+    camera.moveLeft(dt);
+    update();
+    }
+  if(ctrl[KeyCodec::Back]) {
+    camera.moveBack(dt);
+    update();
+    }
+  if(ctrl[KeyCodec::Right]) {
+    camera.moveRight(dt);
+    update();
+    }
+  camera.tick(dt);
   }
