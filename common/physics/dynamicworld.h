@@ -41,7 +41,7 @@ class DynamicWorld final {
     static constexpr float bulletSpeed = 3; // centimeters per milliseconds
     static constexpr float spellSpeed  = 1; // centimeters per milliseconds
 
-    DynamicWorld(World &world, const zenkit::Mesh& mesh);
+    DynamicWorld(World *world, const zenkit::Mesh& mesh);
     DynamicWorld(const DynamicWorld&)=delete;
     ~DynamicWorld();
 

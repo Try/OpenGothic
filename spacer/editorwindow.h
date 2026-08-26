@@ -15,6 +15,8 @@ class EditorWindow : public Tempest::Window {
     explicit EditorWindow(Tempest::Device& device);
     ~EditorWindow() override;
 
+    static Tempest::Signal<void(Tempest::Encoder<Tempest::CommandBuffer>&,uint8_t)> onUpdate3D;
+
     enum {
       MaxFramesInFlight = 2
       };

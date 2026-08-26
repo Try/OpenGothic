@@ -114,6 +114,18 @@ void Renderer::setupSettings() {
   settings.zEnvMappingEnabled = Gothic::settingsGetI("ENGINE","zEnvMappingEnabled")!=0;
   settings.zCloudShadowScale  = Gothic::settingsGetI("ENGINE","zCloudShadowScale") !=0;
   settings.zFogRadial         = Gothic::settingsGetI("RENDERER_D3D","zFogRadial")!=0;
+  {
+    // wind
+    settings.zWindEnabled = Gothic::inst().settingsGetI("ENGINE","zWindEnabled")!=0;
+
+    const float period  = Gothic::inst().settingsGetF("ENGINE","zWindCycleTime");
+    const float periodV = Gothic::inst().settingsGetF("ENGINE","zWindCycleTimeVar");
+    settings.windPeriod = uint64_t((period+periodV)*1000.f);
+    if(settings.windPeriod<=0) {
+      settings.windPeriod   = 1;
+      settings.zWindEnabled = false;
+      }
+  }
 
   settings.zVidBrightness     = Gothic::settingsGetF("VIDEO","zVidBrightness");
   settings.zVidContrast       = Gothic::settingsGetF("VIDEO","zVidContrast");
@@ -168,10 +180,6 @@ void Renderer::setupSettings() {
 
   resetSkyFog();
   resetShadowmap();
-  prepareUniforms();
-
-  // wind and such
-  // wview->setupSettings();
   }
 
 void Renderer::toggleGi() {
@@ -219,25 +227,22 @@ void Renderer::togglePathtrace() {
 void Renderer::onWorldChanged() {
   sky.lutIsInitialized = false;
   resetSkyFog();
-  prepareUniforms();
   }
 
-void Renderer::updateCamera(const Camera& camera) {
+void Renderer::updateCamera(const WorldView& wview, const Camera& camera) {
   proj        = camera.projective();
   viewProj    = camera.viewProj();
   viewProjLwc = camera.viewProjLwc();
 
-  if(auto wview=Gothic::inst().worldView()) {
-    for(size_t i=0; i<Resources::ShadowLayers; ++i)
-      shadowMatrix[i] = camera.viewShadow(wview->mainLight().dir(),i);
-    shadowMatrixVsm = camera.viewShadowVsm(wview->mainLight().dir());
-    }
+  for(size_t i=0; i<Resources::ShadowLayers; ++i)
+    shadowMatrix[i] = camera.viewShadow(wview.mainLight().dir(),i);
+  shadowMatrixVsm = camera.viewShadowVsm(wview.mainLight().dir());
 
   auto zNear = camera.zNear();
   auto zFar  = camera.zFar();
-  clipInfo.x  = zNear*zFar;
-  clipInfo.y  = zNear-zFar;
-  clipInfo.z  = zFar;
+  clipInfo.x = zNear*zFar;
+  clipInfo.y = zNear-zFar;
+  clipInfo.z = zFar;
   }
 
 bool Renderer::requiresTlas() const {
@@ -331,26 +336,19 @@ StorageBuffer& Renderer::usesScratch(Tempest::StorageBuffer& ret, size_t size) {
   return ret;
   }
 
-void Renderer::prepareUniforms() {
-  auto wview = Gothic::inst().worldView();
-  if(wview==nullptr)
-    return;
-
-  //TODO: remove
-  // wind and such
-  wview->setupSettings();
-
+void Renderer::prepareUniforms(WorldView& wview) {
   const Texture2d* sh[Resources::ShadowLayers] = {};
   for(size_t i=0; i<Resources::ShadowLayers; ++i)
     if(!shadowMap[i].isEmpty()) {
       sh[i] = &textureCast<const Texture2d&>(shadowMap[i]);
       }
-  wview->setShadowMaps(sh);
-  wview->setVirtualShadowMap(settings.vsmEnabled, vsm.pageData, vsm.pageTbl, vsm.pageHiZ, vsm.pageList);
+  wview.setShadowMaps(sh);
+  wview.setVirtualShadowMap(settings.vsmEnabled, vsm.pageData, vsm.pageTbl, vsm.pageHiZ, vsm.pageList);
 
-  wview->setHiZ(textureCast<const Texture2d&>(hiz.hiZ));
-  wview->setGbuffer(textureCast<const Texture2d&>(gbufDiffuse), textureCast<const Texture2d&>(gbufNormal));
-  wview->setSceneImages(textureCast<const Texture2d&>(sceneOpaque), textureCast<const Texture2d&>(sceneDepth), zbuffer);
+  wview.setHiZ(textureCast<const Texture2d&>(hiz.hiZ));
+  wview.setGbuffer(textureCast<const Texture2d&>(gbufDiffuse), textureCast<const Texture2d&>(gbufNormal));
+  wview.setSceneImages(textureCast<const Texture2d&>(sceneOpaque), textureCast<const Texture2d&>(sceneDepth), zbuffer);
+  wview.setWindEnabled(settings.zWindEnabled, settings.windPeriod);
   }
 
 void Renderer::resetViewport(Tempest::Size res, Tempest::Size fullRes) {
@@ -411,7 +409,6 @@ void Renderer::resetViewport(Tempest::Size res, Tempest::Size fullRes) {
   swrt.outputImage = StorageImage();
 
   resetSkyFog();
-  prepareUniforms();
   }
 
 void Renderer::resetShadowmap() {
@@ -536,15 +533,18 @@ void Renderer::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldVi
   cmd.draw(nullptr, 0, 3);
   }
 
-void Renderer::draw(Attachment& result, Encoder<CommandBuffer>& cmd, uint8_t cmdId,
+void Renderer::draw(Attachment& result, Encoder<CommandBuffer>& cmd, uint8_t fId,
                     VectorImage::Mesh& uiLayer, VectorImage::Mesh& numOverlay,
                     InventoryMenu& inventory, VideoWidget& video) {
-  if(!video.isActive()) {
-    draw(result, cmd, cmdId);
+  auto wview  = Gothic::inst().worldView();
+  auto camera = Gothic::inst().camera();
+
+  if(!video.isActive() && wview!=nullptr && camera!=nullptr) {
+    draw(result, cmd, fId, *wview, *camera);
+    cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}});
     } else {
     cmd.setFramebuffer({{result, Vec4(), Tempest::Preserve}});
     }
-  cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}});
   cmd.setDebugMarker("UI");
   uiLayer.draw(cmd);
 
@@ -597,14 +597,11 @@ void Renderer::dbgDraw(Tempest::Painter& p) {
     }
   }
 
-void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, uint8_t fId) {
-  auto world  = Gothic::inst().world();
-  auto wview  = Gothic::inst().worldView();
-  auto camera = Gothic::inst().camera();
-  if(world==nullptr || wview==nullptr || camera==nullptr) {
-    cmd.setFramebuffer({{result, Vec4(), Tempest::Preserve}});
-    return;
-    }
+void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& wview, const Camera& camera) {
+  //FIXME: those also needed to be refactor away
+  const auto world     = Gothic::inst().world();
+  const auto gameTime  = world!=nullptr ? world->time() : gtime(8,0);
+  const auto tickCount = world!=nullptr ? world->tickCount() : uint64_t();
 
   shaders.waitCompiler();
 
@@ -614,17 +611,17 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
     }
 
   if(requiresTlas())
-    wview->updateRtScene();
-  wview->updateLights(world->time());
+    wview.updateRtScene();
+  wview.updateLights(gameTime);
 
   if(requiresLightsTree())
-    prepareLightsBvh(cmd, *wview);
+    prepareLightsBvh(cmd, wview);
 
-  updateCamera(*camera);
+  updateCamera(wview, camera);
 
   static bool updFr = true;
   if(updFr){
-    if(wview->mainLight().dir().y>Camera::minShadowY) {
+    if(wview.mainLight().dir().y>Camera::minShadowY) {
       frustrum[SceneGlobals::V_Shadow0].make(shadowMatrix[0],shadowMap[0].w(),shadowMap[0].h());
       frustrum[SceneGlobals::V_Shadow1].make(shadowMatrix[1],shadowMap[1].w(),shadowMap[1].h());
       } else {
@@ -634,94 +631,95 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
     frustrum[SceneGlobals::V_Main].make(viewProj,zbuffer.w(),zbuffer.h());
     frustrum[SceneGlobals::V_HiZ] = frustrum[SceneGlobals::V_Main];
     frustrum[SceneGlobals::V_Vsm] = frustrum[SceneGlobals::V_Shadow1]; //TODO: remove
-    wview->updateFrustrum(frustrum);
+    wview.updateFrustrum(frustrum);
     }
 
-  wview->preFrameUpdate(*camera,world->tickCount(),fId);
-  wview->prepareGlobals(cmd,fId);
+  prepareUniforms(wview);
+  wview.preFrameUpdate(camera, tickCount, fId);
+  wview.prepareGlobals(cmd,fId);
 
   if(settings.pathTraceEnabled) {
-    drawPathtrace(cmd, *wview, fId);
+    drawPathtrace(cmd, wview, fId);
     cmd.setDebugMarker("Tonemapping");
-    drawTonemapping(result, cmd, *wview);
-    wview->postFrameupdate();
+    drawTonemapping(result, cmd, wview);
+    wview.postFrameupdate();
     return;
     }
 
-  wview->visibilityPass(cmd, 0);
-  prepareSky(cmd,*wview);
+  wview.visibilityPass(cmd, 0);
+  prepareSky(cmd, wview);
 
-  drawHiZ (cmd, *wview);
+  drawHiZ (cmd, wview);
   buildHiZ(cmd);
 
-  wview->visibilityPass(cmd, 1);
-  drawGBuffer(cmd,fId,*wview);
+  wview.visibilityPass(cmd, 1);
+  drawGBuffer(cmd, fId, wview);
 
-  drawShadowMap(cmd,fId,*wview);
-  prepareEpipolar(cmd, *wview);
+  drawShadowMap(cmd, fId, wview);
+  prepareEpipolar(cmd, wview);
 
-  drawVsm(cmd, *wview);
-  drawSwr(cmd, *wview);
-  drawRtsm(cmd, *wview);
-  drawRtsmOmni(cmd, *wview);
+  drawVsm(cmd, wview);
+  drawSwr(cmd, wview);
+  drawRtsm(cmd, wview);
+  drawRtsmOmni(cmd, wview);
 
-  drawSwRT(cmd, *wview);
+  drawSwRT(cmd, wview);
 
-  prepareIrradiance(cmd,*wview);
-  prepareExposure(cmd,*wview);
-  prepareSSAO(cmd,*wview);
-  prepareFog (cmd,*wview);
-  prepareGi  (cmd,*wview);
-  prepareSurfels(cmd,*wview);
+  prepareIrradiance(cmd, wview);
+  prepareExposure(cmd, wview);
+  prepareSSAO(cmd, wview);
+  prepareFog (cmd, wview);
+  prepareGi  (cmd, wview);
+  prepareSurfels(cmd, wview);
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Discard, Tempest::Preserve}}, {zbuffer, Tempest::Readonly});
-  drawShadowResolve(cmd,*wview);
-  drawAmbient(cmd,*wview);
-  drawLights(cmd,*wview);
-  drawSky(cmd,*wview);
-  drawLightTreeDbg(sceneLinear, cmd, *wview);
+  drawShadowResolve(cmd, wview);
+  drawAmbient(cmd, wview);
+  drawLights(cmd, wview);
+  drawSky(cmd, wview);
+  drawLightTreeDbg(sceneLinear, cmd, wview);
 
   stashSceneAux(cmd);
 
-  drawGWater(cmd, *wview);
+  drawGWater(cmd, wview);
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}}, {zbuffer, Tempest::Preserve, Tempest::Preserve});
   cmd.setDebugMarker("Sun&Moon");
-  drawSunMoon(cmd, *wview);
+  drawSunMoon(cmd, wview);
   cmd.setDebugMarker("Translucent");
-  wview->drawTranslucent(cmd, fId);
+  wview.drawTranslucent(cmd, fId);
 
-  //drawHashDbg(sceneLinear, cmd, *wview);
-  drawProbesDbg(cmd, *wview);
+  //drawHashDbg(sceneLinear, cmd, wview);
+  drawProbesDbg(cmd, wview);
   drawProbesHitDbg(cmd);
-  drawSurfelsDbg(cmd, *wview);
-  drawVsmDbg(cmd, *wview);
-  drawSwrDbg(cmd, *wview);
-  drawRtsmDbg(cmd, *wview);
-  drawRayQueryDbg(cmd, *wview);
+  drawSurfelsDbg(cmd, wview);
+  drawVsmDbg(cmd, wview);
+  drawSwrDbg(cmd, wview);
+  drawRtsmDbg(cmd, wview);
+  drawRayQueryDbg(cmd, wview);
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}});
-  drawReflections(cmd, *wview);
-  if(camera->isInWater()) {
+  drawReflections(cmd, wview);
+  if(camera.isInWater()) {
     cmd.setDebugMarker("Underwater");
-    drawUnderwater(cmd, *wview);
+    drawUnderwater(cmd, wview);
     } else {
     cmd.setDebugMarker("Fog");
-    drawFog(cmd, *wview);
+    drawFog(cmd, wview);
     }
 
   if(settings.aaEnabled) {
     cmd.setDebugMarker("CMAA2 & Tonemapping");
-    drawCMAA2(result, cmd, *wview);
+    drawCMAA2(result, cmd, wview);
     } else {
     cmd.setDebugMarker("Tonemapping");
-    drawTonemapping(result, cmd, *wview);
+    drawTonemapping(result, cmd, wview);
     }
 
-  //drawRayQueryDbg(cmd, *wview);
-  //drawHashDbg(result, cmd, *wview);
+  //drawRayQueryDbg(cmd, wview);
+  //drawHashDbg(result, cmd, wview);
 
-  wview->postFrameupdate();
+  wview.postFrameupdate();
   }
 
 void Renderer::drawTonemapping(Attachment& result, Encoder<CommandBuffer>& cmd, const WorldView& wview) {
@@ -2647,10 +2645,15 @@ Tempest::Attachment Renderer::screenshoot(uint8_t frameId) {
   uint32_t h    = uint32_t(zbuffer.h());
   auto     img  = device.attachment(Tempest::TextureFormat::RGBA8,w,h);
 
+  auto wview  = Gothic::inst().worldView();
+  auto camera = Gothic::inst().camera();
+  if(wview==nullptr || camera==nullptr)
+    return Attachment();
+
   CommandBuffer cmd;
   {
   auto enc = cmd.startEncoding(device);
-  draw(img,enc,frameId);
+  draw(img,enc,frameId,*wview,*camera);
   }
 
   auto sync = device.submit(cmd);

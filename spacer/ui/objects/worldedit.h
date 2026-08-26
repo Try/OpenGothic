@@ -13,6 +13,8 @@ class WorldEdit {
     WorldEdit(std::string_view wname);
     ~WorldEdit();
 
+    WorldView& view() { return *wview; }
+
   private:
     struct Vob {
       std::vector<Vob>                       child;

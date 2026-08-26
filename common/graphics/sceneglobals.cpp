@@ -1,7 +1,8 @@
 #include "sceneglobals.h"
 
 #include "graphics/shaders.h"
-#include "gothic.h"
+#include "graphics/sky/sky.h"
+#include "worldview.h"
 
 static uint32_t nextPot(uint32_t x) {
   x--;
@@ -56,18 +57,6 @@ bool SceneGlobals::isShadowView(VisCamera v) {
       return false;
     }
   return false;
-  }
-
-void SceneGlobals::setupSettings() {
-  zWindEnabled = Gothic::inst().settingsGetI("ENGINE","zWindEnabled")!=0;
-
-  float period  = Gothic::inst().settingsGetF("ENGINE","zWindCycleTime");
-  float periodV = Gothic::inst().settingsGetF("ENGINE","zWindCycleTimeVar");
-  windPeriod = uint64_t((period+periodV)*1000.f);
-  if(windPeriod<=0) {
-    windPeriod   = 1;
-    zWindEnabled = false;
-    }
   }
 
 void SceneGlobals::setViewProject(const Tempest::Matrix4x4& v, const Tempest::Matrix4x4& p,

@@ -520,7 +520,7 @@ struct DynamicWorld::BBoxList final {
   DynamicWorld&          wrld;
   };
 
-DynamicWorld::DynamicWorld(World& owner,const zenkit::Mesh& worldMesh) {
+DynamicWorld::DynamicWorld(World* owner, const zenkit::Mesh& worldMesh) {
   world.reset(new CollisionWorld());
 
   {
@@ -584,13 +584,15 @@ DynamicWorld::DynamicWorld(World& owner,const zenkit::Mesh& worldMesh) {
   bulletList.reset(new BulletsList(*this));
   bboxList  .reset(new BBoxList   (*this));
 
-  world->setItemHitCallback([&](::Item& itm, zenkit::MaterialGroup mat, float impulse, float mass) {
-    auto  snd = owner.addLandHitEffect(ItemMaterial(itm.handle().material),mat,itm.transform());
-    float v   = impulse/mass;
-    float vol = snd.volume()*std::min(v/10.f,1.f);
-    snd.setVolume(vol);
-    snd.play();
-    });
+  if(owner!=nullptr) {
+    world->setItemHitCallback([&](::Item& itm, zenkit::MaterialGroup mat, float impulse, float mass) {
+      auto  snd = owner->addLandHitEffect(ItemMaterial(itm.handle().material),mat,itm.transform());
+      float v   = impulse/mass;
+      float vol = snd.volume()*std::min(v/10.f,1.f);
+      snd.setVolume(vol);
+      snd.play();
+      });
+    }
   }
 
 DynamicWorld::~DynamicWorld(){

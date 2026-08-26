@@ -8,6 +8,8 @@
 
 using namespace Tempest;
 
+Tempest::Signal<void(Tempest::Encoder<Tempest::CommandBuffer>&,uint8_t)> EditorWindow::onUpdate3D;
+
 EditorWindow::EditorWindow(Tempest::Device& device)
   : Window(Maximized), device(device), swapchain(device,hwnd()), texAtlass(device), assets(texAtlass) {
   setWindowTitle("Spacer");
@@ -20,22 +22,28 @@ EditorWindow::~EditorWindow() {
   }
 
 void EditorWindow::render() {
+  if(!needToUpdate())
+    return;
+
   try {
-    static uint64_t time = Application::tickCount();
+    //static uint64_t time = Application::tickCount();
 
     cmdId = (cmdId+1)%MaxFramesInFlight;
 
     auto& sync = fence   [cmdId];
     auto& cmd  = commands[cmdId];
     sync.wait();
+    Resources::resetRecycled(cmdId);
 
     dispatchPaintEvent(uiLayer,texAtlass);
     uiMesh[cmdId].update(device,uiLayer);
 
     {
       auto enc = cmd.startEncoding(device);
-      enc.setFramebuffer({{swapchain[swapchain.currentImage()],Vec4(0),Tempest::Preserve}});
 
+      onUpdate3D(enc, cmdId);
+
+      enc.setFramebuffer({{swapchain[swapchain.currentImage()],Vec4(0),Tempest::Preserve}});
       enc.setViewport(0,0,w(),h());
       uiMesh[cmdId].draw(enc);
     }
