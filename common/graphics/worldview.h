@@ -36,7 +36,6 @@ class WorldView {
     void postFrameupdate();
 
     void prepareGlobals(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t fId);
-    void setupSettings();
 
     void setGbuffer(const Tempest::Texture2d& diffuse,
                     const Tempest::Texture2d& norm);
@@ -48,6 +47,7 @@ class WorldView {
                              const Tempest::StorageBuffer& pageList);
     void setHiZ(const Tempest::Texture2d& hiZ);
     void setSceneImages(const Tempest::Texture2d& clr, const Tempest::Texture2d& depthAux, const Tempest::ZBuffer& depthNative);
+    void setWindEnabled(bool enabled, uint64_t period);
 
     void dbgLights      (DbgPainter& p) const;
 

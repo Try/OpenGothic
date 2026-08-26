@@ -36,8 +36,9 @@ void Shaders::waitCompiler() {
   deferredCompilation.wait();
   }
 
-Shaders& Shaders::inst() {
-  instance->waitCompiler();
+Shaders& Shaders::inst(bool waitCompiler) {
+  if(waitCompiler)
+    instance->waitCompiler();
   return *instance;
   }
 

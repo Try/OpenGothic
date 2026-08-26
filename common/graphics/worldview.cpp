@@ -69,10 +69,6 @@ void WorldView::prepareGlobals(Tempest::Encoder<Tempest::CommandBuffer>& cmd, ui
   visuals.prepareGlobals(cmd, fId);
   }
 
-void WorldView::setupSettings() {
-  sGlobal.setupSettings();
-  }
-
 void WorldView::setGbuffer(const Texture2d& diffuse, const Texture2d& norm) {
   sGlobal.gbufDiffuse = &diffuse;
   sGlobal.gbufNormals = &norm;
@@ -104,6 +100,11 @@ void WorldView::setSceneImages(const Tempest::Texture2d& clr, const Tempest::Tex
   sGlobal.sceneColor = &clr;
   sGlobal.sceneDepth = &depthAux;
   sGlobal.zbuffer    = &textureCast<const Texture2d&>(depthNative);
+  }
+
+void WorldView::setWindEnabled(bool enabled, uint64_t period) {
+  sGlobal.zWindEnabled = enabled && period>0;
+  sGlobal.windPeriod   = period;
   }
 
 void WorldView::dbgLights(DbgPainter& p) const {

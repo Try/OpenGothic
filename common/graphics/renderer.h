@@ -17,15 +17,16 @@ class VideoWidget;
 
 class Renderer final {
   public:
-    Renderer(Tempest::Swapchain& swapchain);
+    Renderer();
     ~Renderer();
 
-    void resetSwapchain();
     void onWorldChanged();
 
-    void draw(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t cmdId, size_t imgId,
+    void draw(Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId,
               Tempest::VectorImage::Mesh& uiLayer, Tempest::VectorImage::Mesh& numOverlay,
               InventoryMenu &inventory, VideoWidget& video);
+    void draw(Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId,
+              WorldView& view, const Camera& camera);
 
     void dbgDraw(Tempest::Painter& painter);
 
@@ -39,10 +40,10 @@ class Renderer final {
       Epipolar,
       PathTrace,
       };
-    Tempest::Size internalResolution() const;
+    Tempest::Size internalResolution(Tempest::Size src) const;
     float         internalResolutionScale() const;
 
-    void updateCamera(const Camera &camera);
+    void updateCamera(const WorldView& wview, const Camera &camera);
     bool requiresTlas() const;
     bool requiresLightsTree() const;
 
@@ -56,7 +57,8 @@ class Renderer final {
     Tempest::StorageBuffer& usesSsboInit(Tempest::StorageBuffer& ret, size_t size);
     Tempest::StorageBuffer& usesScratch(Tempest::StorageBuffer& ret, size_t size);
 
-    void prepareUniforms();
+    void prepareUniforms(WorldView& wview);
+    void resetViewport(Tempest::Size size, Tempest::Size fullRes);
     void resetShadowmap();
     void resetSkyFog();
 
@@ -88,7 +90,6 @@ class Renderer final {
     void drawLights       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& view);
     void drawSky          (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& view);
     void drawAmbient      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& view);
-    void draw             (Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void drawTonemapping  (Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
     void drawCMAA2        (Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
     void drawReflections  (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
@@ -130,6 +131,9 @@ class Renderer final {
       bool           zCloudShadowScale  = false;
       bool           zFogRadial         = false;
 
+      bool           zWindEnabled       = false;
+      uint64_t       windPeriod         = 6000;
+
       GiMethod       giMethod           = GiMethod::None;
       bool           aaEnabled          = false;
 
@@ -146,7 +150,6 @@ class Renderer final {
       } settings;
 
     Frustrum                  frustrum[SceneGlobals::V_Count];
-    Tempest::Swapchain&       swapchain;
     Tempest::Matrix4x4        proj, viewProj, viewProjLwc;
     Tempest::Matrix4x4        shadowMatrix[Resources::ShadowLayers];
     Tempest::Matrix4x4        shadowMatrixVsm;
@@ -293,5 +296,5 @@ class Renderer final {
     Tempest::TextureFormat    shadowFormat  = Tempest::TextureFormat::Depth16;
     Tempest::TextureFormat    zBufferFormat = Tempest::TextureFormat::Depth16;
 
-    Shaders                   shaders;
+    Shaders&                  shaders = Shaders::inst(false);
   };

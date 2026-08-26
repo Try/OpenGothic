@@ -115,7 +115,7 @@ class MainWindow : public Tempest::Window {
     Tempest::Device&      device;
     Tempest::Swapchain    swapchain;
     Tempest::TextureAtlas atlas;
-    Tempest::Font         font;
+    Shaders               shaders;
     Renderer              renderer;
 
     Tempest::VectorImage  uiLayer, numOverlay;
