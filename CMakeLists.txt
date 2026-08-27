@@ -84,6 +84,24 @@ target_sources(${PROJECT_NAME} PRIVATE ${OPENGOTHIC_SOURCES} ${ObjCSOURCES})
 add_subdirectory(shader)
 target_link_libraries(${PROJECT_NAME} GothicShaders)
 
+# Spacer-only editor shaders. add_shader() is defined by shader/CMakeLists.txt;
+# point its output back at the GothicShaders binary directory while registering
+# the additional generated SPIR-V files.
+set(OPENGOTHIC_ROOT_PROJECT_BINARY_DIR ${PROJECT_BINARY_DIR})
+set(PROJECT_BINARY_DIR "${CMAKE_BINARY_DIR}/shader")
+set(OPENGOTHIC_SHADERS_SPRV "")
+add_shader(im3d_points.vert          editor/im3d.vert -DPOINTS)
+add_shader(im3d_points.frag          editor/im3d.frag -DPOINTS)
+add_shader(im3d_lines.vert           editor/im3d.vert -DLINES)
+add_shader(im3d_lines.geom           editor/im3d.geom)
+add_shader(im3d_lines.frag           editor/im3d.frag -DLINES)
+add_shader(im3d_triangles.vert       editor/im3d.vert -DTRIANGLES)
+add_shader(im3d_triangles.frag       editor/im3d.frag -DTRIANGLES)
+set(SPACER_EDITOR_SHADERS ${OPENGOTHIC_SHADERS_SPRV})
+set(PROJECT_BINARY_DIR ${OPENGOTHIC_ROOT_PROJECT_BINARY_DIR})
+add_custom_target(spacer_editor_shaders DEPENDS ${SPACER_EDITOR_SHADERS})
+add_dependencies(shader spacer_editor_shaders)
+
 # editor icons and such
 add_subdirectory(spacer/assets)
 
