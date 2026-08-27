@@ -9,6 +9,7 @@
 #include "graphics/renderer.h"
 #include "utils/keycodec.h"
 #include "camera.h"
+#include "gizmo/im3dgizmo.h"
 
 class WorldEdit;
 
@@ -29,6 +30,8 @@ class WorldEditor: public BaseEditor,
     void keyUpEvent(Tempest::KeyEvent& e) override;
 
     void mouseDownEvent(Tempest::MouseEvent& e) override;
+    void mouseUpEvent  (Tempest::MouseEvent& e) override;
+    void mouseMoveEvent(Tempest::MouseEvent& e) override;
     void mouseDragEvent(Tempest::MouseEvent& e) override;
 
     void moveDropOver (DropOverEvent& ev) override;
@@ -42,6 +45,8 @@ class WorldEditor: public BaseEditor,
     void update3d(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t cmdId);
     void processKeyboard(Tempest::KeyEvent& e);
     void tickCamera(uint64_t dt);
+    void updateCursorRay();
+    void paintEditorOverlay(Tempest::Painter& painter);
 
     std::vector<PropertyList::Prop> props;
 
@@ -57,4 +62,9 @@ class WorldEditor: public BaseEditor,
 
     bool                   ctrl[KeyCodec::Last] = {};
     Tempest::Point         mpos = {};
+    Tempest::Vec3          cursorRayOrigin = {};
+    Tempest::Vec3          cursorRayDirection = {0,0,1};
+    Im3dGizmo              gizmo;
+    bool                   leftMouseDown = false;
+    bool                   suppressGizmo = false;
   };
