@@ -16,3 +16,6 @@
 [submodule "lib/rapidjson"]
 	path = lib/rapidjson
 	url = https://github.com/Tencent/rapidjson.git
+[submodule "lib/im3d"]
+	path = lib/im3d
+	url = https://github.com/john-chapman/im3d.git
