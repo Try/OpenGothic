@@ -3,12 +3,15 @@
 #include <Tempest/Painter>
 #include <Tempest/Log>
 
+#include <string>
+
 #include "ui/property/property.h"
 #include "ui/property/propertylist.h"
 #include "ui/objects/worldedit.h"
 
 #include "editorwindow.h"
 #include "resources.h"
+#include "utils/dbgpainter.h"
 
 using namespace Tempest;
 
@@ -85,6 +88,18 @@ void WorldEditor::processKeyboard(Tempest::KeyEvent& e) {
   }
 
 void WorldEditor::keyDownEvent(Tempest::KeyEvent& e) {
+  if(e.key==KeyEvent::K_1) {
+    gizmo.setMode(Im3dGizmo::Mode::Translation);
+    e.accept();
+    }
+  else if(e.key==KeyEvent::K_2) {
+    gizmo.setMode(Im3dGizmo::Mode::Rotation);
+    e.accept();
+    }
+  else if(e.key==KeyEvent::K_3) {
+    gizmo.setMode(Im3dGizmo::Mode::Scale);
+    e.accept();
+    }
   processKeyboard(e);
   update();
   }
@@ -96,12 +111,43 @@ void WorldEditor::keyUpEvent(Tempest::KeyEvent& e) {
 
 void WorldEditor::mouseDownEvent(Tempest::MouseEvent& e) {
   mpos = e.pos();
+  if(e.button==MouseEvent::ButtonLeft) {
+    leftMouseDown = true;
+    if(level!=nullptr && !gizmo.isHovered() && !gizmo.isActive()) {
+      updateCursorRay();
+      level->select(cursorRayOrigin,cursorRayDirection,camera.zFar());
+      suppressGizmo = true;
+      }
+    }
+  e.accept();
+  update();
+  }
+
+void WorldEditor::mouseUpEvent(Tempest::MouseEvent& e) {
+  mpos = e.pos();
+  if(e.button==MouseEvent::ButtonLeft) {
+    leftMouseDown = false;
+    suppressGizmo = false;
+    }
+  e.accept();
+  update();
+  }
+
+void WorldEditor::mouseMoveEvent(Tempest::MouseEvent& e) {
+  mpos = e.pos();
+  e.accept();
   update();
   }
 
 void WorldEditor::mouseDragEvent(Tempest::MouseEvent& e) {
   const auto dp = (e.pos()-mpos);
   mpos = e.pos();
+
+  if(e.button!=MouseEvent::ButtonRight) {
+    e.accept();
+    update();
+    return;
+    }
 
   PointF dpScaled = PointF(dp.x, dp.y);
   dpScaled.x/=float(w());
@@ -113,6 +159,7 @@ void WorldEditor::mouseDragEvent(Tempest::MouseEvent& e) {
   auto rot = camera.spin() + PointF(dpScaled.y,-dpScaled.x);
   camera.setSpin(rot);
   camera.setAngles(camera.spin());
+  e.accept();
   update();
   }
 
@@ -130,6 +177,8 @@ void WorldEditor::paintEvent(PaintEvent& e) {
   p.setBrush(textureCast<Texture2d&>(sceneImage));
   p.drawRect(0, 0, w(), h(),
              0, 0, sceneImage.w(), sceneImage.h());
+
+  paintEditorOverlay(p);
   }
 
 void WorldEditor::resizeEvent(SizeEvent& e) {
@@ -151,7 +200,62 @@ void WorldEditor::update3d(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_
     return;
 
   tickCamera(16); //TODO
-  renderer.draw(sceneImage, cmd, cmdId, level->view(), camera);
+  if(level!=nullptr) {
+    renderer.draw(sceneImage, cmd, cmdId, level->view(), camera);
+    selectionOutline.render(cmd,sceneImage,renderer.sceneDepthBuffer(),camera,*level);
+    }
+  gizmo.render(cmd,sceneImage,cmdId);
+  }
+
+void WorldEditor::updateCursorRay() {
+  if(w()<=0 || h()<=0)
+    return;
+
+  auto invViewProj = camera.viewProj();
+  invViewProj.inverse();
+
+  const float x = float(mpos.x)*2.f/float(w())-1.f;
+  const float y = float(mpos.y)*2.f/float(h())-1.f;
+  Tempest::Vec3 farPoint = {x,y,1.f};
+  invViewProj.project(farPoint);
+
+  cursorRayOrigin = camera.originLwc();
+  const auto direction = farPoint-cursorRayOrigin;
+  if(direction.length()>1e-7f)
+    cursorRayDirection = Tempest::Vec3::normalize(direction);
+  }
+
+void WorldEditor::paintEditorOverlay(Tempest::Painter& painter) {
+  if(level==nullptr || w()<=0 || h()<=0)
+    return;
+
+  updateCursorRay();
+  bool changed = false;
+  Tempest::Matrix4x4 transform;
+  if(level->hasSelection()) {
+    transform = level->selectedTransform();
+    changed = gizmo.prepare(camera,cursorRayOrigin,cursorRayDirection,
+                            leftMouseDown && !suppressGizmo,w(),h(),&transform);
+    if(changed) {
+      level->setSelectedTransform(transform);
+      update();
+      }
+    }
+  else {
+    gizmo.prepare(camera,cursorRayOrigin,cursorRayDirection,
+                  leftMouseDown && !suppressGizmo,w(),h(),nullptr);
+    }
+
+  DbgPainter text(painter,camera.viewProj(),w(),h());
+  const char* mode = gizmo.mode()==Im3dGizmo::Mode::Translation ? "[1] Move   2 Rotate   3 Scale" :
+                     gizmo.mode()==Im3dGizmo::Mode::Rotation    ? "1 Move   [2] Rotate   3 Scale" :
+                                                                 "1 Move   2 Rotate   [3] Scale";
+  text.drawText(8,8,mode);
+  if(level->hasSelection()) {
+    std::string label = "Selected: ";
+    label += level->selectedName();
+    text.drawText(8,28,label);
+    }
   }
 
 void WorldEditor::tickCamera(uint64_t dt) {

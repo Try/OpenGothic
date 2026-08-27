@@ -84,6 +84,27 @@ target_sources(${PROJECT_NAME} PRIVATE ${OPENGOTHIC_SOURCES} ${ObjCSOURCES})
 add_subdirectory(shader)
 target_link_libraries(${PROJECT_NAME} GothicShaders)
 
+# Spacer-only editor shaders. add_shader() is defined by shader/CMakeLists.txt;
+# point its output back at the GothicShaders binary directory while registering
+# the additional generated SPIR-V files.
+set(OPENGOTHIC_ROOT_PROJECT_BINARY_DIR ${PROJECT_BINARY_DIR})
+set(PROJECT_BINARY_DIR "${CMAKE_BINARY_DIR}/shader")
+set(OPENGOTHIC_SHADERS_SPRV "")
+add_shader(im3d_points.vert          editor/im3d.vert -DPOINTS)
+add_shader(im3d_points.frag          editor/im3d.frag -DPOINTS)
+add_shader(im3d_lines.vert           editor/im3d.vert -DLINES)
+add_shader(im3d_lines.geom           editor/im3d.geom)
+add_shader(im3d_lines.frag           editor/im3d.frag -DLINES)
+add_shader(im3d_triangles.vert       editor/im3d.vert -DTRIANGLES)
+add_shader(im3d_triangles.frag       editor/im3d.frag -DTRIANGLES)
+add_shader(selection_outline.vert    editor/selection_outline.vert)
+add_shader(selection_outline.frag    editor/selection_outline.frag)
+add_shader(selection_outline_composite.frag editor/selection_outline_composite.frag)
+set(SPACER_EDITOR_SHADERS ${OPENGOTHIC_SHADERS_SPRV})
+set(PROJECT_BINARY_DIR ${OPENGOTHIC_ROOT_PROJECT_BINARY_DIR})
+add_custom_target(spacer_editor_shaders DEPENDS ${SPACER_EDITOR_SHADERS})
+add_dependencies(shader spacer_editor_shaders)
+
 # editor icons and such
 add_subdirectory(spacer/assets)
 
@@ -144,7 +165,7 @@ target_link_libraries(${PROJECT_NAME} miniz)
 
 # bullet physics
 set(BULLET2_MULTITHREADING       ON  CACHE INTERNAL "")
-set(USE_MSVC_RUNTIME_LIBRARY_DLL ON  CACHE INTERNAL "")
+set(USE_MSVC_RUNTIME_LIBRARY_DLL ON CACHE INTERNAL "")
 set(USE_GRAPHICAL_BENCHMARK      OFF CACHE INTERNAL "")
 set(BUILD_BULLET2_DEMOS          OFF CACHE INTERNAL "") # No samples
 set(BUILD_OPENGL3_DEMOS          OFF CACHE INTERNAL "") # No samples
@@ -159,7 +180,7 @@ add_subdirectory(lib/bullet3)
 if(NOT MSVC)
   target_compile_options(BulletDynamics         PRIVATE -Wno-argument-outside-range)
   target_compile_options(BulletInverseDynamics  PRIVATE -Wno-argument-outside-range)
-  target_compile_options(BulletSoftBody         PRIVATE -Wno-argument-outside-range)
+  target_compile_options(BulletSoftBody          PRIVATE -Wno-argument-outside-range)
   target_compile_options(Bullet3Common          PRIVATE -Wno-argument-outside-range)
   target_compile_options(BulletCollision        PRIVATE -Wno-argument-outside-range)
   target_compile_options(LinearMath             PRIVATE -Wno-argument-outside-range)
@@ -167,7 +188,7 @@ endif()
 if(NOT MSVC AND NOT APPLE AND NOT ${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
   target_compile_options(BulletDynamics         PRIVATE -Wno-stringop-overflow)
   target_compile_options(BulletInverseDynamics  PRIVATE -Wno-stringop-overflow)
-  target_compile_options(BulletSoftBody         PRIVATE -Wno-stringop-overflow)
+  target_compile_options(BulletSoftBody          PRIVATE -Wno-stringop-overflow)
   target_compile_options(Bullet3Common          PRIVATE -Wno-stringop-overflow)
   target_compile_options(BulletCollision        PRIVATE -Wno-stringop-overflow)
   target_compile_options(LinearMath             PRIVATE -Wno-stringop-overflow)
@@ -198,8 +219,8 @@ target_sources(Gothic2Notr PRIVATE game/main.cpp icon.rc)
 target_link_libraries(Gothic2Notr PRIVATE OpenGothic)
 
 # editor
-target_sources(Spacer PRIVATE ${SPACER_SOURCES} spacer/main.cpp)
-target_include_directories(Spacer PRIVATE "spacer")
+target_sources(Spacer PRIVATE ${SPACER_SOURCES} spacer/main.cpp lib/im3d/im3d.cpp)
+target_include_directories(Spacer PRIVATE "spacer" "lib/im3d")
 target_link_libraries(Spacer PRIVATE OpenGothic SpacerAssets)
 
 # installation
