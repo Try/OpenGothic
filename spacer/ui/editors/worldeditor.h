@@ -10,6 +10,7 @@
 #include "utils/keycodec.h"
 #include "camera.h"
 #include "gizmo/im3dgizmo.h"
+#include "gizmo/selectionoutline.h"
 
 class WorldEdit;
 
@@ -64,6 +65,7 @@ class WorldEditor: public BaseEditor,
     Tempest::Point         mpos = {};
     Tempest::Vec3          cursorRayOrigin = {};
     Tempest::Vec3          cursorRayDirection = {0,0,1};
+    SelectionOutline       selectionOutline;
     Im3dGizmo              gizmo;
     bool                   leftMouseDown = false;
     bool                   suppressGizmo = false;
