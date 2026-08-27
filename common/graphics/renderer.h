@@ -32,6 +32,9 @@ class Renderer final {
 
     Tempest::Attachment screenshoot(uint8_t frameId);
 
+    // Editor overlays may reuse the completed scene depth without owning another renderer.
+    Tempest::ZBuffer& sceneDepthBuffer() { return zbuffer; }
+
   private:
     enum Quality : uint8_t {
       None,
