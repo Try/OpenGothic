@@ -200,8 +200,10 @@ void WorldEditor::update3d(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_
     return;
 
   tickCamera(16); //TODO
-  if(level!=nullptr)
+  if(level!=nullptr) {
     renderer.draw(sceneImage, cmd, cmdId, level->view(), camera);
+    selectionOutline.render(cmd,sceneImage,renderer.sceneDepthBuffer(),camera,*level);
+    }
   gizmo.render(cmd,sceneImage,cmdId);
   }
 
