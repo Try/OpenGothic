@@ -1,7 +1,7 @@
 #include "vobtreedelegate.h"
 
-#include "ui/controls/vobtreeitemview.h"
-#include "ui/objects/worldedit.h"
+#include "controls/vobtreeitemview.h"
+#include "objects/worldedit.h"
 
 using namespace Tempest;
 

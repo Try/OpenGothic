@@ -2,7 +2,7 @@
 
 #include <Tempest/ListDelegate>
 
-#include "ui/objects/worldedit.h"
+#include "objects/worldedit.h"
 
 class VobTreeDelegate : public Tempest::ListDelegate {
   public:

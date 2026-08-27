@@ -5,11 +5,10 @@
 
 #include "ui/property/property.h"
 #include "ui/property/propertylist.h"
-#include "ui/objects/worldedit.h"
-
+#include "ui/vobtreedelegate.h"
+#include "objects/worldedit.h"
 #include "editorwindow.h"
 #include "resources.h"
-#include "ui/vobtreedelegate.h"
 
 using namespace Tempest;
 
