@@ -339,3 +339,24 @@ std::string_view WorldEdit::selectedName() const {
     return selected->orig->vob_name;
   return selected->orig->visual_name;
   }
+
+void WorldEdit::selectedMeshes(std::vector<SelectedMesh>& out) const {
+  out.clear();
+  if(selected==nullptr)
+    return;
+
+  out.reserve(selected->mesh.nodesCount());
+  for(size_t nodeId=0; nodeId<selected->mesh.nodesCount(); ++nodeId) {
+    const auto node = selected->mesh.node(nodeId);
+    const auto* mesh = node.mesh();
+    if(mesh==nullptr)
+      continue;
+    const auto slice = node.meshSlice();
+    SelectedMesh draw;
+    draw.mesh        = mesh;
+    draw.transform   = node.position();
+    draw.indexOffset = slice.first;
+    draw.indexCount  = slice.second;
+    out.push_back(draw);
+    }
+  }
