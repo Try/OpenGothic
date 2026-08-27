@@ -17,18 +17,35 @@ class WorldEdit {
 
     WorldView& view() { return *wview; }
 
-  private:
-    struct Vob {
-      std::vector<Vob>                       child;
-      std::shared_ptr<zenkit::VirtualObject> orig;
+    class Vob {
+      public:
+        Vob(uint64_t id):id(id){}
+        const uint64_t id;
 
-      MeshObjects::Mesh mesh;
+        const zenkit::VirtualObject* get() const { return orig.get(); }
+        const zenkit::VirtualObject& operator *  () const { return *orig; }
+        const zenkit::VirtualObject& operator -> () const { return *orig; }
+
+        size_t size() const { return child.size(); }
+        const Vob& operator[](size_t i) const { return child[i]; }
+
+      private:
+        std::vector<Vob>                       child;
+        std::shared_ptr<zenkit::VirtualObject> orig;
+
+        MeshObjects::Mesh mesh;
+
+      friend class WorldEdit;
       };
 
+    const Vob& root() const { return rootVob; }
+
+  private:
     void load(Vob& out, std::vector<std::shared_ptr<zenkit::VirtualObject>>& child);
     void initView(Vob& out);
 
-    Vob                           root;
+    Vob                           rootVob {0};
+    size_t                        vobNextId = 1;
     std::unique_ptr<DynamicWorld> physics;
     std::unique_ptr<WorldView>    wview;
   };

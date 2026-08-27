@@ -37,11 +37,11 @@ WorldEdit::WorldEdit(std::string_view wname) {
     return std::unique_ptr<WorldView>(new WorldView(vmesh, wname));
     });
 
-  load(root, world.world_vobs);
+  load(rootVob, world.world_vobs);
   physics = wdynamicFut.get();
   wview   = wviewFut.get();
 
-  for(auto& i:root.child)
+  for(auto& i:rootVob.child)
     initView(i);
   }
 
@@ -49,8 +49,9 @@ WorldEdit::~WorldEdit() {
   }
 
 void WorldEdit::load(Vob& out, std::vector<std::shared_ptr<zenkit::VirtualObject> >& child) {
-  out.child.resize(child.size());
+  out.child.reserve(child.size());
   for(size_t i=0; i<child.size(); ++i) {
+    out.child.emplace_back(vobNextId); ++vobNextId;
     load(out.child[i], child[i]->children);
     out.child[i].orig = child[i];
     out.child[i].orig->children.clear();

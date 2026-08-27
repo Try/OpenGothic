@@ -9,6 +9,7 @@
 
 #include "editorwindow.h"
 #include "resources.h"
+#include "ui/vobtreedelegate.h"
 
 using namespace Tempest;
 
@@ -57,13 +58,21 @@ std::string_view WorldEditor::title() const {
   }
 
 BaseEditor::BaseTool* WorldEditor::createToolpanel(ToolWindow::Tool tool) {
-  if(tool!=ToolWindow::T_VobProp)
-    return nullptr;
-  auto ctrl = new BaseTool();
-  auto& prop = ctrl->addWidget(new PropertyList(props));
-  ctrl->setLayout(Vertical);
-  // prop.onChanged.bind(this,&LevelEditor::onProperty);
-  return ctrl;
+  if(tool==ToolWindow::T_VobTree) {
+    auto ctrl = new BaseTool();
+    auto& list = ctrl->addWidget(new Tempest::ListView());
+    list.setDelegate(new VobTreeDelegate(*level));
+    ctrl->setLayout(Vertical);
+    return ctrl;
+    }
+  if(tool==ToolWindow::T_VobProp) {
+    auto ctrl = new BaseTool();
+    auto& prop = ctrl->addWidget(new PropertyList(props));
+    ctrl->setLayout(Vertical);
+    // prop.onChanged.bind(this,&LevelEditor::onProperty);
+    return ctrl;
+    }
+  return nullptr;
   }
 
 void WorldEditor::undo() {
@@ -124,9 +133,6 @@ void WorldEditor::dropDone(DropOverEvent& ev) {
 
 void WorldEditor::paintEvent(PaintEvent& e) {
   Painter p(e);
-  p.setBrush(Color(0,0,0.4,1));
-  p.drawRect(0, 0, w(), h());
-
   p.setBrush(textureCast<Texture2d&>(sceneImage));
   p.drawRect(0, 0, w(), h(),
              0, 0, sceneImage.w(), sceneImage.h());
