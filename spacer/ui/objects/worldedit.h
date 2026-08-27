@@ -3,6 +3,7 @@
 #include <string_view>
 #include <memory>
 #include <unordered_map>
+#include <vector>
 
 #include <Tempest/Matrix4x4>
 #include <Tempest/Vec>
@@ -17,6 +18,13 @@ class StaticMesh;
 
 class WorldEdit {
   public:
+    struct SelectedMesh {
+      const StaticMesh*   mesh = nullptr;
+      Tempest::Matrix4x4  transform;
+      uint32_t            indexOffset = 0;
+      uint32_t            indexCount  = 0;
+      };
+
     WorldEdit(std::string_view wname);
     ~WorldEdit();
 
@@ -27,6 +35,7 @@ class WorldEdit {
     Tempest::Matrix4x4      selectedTransform() const;
     void                    setSelectedTransform(const Tempest::Matrix4x4& transform);
     std::string_view        selectedName() const;
+    void                    selectedMeshes(std::vector<SelectedMesh>& out) const;
 
   private:
     struct Vob {
