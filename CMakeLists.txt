@@ -144,7 +144,7 @@ target_link_libraries(${PROJECT_NAME} miniz)
 
 # bullet physics
 set(BULLET2_MULTITHREADING       ON  CACHE INTERNAL "")
-set(USE_MSVC_RUNTIME_LIBRARY_DLL ON  CACHE INTERNAL "")
+set(USE_MSVC_RUNTIME_LIBRARY_DLL ON CACHE INTERNAL "")
 set(USE_GRAPHICAL_BENCHMARK      OFF CACHE INTERNAL "")
 set(BUILD_BULLET2_DEMOS          OFF CACHE INTERNAL "") # No samples
 set(BUILD_OPENGL3_DEMOS          OFF CACHE INTERNAL "") # No samples
@@ -159,7 +159,7 @@ add_subdirectory(lib/bullet3)
 if(NOT MSVC)
   target_compile_options(BulletDynamics         PRIVATE -Wno-argument-outside-range)
   target_compile_options(BulletInverseDynamics  PRIVATE -Wno-argument-outside-range)
-  target_compile_options(BulletSoftBody         PRIVATE -Wno-argument-outside-range)
+  target_compile_options(BulletSoftBody          PRIVATE -Wno-argument-outside-range)
   target_compile_options(Bullet3Common          PRIVATE -Wno-argument-outside-range)
   target_compile_options(BulletCollision        PRIVATE -Wno-argument-outside-range)
   target_compile_options(LinearMath             PRIVATE -Wno-argument-outside-range)
@@ -167,7 +167,7 @@ endif()
 if(NOT MSVC AND NOT APPLE AND NOT ${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
   target_compile_options(BulletDynamics         PRIVATE -Wno-stringop-overflow)
   target_compile_options(BulletInverseDynamics  PRIVATE -Wno-stringop-overflow)
-  target_compile_options(BulletSoftBody         PRIVATE -Wno-stringop-overflow)
+  target_compile_options(BulletSoftBody          PRIVATE -Wno-stringop-overflow)
   target_compile_options(Bullet3Common          PRIVATE -Wno-stringop-overflow)
   target_compile_options(BulletCollision        PRIVATE -Wno-stringop-overflow)
   target_compile_options(LinearMath             PRIVATE -Wno-stringop-overflow)
@@ -198,8 +198,8 @@ target_sources(Gothic2Notr PRIVATE game/main.cpp icon.rc)
 target_link_libraries(Gothic2Notr PRIVATE OpenGothic)
 
 # editor
-target_sources(Spacer PRIVATE ${SPACER_SOURCES} spacer/main.cpp)
-target_include_directories(Spacer PRIVATE "spacer")
+target_sources(Spacer PRIVATE ${SPACER_SOURCES} spacer/main.cpp lib/im3d/im3d.cpp)
+target_include_directories(Spacer PRIVATE "spacer" "lib/im3d")
 target_link_libraries(Spacer PRIVATE OpenGothic SpacerAssets)
 
 # installation
