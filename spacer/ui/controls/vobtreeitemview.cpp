@@ -3,6 +3,7 @@
 #include <Tempest/Painter>
 
 #include "assets.h"
+#include "ui/vobtreedelegate.h"
 
 using namespace Tempest;
 
@@ -27,6 +28,11 @@ void VobTreeItemView::setText(std::string_view t) {
   update();
   }
 
+void VobTreeItemView::setTextAlt(std::string_view t) {
+  txtAlt = t;
+  update();
+  }
+
 void VobTreeItemView::setDepth(size_t d) {
   depth = d;
   update();
@@ -34,6 +40,11 @@ void VobTreeItemView::setDepth(size_t d) {
 
 void VobTreeItemView::setAsOpen(bool open) {
   closed = !open;
+  update();
+  }
+
+void VobTreeItemView::setAsGroup(bool g) {
+  group = g;
   update();
   }
 
@@ -72,24 +83,28 @@ void VobTreeItemView::mouseMoveEvent(MouseEvent& event) {
   }
 
 void VobTreeItemView::paintEvent(Tempest::PaintEvent& e) {
-  //auto& it = world.vobById(id);
-
   Painter p(e);
   style().draw(p,static_cast<Button*>(nullptr),Style::E_Background,
                state(),Rect(0,0,w(),h()),Style::Extra(*this));
-  auto th = p.font().textSize(txt).h;
   int  dx = 4+int(depth)*8;
 
-  if(true) {
+  if(group) {
     // icon placeholder
-    auto& ic = Assets::inst().ic.check_on;
+    auto& ic = closed ? Assets::inst().ic.tri_close : Assets::inst().ic.tri_open;
     auto  sp = ic.sprite(w(),h(),Icon::ST_Normal);
     p.setBrush(sp);
     p.drawRect(dx,(h()-sp.h())/2,sp.w(),sp.h());
-    dx+=sp.w()+4;
+    dx += sp.w()+4;
     }
 
-  p.drawText(dx,h()-(h()-th)/2,txt);
+  if(!txt.empty()) {
+    auto th = p.font().textSize(txt).h;
+    p.drawText(dx, h()-(h()-th)/2, txt);
+    } else {
+    p.setBrush(Color(0.8f));
+    auto th = p.font().textSize(txtAlt).h;
+    p.drawText(dx, h()-(h()-th)/2, txtAlt);
+    }
   }
 
 std::string_view VobTreeItemView::text() const {

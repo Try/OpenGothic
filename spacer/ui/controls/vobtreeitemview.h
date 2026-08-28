@@ -10,8 +10,10 @@ class VobTreeItemView : public Tempest::Widget {
     ~VobTreeItemView();
 
     void setText(std::string_view txt);
+    void setTextAlt(std::string_view txt);
     void setDepth(size_t d);
     void setAsOpen(bool open);
+    void setAsGroup(bool g);
 
     Tempest::Signal<void(Widget*,size_t)> onClick;
 
@@ -29,7 +31,8 @@ class VobTreeItemView : public Tempest::Widget {
 
   private:
     VobTreeDelegate& owner;
-    std::string      txt;
+    std::string      txt, txtAlt;
     size_t           depth  = 0;
     bool             closed = true;
+    bool             group = false;
   };

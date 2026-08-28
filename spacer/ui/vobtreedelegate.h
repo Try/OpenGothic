@@ -17,6 +17,8 @@ class VobTreeDelegate : public Tempest::ListDelegate {
       const WorldEdit::Vob* vob = {};
       size_t item  = 0;
       size_t depth = 0;
+
+      std::string_view textAlt() const;
       };
 
     void             emitClick(Tempest::Widget* w, size_t id);
@@ -24,6 +26,8 @@ class VobTreeDelegate : public Tempest::ListDelegate {
     void             toogleFolder(const WorldEdit::Vob& itm);
     void             mkIndex();
     void             mkIndex(const WorldEdit::Vob& v, std::vector<Item>& index, size_t depth);
+
+    bool             isOpen(const WorldEdit::Vob*) const;
 
     WorldEdit& world;
     std::set<const WorldEdit::Vob*> closedDir;

@@ -19,9 +19,11 @@ Tempest::Widget* VobTreeDelegate::createView(size_t position) {
   auto   it = index[position].vob->get();
   auto   b  = new VobTreeItemView(*this, id);
 
-  b->setAsOpen(true);
+  b->setAsOpen(isOpen(index[position].vob));
   b->setText(it!=nullptr ? (*it).vob_name : "LEVEL");
+  b->setTextAlt(index[position].textAlt());
   b->setDepth(index[position].depth);
+  b->setAsGroup(index[position].vob->size()>0);
   b->onClick.bind(this,&VobTreeDelegate::emitClick);
 
   return b;
@@ -54,13 +56,17 @@ void VobTreeDelegate::mkIndex(const WorldEdit::Vob& v, std::vector<Item>& index,
   it.vob   = &v;
   index.push_back(it);
 
-  if(closedDir.find(&v)!=closedDir.end()) {
+  if(!isOpen(&v)) {
     return;
     }
 
   for(size_t i=0; i<v.size(); ++i) {
     mkIndex(v[i], index, depth+1);
     }
+  }
+
+bool VobTreeDelegate::isOpen(const WorldEdit::Vob* v) const {
+  return closedDir.find(v)==closedDir.end();
   }
 
 void VobTreeDelegate::refreshFileTree() {
@@ -75,4 +81,13 @@ void VobTreeDelegate::toogleFolder(const WorldEdit::Vob& itm) {
     closedDir.erase(&itm);
     }
   mkIndex();
+  }
+
+std::string_view VobTreeDelegate::Item::textAlt() const {
+  if(vob->get()==nullptr)
+    return "null";
+  auto& v = *vob->get();
+  if(v.type==zenkit::VirtualObjectType::zCVobLight)
+    return "zCVobLight";
+  return v.visual_name;
   }
