@@ -12,6 +12,8 @@ class VobTreeDelegate : public Tempest::ListDelegate {
     Tempest::Widget* createView(size_t position) override;
     void             removeView(Tempest::Widget* w, size_t /*position*/) override;
 
+    Tempest::Signal<void(const WorldEdit::Vob&)> onVobSelected;
+
   private:
     struct Item {
       const WorldEdit::Vob* vob = {};

@@ -4,7 +4,8 @@
 #include <Tempest/Log>
 
 #include "ui/property/property.h"
-#include "ui/property/propertylist.h"
+#include "ui/property/propertydelegate.h"
+//#include "ui/property/propertylist.h"
 #include "ui/vobtreedelegate.h"
 #include "objects/worldedit.h"
 #include "editorwindow.h"
@@ -59,16 +60,25 @@ std::string_view WorldEditor::title() const {
 BaseEditor::BaseTool* WorldEditor::createToolpanel(ToolWindow::Tool tool) {
   if(tool==ToolWindow::T_VobTree) {
     auto ctrl = new BaseTool();
-    auto& list = ctrl->addWidget(new Tempest::ListView());
-    list.setDelegate(new VobTreeDelegate(*level));
+    auto& list     = ctrl->addWidget(new Tempest::ListView());
+    auto& delegate = *list.setDelegate(new VobTreeDelegate(*level));
     ctrl->setLayout(Vertical);
+    delegate.onVobSelected.bind(this, &WorldEditor::selectVob);
     return ctrl;
     }
   if(tool==ToolWindow::T_VobProp) {
+    /*
     auto ctrl = new BaseTool();
     auto& prop = ctrl->addWidget(new PropertyList(props));
     ctrl->setLayout(Vertical);
     // prop.onChanged.bind(this,&LevelEditor::onProperty);
+    */
+    auto ctrl = new BaseTool();
+    auto& list     = ctrl->addWidget(new Tempest::ListView());
+    auto& delegate = *list.setDelegate(new PropertyDelegate());
+    ctrl->setLayout(Vertical);
+
+    propertyDelegate = &delegate;
     return ctrl;
     }
   return nullptr;
@@ -177,4 +187,9 @@ void WorldEditor::tickCamera(uint64_t dt) {
     update();
     }
   camera.tick(dt);
+  }
+
+void WorldEditor::selectVob(const WorldEdit::Vob& vob) {
+  Log::d("Selected: ", vob.get()->vob_name);
+  propertyDelegate->setVob(&vob);
   }

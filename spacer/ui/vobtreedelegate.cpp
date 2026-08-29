@@ -35,6 +35,10 @@ void VobTreeDelegate::removeView(Widget* w, size_t) {
 
 void VobTreeDelegate::emitClick(Widget* w, size_t id) {
   auto& it = *index[id].vob;
+  if(it.get()!=nullptr) {
+    onVobSelected(it);
+    }
+
   if(it.size()>0) {
     toogleFolder(it);
     return;

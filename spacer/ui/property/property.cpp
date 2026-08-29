@@ -3,6 +3,7 @@
 using namespace Property;
 
 const Type Type::Template   = CoreType::Template;
+const Type Type::String     = CoreType::String;
 
 const Type Type::Texture    = CoreType::Texture;
 const Type Type::Bool1      = {CoreType::Vec1,InputType::Bool};

@@ -7,10 +7,12 @@
 #include "ui/dragdrop.h"
 
 #include "graphics/renderer.h"
+#include "objects/worldedit.h"
 #include "utils/keycodec.h"
 #include "camera.h"
 
 class WorldEdit;
+class PropertyDelegate;
 
 class WorldEditor: public BaseEditor,
                    public DropReciver  {
@@ -43,6 +45,8 @@ class WorldEditor: public BaseEditor,
     void processKeyboard(Tempest::KeyEvent& e);
     void tickCamera(uint64_t dt);
 
+    void selectVob(const WorldEdit::Vob& vob);
+
     std::vector<PropertyList::Prop> props;
 
     Camera                     camera;
@@ -57,4 +61,6 @@ class WorldEditor: public BaseEditor,
 
     bool                   ctrl[KeyCodec::Last] = {};
     Tempest::Point         mpos = {};
+
+    PropertyDelegate*      propertyDelegate = nullptr;
   };

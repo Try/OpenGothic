@@ -237,11 +237,15 @@ ParameterWidget* ParameterWidget::implCreateEditor(const Property::Type& type, s
     ret->edit->setItems({"False","True"});
     return ret;
     }
+  if(&type==&Property::Type::String) {
+    auto ret = new EditInt1(pos, name);
+    return ret;
+    }
 
   const auto ctype = type.coreType;
   switch(ctype) {
     case Property::CoreType::Texture:
-      return nullptr; //new EditTexture(pos,name); //TODO: edit texture
+      return new ParameterWidget(); //TODO: edit texture
     case Property::CoreType::Vec1:
       return implVecEditor<EditFloat1,float>(type,name,min,max,pos);
     case Property::CoreType::Vec2:
