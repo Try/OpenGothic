@@ -190,6 +190,5 @@ void WorldEditor::tickCamera(uint64_t dt) {
   }
 
 void WorldEditor::selectVob(const WorldEdit::Vob& vob) {
-  Log::d("Selected: ", vob.get()->vob_name);
   propertyDelegate->setVob(&vob);
   }

@@ -31,6 +31,10 @@ class PropertyDelegate : public Tempest::ListDelegate {
     void mkIndex_zCVob(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob);
     void mkIndex_zCVobLevelCompo(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob);
     void mkIndex_oCItem(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob);
+    void mkIndex_zCMoverController(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob);
+    void mkIndex_zCVobScreenFX(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob);
+    void mkIndex_zCVobStair(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob);
+    void mkIndex_zCPFXController(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob);
 
     std::vector<Index>    index;
     const WorldEdit::Vob* vob = nullptr;

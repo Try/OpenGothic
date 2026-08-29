@@ -23,6 +23,7 @@ class ParameterWidget : virtual public Tempest::Widget {
     struct EditTexture;
     struct EditEnum;
     struct EditColorWidget;
+    struct EditString;
     struct EditInt1;
     struct EditFloat1;
     struct EditFloat2;

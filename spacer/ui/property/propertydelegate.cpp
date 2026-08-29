@@ -53,6 +53,9 @@ void PropertyDelegate::addView(std::string_view name, F T::* field) {
   else if constexpr(std::is_same_v<F,int>) {
     id.slt.type = &Property::Type::Int1;
     }
+  else if constexpr(std::is_same_v<F,std::string>) {
+    id.slt.type = &Property::Type::String;
+    }
   else if constexpr(std::is_same_v<F,zenkit::SpriteAlignment>) {
     id.slt.type = &Property::Type::Enum;
     id.slt.enumValues = {"None", "Yaw", "Full"};
@@ -61,6 +64,11 @@ void PropertyDelegate::addView(std::string_view name, F T::* field) {
     id.slt.type = &Property::Type::Enum;
     id.slt.enumValues = {"None", "Wind", "Wind2"};
     }
+  else if constexpr(std::is_same_v<F,zenkit::MoverMessageType>) {
+    id.slt.type = &Property::Type::Enum;
+    id.slt.enumValues = {"FixedDirect", "FixedOrder", "Next", "Previous"};
+    }
+
   id.get = [field](const WorldEdit::Vob* vob) -> Variant {
     if(auto d = dynamic_cast<const T*>(vob->get())) {
       auto val = (*d.*field);
@@ -92,9 +100,17 @@ void PropertyDelegate::mkIndex(zenkit::VirtualObjectType type, const zenkit::Vir
     case zenkit::VirtualObjectType::oCNpc:
       break;
     case zenkit::VirtualObjectType::zCMoverController:
+      mkIndex_zCMoverController(type, vob);
+      break;
     case zenkit::VirtualObjectType::zCVobScreenFX:
+      mkIndex_zCVobScreenFX(type, vob);
+      break;
     case zenkit::VirtualObjectType::zCVobStair:
+      mkIndex_zCVobStair(type, vob);
+      break;
     case zenkit::VirtualObjectType::zCPFXController:
+      mkIndex_zCPFXController(type, vob);
+      break;
     case zenkit::VirtualObjectType::zCVobAnimate:
     case zenkit::VirtualObjectType::zCVobLensFlare:
     case zenkit::VirtualObjectType::zCVobLight:
@@ -161,4 +177,30 @@ void PropertyDelegate::mkIndex_oCItem(zenkit::VirtualObjectType type, const zenk
   mkIndex_zCVob(type, vob);
   addHeader("oCItem");
   addView("itemInstance", &zenkit::VItem::instance);
+  }
+
+void PropertyDelegate::mkIndex_zCMoverController(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob) {
+  mkIndex_zCVob(type, vob);
+  addHeader("zCMoverController");
+  addView("target",  &zenkit::VMoverController::target);
+  addView("message", &zenkit::VMoverController::message);
+  addView("key",     &zenkit::VMoverController::key);
+  }
+
+void PropertyDelegate::mkIndex_zCVobScreenFX(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob) {
+  mkIndex_zCVob(type, vob);
+  addHeader("VScreenEffect");
+  }
+
+void PropertyDelegate::mkIndex_zCVobStair(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob) {
+  mkIndex_zCVob(type, vob);
+  addHeader("VStair");
+  }
+
+void PropertyDelegate::mkIndex_zCPFXController(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob) {
+  mkIndex_zCVob(type, vob);
+  addHeader("zCPFXController");
+  addView("pfxName",         &zenkit::VParticleEffectController::pfx_name);
+  addView("killVobWhenDone", &zenkit::VParticleEffectController::kill_when_done);
+  addView("pfxStartOn",      &zenkit::VParticleEffectController::initially_running);
   }

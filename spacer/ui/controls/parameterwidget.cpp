@@ -5,6 +5,7 @@
 #include "intwidget.h"
 #include "vecwidget.h"
 #include "colorwidget.h"
+#include "stringwidget.h"
 
 #include "ui/uihelper.h"
 
@@ -75,6 +76,14 @@ struct ParameterWidget::Base : ParameterWidget {
     return 0;
     }
 
+  static std::string toString(const Variant& val) {
+    if(auto i = val.get<std::string_view>())
+      return std::string(*i);
+    if(auto i = val.get<std::string>())
+      return std::string(*i);
+    return "";
+    }
+
   Editor* edit = nullptr;
   size_t  pos = 0;
   };
@@ -126,6 +135,26 @@ struct ParameterWidget::EditColorWidget : Base<ColorWidget> {
   void adjustSize() {
     auto sz = UiHelper::wrapContent(*this,Vertical);
     setSizeHint(sz,margins());
+    }
+  };
+
+struct ParameterWidget::EditString : Base<StringWidget> {
+  EditString(size_t pos, std::string_view name):Base(pos,name) {
+    edit->onValueModifyed.bind(this, &EditString::commit);
+    }
+
+  void commit(std::string_view a, bool commit) {
+    Variant v;
+    v.set(std::string(a));
+    onChanged(pos,v,commit);
+    }
+
+  Variant argv() const override {
+    return Variant(std::string(edit->value()));
+    }
+
+  void setArgv(const Variant& v) override {
+    edit->setValue(toString(v));
     }
   };
 
@@ -238,7 +267,7 @@ ParameterWidget* ParameterWidget::implCreateEditor(const Property::Type& type, s
     return ret;
     }
   if(&type==&Property::Type::String) {
-    auto ret = new EditInt1(pos, name);
+    auto ret = new EditString(pos, name);
     return ret;
     }
 
