@@ -8,6 +8,8 @@ class VobTreeDelegate : public Tempest::ListDelegate {
   public:
     VobTreeDelegate(WorldEdit& world);
 
+    void             setVob(const WorldEdit::Vob* vob);
+
     size_t           size() const override;
     Tempest::Widget* createView(size_t position) override;
     void             removeView(Tempest::Widget* w, size_t /*position*/) override;
@@ -30,9 +32,14 @@ class VobTreeDelegate : public Tempest::ListDelegate {
     void             mkIndex(const WorldEdit::Vob& v, std::vector<Item>& index, size_t depth);
 
     bool             isOpen(const WorldEdit::Vob*) const;
+    bool             isSelected(size_t id) const;
 
     WorldEdit& world;
     std::set<const WorldEdit::Vob*> closedDir;
     std::vector<Item>               index;
+
+    const WorldEdit::Vob*           vob = nullptr;
+
+  friend class VobTreeItemView;
   };
 

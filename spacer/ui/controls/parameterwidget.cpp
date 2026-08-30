@@ -1,5 +1,7 @@
 #include "parameterwidget.h"
 
+#include <zenkit/Misc.hh>
+
 #include "enumwidget.h"
 #include "floatwidget.h"
 #include "intwidget.h"
@@ -129,6 +131,9 @@ struct ParameterWidget::EditColorWidget : Base<ColorWidget> {
   void setArgv(const Variant& v) override {
     if(auto v3 = v.get<Vec3>()) {
       edit->setValue(*v3);
+      }
+    if(auto cl = v.get<zenkit::Color>()) {
+      edit->setValue(*cl);
       }
     }
 

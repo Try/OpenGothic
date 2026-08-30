@@ -3,7 +3,6 @@
 #include <Tempest/Fence>
 
 #include "ui/editors/baseeditor.h"
-#include "ui/property/propertylist.h"
 #include "ui/dragdrop.h"
 
 #include "graphics/renderer.h"
@@ -13,6 +12,7 @@
 
 class WorldEdit;
 class PropertyDelegate;
+class VobTreeDelegate;
 
 class WorldEditor: public BaseEditor,
                    public DropReciver  {
@@ -47,8 +47,6 @@ class WorldEditor: public BaseEditor,
 
     void selectVob(const WorldEdit::Vob& vob);
 
-    std::vector<PropertyList::Prop> props;
-
     Camera                     camera;
     std::unique_ptr<WorldEdit> level;
 
@@ -62,5 +60,6 @@ class WorldEditor: public BaseEditor,
     bool                   ctrl[KeyCodec::Last] = {};
     Tempest::Point         mpos = {};
 
+    VobTreeDelegate*       treeDelegate = nullptr;
     PropertyDelegate*      propertyDelegate = nullptr;
   };

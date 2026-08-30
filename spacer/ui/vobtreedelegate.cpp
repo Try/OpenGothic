@@ -10,6 +10,11 @@ VobTreeDelegate::VobTreeDelegate(WorldEdit& world)
   mkIndex();
   }
 
+void VobTreeDelegate::setVob(const WorldEdit::Vob* inVob) {
+  vob = inVob;
+  //update();
+  }
+
 size_t VobTreeDelegate::size() const {
   return index.size();
   }
@@ -71,6 +76,10 @@ void VobTreeDelegate::mkIndex(const WorldEdit::Vob& v, std::vector<Item>& index,
 
 bool VobTreeDelegate::isOpen(const WorldEdit::Vob* v) const {
   return closedDir.find(v)==closedDir.end();
+  }
+
+bool VobTreeDelegate::isSelected(size_t id) const {
+  return index[id].vob == vob;
   }
 
 void VobTreeDelegate::refreshFileTree() {

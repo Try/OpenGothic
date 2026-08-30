@@ -2,10 +2,9 @@
 
 #include <Tempest/Painter>
 #include <Tempest/Log>
+#include <Tempest/ListView>
 
-#include "ui/property/property.h"
 #include "ui/property/propertydelegate.h"
-//#include "ui/property/propertylist.h"
 #include "ui/vobtreedelegate.h"
 #include "objects/worldedit.h"
 #include "editorwindow.h"
@@ -15,23 +14,6 @@ using namespace Tempest;
 
 WorldEditor::WorldEditor() {
   setFocusPolicy(Tempest::ClickFocus);
-
-  props = {
-    {"Vob"},
-    {"vobName",               Property::Type::Int1},
-    {"visual",                Property::Type::Int1},
-    {"showVisual",            Property::Type::Bool1},
-    {"visualCamAlign",        Property::Type::Enum},
-    {"visualAniMode",         Property::Type::Enum},
-    {"visualAniModeStrength", Property::Type::Vec1},
-    {"vobFarClipZScale",      Property::Type::Vec1},
-    {"cdStatic",              Property::Type::Bool1},
-    {"cdDyn",                 Property::Type::Bool1},
-    {"staticVob",             Property::Type::Bool1},
-    {"dynShadow",             Property::Type::Enum},
-    {"zbias",                 Property::Type::Vec1},
-    {"isAmbient",             Property::Type::Bool1},
-    };
 
   try {
     // level.reset(new WorldEdit("dragonisland.zen"));
@@ -64,15 +46,11 @@ BaseEditor::BaseTool* WorldEditor::createToolpanel(ToolWindow::Tool tool) {
     auto& delegate = *list.setDelegate(new VobTreeDelegate(*level));
     ctrl->setLayout(Vertical);
     delegate.onVobSelected.bind(this, &WorldEditor::selectVob);
+
+    treeDelegate = &delegate;
     return ctrl;
     }
   if(tool==ToolWindow::T_VobProp) {
-    /*
-    auto ctrl = new BaseTool();
-    auto& prop = ctrl->addWidget(new PropertyList(props));
-    ctrl->setLayout(Vertical);
-    // prop.onChanged.bind(this,&LevelEditor::onProperty);
-    */
     auto ctrl = new BaseTool();
     auto& list     = ctrl->addWidget(new Tempest::ListView());
     auto& delegate = *list.setDelegate(new PropertyDelegate());
@@ -190,5 +168,7 @@ void WorldEditor::tickCamera(uint64_t dt) {
   }
 
 void WorldEditor::selectVob(const WorldEdit::Vob& vob) {
+  treeDelegate->setVob(&vob);
   propertyDelegate->setVob(&vob);
+  update();
   }

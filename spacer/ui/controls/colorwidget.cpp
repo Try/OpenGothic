@@ -91,7 +91,7 @@ struct ColorWidget::ClrCycle : Widget {
       hsv.z = 1.0;
     ColorMath::hsv2rgb(rgb.x,rgb.y,rgb.z, h,s,hsv.z);
 
-    onValueModifyed(rgb,e.type()==Event::MouseUp);
+    onValueModifyed(rgb*255.f, e.type()==Event::MouseUp);
     }
 
   void setRGB(const Vec3& clr) {
@@ -114,7 +114,8 @@ ColorWidget::ColorWidget(std::string_view name) {
   edit = &addWidget(new VecWidget(name,3));
   edit->setCompact(false);
   edit->setNames({"Red", "Green", "Blue", "Alpha"});
-  //edit->showVisibilityUi(false);
+  edit->setSliderMinMax(0, 255);
+  edit->enableFloats(false);
 
   edit->onValueModifyed.bind(this,&ColorWidget::modifyProxy);
   clr ->onValueModifyed.bind(this,&ColorWidget::modifyProxy);
@@ -131,7 +132,11 @@ Vec3 ColorWidget::value() const {
 
 void ColorWidget::setValue(const Tempest::Vec3& v) {
   edit->setValue(v);
-  clr ->setRGB(Vec3(v.x,v.y,v.z));
+  clr ->setRGB(Vec3(v.x,v.y,v.z)/255.f);
+  }
+
+void ColorWidget::setValue(const zenkit::Color& v) {
+  setValue(Vec3(v.r, v.g, v.b));
   }
 
 void ColorWidget::adjustSize() {
@@ -143,6 +148,6 @@ void ColorWidget::adjustSize() {
 
 void ColorWidget::modifyProxy(Vec4 v, bool commit) {
   edit->setValue(v);
-  clr ->setRGB(Vec3(v.x,v.y,v.z));
+  clr ->setRGB(Vec3(v.x,v.y,v.z)/255.f);
   onValueModifyed(v,commit);
   }

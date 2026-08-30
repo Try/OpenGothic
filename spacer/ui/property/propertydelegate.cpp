@@ -1,6 +1,7 @@
 #include "propertydelegate.h"
 
 #include <zenkit/vobs/Misc.hh>
+#include <zenkit/vobs/Light.hh>
 
 #include "ui/controls/parameterwidget.h"
 #include "ui/controls/widgetheader.h"
@@ -56,6 +57,9 @@ void PropertyDelegate::addView(std::string_view name, F T::* field) {
   else if constexpr(std::is_same_v<F,std::string>) {
     id.slt.type = &Property::Type::String;
     }
+  else if constexpr(std::is_same_v<F,zenkit::Color>) {
+    id.slt.type = &Property::Type::Color;
+    }
   else if constexpr(std::is_same_v<F,zenkit::SpriteAlignment>) {
     id.slt.type = &Property::Type::Enum;
     id.slt.enumValues = {"None", "Yaw", "Full"};
@@ -67,6 +71,14 @@ void PropertyDelegate::addView(std::string_view name, F T::* field) {
   else if constexpr(std::is_same_v<F,zenkit::MoverMessageType>) {
     id.slt.type = &Property::Type::Enum;
     id.slt.enumValues = {"FixedDirect", "FixedOrder", "Next", "Previous"};
+    }
+  else if constexpr(std::is_same_v<F,zenkit::LightType>) {
+    id.slt.type = &Property::Type::Enum;
+    id.slt.enumValues = {"Point", "Spot"};
+    }
+  else if constexpr(std::is_same_v<F,zenkit::LightQuality>) {
+    id.slt.type = &Property::Type::Enum;
+    id.slt.enumValues = {"High", "Medium", "Low"};
     }
 
   id.get = [field](const WorldEdit::Vob* vob) -> Variant {
@@ -112,8 +124,14 @@ void PropertyDelegate::mkIndex(zenkit::VirtualObjectType type, const zenkit::Vir
       mkIndex_zCPFXController(type, vob);
       break;
     case zenkit::VirtualObjectType::zCVobAnimate:
+      mkIndex_zCVobAnimate(type, vob);
+      break;
     case zenkit::VirtualObjectType::zCVobLensFlare:
+      mkIndex_zCVobLensFlare(type, vob);
+      break;
     case zenkit::VirtualObjectType::zCVobLight:
+      mkIndex_zCVobLight(type, vob);
+      break;
     case zenkit::VirtualObjectType::zCVobSpot:
     case zenkit::VirtualObjectType::zCVobStartpoint:
     case zenkit::VirtualObjectType::zCMessageFilter:
@@ -203,4 +221,36 @@ void PropertyDelegate::mkIndex_zCPFXController(zenkit::VirtualObjectType type, c
   addView("pfxName",         &zenkit::VParticleEffectController::pfx_name);
   addView("killVobWhenDone", &zenkit::VParticleEffectController::kill_when_done);
   addView("pfxStartOn",      &zenkit::VParticleEffectController::initially_running);
+  }
+
+void PropertyDelegate::mkIndex_zCEffect(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob) {
+  mkIndex_zCVob(type, vob);
+  addHeader("zCEffect");
+  }
+
+void PropertyDelegate::mkIndex_zCVobAnimate(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob) {
+  mkIndex_zCEffect(type, vob);
+  addHeader("zCVobAnimate");
+  addView("startOn", &zenkit::VAnimate::start_on);
+  }
+
+void PropertyDelegate::mkIndex_zCVobLensFlare(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob) {
+  mkIndex_zCEffect(type, vob);
+  addHeader("zCVobLensFlare");
+  addView("lensflareFX", &zenkit::VLensFlare::fx);
+  }
+
+void PropertyDelegate::mkIndex_zCVobLight(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob) {
+  mkIndex_zCVob(type, vob);
+  addHeader("zCVobLight");
+  addView("lightPresetInUse", &zenkit::VLight::preset);
+  addView("lightType",        &zenkit::VLight::light_type);
+  addView("range",            &zenkit::VLight::range);
+  addView("color",            &zenkit::VLight::color);
+  addView("spotConeAngle",    &zenkit::VLight::cone_angle);
+  addView("lightStatic",      &zenkit::VLight::is_static);
+  addView("lightQuality",     &zenkit::VLight::quality);
+  addView("lensflareFX",      &zenkit::VLight::lensflare_fx);
+
+  //addView("turnedOn",         &zenkit::VLight::on);
   }

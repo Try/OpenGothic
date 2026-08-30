@@ -83,9 +83,23 @@ void VobTreeItemView::mouseMoveEvent(MouseEvent& event) {
   }
 
 void VobTreeItemView::paintEvent(Tempest::PaintEvent& e) {
+  const bool sel = owner.isSelected(id);
+
   Painter p(e);
-  style().draw(p,static_cast<Button*>(nullptr),Style::E_Background,
-               state(),Rect(0,0,w(),h()),Style::Extra(*this));
+  {
+    auto st = state();
+    st.button = sel ? Tempest::WidgetState::T_PushButton : st.button;
+    style().draw(p,static_cast<Button*>(nullptr),Style::E_Background,
+                 st,Rect(0,0,w(),h()),Style::Extra(*this));
+
+    if(false && sel) {
+      p.setPen(Assets::inst().colors.highlight);
+      p.drawLine(0,0,w(),0);
+      p.drawLine(0,h()-1,w(),h()-1);
+      p.drawLine(0,1,0,h()-1);
+      p.drawLine(w()-1,1,w()-1,h()-1);
+      }
+  }
   int  dx = 4+int(depth)*8;
 
   if(group) {
@@ -96,6 +110,11 @@ void VobTreeItemView::paintEvent(Tempest::PaintEvent& e) {
     p.drawRect(dx,(h()-sp.h())/2,sp.w(),sp.h());
     dx += sp.w()+4;
     }
+
+  auto fnt = Assets::inst().fntSmall;
+  if(sel)
+    fnt.setBold(true);
+  p.setFont(fnt);
 
   if(!txt.empty()) {
     auto th = p.font().textSize(txt).h;
