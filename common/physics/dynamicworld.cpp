@@ -19,6 +19,42 @@
 
 const float DynamicWorld::worldHeight = 20000; //TODO: remove
 
+static DynamicWorld::RayLandResult toResult(btCollisionWorld::ClosestRayResultCallback& cb, const Tempest::Vec3& to, zenkit::MaterialGroup matId, const char* sector) {
+  DynamicWorld::RayLandResult ret = {};
+  ret.hasCol      = cb.hasHit();
+  ret.v           = to;
+  ret.hitFraction = cb.m_closestHitFraction;
+
+  if(!cb.hasHit()) {
+    ret.v.y = -std::numeric_limits<float>::infinity();
+    return ret;
+    }
+  if(cb.m_collisionObject==nullptr) {
+    ret.v = CollisionWorld::toCentimeters(cb.m_hitPointWorld);
+    return ret;
+    }
+
+  const auto colCat = DynamicWorld::Category(cb.m_collisionObject->getUserIndex());
+  if(colCat==DynamicWorld::C_Landscape) {
+    ret.n.x = cb.m_hitNormalWorld.x();
+    ret.n.y = cb.m_hitNormalWorld.y();
+    ret.n.z = cb.m_hitNormalWorld.z();
+    }
+  else if(colCat==DynamicWorld::C_Object) {
+    // ignore normal, for sake of sliding
+    }
+  ret.v      = CollisionWorld::toCentimeters(cb.m_hitPointWorld);
+  ret.mat    = matId;
+  ret.sector = sector;
+  if(cb.m_collisionObject->getUserIndex2()==DynamicWorld::P_Editor) {
+    ret.uptr = cb.m_collisionObject->getUserPointer();
+    }
+  else if(colCat==DynamicWorld::C_Object) {
+    ret.vob = reinterpret_cast<Interactive*>(cb.m_collisionObject->getUserPointer());
+    }
+  return ret;
+  }
+
 struct DynamicWorld::HumShape:btCapsuleShape {
   //NOTE: total height is height+2*radius
   HumShape(btScalar radius, btScalar height):btCapsuleShape(CollisionWorld::toMeters(radius),
@@ -615,8 +651,6 @@ DynamicWorld::RayLandResult DynamicWorld::sweep(const Tempest::Vec3& from, const
     using ClosestRayResultCallback::ClosestRayResultCallback;
     zenkit::MaterialGroup matId  = zenkit::MaterialGroup::UNDEFINED;
     const char*           sector = nullptr;
-    Category              colCat = C_Null;
-    Interactive*          vob    = nullptr;
 
     bool needsCollision(btBroadphaseProxy* proxy0) const override {
       auto obj=reinterpret_cast<btCollisionObject*>(proxy0->m_clientObject);
@@ -635,10 +669,6 @@ DynamicWorld::RayLandResult DynamicWorld::sweep(const Tempest::Vec3& from, const
         matId  = mt->materialId(id);
         sector = mt->sectorName(id);
         }
-      colCat = Category(rayResult.m_collisionObject->getUserIndex());
-      if(colCat==C_Object) {
-        vob = reinterpret_cast<Interactive*>(rayResult.m_collisionObject->getUserPointer());
-        }
       return ClosestRayResultCallback::addSingleResult(rayResult,normalInWorldSpace);
       }
     };
@@ -646,35 +676,8 @@ DynamicWorld::RayLandResult DynamicWorld::sweep(const Tempest::Vec3& from, const
   CallBack callback{CollisionWorld::toMeters(from), CollisionWorld::toMeters(to)};
   callback.m_flags = btTriangleRaycastCallback::kF_KeepUnflippedNormal | btTriangleRaycastCallback::kF_FilterBackfaces;
 
-  // static float psize = 8.17193031f;
   world->raySweep(from,to,R,callback);
-
-  (void)callback.m_hitPointWorld;
-
-  Tempest::Vec3 hitPos = to, hitNorm;
-  if(callback.hasHit()){
-    hitPos = CollisionWorld::toCentimeters(callback.m_hitPointWorld);
-    if(callback.colCat==DynamicWorld::C_Landscape) {
-      hitNorm.x = callback.m_hitNormalWorld.x();
-      hitNorm.y = callback.m_hitNormalWorld.y();
-      hitNorm.z = callback.m_hitNormalWorld.z();
-      }
-    if(callback.colCat==DynamicWorld::C_Object) {
-      // ignore normal, for sake of sliding
-      }
-    } else {
-    hitPos.y = -std::numeric_limits<float>::infinity();
-    }
-
-  RayLandResult ret;
-  ret.v           = hitPos;
-  ret.n           = hitNorm;
-  ret.mat         = callback.matId;
-  ret.hasCol      = callback.hasHit();
-  ret.hitFraction = callback.m_closestHitFraction;
-  ret.sector      = callback.sector;
-  ret.vob         = callback.vob;
-  return ret;
+  return toResult(callback, to, callback.matId, callback.sector);
   }
 
 DynamicWorld::RayWaterResult DynamicWorld::waterRay(const Tempest::Vec3& from, float stepHeight) const {
@@ -765,9 +768,6 @@ DynamicWorld::RayLandResult DynamicWorld::ray(const Tempest::Vec3& from, const T
     using ClosestRayResultCallback::ClosestRayResultCallback;
     zenkit::MaterialGroup matId  = zenkit::MaterialGroup::UNDEFINED;
     const char*           sector = nullptr;
-    Category              colCat = C_Null;
-    Interactive*          vob    = nullptr;
-    void*                 uptr   = nullptr;
 
     bool needsCollision(btBroadphaseProxy* proxy0) const override {
       auto obj=reinterpret_cast<btCollisionObject*>(proxy0->m_clientObject);
@@ -786,15 +786,6 @@ DynamicWorld::RayLandResult DynamicWorld::ray(const Tempest::Vec3& from, const T
         matId  = mt->materialId(id);
         sector = mt->sectorName(id);
         }
-
-      colCat = Category(rayResult.m_collisionObject->getUserIndex());
-
-      if(rayResult.m_collisionObject->getUserIndex2()==P_Editor) {
-        uptr = rayResult.m_collisionObject->getUserPointer();
-        }
-      else if(colCat==C_Object) {
-        vob = reinterpret_cast<Interactive*>(rayResult.m_collisionObject->getUserPointer());
-        }
       return ClosestRayResultCallback::addSingleResult(rayResult,normalInWorldSpace);
       }
     };
@@ -803,32 +794,7 @@ DynamicWorld::RayLandResult DynamicWorld::ray(const Tempest::Vec3& from, const T
   callback.m_flags = btTriangleRaycastCallback::kF_KeepUnflippedNormal | btTriangleRaycastCallback::kF_FilterBackfaces;
 
   world->rayCast(from,to,callback);
-
-  Tempest::Vec3 hitPos = to, hitNorm;
-  if(callback.hasHit()){
-    hitPos = CollisionWorld::toCentimeters(callback.m_hitPointWorld);
-    if(callback.colCat==DynamicWorld::C_Landscape) {
-      hitNorm.x = callback.m_hitNormalWorld.x();
-      hitNorm.y = callback.m_hitNormalWorld.y();
-      hitNorm.z = callback.m_hitNormalWorld.z();
-      }
-    if(callback.colCat==DynamicWorld::C_Object) {
-      // ignore normal, for sake of sliding
-      }
-    } else {
-    hitPos.y = -std::numeric_limits<float>::infinity();
-    }
-
-  RayLandResult ret;
-  ret.v           = hitPos;
-  ret.n           = hitNorm;
-  ret.mat         = callback.matId;
-  ret.hasCol      = callback.hasHit();
-  ret.hitFraction = callback.m_closestHitFraction;
-  ret.sector      = callback.sector;
-  ret.vob         = callback.vob;
-  ret.uptr        = callback.uptr;
-  return ret;
+  return toResult(callback, to, callback.matId, callback.sector);
   }
 
 DynamicWorld::RayQueryResult DynamicWorld::rayNpc(const Tempest::Vec3& from, const Tempest::Vec3& to, const Npc* except) const {

@@ -269,7 +269,7 @@ void CollisionWorld::raySweep(const Tempest::Vec3& b, const Tempest::Vec3& e, fl
     btScalar addSingleResult(btCollisionWorld::LocalConvexResult& rayResult, bool normalInWorldSpace) override {
       const float a       = rayResult.m_hitFraction;
       const float ySphere = (1.f-a)*m_convexFromWorld.y() + a*m_convexToWorld.y();
-      const float yHit    = ySphere;// - R;
+      const float yHit    = ySphere - R;
       const float a2      = (yHit - m_convexFromWorld.y())/(m_convexToWorld.y() - m_convexFromWorld.y());
 
       LocalRayResult rcRes(rayResult.m_hitCollisionObject, rayResult.m_localShapeInfo,
@@ -289,6 +289,16 @@ void CollisionWorld::raySweep(const Tempest::Vec3& b, const Tempest::Vec3& e, fl
   CallBack callback(s, f, R, cb);
   btSphereShape probe(R);
   this->convexSweepTest(&probe, toMatrix(s), toMatrix(f), callback);
+  if(!callback.hasHit())
+    return;
+  auto dp = (callback.m_convexToWorld - callback.m_hitPointWorld);
+  dp.setY(0);
+  if(dp.length2() < 0.00001)
+    return;
+
+  //rayCast(b, e, cb);
+  cb.m_closestHitFraction = 1.f;
+  this->rayTest(s, f, cb);
   }
 
 void CollisionWorld::tick(uint64_t dt) {
