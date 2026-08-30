@@ -184,7 +184,7 @@ void Item::setPhysicsEnable(const MeshObjects::Mesh& view) {
   if(view.nodesCount()==0)
     return;
   auto& p = *world.physic();
-  physic = p.dynamicObj(transform(),view.bounds(),zenkit::MaterialGroup(hitem->material));
+  physic = p.addDynamicObj(transform(),view.bounds(),zenkit::MaterialGroup(hitem->material));
   physic.setItem(this);
   }
 
@@ -194,7 +194,7 @@ void Item::setPhysicsEnable(const ProtoMesh* mesh) {
   auto& p = *world.physic();
   Bounds b;
   b.assign(mesh->bboxMesh);
-  physic = p.dynamicObj(transform(),b,zenkit::MaterialGroup(hitem->material));
+  physic = p.addDynamicObj(transform(),b,zenkit::MaterialGroup(hitem->material));
   physic.setItem(this);
   }
 

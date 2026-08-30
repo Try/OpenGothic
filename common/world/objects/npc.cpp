@@ -782,7 +782,7 @@ Tempest::Vec3 Npc::displayPosition() const {
 void Npc::setVisual(std::string_view visual) {
   auto skelet = Resources::loadSkeleton(visual);
   setVisual(skelet);
-  setPhysic(owner.physic()->ghostObj(skelet));
+  setPhysic(owner.physic()->addGhostObj(skelet));
   }
 
 bool Npc::hasOverlay(std::string_view sk) const {

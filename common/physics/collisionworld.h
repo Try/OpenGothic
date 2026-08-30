@@ -46,6 +46,7 @@ class CollisionWorld : public btDiscreteDynamicsWorld {
     std::unique_ptr<DynamicBody>   addDynamicBody  (btCollisionShape& shape, const Tempest::Matrix4x4& tr, float friction, float mass);
 
     void rayCast(const Tempest::Vec3& b, const Tempest::Vec3& e, RayResultCallback& cb);
+    void raySweep(const Tempest::Vec3& b, const Tempest::Vec3& e, float radius, RayResultCallback& cb);
 
     class CollisionBody : public btRigidBody {
       public:

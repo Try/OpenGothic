@@ -13,8 +13,8 @@ PhysicMesh::PhysicMesh(const ProtoMesh& proto, DynamicWorld& owner, bool movable
   for(auto& i:proto.attach) {
     DynamicWorld::Item physic;
     if(movable)
-      physic = owner.movableObj(i.shape.get(),pos); else
-      physic = owner.staticObj (i.shape.get(),pos);
+      physic = owner.addMovableObj(i.shape.get(),pos); else
+      physic = owner.addStaticObj (i.shape.get(),pos);
     sub.emplace_back(std::move(physic));
     }
   }
@@ -55,4 +55,9 @@ void PhysicMesh::implSetObjMatrix(const Tempest::Matrix4x4 &mt, const Tempest::M
 void PhysicMesh::setInteractive(Interactive* it) {
   for(auto& i:sub)
     i.setInteractive(it);
+  }
+
+void PhysicMesh::setPayloadPtr(void* it) {
+  for(auto& i:sub)
+    i.setPayloadPtr(it);
   }

@@ -5,6 +5,8 @@
 #include "dynamicworld.h"
 #include "world/objects/item.h"
 
+#include <BulletCollision/CollisionShapes/btSphereShape.h>
+
 CollisionWorld::CollisionBody::CollisionBody(btRigidBody::btRigidBodyConstructionInfo& inf, CollisionWorld* owner)
   :btRigidBody(inf), owner(owner) {
   }
@@ -244,6 +246,49 @@ void CollisionWorld::rayCast(const Tempest::Vec3& b, const Tempest::Vec3& e, btC
   if(s==f)
     return;
   this->rayTest(s,f,cb);
+  }
+
+void CollisionWorld::raySweep(const Tempest::Vec3& b, const Tempest::Vec3& e, float radius, RayResultCallback& cb) {
+  btVector3 s = toMeters(b), f = toMeters(e);
+  float     R = CollisionWorld::toMeters(radius);
+  if(s==f)
+    return;
+
+  //TODO: utilize cb.m_flags ?
+  struct CallBack:btCollisionWorld::ClosestConvexResultCallback {
+    CallBack(const btVector3& convexFromWorld, const btVector3& convexToWorld, float R, RayResultCallback& cb)
+      :ClosestConvexResultCallback(convexFromWorld, convexToWorld), cb(cb), R(R){}
+
+    RayResultCallback& cb;
+    const float        R;
+
+    bool needsCollision(btBroadphaseProxy* proxy0) const override {
+      return cb.needsCollision(proxy0);
+      }
+
+    btScalar addSingleResult(btCollisionWorld::LocalConvexResult& rayResult, bool normalInWorldSpace) override {
+      const float a       = rayResult.m_hitFraction;
+      const float ySphere = (1.f-a)*m_convexFromWorld.y() + a*m_convexToWorld.y();
+      const float yHit    = ySphere;// - R;
+      const float a2      = (yHit - m_convexFromWorld.y())/(m_convexToWorld.y() - m_convexFromWorld.y());
+
+      LocalRayResult rcRes(rayResult.m_hitCollisionObject, rayResult.m_localShapeInfo,
+                           rayResult.m_hitNormalLocal, a2);
+      cb.addSingleResult(rcRes, normalInWorldSpace);
+      return ClosestConvexResultCallback::addSingleResult(rayResult, normalInWorldSpace);
+      }
+    };
+
+  auto toMatrix = [](const btVector3& v){
+    btTransform orig;
+    orig.setIdentity();
+    orig.setOrigin(v);
+    return orig;
+    };
+
+  CallBack callback(s, f, R, cb);
+  btSphereShape probe(R);
+  this->convexSweepTest(&probe, toMatrix(s), toMatrix(f), callback);
   }
 
 void CollisionWorld::tick(uint64_t dt) {

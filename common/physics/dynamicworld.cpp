@@ -17,8 +17,6 @@
 
 #include "utils/dbgpainter.h"
 
-//#include "BulletCollision/CollisionShapes/btCylinderShape.h"
-
 const float DynamicWorld::worldHeight = 20000; //TODO: remove
 
 struct DynamicWorld::HumShape:btCapsuleShape {
@@ -605,6 +603,80 @@ DynamicWorld::RayLandResult DynamicWorld::landRay(const Tempest::Vec3& from, flo
   return ray(from, Tempest::Vec3(from.x,from.y-maxDy,from.z));
   }
 
+DynamicWorld::RayLandResult DynamicWorld::landSweep(const Tempest::Vec3& from, float R, float maxDy) const {
+  world->updateAabbs();
+  if(maxDy==0)
+    maxDy = worldHeight;
+  return sweep(from, Tempest::Vec3(from.x,from.y-maxDy,from.z), R);
+  }
+
+DynamicWorld::RayLandResult DynamicWorld::sweep(const Tempest::Vec3& from, const Tempest::Vec3& to, float R) const {
+  struct CallBack:btCollisionWorld::ClosestRayResultCallback {
+    using ClosestRayResultCallback::ClosestRayResultCallback;
+    zenkit::MaterialGroup matId  = zenkit::MaterialGroup::UNDEFINED;
+    const char*           sector = nullptr;
+    Category              colCat = C_Null;
+    Interactive*          vob    = nullptr;
+
+    bool needsCollision(btBroadphaseProxy* proxy0) const override {
+      auto obj=reinterpret_cast<btCollisionObject*>(proxy0->m_clientObject);
+      if(obj->getUserIndex()==C_Landscape || obj->getUserIndex()==C_Object)
+        return ClosestRayResultCallback::needsCollision(proxy0);
+      return false;
+      }
+
+    btScalar addSingleResult(btCollisionWorld::LocalRayResult& rayResult, bool normalInWorldSpace) override {
+      auto shape = rayResult.m_collisionObject->getCollisionShape();
+      if(shape!=nullptr) {
+        auto s  = reinterpret_cast<const btMultimaterialTriangleMeshShape*>(shape);
+        auto mt = reinterpret_cast<const PhysicVbo*>(s->getMeshInterface());
+
+        size_t id = size_t(rayResult.m_localShapeInfo->m_shapePart);
+        matId  = mt->materialId(id);
+        sector = mt->sectorName(id);
+        }
+      colCat = Category(rayResult.m_collisionObject->getUserIndex());
+      if(colCat==C_Object) {
+        vob = reinterpret_cast<Interactive*>(rayResult.m_collisionObject->getUserPointer());
+        }
+      return ClosestRayResultCallback::addSingleResult(rayResult,normalInWorldSpace);
+      }
+    };
+
+  CallBack callback{CollisionWorld::toMeters(from), CollisionWorld::toMeters(to)};
+  callback.m_flags = btTriangleRaycastCallback::kF_KeepUnflippedNormal | btTriangleRaycastCallback::kF_FilterBackfaces;
+
+  // static float psize = 8.17193031f;
+  world->raySweep(from,to,R,callback);
+
+  (void)callback.m_hitPointWorld;
+
+  Tempest::Vec3 hitPos = to, hitNorm;
+  if(callback.hasHit()){
+    hitPos = CollisionWorld::toCentimeters(callback.m_hitPointWorld);
+    if(callback.colCat==DynamicWorld::C_Landscape) {
+      hitNorm.x = callback.m_hitNormalWorld.x();
+      hitNorm.y = callback.m_hitNormalWorld.y();
+      hitNorm.z = callback.m_hitNormalWorld.z();
+      }
+    if(callback.colCat==DynamicWorld::C_Object) {
+      // ignore normal, for sake of sliding
+      }
+    } else {
+    hitPos.y = -std::numeric_limits<float>::infinity();
+    }
+
+  RayLandResult ret;
+  ret.v           = hitPos;
+  ret.n           = hitNorm;
+  ret.mat         = callback.matId;
+  ret.hasCol      = callback.hasHit();
+  ret.hitFraction = callback.m_closestHitFraction;
+  ret.sector      = callback.sector;
+  ret.vob         = callback.vob;
+  return ret;
+  }
+
 DynamicWorld::RayWaterResult DynamicWorld::waterRay(const Tempest::Vec3& from, float stepHeight) const {
   world->updateAabbs();
   return implWaterRay(from, Tempest::Vec3(from.x,from.y+worldHeight,from.z), stepHeight);
@@ -695,6 +767,7 @@ DynamicWorld::RayLandResult DynamicWorld::ray(const Tempest::Vec3& from, const T
     const char*           sector = nullptr;
     Category              colCat = C_Null;
     Interactive*          vob    = nullptr;
+    void*                 uptr   = nullptr;
 
     bool needsCollision(btBroadphaseProxy* proxy0) const override {
       auto obj=reinterpret_cast<btCollisionObject*>(proxy0->m_clientObject);
@@ -713,8 +786,13 @@ DynamicWorld::RayLandResult DynamicWorld::ray(const Tempest::Vec3& from, const T
         matId  = mt->materialId(id);
         sector = mt->sectorName(id);
         }
+
       colCat = Category(rayResult.m_collisionObject->getUserIndex());
-      if(colCat==C_Object) {
+
+      if(rayResult.m_collisionObject->getUserIndex2()==P_Editor) {
+        uptr = rayResult.m_collisionObject->getUserPointer();
+        }
+      else if(colCat==C_Object) {
         vob = reinterpret_cast<Interactive*>(rayResult.m_collisionObject->getUserPointer());
         }
       return ClosestRayResultCallback::addSingleResult(rayResult,normalInWorldSpace);
@@ -749,6 +827,7 @@ DynamicWorld::RayLandResult DynamicWorld::ray(const Tempest::Vec3& from, const T
   ret.hitFraction = callback.m_closestHitFraction;
   ret.sector      = callback.sector;
   ret.vob         = callback.vob;
+  ret.uptr        = callback.uptr;
   return ret;
   }
 
@@ -806,7 +885,7 @@ float DynamicWorld::soundOclusion(const Tempest::Vec3& from, const Tempest::Vec3
   return std::clamp(1.f-tr, 0.f, 1.f);
   }
 
-DynamicWorld::NpcItem DynamicWorld::ghostObj(const Skeleton* src) {
+DynamicWorld::NpcItem DynamicWorld::addGhostObj(const Skeleton* src) {
   Tempest::Vec3 min={0,0,0}, max={0,0,0};
   if(src != nullptr) {
     min = src->bboxCol[0];
@@ -819,16 +898,30 @@ DynamicWorld::NpcItem DynamicWorld::ghostObj(const Skeleton* src) {
   return NpcItem(this,obj);
   }
 
-DynamicWorld::Item DynamicWorld::staticObj(const PhysicMeshShape *shape, const Tempest::Matrix4x4 &m) {
+DynamicWorld::Item DynamicWorld::addStaticObj(const PhysicMeshShape *shape, const Tempest::Matrix4x4 &m) {
   if(shape==nullptr)
     return Item();
   return createObj(&shape->shape,false,m,0,shape->friction(),IT_Static);
   }
 
-DynamicWorld::Item DynamicWorld::movableObj(const PhysicMeshShape* shape, const Tempest::Matrix4x4& m) {
+DynamicWorld::Item DynamicWorld::addMovableObj(const PhysicMeshShape* shape, const Tempest::Matrix4x4& m) {
   if(shape==nullptr)
     return Item();
   return createObj(&shape->shape,false,m,0,shape->friction(),IT_Movable);
+  }
+
+DynamicWorld::Item DynamicWorld::addDynamicObj(const Tempest::Matrix4x4& pos, const Bounds& b, zenkit::MaterialGroup mat) {
+  btVector3 hExt = {b.bbox[1].x-b.bbox[0].x, b.bbox[1].y-b.bbox[0].y, b.bbox[1].z-b.bbox[0].z};
+  hExt *= 0.01f;
+
+  float density = DynamicWorld::materialDensity(mat);
+  float mass    = density*(hExt[0])*(hExt[1])*(hExt[2]);
+  //mass = 0.1f;
+  for(int i=0;i<3;++i)
+    hExt[i] = std::max(hExt[i]*0.5f,0.15f);
+
+  std::unique_ptr<btCollisionShape> shape { new btBoxShape(hExt) };
+  return createObj(shape.release(),true,pos,mass,materialFriction(mat),IT_Dynamic);
   }
 
 DynamicWorld::Item DynamicWorld::createObj(btCollisionShape* shape, bool ownShape, const Tempest::Matrix4x4& m, float mass, float friction, ItemType type) {
@@ -845,20 +938,6 @@ DynamicWorld::Item DynamicWorld::createObj(btCollisionShape* shape, bool ownShap
       break;
     }
   return Item(this,obj.release(),ownShape ? shape : nullptr);
-  }
-
-DynamicWorld::Item DynamicWorld::dynamicObj(const Tempest::Matrix4x4& pos, const Bounds& b, zenkit::MaterialGroup mat) {
-  btVector3 hExt = {b.bbox[1].x-b.bbox[0].x, b.bbox[1].y-b.bbox[0].y, b.bbox[1].z-b.bbox[0].z};
-  hExt *= 0.01f;
-
-  float density = DynamicWorld::materialDensity(mat);
-  float mass    = density*(hExt[0])*(hExt[1])*(hExt[2]);
-  //mass = 0.1f;
-  for(int i=0;i<3;++i)
-    hExt[i] = std::max(hExt[i]*0.5f,0.15f);
-
-  std::unique_ptr<btCollisionShape> shape { new btBoxShape(hExt) };
-  return createObj(shape.release(),true,pos,mass,materialFriction(mat),IT_Dynamic);
   }
 
 DynamicWorld::BulletBody* DynamicWorld::bulletObj(BulletCallback* cb) {
@@ -1154,6 +1233,10 @@ float DynamicWorld::NpcItem::groundOffset() const {
   return obj->groundOffset();
   }
 
+float DynamicWorld::NpcItem::radiusXZ() const {
+  return obj->maxRXZ;
+  }
+
 const Tempest::Vec3& DynamicWorld::NpcItem::position() const {
   return obj->pos;
   }
@@ -1314,13 +1397,20 @@ void DynamicWorld::Item::setObjMatrix(const Tempest::Matrix4x4 &m) {
 void DynamicWorld::Item::setItem(::Item* it) {
   assert(obj->getUserIndex()==DynamicWorld::C_Item);
   obj->setUserPointer(it);
-  obj->setUserIndex2(1);
+  obj->setUserIndex2(P_Item);
   }
 
 void DynamicWorld::Item::setInteractive(Interactive* it) {
   assert(obj->getUserIndex()==DynamicWorld::C_Object);
   obj->setUserPointer(it);
-  obj->setUserIndex2(2);
+  obj->setUserIndex2(P_Interactive);
+  }
+
+void DynamicWorld::Item::setPayloadPtr(void* ptr) {
+  if(obj==nullptr)
+    return;
+  obj->setUserPointer(ptr);
+  obj->setUserIndex2(P_Editor);
   }
 
 DynamicWorld::BulletBody::BulletBody(DynamicWorld* wrld, DynamicWorld::BulletCallback* cb)

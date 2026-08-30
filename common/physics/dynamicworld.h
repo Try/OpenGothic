@@ -54,6 +54,13 @@ class DynamicWorld final {
       C_Item      = 6,
       };
 
+    enum PtrType {
+      P_Null,
+      P_Item,
+      P_Interactive,
+      P_Editor
+      };
+
     enum MoveCode : uint8_t {
       MC_Fail,
       MC_OK,
@@ -101,6 +108,7 @@ class DynamicWorld final {
         float centerY() const;
         auto  centerAsym()  const -> Tempest::Vec3;
         float groundOffset() const;
+        float radiusXZ() const;
 
         bool  testMove(const Tempest::Vec3& to, CollisionTest& out);
         bool  testMove(const Tempest::Vec3& to, const Tempest::Vec3& from, CollisionTest& out);
@@ -135,6 +143,7 @@ class DynamicWorld final {
         void setObjMatrix(const Tempest::Matrix4x4& m);
         void setItem(::Item* it);
         void setInteractive(Interactive* it);
+        void setPayloadPtr(void* ptr);
         bool isEmpty() const { return obj==nullptr; }
 
       private:
@@ -152,6 +161,7 @@ class DynamicWorld final {
 
       const char*             sector = nullptr;
       Interactive*            vob    = nullptr;
+      void*                   uptr   = nullptr;
       };
 
     struct RayWaterResult {
@@ -244,17 +254,19 @@ class DynamicWorld final {
       };
 
     RayLandResult  landRay      (const Tempest::Vec3& from, float maxDy=0) const;
+    RayLandResult  landSweep    (const Tempest::Vec3& from, float R, float maxDy) const;
     RayWaterResult waterRay     (const Tempest::Vec3& from, float stepHeight) const;
     RayCamResult   cameraRay    (const Tempest::Vec3& from, const Tempest::Vec3& to) const;
 
     RayLandResult  ray          (const Tempest::Vec3& from, const Tempest::Vec3& to) const;
+    RayLandResult  sweep        (const Tempest::Vec3& from, const Tempest::Vec3& to, float R) const;
     RayQueryResult rayNpc       (const Tempest::Vec3& from, const Tempest::Vec3& to, const Npc* except) const;
     float          soundOclusion(const Tempest::Vec3& from, const Tempest::Vec3& to) const;
 
-    NpcItem        ghostObj  (const Skeleton* src);
-    Item           staticObj (const PhysicMeshShape *src, const Tempest::Matrix4x4& m);
-    Item           movableObj(const PhysicMeshShape *src, const Tempest::Matrix4x4& m);
-    Item           dynamicObj(const Tempest::Matrix4x4& pos, const Bounds& bbox, zenkit::MaterialGroup mat);
+    NpcItem        addGhostObj  (const Skeleton* src);
+    Item           addStaticObj (const PhysicMeshShape *src, const Tempest::Matrix4x4& m);
+    Item           addMovableObj(const PhysicMeshShape *src, const Tempest::Matrix4x4& m);
+    Item           addDynamicObj(const Tempest::Matrix4x4& pos, const Bounds& bbox, zenkit::MaterialGroup mat);
 
     BulletBody*    bulletObj(BulletCallback* cb);
     BBoxBody       bboxObj(BBoxCallback* cb, const zenkit::AxisAlignedBoundingBox& bbox);
