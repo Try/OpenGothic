@@ -5,6 +5,7 @@
 
 #include <zenkit/vobs/VirtualObject.hh>
 
+#include "physics/physicmesh.h"
 #include "graphics/meshobjects.h"
 
 class DynamicWorld;
@@ -34,15 +35,20 @@ class WorldEdit {
         std::shared_ptr<zenkit::VirtualObject> orig;
 
         MeshObjects::Mesh mesh;
+        PhysicMesh        phys;
 
       friend class WorldEdit;
       };
 
     const Vob& root() const { return rootVob; }
 
+    Vob* rayQuery(const Tempest::Vec3 s, const Tempest::Vec3 e);
+
   private:
     void load(Vob& out, std::vector<std::shared_ptr<zenkit::VirtualObject>>& child);
     void initView(Vob& out);
+
+    Vob* validatePointer(const zenkit::VirtualObject* ptr, Vob& v);
 
     Vob                           rootVob {0};
     size_t                        vobNextId = 1;

@@ -8,6 +8,7 @@
 #include "graphics/mesh/submesh/packedmesh.h"
 #include "graphics/worldview.h"
 #include "physics/dynamicworld.h"
+#include "physics/physicmesh.h"
 #include "utils/workers.h"
 #include "resources.h"
 
@@ -87,6 +88,10 @@ void WorldEdit::initView(Vob& out) {
          out.mesh = wview->addStaticView(view, true);
          out.mesh.setWind(vob.anim_mode,vob.anim_strength);
          out.mesh.setObjMatrix(pos);
+
+         out.phys = PhysicMesh(*view, *physics, false);
+         out.phys.setObjMatrix(pos);
+         out.phys.setPayloadPtr(out.orig.get());
          }
        }
       case zenkit::VisualType::DECAL:
@@ -98,4 +103,21 @@ void WorldEdit::initView(Vob& out) {
         break;
       }
     }
+  }
+
+WorldEdit::Vob* WorldEdit::rayQuery(const Tempest::Vec3 s, const Tempest::Vec3 e) {
+  auto ret  = physics->ray(s, e);
+  auto uptr = reinterpret_cast<zenkit::VirtualObject*>(ret.uptr);
+  return validatePointer(uptr, rootVob);
+  }
+
+WorldEdit::Vob* WorldEdit::validatePointer(const zenkit::VirtualObject* ptr, Vob& v) {
+  if(ptr==v.orig.get())
+    return &v;
+
+  for(auto& i:v.child) {
+    if(auto n = validatePointer(ptr, i))
+      return n;
+    }
+  return nullptr;
   }

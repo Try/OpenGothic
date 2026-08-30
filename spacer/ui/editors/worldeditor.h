@@ -45,6 +45,7 @@ class WorldEditor: public BaseEditor,
     void processKeyboard(Tempest::KeyEvent& e);
     void tickCamera(uint64_t dt);
 
+    auto rayQuery(Tempest::Point mpos) -> WorldEdit::Vob*;
     void selectVob(const WorldEdit::Vob& vob);
 
     Camera                     camera;
