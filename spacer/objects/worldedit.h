@@ -50,9 +50,9 @@ class WorldEdit {
 
     Vob* validatePointer(const zenkit::VirtualObject* ptr, Vob& v);
 
-    Vob                           rootVob {0};
-    size_t                        vobNextId = 1;
     std::unique_ptr<DynamicWorld> physics;
     std::unique_ptr<WorldView>    wview;
+    Vob                           rootVob {0};
+    size_t                        vobNextId = 1;
   };
 

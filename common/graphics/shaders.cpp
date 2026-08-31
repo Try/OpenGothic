@@ -177,6 +177,17 @@ void Shaders::compileShaders() {
     cmaa2DeferredColorApply2x2 = device.pipeline(Tempest::Points,RenderState(),vs,fs);
   }
 
+  {
+    RenderState state;
+    //state.setCullFaceMode(RenderState::CullMode::NoCull);
+
+    auto sh = GothicShader::get("gizmo.vert.sprv");
+    auto vs = device.shader(sh.data,sh.len);
+    sh = GothicShader::get("gizmo.frag.sprv");
+    auto fs = device.shader(sh.data,sh.len);
+    gizmo = device.pipeline(Triangles,state,vs,fs);
+  }
+
   hiZPot  = computeShader("hiz_pot.comp.sprv");
   hiZMip  = computeShader("hiz_mip.comp.sprv");
 

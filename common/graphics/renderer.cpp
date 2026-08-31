@@ -229,6 +229,11 @@ void Renderer::onWorldChanged() {
   resetSkyFog();
   }
 
+void Renderer::setGizmo(bool enable, Tempest::Vec3 center) {
+  gizmo.enable = enable;
+  gizmo.center = center;
+  }
+
 void Renderer::updateCamera(const WorldView& wview, const Camera& camera) {
   proj        = camera.projective();
   viewProj    = camera.viewProj();
@@ -700,6 +705,7 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}});
   drawReflections(cmd, wview);
+  drawGizmo(cmd, wview);
   if(camera.isInWater()) {
     cmd.setDebugMarker("Underwater");
     drawUnderwater(cmd, wview);
@@ -913,6 +919,23 @@ void Renderer::drawSunMoon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const 
   cmd.setPushData(push);
   cmd.setPipeline(shaders.sun);
   cmd.draw(nullptr, 0, 6);
+  }
+
+void Renderer::drawGizmo(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview) {
+  if(!gizmo.enable)
+    return;
+
+  auto  cen = gizmo.center;
+  float w   = 1;
+  auto  vp  = wview.sceneGlobals().viewProject();
+  vp.project(cen.x, cen.y, cen.z, w);
+
+  cmd.setPushData(gizmo.center);
+  cmd.setDebugMarker("Hud-Gizmo");
+  cmd.setBinding(0, wview.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+  cmd.setBinding(1, zbuffer);
+  cmd.setPipeline(shaders.gizmo);
+  cmd.draw(nullptr, 0, 36, 0, 3);
   }
 
 void Renderer::drawSwRT(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview) {

@@ -21,6 +21,7 @@ class Renderer final {
     ~Renderer();
 
     void onWorldChanged();
+    void setGizmo(bool enable, Tempest::Vec3 center);
 
     void draw(Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId,
               Tempest::VectorImage::Mesh& uiLayer, Tempest::VectorImage::Mesh& numOverlay,
@@ -97,6 +98,7 @@ class Renderer final {
     void drawFog          (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
     void drawSunMoon      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
     void drawSunMoon      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview, bool isSun);
+    void drawGizmo        (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
 
     void drawSwRT         (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
     void drawPathtrace    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview, uint8_t fId);
@@ -292,6 +294,11 @@ class Renderer final {
     struct {
       Tempest::StorageImage     outputImage;
       } swrt;
+
+    struct {
+      Tempest::Vec3 center = {};
+      bool          enable = false;
+      } gizmo;
 
     Tempest::TextureFormat    shadowFormat  = Tempest::TextureFormat::Depth16;
     Tempest::TextureFormat    zBufferFormat = Tempest::TextureFormat::Depth16;

@@ -49,7 +49,7 @@ WorldEdit::WorldEdit(std::string_view wname) {
 WorldEdit::~WorldEdit() {
   }
 
-void WorldEdit::load(Vob& out, std::vector<std::shared_ptr<zenkit::VirtualObject> >& child) {
+void WorldEdit::load(Vob& out, std::vector<std::shared_ptr<zenkit::VirtualObject>>& child) {
   out.child.reserve(child.size());
   for(size_t i=0; i<child.size(); ++i) {
     out.child.emplace_back(vobNextId); ++vobNextId;

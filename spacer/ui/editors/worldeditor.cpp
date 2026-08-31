@@ -189,6 +189,10 @@ WorldEdit::Vob* WorldEditor::rayQuery(Tempest::Point mpos) {
   }
 
 void WorldEditor::selectVob(const WorldEdit::Vob& vob) {
+  if(vob.get()==nullptr)
+    return;
+  const auto pos = vob.get()->position;
+  renderer.setGizmo(true, Vec3(pos.x,pos.y,pos.z));
   treeDelegate->setVob(&vob);
   propertyDelegate->setVob(&vob);
   update();
