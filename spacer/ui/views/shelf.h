@@ -28,6 +28,7 @@ class Shelf : public Tempest::Widget {
     void onScroll(int v);
     void setCategory(size_t id);
     void setSubdir(size_t id);
+    void doLayout();
 
     size_t findRootItem() const;
 

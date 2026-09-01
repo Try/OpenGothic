@@ -303,11 +303,13 @@ struct Shelf::PathItem : Tempest::Button {
   };
 
 struct Shelf::Delegate : Tempest::ListDelegate {
-  std::string_view txt[4] = {
-    "Vdf",
+  constexpr static std::string_view txt[6] = {
+    "Files",
     "Meshes",
     "Textures",
-    "Scripts",
+    "Items",
+    "Light presets",
+    "UI"
     };
 
   Delegate(Shelf& owner):owner(owner){}
@@ -378,33 +380,14 @@ void Shelf::onItem(Widget*, const ProjectItem& itm) {
     subdir.push_back(itm);
     cen->refreshFileTree();
     path->invalidateView();
+    doLayout();
     } else {
     onItemSelected(itm);
     }
   }
 
 void Shelf::resizeEvent(SizeEvent&) {
-  if(w()<h()) {
-    category->setMinimumSize(0,34);
-    category->setSizePolicy(Preferred,Fixed);
-    category->setLayout(Horizontal);
-    setLayout(Vertical);
-    } else {
-    category->setMinimumSize(100,0);
-    category->setSizePolicy(Fixed,Preferred);
-    category->setLayout(Vertical);
-    setLayout(Horizontal);
-    }
-  scroll->setVisible(true);
-  cen->doLayout();
-  if(cen->h()<box->h()) {
-    scroll->setVisible(false);
-    cen->doLayout();
-    scroll->setValue(0);
-    scroll->setRange(0,0);
-    return;
-    }
-  scroll->setRange(0,cen->h()-Item::Height);
+  doLayout();
   }
 
 void Shelf::mouseDownEvent(MouseEvent& e) {
@@ -446,6 +429,30 @@ void Shelf::setSubdir(size_t id) {
   subdir.resize(id+1);
   cen->refreshFileTree();
   path->invalidateView();
+  }
+
+void Shelf::doLayout() {
+  if(w() < h()) {
+    category->setMinimumSize(0,34);
+    category->setSizePolicy(Preferred,Fixed);
+    category->setLayout(Horizontal);
+    setLayout(Vertical);
+    } else {
+    category->setMinimumSize(100,0);
+    category->setSizePolicy(Fixed,Preferred);
+    category->setLayout(Vertical);
+    setLayout(Horizontal);
+    }
+  scroll->setVisible(true);
+  cen->doLayout();
+  if(cen->h()<box->h()) {
+    scroll->setVisible(false);
+    cen->doLayout();
+    scroll->setValue(0);
+    scroll->setRange(0,0);
+    return;
+    }
+  scroll->setRange(0,cen->h()-Item::Height);
   }
 
 size_t Shelf::findRootItem() const {

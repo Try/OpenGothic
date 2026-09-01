@@ -234,6 +234,10 @@ void Renderer::setGizmo(bool enable, Tempest::Vec3 center) {
   gizmo.center = center;
   }
 
+void Renderer::setLightsHud(const Tempest::Texture2d* tex) {
+  hud.light = tex;
+  }
+
 void Renderer::updateCamera(const WorldView& wview, const Camera& camera) {
   proj        = camera.projective();
   viewProj    = camera.viewProj();
@@ -702,6 +706,8 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
   drawSwrDbg(cmd, wview);
   drawRtsmDbg(cmd, wview);
   drawRayQueryDbg(cmd, wview);
+  //
+  drawLightsHud(cmd, wview);
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}});
   drawReflections(cmd, wview);
@@ -936,6 +942,18 @@ void Renderer::drawGizmo(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const Wo
   cmd.setBinding(1, zbuffer);
   cmd.setPipeline(shaders.gizmo);
   cmd.draw(nullptr, 0, 36, 0, 3);
+  }
+
+void Renderer::drawLightsHud(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview) {
+  if(hud.light==nullptr)
+    return;
+  auto& ssbo = wview.lights().lightsSsbo();
+  cmd.setDebugMarker("Hud-Lights");
+  cmd.setBinding(0, wview.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+  cmd.setBinding(1, ssbo);
+  cmd.setBinding(2, *hud.light);
+  cmd.setPipeline(shaders.lightImposter);
+  cmd.draw(nullptr, 0, 6, 0, wview.lights().size());
   }
 
 void Renderer::drawSwRT(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview) {

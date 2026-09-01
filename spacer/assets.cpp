@@ -1,6 +1,7 @@
 #include "assets.h"
 
 #include <Tempest/Application>
+#include <Tempest/Device>
 #include <Tempest/MemReader>
 
 #include "assetfile.h"
@@ -9,7 +10,7 @@ using namespace Tempest;
 
 static Assets* instance = nullptr;
 
-Assets::Assets(TextureAtlas& atlas) {
+Assets::Assets(Device& device, TextureAtlas& atlas) {
   instance = this;
 
   fntSmall = Application::font();
@@ -34,6 +35,8 @@ Assets::Assets(TextureAtlas& atlas) {
   ic.file_project   = Icon(AssetFile::pixmap("file_project.png"), atlas);
   ic.file_large     = Icon(AssetFile::pixmap("file_large.png"), atlas);
   ic.folder_large   = Icon(AssetFile::pixmap("folder_large.png"), atlas);
+
+  im.pointLight = device.texture(AssetFile::pixmap("point_light.png"));
   }
 
 Assets::~Assets() {

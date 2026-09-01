@@ -65,9 +65,6 @@ void WorldEdit::initView(Vob& out) {
 
   assert(out.orig!=nullptr);
   const auto& vob     = *out.orig;
-  const auto& visName = vob.visual_name;
-  if(visName.empty())
-    return;
 
   //TODO: hierarchical transform?
   auto pos = Tempest::Matrix4x4(vob.rotation.columns[0].x, vob.rotation.columns[1].x, vob.rotation.columns[2].x, vob.position.x,
@@ -77,6 +74,9 @@ void WorldEdit::initView(Vob& out) {
 
   //FIXME: copypaste from ObjVisual
   if(out.orig->type==zenkit::VirtualObjectType::zCVob) {
+    const auto& visName = vob.visual_name;
+    if(visName.empty())
+      return;
     switch (vob.visual->type) {
      case zenkit::VisualType::MESH:
      case zenkit::VisualType::MULTI_RESOLUTION_MESH: {
@@ -102,6 +102,10 @@ void WorldEdit::initView(Vob& out) {
       case zenkit::VisualType::UNKNOWN:
         break;
       }
+    }
+
+  if(out.orig->type==zenkit::VirtualObjectType::zCVobLight) {
+    out.light = wview->addLight(reinterpret_cast<const zenkit::VLight&>(vob), 0);
     }
   }
 

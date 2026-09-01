@@ -179,13 +179,25 @@ void Shaders::compileShaders() {
 
   {
     RenderState state;
-    //state.setCullFaceMode(RenderState::CullMode::NoCull);
-
     auto sh = GothicShader::get("gizmo.vert.sprv");
     auto vs = device.shader(sh.data,sh.len);
     sh = GothicShader::get("gizmo.frag.sprv");
     auto fs = device.shader(sh.data,sh.len);
     gizmo = device.pipeline(Triangles,state,vs,fs);
+  }
+  {
+    RenderState state;
+    state.setZTestMode    (RenderState::ZTestMode::Less);
+    state.setZWriteEnabled(true);
+    state.setBlendSource  (RenderState::BlendMode::SrcAlpha);
+    state.setBlendDest    (RenderState::BlendMode::OneMinusSrcAlpha);
+    state.setCullFaceMode (RenderState::CullMode::Front);
+
+    auto sh = GothicShader::get("light_imposter.vert.sprv");
+    auto vs = device.shader(sh.data,sh.len);
+    sh = GothicShader::get("light_imposter.frag.sprv");
+    auto fs = device.shader(sh.data,sh.len);
+    lightImposter = device.pipeline(Triangles,state,vs,fs);
   }
 
   hiZPot  = computeShader("hiz_pot.comp.sprv");

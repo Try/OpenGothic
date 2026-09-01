@@ -6,6 +6,7 @@
 #include <zenkit/vobs/VirtualObject.hh>
 
 #include "physics/physicmesh.h"
+#include "graphics/lightgroup.h"
 #include "graphics/meshobjects.h"
 
 class DynamicWorld;
@@ -34,8 +35,9 @@ class WorldEdit {
         std::vector<Vob>                       child;
         std::shared_ptr<zenkit::VirtualObject> orig;
 
-        MeshObjects::Mesh mesh;
         PhysicMesh        phys;
+        MeshObjects::Mesh mesh;
+        LightGroup::Light light;
 
       friend class WorldEdit;
       };

@@ -117,6 +117,9 @@ endfunction(add_frag_shader)
 add_shader(gizmo.vert hud/gizmo.vert)
 add_shader(gizmo.frag hud/gizmo.frag)
 
+add_shader(light_imposter.vert hud/light_imposter.vert)
+add_shader(light_imposter.frag hud/light_imposter.frag)
+
 # cluster culling
 add_shader(cluster_init.comp            materials/cluster_init.comp)
 add_shader(cluster_patch.comp           materials/cluster_patch.comp)

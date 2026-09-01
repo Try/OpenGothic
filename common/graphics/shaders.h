@@ -69,7 +69,7 @@ class Shaders {
     Tempest::RenderPipeline  cmaa2DeferredColorApply2x2;
 
     // HUD
-    Tempest::RenderPipeline  gizmo;
+    Tempest::RenderPipeline  gizmo, lightImposter;
 
     // HiZ
     Tempest::ComputePipeline hiZPot, hiZMip;

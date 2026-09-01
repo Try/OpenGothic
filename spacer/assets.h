@@ -6,7 +6,7 @@
 
 class Assets {
   public:
-    Assets(Tempest::TextureAtlas& atlas);
+    Assets(Tempest::Device& device, Tempest::TextureAtlas& atlas);
     ~Assets();
 
     static const Assets& inst();
@@ -32,6 +32,10 @@ class Assets {
       Tempest::Icon file_large;
       Tempest::Icon folder_large;
       } ic;
+
+    struct {
+      Tempest::Texture2d pointLight;
+      } im;
 
     Tempest::Font fntSmall, fntApp;
   };

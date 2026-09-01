@@ -28,7 +28,7 @@ class WorldEditor: public BaseEditor,
     void redo() override;
 
     void keyDownEvent(Tempest::KeyEvent& e) override;
-    void keyUpEvent(Tempest::KeyEvent& e) override;
+    void keyUpEvent  (Tempest::KeyEvent& e) override;
 
     void mouseDownEvent(Tempest::MouseEvent& e) override;
     void mouseDragEvent(Tempest::MouseEvent& e) override;
@@ -44,10 +44,12 @@ class WorldEditor: public BaseEditor,
     void update3d(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t cmdId);
     void processKeyboard(Tempest::KeyEvent& e);
     void tickCamera(uint64_t dt);
+    void tick();
 
     auto rayQuery(Tempest::Point mpos) -> WorldEdit::Vob*;
     void selectVob(const WorldEdit::Vob& vob);
 
+    Tempest::Timer             timer;
     Camera                     camera;
     std::unique_ptr<WorldEdit> level;
 
