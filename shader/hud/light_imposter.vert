@@ -3,6 +3,7 @@
 #include "scene.glsl"
 
 layout(location = 0) out vec2 uv;
+layout(location = 1) out vec3 color;
 
 layout(binding = 0, std140) uniform UboScene {
   SceneDesc scene;
@@ -10,7 +11,7 @@ layout(binding = 0, std140) uniform UboScene {
 layout(binding = 1, std430) readonly buffer SsboLighting {
   LightSource lights[];
   };
-  layout(binding = 2) uniform sampler2D img;
+layout(binding = 2) uniform sampler2D img;
 
 const vec2 v[4] = {
   {-1,-1},
@@ -34,5 +35,6 @@ void main() {
   clipPos.xy += ndcOffset * clipPos.w;
 
   uv          = vert*0.5 + 0.5;
+  color       = lights[gl_InstanceIndex].color;
   gl_Position = clipPos;
   }

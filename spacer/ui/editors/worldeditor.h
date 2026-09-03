@@ -33,8 +33,8 @@ class WorldEditor: public BaseEditor,
     void mouseDownEvent(Tempest::MouseEvent& e) override;
     void mouseDragEvent(Tempest::MouseEvent& e) override;
 
-    void moveDropOver (DropOverEvent& ev) override;
-    void dropDone     (DropOverEvent& ev) override;
+    void moveDropOver(DropOverEvent& ev) override;
+    void dropDone    (DropOverEvent& ev) override;
 
     void paintEvent(Tempest::PaintEvent& e) override;
     void resizeEvent(Tempest::SizeEvent& e) override;
@@ -46,7 +46,7 @@ class WorldEditor: public BaseEditor,
     void tickCamera(uint64_t dt);
     void tick();
 
-    auto rayQuery(Tempest::Point mpos) -> WorldEdit::Vob*;
+    auto rayQuery(Tempest::Point mpos) -> const WorldEdit::Vob*;
     void selectVob(const WorldEdit::Vob& vob);
 
     Tempest::Timer             timer;

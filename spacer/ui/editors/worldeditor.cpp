@@ -175,23 +175,8 @@ void WorldEditor::tick() {
   tickCamera(16);
   }
 
-WorldEdit::Vob* WorldEditor::rayQuery(Tempest::Point mpos) {
-  auto vp = camera.viewProj();
-  vp.inverse();
-
-  auto v = camera.view();
-  v.inverse();
-
-  Tempest::Vec2 pos = {mpos.x/float(w()), mpos.y/float(h())};
-  pos = 2.f*pos - 1.f;
-
-  Vec3 dst = {pos.x, pos.y, 1};
-  vp.project(dst);
-
-  Vec3 src = {pos.x, pos.y, 0};
-  v.project(src);
-
-  return level->rayQuery(src, dst);
+const WorldEdit::Vob* WorldEditor::rayQuery(Tempest::Point mpos) {
+  return level->rayQuery(camera.view(), camera.viewProj(), mpos, size());
   }
 
 void WorldEditor::selectVob(const WorldEdit::Vob& vob) {

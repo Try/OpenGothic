@@ -105,14 +105,80 @@ void WorldEdit::initView(Vob& out) {
     }
 
   if(out.orig->type==zenkit::VirtualObjectType::zCVobLight) {
+    /*
+    static bool once = false;
+    if(once) {
+      out.orig = nullptr;
+      return;
+      }
+    once = true;
+    */
     out.light = wview->addLight(reinterpret_cast<const zenkit::VLight&>(vob), 0);
     }
+  }
+
+WorldEdit::Vob* WorldEdit::rayQuery(Tempest::Matrix4x4 v, Tempest::Matrix4x4 vp,
+                                    Tempest::Point mpos, Tempest::Size wsize) {
+  auto vInv = v;
+  auto vpInv = vp;
+  vInv.inverse();
+  vpInv.inverse();
+
+  Tempest::Vec2 pos = {mpos.x/float(wsize.w), mpos.y/float(wsize.h)};
+  pos = 2.f*pos - 1.f;
+
+  Vec3 dst = {pos.x, pos.y, 1};
+  vpInv.project(dst);
+
+  Vec3 src = {pos.x, pos.y, 0};
+  vInv.project(src);
+
+  auto ret  = physics->ray(src, dst);
+
+  float           rayT   = ret.hitFraction;
+  auto            uptr   = reinterpret_cast<zenkit::VirtualObject*>(ret.uptr);
+  WorldEdit::Vob* retVob = validatePointer(uptr, rootVob);
+
+  rayQueryLight(mpos, wsize, vp, src, dst, rayT, retVob, rootVob);
+
+  return retVob;
   }
 
 WorldEdit::Vob* WorldEdit::rayQuery(const Tempest::Vec3 s, const Tempest::Vec3 e) {
   auto ret  = physics->ray(s, e);
   auto uptr = reinterpret_cast<zenkit::VirtualObject*>(ret.uptr);
   return validatePointer(uptr, rootVob);
+  }
+
+void WorldEdit::rayQueryLight(Tempest::Point mpos, Tempest::Size wsize, const Tempest::Matrix4x4& vp,
+                              const Tempest::Vec3& src, const Tempest::Vec3& dst,
+                              float& rayT, WorldEdit::Vob*& ret, WorldEdit::Vob& v) {
+  if(v.get()!=nullptr && v.get()->type==zenkit::VirtualObjectType::zCVobLight) {
+    auto& vob  = *v.get();
+    auto  pos  = Vec3(vob.position.x,vob.position.y,vob.position.z);
+    auto  ndc  = pos;
+    vp.project(ndc);
+
+    ndc = (ndc*0.5 + 0.5);
+    ndc *= Vec3(wsize.w, wsize.h, 1);
+
+    const int spriteSize = 32;
+    if(ndc.z>0 && Vec2(ndc.x - mpos.x, ndc.y - mpos.y).quadLength() < spriteSize*spriteSize) {
+      auto dir     = (dst - src);
+      auto forward = Vec3(vp[0][2], vp[1][2], vp[2][2]);
+      forward = Vec3::normalize(forward);
+
+      float bT = Vec3::dotProduct(pos - src, forward) / Vec3::dotProduct(dir, forward);
+      if(0<bT && bT < rayT) {
+        rayT = bT;
+        ret  = &v;
+        }
+      }
+    }
+
+  for(auto& i:v.child) {
+    rayQueryLight(mpos, wsize, vp, src, dst, rayT, ret, i);
+    }
   }
 
 WorldEdit::Vob* WorldEdit::validatePointer(const zenkit::VirtualObject* ptr, Vob& v) {

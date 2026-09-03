@@ -45,10 +45,15 @@ class WorldEdit {
     const Vob& root() const { return rootVob; }
 
     Vob* rayQuery(const Tempest::Vec3 s, const Tempest::Vec3 e);
+    Vob* rayQuery(Tempest::Matrix4x4 view, Tempest::Matrix4x4 vp, Tempest::Point mpos, Tempest::Size wsize);
 
   private:
     void load(Vob& out, std::vector<std::shared_ptr<zenkit::VirtualObject>>& child);
     void initView(Vob& out);
+
+    void rayQueryLight(Tempest::Point mpos, Tempest::Size wsize, const Tempest::Matrix4x4& vp,
+                       const Tempest::Vec3& rayOrig, const Tempest::Vec3& rayDir,
+                       float& rayT, Vob*& ret, Vob& v);
 
     Vob* validatePointer(const zenkit::VirtualObject* ptr, Vob& v);
 
