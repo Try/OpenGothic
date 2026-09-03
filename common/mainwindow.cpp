@@ -37,6 +37,7 @@ MainWindow::MainWindow(Device& device)
     mobileUi(player),
 #endif
     player(dialogs,inventory) {
+  setCursorShape(CursorShape::Hidden);
   Gothic::inst().onSettingsChanged.bind(this,&MainWindow::onSettings);
   onSettings();
 
@@ -294,11 +295,7 @@ void MainWindow::resizeEvent(SizeEvent&) {
   swapchain.reset();
   if(auto camera = Gothic::inst().camera())
     camera->setViewport(swapchain.w(),swapchain.h());
-
-  const bool fs = SystemApi::isFullscreen(hwnd());
-  auto rect = SystemApi::windowClientRect(hwnd());
-  setCursorPosition(rect.w/2,rect.h/2);
-  setCursorShape(fs ? CursorShape::Hidden : CursorShape::Arrow);
+  setCursorPosition(Point(w()/2,h()/2));
   dMouse = Point();
   }
 
@@ -557,6 +554,7 @@ void MainWindow::keyUpEvent(KeyEvent &event) {
   }
 
 void MainWindow::focusEvent(FocusEvent &event) {
+  setCursorShape(event.in ? CursorShape::Hidden : CursorShape::Arrow);
   if(!event.in)
     return;
   dMouse = Point();
