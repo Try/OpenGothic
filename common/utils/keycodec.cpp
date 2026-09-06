@@ -42,6 +42,13 @@ std::initializer_list<KeyCodec::K_Key> KeyCodec::keys = {
   {Tempest::Event::K_8,        0x7f00},
   {Tempest::Event::K_9,        0x8000},
 
+  {Tempest::Event::K_Insert,   0xd200},
+  {Tempest::Event::K_Delete,   0xd300},
+  {Tempest::Event::K_Home,     0xc700},
+  {Tempest::Event::K_End,      0xcf00},
+  {Tempest::Event::K_PageUp,   0xc900},
+  {Tempest::Event::K_PageDown, 0xd100},
+
   {Tempest::Event::K_Up,       0xc800},
   {Tempest::Event::K_Down,     0xd000},
   {Tempest::Event::K_Left,     0xcb00},
@@ -49,7 +56,6 @@ std::initializer_list<KeyCodec::K_Key> KeyCodec::keys = {
 
   {Tempest::Event::K_Back,     0x0e00},
   {Tempest::Event::K_Tab,      0x0f00},
-  {Tempest::Event::K_Delete,   0xd300},
   {Tempest::Event::K_Space,    0x3900},
   {Tempest::Event::K_CapsLock, 0x3A00},
 
@@ -349,6 +355,24 @@ string_frm<64> KeyCodec::keyToStr(Tempest::Event::KeyType k) {
     return string_frm<64>(c);
     }
 
+  if(k==Tempest::Event::K_Insert) {
+    return "INSERT";
+    }
+  if(k==Tempest::Event::K_Delete) {
+    return "DELETE";
+    }
+  if(k==Tempest::Event::K_Home) {
+    return "HOME";
+    }
+  if(k==Tempest::Event::K_End) {
+    return "END";
+    }
+  if(k==Tempest::Event::K_PageUp) {
+    return "PAGE UP";
+    }
+  if(k==Tempest::Event::K_PageDown) {
+    return "PAGE DOWN";
+    }
   if(k==Tempest::Event::K_Up) {
     return "CURSOR UP";
     }
@@ -375,9 +399,6 @@ string_frm<64> KeyCodec::keyToStr(Tempest::Event::KeyType k) {
     }
   if(k==Tempest::Event::K_RControl) {
     return "RIGHT CONTROL";
-    }
-  if(k==Tempest::Event::K_Delete) {
-    return "DELETE";
     }
   if(k==Tempest::Event::K_LShift) {
     return "LEFT SHIFT";
