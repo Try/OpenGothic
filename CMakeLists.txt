@@ -53,14 +53,6 @@ if(WIN32)
 elseif(IOS)
   enable_language(OBJCXX)
   set(CMAKE_OSX_DEPLOYMENT_TARGET 15.0)
-  set_directory_properties("${CMAKE_SOURCE_DIR}" PROPERTIES
-    PROPERTY XCODE_STARTUP_PROJECT "${PROJECT_NAME}")
-  set_target_properties(${PROJECT_NAME} PROPERTIES
-    MACOSX_BUNDLE_INFO_PLIST "Info.plist.in"
-    MACOSX_BUNDLE_GUI_IDENTIFIER "opengothic.gothic2"
-    MACOSX_BUNDLE_BUNDLE_VERSION 1
-    MACOSX_BUNDLE_SHORT_VERSION_STRING "1.0"
-    XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "iPhone Developer")
 elseif(APPLE)
   enable_language(OBJCXX)
 endif()
@@ -194,6 +186,17 @@ if(${CMAKE_BUILD_TYPE} MATCHES "Debug")
 endif()
 
 # the game
+if(IOS)
+  set_directory_properties("${CMAKE_SOURCE_DIR}" PROPERTIES
+    PROPERTY XCODE_STARTUP_PROJECT "Gothic2Notr")
+  set_target_properties(Gothic2Notr PROPERTIES
+    MACOSX_BUNDLE_INFO_PLIST "Info.plist.in"
+    MACOSX_BUNDLE_GUI_IDENTIFIER "opengothic.gothic2"
+    MACOSX_BUNDLE_BUNDLE_VERSION 1
+    MACOSX_BUNDLE_SHORT_VERSION_STRING "1.0"
+    XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "iPhone Developer")
+endif()
+
 target_sources(Gothic2Notr PRIVATE game/main.cpp icon.rc)
 target_link_libraries(Gothic2Notr PRIVATE OpenGothic)
 
