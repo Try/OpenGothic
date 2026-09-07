@@ -58,7 +58,7 @@ void VobTreeDelegate::mkIndex() {
   invalidateView();
   }
 
-void VobTreeDelegate::mkIndex(const WorldEdit::Vob& v, std::vector<Item>& index, size_t depth) {
+void VobTreeDelegate::mkIndex(WorldEdit::Vob& v, std::vector<Item>& index, size_t depth) {
   Item it;
   it.item  = index.size();
   it.depth = depth;

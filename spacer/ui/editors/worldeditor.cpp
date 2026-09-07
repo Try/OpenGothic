@@ -193,9 +193,17 @@ BaseEditor::BaseTool* WorldEditor::createToolpanel(ToolWindow::Tool tool) {
   }
 
 void WorldEditor::undo() {
+  timeline.undo(*level);
+  update();
   }
 
 void WorldEditor::redo() {
+  timeline.redo(*level);
+  update();
+  }
+
+bool WorldEditor::hasUnsavedChanges() const {
+  return timeline.hasUnsavedChanges();
   }
 
 void WorldEditor::processKeyboard(Tempest::KeyEvent& e) {
@@ -217,6 +225,10 @@ void WorldEditor::keyDownEvent(Tempest::KeyEvent& e) {
 
 void WorldEditor::keyUpEvent(Tempest::KeyEvent& e) {
   processKeyboard(e);
+  if(e.key==Tempest::Event::K_Delete && selVob!=nullptr) {
+    timeline.push(*level, new CmdDeleteVob(selVob));
+    selVob = nullptr;
+    }
   update();
   }
 
@@ -301,6 +313,7 @@ void WorldEditor::update3d(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_
   if(!hasFocus() && !needToUpdate())
     return;
 
+  updateGizmo();
   renderer.draw(sceneImage, cmd, cmdId, level->view(), camera);
   }
 
@@ -343,7 +356,7 @@ int WorldEditor::gizmoQuery(Tempest::Point mpos) const {
   return -1;
   }
 
-const WorldEdit::Vob* WorldEditor::rayQuery(Tempest::Point mpos) {
+WorldEdit::Vob* WorldEditor::rayQuery(Tempest::Point mpos) {
   return level->rayQuery(camera.view(), camera.viewProj(), mpos, size());
   }
 
@@ -396,12 +409,12 @@ void WorldEditor::dragVob(Tempest::Point mpos, const WorldEdit::Vob& vob, State 
   setVobPosition(selVob, level->root(), vpos);
   }
 
-void WorldEditor::selectVob(const WorldEdit::Vob& vob) {
+void WorldEditor::selectVob(WorldEdit::Vob& vob) {
   selVob = &vob;
-  if(vob.get()==nullptr)
+  if(vob.get()==nullptr) {
+    update();
     return;
-  const auto pos = vob.get()->position;
-  renderer.setGizmo(true, Vec3(pos.x,pos.y,pos.z));
+    }
   treeDelegate->setVob(selVob);
   propertyDelegate->setVob(selVob);
   update();
@@ -409,8 +422,7 @@ void WorldEditor::selectVob(const WorldEdit::Vob& vob) {
 
 bool WorldEditor::setVobPosition(const WorldEdit::Vob* selVob, WorldEdit::Vob& vob, Tempest::Vec3 pos) {
   if(&vob==selVob) {
-    vob.setPosition(pos);
-    renderer.setGizmo(true, pos);
+    timeline.push(*level, new CmdMoveVob(&vob, pos), false);
     update();
     return true;
     }
@@ -418,4 +430,13 @@ bool WorldEditor::setVobPosition(const WorldEdit::Vob* selVob, WorldEdit::Vob& v
     if(setVobPosition(selVob, vob[i], pos))
       return true;
   return false;
+  }
+
+void WorldEditor::updateGizmo() {
+  if(selVob==nullptr || selVob->get()==nullptr) {
+    renderer.setGizmo(false, Vec3());
+    return;
+    }
+  const auto pos = selVob->get()->position;
+  renderer.setGizmo(true, Vec3(pos.x,pos.y,pos.z));
   }

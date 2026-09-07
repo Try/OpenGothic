@@ -15,6 +15,76 @@
 
 using namespace Tempest;
 
+auto WorldEdit::Vob::release(size_t i) -> std::unique_ptr<WorldEdit::Vob> {
+  auto v = std::move(child[i]);
+  child.erase(child.begin()+i);
+  return v;
+  }
+
+void WorldEdit::Vob::insert(size_t i, std::unique_ptr<Vob> v) {
+  child.insert(child.begin()+i, std::move(v));
+  }
+
+void WorldEdit::Vob::clearView() {
+  phys  = PhysicMesh();
+  mesh  = MeshObjects::Mesh();
+  light = LightGroup::Light();
+  }
+
+void WorldEdit::Vob::initView(WorldEdit& owner) {
+  assert(orig!=nullptr);
+  auto& vob = *orig;
+  //TODO: hierarchical transform?
+  auto pos = Tempest::Matrix4x4(vob.rotation.columns[0].x, vob.rotation.columns[1].x, vob.rotation.columns[2].x, vob.position.x,
+                                vob.rotation.columns[0].y, vob.rotation.columns[1].y, vob.rotation.columns[2].y, vob.position.y,
+                                vob.rotation.columns[0].z, vob.rotation.columns[1].z, vob.rotation.columns[2].z, vob.position.z,
+                                0, 0, 0, 1);
+
+  //FIXME: copypaste from ObjVisual
+  if(vob.type==zenkit::VirtualObjectType::zCVob) {
+    const auto& visName = vob.visual_name;
+    if(visName.empty())
+      return;
+    switch (vob.visual->type) {
+     case zenkit::VisualType::MESH:
+     case zenkit::VisualType::MULTI_RESOLUTION_MESH: {
+       auto view = Resources::loadMesh(visName);
+       if(!view)
+         return;
+       // setType(M_Mesh);
+       if(vob.show_visual) {
+         mesh = owner.wview->addStaticView(view, true);
+         mesh.setWind(vob.anim_mode,vob.anim_strength);
+         mesh.setObjMatrix(pos);
+
+         phys = PhysicMesh(*view, *owner.physics, false);
+         phys.setObjMatrix(pos);
+         phys.setPayloadPtr(orig.get());
+         }
+       }
+      case zenkit::VisualType::DECAL:
+      case zenkit::VisualType::PARTICLE_EFFECT:
+      case zenkit::VisualType::AI_CAMERA:
+      case zenkit::VisualType::MODEL:
+      case zenkit::VisualType::MORPH_MESH:
+      case zenkit::VisualType::UNKNOWN:
+        break;
+      }
+    }
+
+  if(vob.type==zenkit::VirtualObjectType::zCVobLight) {
+    /*
+    static bool once = false;
+    if(once) {
+      out.orig = nullptr;
+      return;
+      }
+    once = true;
+    */
+    light = owner.wview->addLight(reinterpret_cast<const zenkit::VLight&>(vob), 0);
+    }
+  }
+
 void WorldEdit::Vob::setPosition(const Tempest::Vec3& v) {
   auto& vob = *orig;
   vob.position = zenkit::Vec3(v.x, v.y, v.z);
@@ -58,7 +128,7 @@ WorldEdit::WorldEdit(std::string_view wname) {
   wview   = wviewFut.get();
 
   for(auto& i:rootVob.child)
-    initView(i);
+    initView(*i);
   }
 
 WorldEdit::~WorldEdit() {
@@ -67,69 +137,17 @@ WorldEdit::~WorldEdit() {
 void WorldEdit::load(Vob& out, std::vector<std::shared_ptr<zenkit::VirtualObject>>& child) {
   out.child.reserve(child.size());
   for(size_t i=0; i<child.size(); ++i) {
-    out.child.emplace_back(vobNextId); ++vobNextId;
-    load(out.child[i], child[i]->children);
-    out.child[i].orig = child[i];
-    out.child[i].orig->children.clear();
+    out.child.emplace_back(std::make_unique<Vob>(vobNextId)); ++vobNextId;
+    load(*out.child[i], child[i]->children);
+    out.child[i]->orig = child[i];
+    out.child[i]->orig->children.clear();
     }
   }
 
 void WorldEdit::initView(Vob& out) {
   for(auto& i:out.child)
-    initView(i);
-
-  assert(out.orig!=nullptr);
-  const auto& vob     = *out.orig;
-
-  //TODO: hierarchical transform?
-  auto pos = Tempest::Matrix4x4(vob.rotation.columns[0].x, vob.rotation.columns[1].x, vob.rotation.columns[2].x, vob.position.x,
-                                vob.rotation.columns[0].y, vob.rotation.columns[1].y, vob.rotation.columns[2].y, vob.position.y,
-                                vob.rotation.columns[0].z, vob.rotation.columns[1].z, vob.rotation.columns[2].z, vob.position.z,
-                                0, 0, 0, 1);
-
-  //FIXME: copypaste from ObjVisual
-  if(out.orig->type==zenkit::VirtualObjectType::zCVob) {
-    const auto& visName = vob.visual_name;
-    if(visName.empty())
-      return;
-    switch (vob.visual->type) {
-     case zenkit::VisualType::MESH:
-     case zenkit::VisualType::MULTI_RESOLUTION_MESH: {
-       auto view = Resources::loadMesh(visName);
-       if(!view)
-         return;
-       // setType(M_Mesh);
-       if(vob.show_visual) {
-         out.mesh = wview->addStaticView(view, true);
-         out.mesh.setWind(vob.anim_mode,vob.anim_strength);
-         out.mesh.setObjMatrix(pos);
-
-         out.phys = PhysicMesh(*view, *physics, false);
-         out.phys.setObjMatrix(pos);
-         out.phys.setPayloadPtr(out.orig.get());
-         }
-       }
-      case zenkit::VisualType::DECAL:
-      case zenkit::VisualType::PARTICLE_EFFECT:
-      case zenkit::VisualType::AI_CAMERA:
-      case zenkit::VisualType::MODEL:
-      case zenkit::VisualType::MORPH_MESH:
-      case zenkit::VisualType::UNKNOWN:
-        break;
-      }
-    }
-
-  if(out.orig->type==zenkit::VirtualObjectType::zCVobLight) {
-    /*
-    static bool once = false;
-    if(once) {
-      out.orig = nullptr;
-      return;
-      }
-    once = true;
-    */
-    out.light = wview->addLight(reinterpret_cast<const zenkit::VLight&>(vob), 0);
-    }
+    initView(*i);
+  out.initView(*this);
   }
 
 WorldEdit::Vob* WorldEdit::rayQuery(Tempest::Matrix4x4 v, Tempest::Matrix4x4 vp,
@@ -192,7 +210,7 @@ void WorldEdit::rayQueryLight(Tempest::Point mpos, Tempest::Size wsize, const Te
     }
 
   for(auto& i:v.child) {
-    rayQueryLight(mpos, wsize, vp, src, dst, rayT, ret, i);
+    rayQueryLight(mpos, wsize, vp, src, dst, rayT, ret, *i);
     }
   }
 
@@ -201,7 +219,61 @@ WorldEdit::Vob* WorldEdit::validatePointer(const zenkit::VirtualObject* ptr, Vob
     return &v;
 
   for(auto& i:v.child) {
-    if(auto n = validatePointer(ptr, i))
+    if(auto n = validatePointer(ptr, *i))
+      return n;
+    }
+  return nullptr;
+  }
+
+
+CmdMoveVob::CmdMoveVob(WorldEdit::Vob* vob, Vec3 pos) : vob(vob), pos(pos) {
+  auto p = vob->get()->position;
+  orig = {p.x, p.y, p.z};
+  }
+
+void CmdMoveVob::redo(WorldEdit& subj) {
+  vob->setPosition(pos);
+  }
+
+void CmdMoveVob::undo(WorldEdit& subj) {
+  vob->setPosition(orig);
+  }
+
+bool CmdMoveVob::merge(const Action& prev) {
+  if(auto p = dynamic_cast<const CmdMoveVob*>(&prev)) {
+    if(p->vob==vob) {
+      pos = p->pos;
+      return true;
+      }
+    }
+  return false;
+  }
+
+CmdDeleteVob::CmdDeleteVob(WorldEdit::Vob* vob):vob(vob) {
+  }
+
+void CmdDeleteVob::redo(WorldEdit& subj) {
+  parent = findParent(subj.root(), vob);
+  for(size_t i=0; i<parent->size(); ++i) {
+    if(&(*parent)[i]==vob) {
+      index = i;
+      stash = parent->release(i);
+      stash->clearView();
+      return;
+      }
+    }
+  }
+
+void CmdDeleteVob::undo(WorldEdit& subj) {
+  stash->initView(subj);
+  parent->insert(index, std::move(stash));
+  }
+
+WorldEdit::Vob* CmdDeleteVob::findParent(WorldEdit::Vob& v, const WorldEdit::Vob* dst) {
+  for(size_t i=0; i<v.size(); ++i) {
+    if(&v[i]==dst)
+      return &v;
+    if(auto n = findParent(v[i], dst))
       return n;
     }
   return nullptr;

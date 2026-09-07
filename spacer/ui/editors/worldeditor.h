@@ -8,6 +8,7 @@
 #include "graphics/renderer.h"
 #include "objects/worldedit.h"
 #include "utils/keycodec.h"
+#include "command.h"
 #include "camera.h"
 
 class WorldEdit;
@@ -26,6 +27,7 @@ class WorldEditor: public BaseEditor,
 
     void undo() override;
     void redo() override;
+    bool hasUnsavedChanges() const override;
 
     void keyDownEvent(Tempest::KeyEvent& e) override;
     void keyUpEvent  (Tempest::KeyEvent& e) override;
@@ -58,10 +60,11 @@ class WorldEditor: public BaseEditor,
     void tick();
 
     int  gizmoQuery(Tempest::Point mpos) const;
-    auto rayQuery(Tempest::Point mpos) -> const WorldEdit::Vob*;
+    auto rayQuery(Tempest::Point mpos) -> WorldEdit::Vob*;
     void dragVob(Tempest::Point mpos, const WorldEdit::Vob& vob, State st);
-    void selectVob(const WorldEdit::Vob& vob);
+    void selectVob(WorldEdit::Vob& vob);
     bool setVobPosition(const WorldEdit::Vob* selVob, WorldEdit::Vob& root, Tempest::Vec3 pos);
+    void updateGizmo();
 
     Tempest::Timer             timer;
     Camera                     camera;
@@ -78,7 +81,9 @@ class WorldEditor: public BaseEditor,
     bool                   ctrl[KeyCodec::Last] = {};
     Tempest::Point         mpos = {};
 
-    const WorldEdit::Vob*  selVob = nullptr;
+    Command::UndoStack<WorldEdit> timeline;
+
+    WorldEdit::Vob*        selVob = nullptr;
     VobTreeDelegate*       treeDelegate = nullptr;
     PropertyDelegate*      propertyDelegate = nullptr;
 
