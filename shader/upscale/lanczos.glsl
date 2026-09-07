@@ -10,6 +10,7 @@ float lanczosWeight(float x, float r) {
   }
 
 vec3 lanczosUpscale(in sampler2D img, vec2 coord) {
+  // The paired sampling below is specialized for r=2.
   const int r = 2;
 
   vec2 res    = vec2(textureSize(img, 0));
@@ -19,7 +20,7 @@ vec3 lanczosUpscale(in sampler2D img, vec2 coord) {
 
   // Evaluate each one-dimensional weight once.
   // Keep the original footprint, including its omitted four corner samples.
-  vec2 weights[5];
+  vec2 weights[r*2+1];
   [[unroll]]
   for(int i = -r; i <= r; ++i) {
     vec2 d = ((vec2(i) * resInv + ccoord - coord) * res);
