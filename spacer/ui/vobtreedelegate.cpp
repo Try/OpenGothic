@@ -15,9 +15,9 @@ void VobTreeDelegate::setVob(const WorldEdit::Vob* inVob) {
   //update();
   }
 
-void VobTreeDelegate::invalidate() {
+void VobTreeDelegate::update() {
   mkIndex();
-  invalidateView();
+  updateView();
   }
 
 size_t VobTreeDelegate::size() const {
@@ -25,22 +25,27 @@ size_t VobTreeDelegate::size() const {
   }
 
 Tempest::Widget* VobTreeDelegate::createView(size_t position) {
-  size_t id = index[position].item;
+  // size_t id = index[position].item;
+  auto b = new VobTreeItemView(*this, position);
+  b->onClick.bind(this,&VobTreeDelegate::emitClick);
+  return update(b, position);
+  }
+
+void VobTreeDelegate::removeView(Widget* w, size_t) {
+  delete w;
+  }
+
+Widget* VobTreeDelegate::update(Tempest::Widget* w, size_t position) {
+  size_t id = position; //index[position].item;
   auto   it = index[position].vob->get();
-  auto   b  = new VobTreeItemView(*this, id);
+  auto   b  = dynamic_cast<VobTreeItemView*>(w);
 
   b->setAsOpen(isOpen(index[position].vob));
   b->setText(it!=nullptr ? (*it).vob_name : "LEVEL");
   b->setTextAlt(index[position].textAlt());
   b->setDepth(index[position].depth);
   b->setAsGroup(index[position].vob->size()>0);
-  b->onClick.bind(this,&VobTreeDelegate::emitClick);
-
   return b;
-  }
-
-void VobTreeDelegate::removeView(Widget* w, size_t) {
-  delete w;
   }
 
 void VobTreeDelegate::emitClick(Widget* w, size_t id) {
@@ -60,7 +65,8 @@ void VobTreeDelegate::emitClick(Widget* w, size_t id) {
 void VobTreeDelegate::mkIndex() {
   index.clear();
   mkIndex(world.root(), index, 0);
-  invalidateView();
+  // invalidateView();
+  updateView();
   }
 
 void VobTreeDelegate::mkIndex(WorldEdit::Vob& v, std::vector<Item>& index, size_t depth) {

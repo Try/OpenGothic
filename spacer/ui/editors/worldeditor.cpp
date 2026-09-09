@@ -227,7 +227,7 @@ void WorldEditor::keyUpEvent(Tempest::KeyEvent& e) {
   processKeyboard(e);
   if(e.key==Tempest::Event::K_Delete && selVob!=nullptr) {
     timeline.push(*level, new CmdDeleteVob(selVob));
-    treeDelegate->invalidate();
+    treeDelegate->update();
     selectVob(nullptr);
     }
   update();
