@@ -111,6 +111,9 @@ void RtScene::addInstance(const BuildBlas& ctx, Tempest::AccelerationStructure& 
 void RtScene::buildTlas() {
   needToUpdate = false;
 
+  Resources::recycle(std::move(blasStaticOpaque));
+  Resources::recycle(std::move(blasStaticAt));
+
   addInstance(build.staticOpaque, blasStaticOpaque, Tempest::RtInstanceFlags::Opaque);
   addInstance(build.staticAt, blasStaticAt, Tempest::RtInstanceFlags::NonOpaque);
 
