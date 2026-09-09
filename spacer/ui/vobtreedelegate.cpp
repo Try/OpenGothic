@@ -15,6 +15,11 @@ void VobTreeDelegate::setVob(const WorldEdit::Vob* inVob) {
   //update();
   }
 
+void VobTreeDelegate::invalidate() {
+  mkIndex();
+  invalidateView();
+  }
+
 size_t VobTreeDelegate::size() const {
   return index.size();
   }
@@ -41,7 +46,7 @@ void VobTreeDelegate::removeView(Widget* w, size_t) {
 void VobTreeDelegate::emitClick(Widget* w, size_t id) {
   auto& it = *index[id].vob;
   if(it.get()!=nullptr) {
-    onVobSelected(it);
+    onVobSelected(&it);
     }
 
   if(it.size()>0) {

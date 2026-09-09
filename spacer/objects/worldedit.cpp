@@ -26,12 +26,17 @@ void WorldEdit::Vob::insert(size_t i, std::unique_ptr<Vob> v) {
   }
 
 void WorldEdit::Vob::clearView() {
+  for(auto& i:child)
+    i->clearView();
   phys  = PhysicMesh();
   mesh  = MeshObjects::Mesh();
   light = LightGroup::Light();
   }
 
 void WorldEdit::Vob::initView(WorldEdit& owner) {
+  for(auto& i:child)
+    i->initView(owner);
+
   assert(orig!=nullptr);
   auto& vob = *orig;
   //TODO: hierarchical transform?
@@ -128,7 +133,7 @@ WorldEdit::WorldEdit(std::string_view wname) {
   wview   = wviewFut.get();
 
   for(auto& i:rootVob.child)
-    initView(*i);
+    i->initView(*this);
   }
 
 WorldEdit::~WorldEdit() {
@@ -142,12 +147,6 @@ void WorldEdit::load(Vob& out, std::vector<std::shared_ptr<zenkit::VirtualObject
     out.child[i]->orig = child[i];
     out.child[i]->orig->children.clear();
     }
-  }
-
-void WorldEdit::initView(Vob& out) {
-  for(auto& i:out.child)
-    initView(*i);
-  out.initView(*this);
   }
 
 WorldEdit::Vob* WorldEdit::rayQuery(Tempest::Matrix4x4 v, Tempest::Matrix4x4 vp,
@@ -254,6 +253,7 @@ CmdDeleteVob::CmdDeleteVob(WorldEdit::Vob* vob):vob(vob) {
 
 void CmdDeleteVob::redo(WorldEdit& subj) {
   parent = findParent(subj.root(), vob);
+  assert(parent!=nullptr);
   for(size_t i=0; i<parent->size(); ++i) {
     if(&(*parent)[i]==vob) {
       index = i;

@@ -62,7 +62,7 @@ class WorldEditor: public BaseEditor,
     int  gizmoQuery(Tempest::Point mpos) const;
     auto rayQuery(Tempest::Point mpos) -> WorldEdit::Vob*;
     void dragVob(Tempest::Point mpos, const WorldEdit::Vob& vob, State st);
-    void selectVob(WorldEdit::Vob& vob);
+    void selectVob(WorldEdit::Vob* vob);
     bool setVobPosition(const WorldEdit::Vob* selVob, WorldEdit::Vob& root, Tempest::Vec3 pos);
     void updateGizmo();
 

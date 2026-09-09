@@ -227,7 +227,8 @@ void WorldEditor::keyUpEvent(Tempest::KeyEvent& e) {
   processKeyboard(e);
   if(e.key==Tempest::Event::K_Delete && selVob!=nullptr) {
     timeline.push(*level, new CmdDeleteVob(selVob));
-    selVob = nullptr;
+    treeDelegate->invalidate();
+    selectVob(nullptr);
     }
   update();
   }
@@ -243,7 +244,7 @@ void WorldEditor::mouseDownEvent(Tempest::MouseEvent& e) {
       }
     else {
       if(auto vob = rayQuery(mpos))
-        selectVob(*vob);
+        selectVob(vob);
       }
     }
   else if(e.button==Tempest::Event::ButtonRight) {
@@ -409,12 +410,8 @@ void WorldEditor::dragVob(Tempest::Point mpos, const WorldEdit::Vob& vob, State 
   setVobPosition(selVob, level->root(), vpos);
   }
 
-void WorldEditor::selectVob(WorldEdit::Vob& vob) {
-  selVob = &vob;
-  if(vob.get()==nullptr) {
-    update();
-    return;
-    }
+void WorldEditor::selectVob(WorldEdit::Vob* vob) {
+  selVob = vob;
   treeDelegate->setVob(selVob);
   propertyDelegate->setVob(selVob);
   update();
