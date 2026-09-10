@@ -22,7 +22,7 @@ OpenGothic is designed to utilize features of modern graphics hardware and APIs,
 
 #### Prerequisites
 
-Gothic 2: Night of the Raven is required as OpenGothic does not provide any built-in game assets or scripts.
+A copy of Gothic 2 is required as OpenGothic does not provide any built-in game assets or scripts. Both Gothic 2: Night of the Raven and the vanilla/classic "Gothic 2" (without the addon) are supported - use the `-g2` and `-g2c` command line flags respectively, see [Command line arguments](#command-line-arguments).
 
 Supported systems are:
 * Windows (DX12, Vulkan)
@@ -63,14 +63,23 @@ Supported systems are:
 
 ### MacOS
 1. If not already done, install Gothic 2. Instructions on how to obtain the game files can be found [here](https://macsourceports.com/faq#getgamedata). OpenGothic comes with automatic path detection if your Gothic files are in `"~/Library/Application Support/OpenGothic"`.
+
+   If you own the English GOG.com installer (`setup_*.exe` [+ `.bin`]) for Gothic 2 Gold, you can extract the classic (no addon) game data directly on macOS/Linux, without Wine, using [innoextract](https://constexpr.org/innoextract/):
+   ```bash
+   brew install innoextract
+   scripts/extract-gog-assets.sh /path/to/setup_gothic_2_*.exe
+   ```
+   This extracts the game data into `~/Library/Application Support/OpenGothic` (pass a second argument to use a different destination).
 2. Download a build from [Mac Source Ports](https://macsourceports.com/game/gothic2) and follow the installation instructions given there.
-   Alternatively, recent test builds are available from [CI](https://github.com/Try/OpenGothic/actions?query=build.yml?query=branch%3Amaster) and can be extracted into a folder of your choice. You can compile a fresh build as well.
-3. Run `Gothic2Notr.sh`
+   Alternatively, recent test builds are available from [CI](https://github.com/Try/OpenGothic/actions?query=build.yml?query=branch%3Amaster) and can be extracted into a folder of your choice. You can compile a fresh build as well, see [Build Instructions](#macos-1).
+3. Run `Gothic2Notr.sh`.
 
    If OpenGothic fails to find your Gothic 2 files, you have to explicitly specify its location via `-g` parameter.
    Change the line `exec "$DIR/Gothic2Notr" "$@"` to reflect your Gothic 2 path e.g.
 
-   `exec "$DIR/Gothic2Notr" "$@" -g "~/PlayOnLinux's virtual drives/Gothic2_gog/drive_c/Gothic II"`
+   `exec "$DIR/Gothic2Notr" "$@" -g2c -g "~/PlayOnLinux's virtual drives/Gothic2_gog/drive_c/Gothic II"`
+
+   The `-g2c` flag tells OpenGothic to expect the classic (no addon) game data extracted above.
 
 ---
 ### Modifications
