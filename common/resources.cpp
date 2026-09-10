@@ -98,9 +98,10 @@ Resources::Resources(Tempest::Device &device)
   DmResult rv = DmLoader_create(&dmLoader, DmLoader_DOWNLOAD);
   if(rv != DmResult_SUCCESS) {
     Log::e("Failed to created DmLoader object. Out of memory?");
+    dmLoader = nullptr;
     }
-
-  DmLoader_addResolver(dmLoader, [](void* ctx, char const* name, size_t* len) -> void* {
+  else {
+    DmLoader_addResolver(dmLoader, [](void* ctx, char const* name, size_t* len) -> void* {
       auto* slf = reinterpret_cast<Resources*>(ctx);
       auto* node = slf->gothicAssets.find(name);
 
@@ -118,7 +119,8 @@ Resources::Resources(Tempest::Device &device)
       reader->read(bytes, *len);
 
       return bytes;
-  }, this);
+    }, this);
+    }
   }
 
 void Resources::mountWork(const std::filesystem::path& path) {
