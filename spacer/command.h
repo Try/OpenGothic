@@ -37,8 +37,8 @@ class UndoStack final {
       if(merged)
         return;
       if(savStk<0)
-        savStk = std::numeric_limits<int64_t>::max();
-      if(savStk!=std::numeric_limits<int64_t>::max())
+        savStk = std::numeric_limits<size_t>::max();
+      if(savStk!=std::numeric_limits<size_t>::max())
         savStk++;
       }
 
@@ -58,7 +58,7 @@ class UndoStack final {
         // abandon action in this case: cannot return it to stk, because it creates recursive 'fail to fail' scenario
         throw;
         }
-      if(savStk!=std::numeric_limits<int64_t>::max())
+      if(savStk!=std::numeric_limits<size_t>::max())
         savStk--;
       }
 
@@ -91,8 +91,8 @@ class UndoStack final {
   private:
     std::vector<std::unique_ptr<Action<Subject>>> stk, undoStk;
 
-    int64_t savStk  = 0;
-    bool    barrier = false;
+    size_t savStk  = 0;
+    bool   barrier = false;
   };
 
 template<class Subject>

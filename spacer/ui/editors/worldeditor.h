@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Tempest/Fence>
+#include <Tempest/Shortcut>
 
 #include "ui/editors/baseeditor.h"
 #include "ui/dragdrop.h"
@@ -14,6 +15,8 @@
 class WorldEdit;
 class PropertyDelegate;
 class VobTreeDelegate;
+
+class Variant;
 
 class WorldEditor: public BaseEditor,
                    public DropReciver  {
@@ -62,9 +65,13 @@ class WorldEditor: public BaseEditor,
     int  gizmoQuery(Tempest::Point mpos) const;
     auto rayQuery(Tempest::Point mpos) -> WorldEdit::Vob*;
     void dragVob(Tempest::Point mpos, const WorldEdit::Vob& vob, State st);
+    void deleteVob();
     void selectVob(WorldEdit::Vob* vob);
     bool setVobPosition(const WorldEdit::Vob* selVob, WorldEdit::Vob& root, Tempest::Vec3 pos);
+    void setVobProperty(std::unique_ptr<Command::Action<WorldEdit>>& cmd, bool commit);
     void updateGizmo();
+
+    Tempest::Shortcut          onDelete;
 
     Tempest::Timer             timer;
     Camera                     camera;

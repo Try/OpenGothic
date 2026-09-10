@@ -155,6 +155,9 @@ WorldEditor::WorldEditor() {
     Tempest::Log::e("unable to load landscape mesh");
     }
 
+  onDelete = Shortcut(*this, Event::M_NoModifier, Event::K_Delete);
+  onDelete.onActivated.bind(this, &WorldEditor::deleteVob);
+
   timer.timeout.bind(this, &WorldEditor::tick);
   timer.start(16);
   renderer.setLightsHud(&Assets::inst().im.pointLight);
@@ -185,6 +188,9 @@ BaseEditor::BaseTool* WorldEditor::createToolpanel(ToolWindow::Tool tool) {
     auto& list     = ctrl->addWidget(new Tempest::ListView());
     auto& delegate = *list.setDelegate(new PropertyDelegate());
     ctrl->setLayout(Vertical);
+    delegate.onChanged = [this](std::unique_ptr<Command::Action<WorldEdit>>& cmd, bool commit) {
+      setVobProperty(cmd, commit);
+      };
 
     propertyDelegate = &delegate;
     return ctrl;
@@ -194,11 +200,15 @@ BaseEditor::BaseTool* WorldEditor::createToolpanel(ToolWindow::Tool tool) {
 
 void WorldEditor::undo() {
   timeline.undo(*level);
+  propertyDelegate->update();
+  treeDelegate->update();
   update();
   }
 
 void WorldEditor::redo() {
   timeline.redo(*level);
+  propertyDelegate->update();
+  treeDelegate->update();
   update();
   }
 
@@ -225,11 +235,6 @@ void WorldEditor::keyDownEvent(Tempest::KeyEvent& e) {
 
 void WorldEditor::keyUpEvent(Tempest::KeyEvent& e) {
   processKeyboard(e);
-  if(e.key==Tempest::Event::K_Delete && selVob!=nullptr) {
-    timeline.push(*level, new CmdDeleteVob(selVob));
-    treeDelegate->update();
-    selectVob(nullptr);
-    }
   update();
   }
 
@@ -410,6 +415,15 @@ void WorldEditor::dragVob(Tempest::Point mpos, const WorldEdit::Vob& vob, State 
   setVobPosition(selVob, level->root(), vpos);
   }
 
+void WorldEditor::deleteVob() {
+  if(selVob!=nullptr) {
+    timeline.push(*level, new CmdDeleteVob(selVob));
+    treeDelegate->update();
+    selectVob(nullptr);
+    update();
+    }
+  }
+
 void WorldEditor::selectVob(WorldEdit::Vob* vob) {
   selVob = vob;
   treeDelegate->setVob(selVob);
@@ -427,6 +441,11 @@ bool WorldEditor::setVobPosition(const WorldEdit::Vob* selVob, WorldEdit::Vob& v
     if(setVobPosition(selVob, vob[i], pos))
       return true;
   return false;
+  }
+
+void WorldEditor::setVobProperty(std::unique_ptr<Command::Action<WorldEdit>>& cmd, bool commit) {
+  timeline.push(*level, cmd.release(), commit);
+  update();
   }
 
 void WorldEditor::updateGizmo() {
