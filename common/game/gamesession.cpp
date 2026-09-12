@@ -165,6 +165,11 @@ GameSession::GameSession(Serialize &fin) {
   if(auto hero = wrld->player())
     vm->setInstanceNPC("HERO",*hero);
 
+  // Saved variables do not restore Ikarus's transient parser and engine bindings.
+  // Reconnect those without replaying gameplay initialization or resetting NPC routines.
+  if(vm->usesMemoryExtensions())
+    vm->getVm().call_function("MEM_InitAll");
+
   fin.setEntry("game/camera");
   cam->load(fin,wrld->player());
   Gothic::inst().setLoadingProgress(96);

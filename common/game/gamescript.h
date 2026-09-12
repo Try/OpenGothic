@@ -75,6 +75,8 @@ class GameScript final {
     void         savePerc(Serialize& fout);
     void         loadPerc(Serialize& fin);
 
+    bool         usesMemoryExtensions() const { return dma!=nullptr; }
+
     inline auto& getVm() { return vm; }
     auto         questLog() const -> const QuestLog&;
 
