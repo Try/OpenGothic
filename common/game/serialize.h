@@ -45,7 +45,7 @@ class Serialize {
       };
     Serialize(Tempest::ODevice& fout);
     Serialize(Tempest::IDevice&  fin);
-    Serialize(Serialize&&)=default;
+    Serialize(Serialize&&)=delete;
     ~Serialize();
 
     uint16_t version()              const { return wldVer; }
