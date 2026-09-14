@@ -1120,12 +1120,23 @@ void Renderer::buildHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
   cmd.dispatch(size_t(hiz.hiZ.w()), size_t(hiz.hiZ.h()));
 
   const uint32_t maxBind = 8, mip = hiz.hiZ.mipCount();
+  const auto     wgSz = shaders.hiZMip.workGroupSize();
+  const int      wgW  = std::max(std::max(hiz.hiZ.w()/2, 1) / wgSz.x, 1);
+  const int      wgH  = std::max(std::max(hiz.hiZ.h()/2, 1) / wgSz.y, 1);
+  struct Push {
+    uint32_t numGroups;
+    uint32_t mip;
+    } push = {};
+  push.numGroups = uint32_t(wgW * wgH);
+  push.mip       = mip;
+
   cmd.setBinding(0, hiz.counter);
   for(uint32_t i=0; i<maxBind; ++i)
     cmd.setBinding(1+i, hiz.hiZ, Sampler::nearest(), std::min(i, mip-1));
-  cmd.setPushData(&mip, sizeof(mip));
+  cmd.setPushData(push);
   cmd.setPipeline(shaders.hiZMip);
-  cmd.dispatchThreads(std::max(uint32_t(hiz.hiZ.w())/2u, 1u), std::max(uint32_t(hiz.hiZ.h())/2u, 1u));
+  //cmd.dispatchThreads(std::max(uint32_t(hiz.hiZ.w())/2u, 1u), std::max(uint32_t(hiz.hiZ.h())/2u, 1u));
+  cmd.dispatch(size_t(wgW), size_t(wgH));
   }
 
 void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview) {
