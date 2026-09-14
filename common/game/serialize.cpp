@@ -152,6 +152,7 @@ bool Serialize::implSetEntry(std::string_view fname) {
 uint32_t Serialize::implDirectorySize(std::string_view e) {
   uint32_t count = 0;
   std::vector<char> filename;
+  filename.reserve(256);
   for(mz_uint i=0; i<mz_zip_reader_get_num_files(&impl); ++i) {
     const auto length = mz_zip_reader_get_filename(&impl, i, nullptr, 0);
     if(length==0)
@@ -159,7 +160,7 @@ uint32_t Serialize::implDirectorySize(std::string_view e) {
     filename.resize(length);
     if(mz_zip_reader_get_filename(&impl, i, filename.data(), length)!=length)
       throw std::runtime_error("unable to read entry name in game archive");
-    const std::string_view name(filename.data(), length-1);
+    std::string_view name(filename.data(), length-1);
     if(name.size()<=e.size() || !name.starts_with(e))
       continue;
     const auto child = name.substr(e.size());
