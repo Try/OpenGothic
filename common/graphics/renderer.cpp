@@ -754,7 +754,11 @@ void Renderer::drawTonemapping(Attachment& result, Encoder<CommandBuffer>& cmd, 
   auto& pso = (settings.vidResIndex==0) ? shaders.tonemapping : shaders.tonemappingUpscale;
   cmd.setFramebuffer({ {result, Tempest::Discard, Tempest::Preserve} });
   cmd.setBinding(0, wview.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-  cmd.setBinding(1, sceneLinear, Sampler::nearest(ClampMode::ClampToEdge)); // Lanczos upscale requires nearest sampling
+  // This Lanczos implementation pairs adjacent weights using bilinear sampling.
+  // Keep nearest sampling at native resolution.
+  const auto sampler = settings.vidResIndex==0 ? Sampler::nearest(ClampMode::ClampToEdge) :
+                                               Sampler::bilinear(ClampMode::ClampToEdge);
+  cmd.setBinding(1, sceneLinear, sampler);
   cmd.setPushData(p);
   cmd.setPipeline(pso);
   cmd.draw(nullptr, 0, 3);
@@ -1116,12 +1120,23 @@ void Renderer::buildHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
   cmd.dispatch(size_t(hiz.hiZ.w()), size_t(hiz.hiZ.h()));
 
   const uint32_t maxBind = 8, mip = hiz.hiZ.mipCount();
+  const auto     wgSz = shaders.hiZMip.workGroupSize();
+  const int      wgW  = std::max(std::max(hiz.hiZ.w()/2, 1) / wgSz.x, 1);
+  const int      wgH  = std::max(std::max(hiz.hiZ.h()/2, 1) / wgSz.y, 1);
+  struct Push {
+    uint32_t numGroups;
+    uint32_t mip;
+    } push = {};
+  push.numGroups = uint32_t(wgW * wgH);
+  push.mip       = mip;
+
   cmd.setBinding(0, hiz.counter);
   for(uint32_t i=0; i<maxBind; ++i)
     cmd.setBinding(1+i, hiz.hiZ, Sampler::nearest(), std::min(i, mip-1));
-  cmd.setPushData(&mip, sizeof(mip));
+  cmd.setPushData(push);
   cmd.setPipeline(shaders.hiZMip);
-  cmd.dispatchThreads(std::max(uint32_t(hiz.hiZ.w())/2u, 1u), std::max(uint32_t(hiz.hiZ.h())/2u, 1u));
+  //cmd.dispatchThreads(std::max(uint32_t(hiz.hiZ.w())/2u, 1u), std::max(uint32_t(hiz.hiZ.h())/2u, 1u));
+  cmd.dispatch(size_t(wgW), size_t(wgH));
   }
 
 void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview) {

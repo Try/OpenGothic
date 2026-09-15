@@ -76,6 +76,8 @@ Serialize::Serialize(Tempest::IDevice& fin) : fin(&fin) {
   }
 
 Serialize::~Serialize() {
+  if(fin!=nullptr)
+    mz_zip_reader_end(&impl);
   closeEntry();
   if(fout!=nullptr) {
     mz_zip_writer_finalize_archive(&impl);
@@ -148,20 +150,25 @@ bool Serialize::implSetEntry(std::string_view fname) {
   }
 
 uint32_t Serialize::implDirectorySize(std::string_view e) {
-  // Get and print information about each file in the archive.
-  uint32_t cnt = 0;
-  for(mz_uint i = 0; i<mz_zip_reader_get_num_files(&impl); i++) {
-    mz_zip_archive_file_stat stat = {};
-    if(!mz_zip_reader_file_stat(&impl, i, &stat))
+  uint32_t count = 0;
+  std::vector<char> filename;
+  filename.reserve(256);
+  for(mz_uint i=0; i<mz_zip_reader_get_num_files(&impl); ++i) {
+    const auto length = mz_zip_reader_get_filename(&impl, i, nullptr, 0);
+    if(length==0)
       throw std::runtime_error("unable to locate entry in game archive");
-    auto len = std::strlen(stat.m_filename);
-    if(len>e.size() && std::memcmp(e.data(),stat.m_filename,e.size())==0) {
-      auto sep = std::strchr(stat.m_filename+e.size(),'/');
-      if(sep==nullptr || (sep+1)==(stat.m_filename+len))
-        ++cnt;
-      }
+    filename.resize(length);
+    if(mz_zip_reader_get_filename(&impl, i, filename.data(), length)!=length)
+      throw std::runtime_error("unable to read entry name in game archive");
+    std::string_view name(filename.data(), length-1);
+    if(name.size()<=e.size() || !name.starts_with(e))
+      continue;
+    const auto child = name.substr(e.size());
+    const auto separator = child.find('/');
+    if(separator==std::string_view::npos || separator+1==child.size())
+      ++count;
     }
-  return cnt;
+  return count;
   }
 
 void Serialize::writeBytes(const void* buf, size_t sz) {

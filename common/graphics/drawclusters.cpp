@@ -158,13 +158,13 @@ void DrawClusters::patchClusters(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   auto& device = Resources::device();
   auto& p = this->patch[fId];
 
-  if(header.size()*sizeof(header[0]) < p.indices.byteSize()) {
+  if(header.size()*sizeof(header[0]) <= p.indices.byteSize()) {
     p.indices.update(header);
     } else {
     p.indices = device.ssbo(BufferHeap::Upload, header);
     }
 
-  if(patch.size()*sizeof(patch[0]) < p.data.byteSize()) {
+  if(patch.size()*sizeof(patch[0]) <= p.data.byteSize()) {
     p.data.update(patch);
     } else {
     p.data = device.ssbo(BufferHeap::Upload, patch);

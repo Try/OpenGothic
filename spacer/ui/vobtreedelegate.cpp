@@ -15,33 +15,43 @@ void VobTreeDelegate::setVob(const WorldEdit::Vob* inVob) {
   //update();
   }
 
+void VobTreeDelegate::update() {
+  mkIndex();
+  updateView();
+  }
+
 size_t VobTreeDelegate::size() const {
   return index.size();
   }
 
 Tempest::Widget* VobTreeDelegate::createView(size_t position) {
-  size_t id = index[position].item;
-  auto   it = index[position].vob->get();
-  auto   b  = new VobTreeItemView(*this, id);
-
-  b->setAsOpen(isOpen(index[position].vob));
-  b->setText(it!=nullptr ? (*it).vob_name : "LEVEL");
-  b->setTextAlt(index[position].textAlt());
-  b->setDepth(index[position].depth);
-  b->setAsGroup(index[position].vob->size()>0);
+  // size_t id = index[position].item;
+  auto b = new VobTreeItemView(*this, position);
   b->onClick.bind(this,&VobTreeDelegate::emitClick);
-
-  return b;
+  return update(b, position);
   }
 
 void VobTreeDelegate::removeView(Widget* w, size_t) {
   delete w;
   }
 
+Widget* VobTreeDelegate::update(Tempest::Widget* w, size_t position) {
+  size_t id = position; //index[position].item;
+  auto   it = index[position].vob->get();
+  auto   b  = dynamic_cast<VobTreeItemView*>(w);
+
+  b->setAsOpen(isOpen(index[position].vob));
+  b->setText(it!=nullptr ? (*it).vob_name : "LEVEL");
+  b->setTextAlt(index[position].textAlt());
+  b->setDepth(index[position].depth);
+  b->setAsGroup(index[position].vob->size()>0);
+  return b;
+  }
+
 void VobTreeDelegate::emitClick(Widget* w, size_t id) {
   auto& it = *index[id].vob;
   if(it.get()!=nullptr) {
-    onVobSelected(it);
+    onVobSelected(&it);
     }
 
   if(it.size()>0) {
@@ -55,10 +65,11 @@ void VobTreeDelegate::emitClick(Widget* w, size_t id) {
 void VobTreeDelegate::mkIndex() {
   index.clear();
   mkIndex(world.root(), index, 0);
-  invalidateView();
+  // invalidateView();
+  updateView();
   }
 
-void VobTreeDelegate::mkIndex(const WorldEdit::Vob& v, std::vector<Item>& index, size_t depth) {
+void VobTreeDelegate::mkIndex(WorldEdit::Vob& v, std::vector<Item>& index, size_t depth) {
   Item it;
   it.item  = index.size();
   it.depth = depth;

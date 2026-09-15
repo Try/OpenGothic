@@ -5,7 +5,7 @@
 class VecWidget;
 
 namespace zenkit {
-  class Color;
+  struct Color;
   }
 
 class ColorWidget : public Tempest::Widget {

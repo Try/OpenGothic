@@ -16,6 +16,7 @@ layout(binding = 8, r16)      uniform coherent image2D   mip7; // 128x128
 //layout(binding = 9, r16)      uniform coherent image2D   mip8;
 
 layout(push_constant, std140) uniform PushConstant {
+  uint numGroups; //TODO: NumWorkgroups builtin is used, but remap_num_workgroups_builtin() was not called
   uint mipCount;
   };
 
@@ -141,7 +142,7 @@ void main() {
     }
   barrier();
 
-  if(cnt < gl_NumWorkGroups.x*gl_NumWorkGroups.y-1)
+  if(cnt < numGroups-1)
     return;
 
   atomicExchange(counter, 0); // skip buffer memory-barrier

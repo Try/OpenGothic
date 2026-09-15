@@ -1,5 +1,7 @@
 #include "propertydelegate.h"
 
+#include <Tempest/Log>
+
 #include <zenkit/vobs/Misc.hh>
 #include <zenkit/vobs/Light.hh>
 
@@ -9,17 +11,50 @@
 
 using namespace Tempest;
 
+template<class T>
+static const T variantCast(const Variant& v) {
+  if(auto* r = v.get<T>())
+    return *r;
+  if constexpr(std::is_same_v<T,zenkit::Color>) {
+    if(auto f = v.get<Vec3>()) {
+      auto x = std::clamp(f->x, 0.f, 255.f);
+      auto y = std::clamp(f->y, 0.f, 255.f);
+      auto z = std::clamp(f->z, 0.f, 255.f);
+      return zenkit::Color(uint8_t(x), uint8_t(y), uint8_t(z), 255);
+      }
+    if(auto f = v.get<Vec4>()) {
+      auto x = std::clamp(f->x, 0.f, 255.f);
+      auto y = std::clamp(f->y, 0.f, 255.f);
+      auto z = std::clamp(f->z, 0.f, 255.f);
+      auto w = std::clamp(f->w, 0.f, 255.f);
+      return zenkit::Color(uint8_t(x), uint8_t(y), uint8_t(z), uint8_t(w));
+      }
+    }
+  Tempest::Log::d("failed variant cast (", typeid(T).name(), ")");
+  return T();
+  }
+
 PropertyDelegate::PropertyDelegate() {
   }
 
-void PropertyDelegate::setVob(const WorldEdit::Vob* inVob) {
+void PropertyDelegate::setVob(WorldEdit::Vob* inVob) {
   vob = inVob;
-  mkIndex(vob->get());
+  update();
+  }
+
+void PropertyDelegate::update() {
+  index.clear();
+  if(vob!=nullptr)
+    mkIndex(vob->get());
   invalidateView();
   }
 
 size_t PropertyDelegate::size() const {
   return index.size();
+  }
+
+void PropertyDelegate::onProperty(size_t id, const Variant& v, bool commit) {
+  index[id].set(vob, v, commit);
   }
 
 Widget* PropertyDelegate::createView(size_t i) {
@@ -31,7 +66,9 @@ Widget* PropertyDelegate::createView(size_t i) {
     return ret;
     }
   auto var = index[i].get(vob);
-  return ParameterWidget::createEditor(index[i].slt, var, i);
+  auto ed  =  ParameterWidget::createEditor(index[i].slt, var, i);
+  ed->onChanged.bind(this, &PropertyDelegate::onProperty);
+  return ed;
   }
 
 void PropertyDelegate::addHeader(std::string_view name) {
@@ -42,7 +79,7 @@ void PropertyDelegate::addHeader(std::string_view name) {
   }
 
 template<class T, class F>
-void PropertyDelegate::addView(std::string_view name, F T::* field) {
+auto PropertyDelegate::addView(std::string_view name, F T::* field) -> Index& {
   Index id;
   id.slt.name = name;
   if constexpr(std::is_same_v<F,bool>) {
@@ -88,7 +125,22 @@ void PropertyDelegate::addView(std::string_view name, F T::* field) {
       }
     return Variant();
     };
+
+  id.set = [field, this](WorldEdit::Vob* vob, const Variant& v, bool commit) {
+    auto f = variantCast<F>(v);
+    std::unique_ptr<Command::Action<WorldEdit>> ptr(new CmdSetProperty<T, F>(vob, field, f));
+    onChanged(ptr, commit);
+    };
   index.push_back(id);
+  return index.back();
+  }
+
+template<class T, class F>
+auto PropertyDelegate::addView(std::string_view name, F T::* field, F min, F max) -> PropertyDelegate::Index& {
+  auto& ret = addView(name, field);
+  ret.slt.min = Tempest::Vec4(min);
+  ret.slt.max = Tempest::Vec4(max);
+  return ret;
   }
 
 void PropertyDelegate::mkIndex(const zenkit::VirtualObject* vob) {
@@ -245,9 +297,9 @@ void PropertyDelegate::mkIndex_zCVobLight(zenkit::VirtualObjectType type, const 
   addHeader("zCVobLight");
   addView("lightPresetInUse", &zenkit::VLight::preset);
   addView("lightType",        &zenkit::VLight::light_type);
-  addView("range",            &zenkit::VLight::range);
+  addView("range",            &zenkit::VLight::range, 0.f, 2000.f);
   addView("color",            &zenkit::VLight::color);
-  addView("spotConeAngle",    &zenkit::VLight::cone_angle);
+  addView("spotConeAngle",    &zenkit::VLight::cone_angle, 0.f, 180.f);
   addView("lightStatic",      &zenkit::VLight::is_static);
   addView("lightQuality",     &zenkit::VLight::quality);
   addView("lensflareFX",      &zenkit::VLight::lensflare_fx);

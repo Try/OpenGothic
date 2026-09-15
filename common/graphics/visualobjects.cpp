@@ -322,6 +322,7 @@ void VisualObjects::free(size_t id) {
 
   drawCmd.addClusters(obj.cmdId, -meshletCount);
   clustersMem.free(obj.clusterId, numCluster);
+  updateRtAs(id);
 
   if(obj.wind==zenkit::AnimationType::NONE)
     objectsWind.erase(id);
