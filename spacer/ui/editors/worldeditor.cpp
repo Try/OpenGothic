@@ -5,10 +5,13 @@
 #include <Tempest/ListView>
 
 #include "ui/property/propertydelegate.h"
+#include "ui/projectitemview.h"
 #include "ui/vobtreedelegate.h"
 #include "objects/worldedit.h"
+#include "objects/rayquery.h"
 #include "editorwindow.h"
 #include "resources.h"
+#include "utils/fileext.h"
 
 using namespace Tempest;
 
@@ -248,7 +251,7 @@ void WorldEditor::mouseDownEvent(Tempest::MouseEvent& e) {
       state = State(uint32_t(State::T_DragX) + giz);
       }
     else {
-      if(auto vob = rayQuery(mpos))
+      if(auto vob = rayQuery(mpos).vob())
         selectVob(vob);
       }
     }
@@ -289,6 +292,23 @@ void WorldEditor::mouseDragEvent(Tempest::MouseEvent& e) {
   }
 
 void WorldEditor::moveDropOver(DropOverEvent& ev) {
+  if(auto itm = dynamic_cast<ProjectItemView*>(&ev.drop())) {
+    // itm->it.path();
+    if(itm->it.type()==ProjectItem::T_StaticMesh) {
+      auto name = std::string(itm->it.name());
+      FileExt::exchangeExt(name,"MRM","3DS");
+
+      const auto query = rayQuery(ev.pos());
+
+      insertVob.reset(new WorldEdit::Vob());
+      insertVob->setVisual(*level, name);
+      insertVob->setCollision(*level, false);
+      insertVob->setPosition(query.hitPos());
+
+      ev.accept();
+      update();
+      }
+    }
   }
 
 void WorldEditor::dropDone(DropOverEvent& ev) {
@@ -362,8 +382,10 @@ int WorldEditor::gizmoQuery(Tempest::Point mpos) const {
   return -1;
   }
 
-WorldEdit::Vob* WorldEditor::rayQuery(Tempest::Point mpos) {
-  return level->rayQuery(camera.view(), camera.viewProj(), mpos, size());
+auto WorldEditor::rayQuery(Tempest::Point mpos) -> RayQuery {
+  RayQuery query(camera.view(), camera.viewProj(), mpos, size());
+  query.proceed(*level);
+  return query;
   }
 
 void WorldEditor::dragVob(Tempest::Point mpos, const WorldEdit::Vob& vob, State st) {

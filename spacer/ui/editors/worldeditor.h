@@ -17,6 +17,7 @@ class PropertyDelegate;
 class VobTreeDelegate;
 
 class Variant;
+class RayQuery;
 
 class WorldEditor: public BaseEditor,
                    public DropReciver  {
@@ -63,7 +64,7 @@ class WorldEditor: public BaseEditor,
     void tick();
 
     int  gizmoQuery(Tempest::Point mpos) const;
-    auto rayQuery(Tempest::Point mpos) -> WorldEdit::Vob*;
+    auto rayQuery(Tempest::Point mpos) -> RayQuery;
     void dragVob(Tempest::Point mpos, const WorldEdit::Vob& vob, State st);
     void deleteVob();
     void selectVob(WorldEdit::Vob* vob);
@@ -94,5 +95,6 @@ class WorldEditor: public BaseEditor,
     VobTreeDelegate*       treeDelegate = nullptr;
     PropertyDelegate*      propertyDelegate = nullptr;
 
+    std::unique_ptr<WorldEdit::Vob> insertVob;
     MeshObjects::Mesh      selectedVobBevel;
   };

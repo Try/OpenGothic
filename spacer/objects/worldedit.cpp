@@ -21,6 +21,10 @@ auto WorldEdit::Vob::release(size_t i) -> std::unique_ptr<WorldEdit::Vob> {
   return v;
   }
 
+WorldEdit::Vob::Vob(std::shared_ptr<zenkit::VirtualObject> vob)  {
+  orig = vob;
+  }
+
 void WorldEdit::Vob::insert(size_t i, std::unique_ptr<Vob> v) {
   child.insert(child.begin()+i, std::move(v));
   }
@@ -61,7 +65,8 @@ void WorldEdit::Vob::initView(WorldEdit& owner) {
          mesh = owner.wview->addStaticView(view, true);
          mesh.setWind(vob.anim_mode,vob.anim_strength);
          mesh.setObjMatrix(pos);
-
+         }
+       if(vob.cd_dynamic){
          phys = PhysicMesh(*view, *owner.physics, false);
          phys.setObjMatrix(pos);
          phys.setPayloadPtr(orig.get());
@@ -103,6 +108,22 @@ void WorldEdit::Vob::setPosition(const Tempest::Vec3& v) {
   light.setPosition(v);
   }
 
+void WorldEdit::Vob::setVisual(WorldEdit& owner, std::string_view vis) {
+  orig->visual_name  = vis;
+  orig->show_visual  = true;
+  orig->visual       = std::make_shared<zenkit::VisualMesh>();
+  orig->visual->type = zenkit::VisualType::MESH;
+  clearView();
+  initView(owner);
+  }
+
+void WorldEdit::Vob::setCollision(WorldEdit& owner, bool cd) {
+  orig->cd_static  = cd;
+  orig->cd_dynamic = cd;
+  clearView();
+  initView(owner);
+  }
+
 
 WorldEdit::WorldEdit(std::string_view wname) {
   const auto* entry = Resources::vdfsIndex().find(wname);
@@ -142,86 +163,11 @@ WorldEdit::~WorldEdit() {
 void WorldEdit::load(Vob& out, std::vector<std::shared_ptr<zenkit::VirtualObject>>& child) {
   out.child.reserve(child.size());
   for(size_t i=0; i<child.size(); ++i) {
-    out.child.emplace_back(std::make_unique<Vob>(vobNextId)); ++vobNextId;
+    out.child.emplace_back(std::make_unique<Vob>(nullptr));
     load(*out.child[i], child[i]->children);
     out.child[i]->orig = child[i];
     out.child[i]->orig->children.clear();
     }
-  }
-
-WorldEdit::Vob* WorldEdit::rayQuery(Tempest::Matrix4x4 v, Tempest::Matrix4x4 vp,
-                                    Tempest::Point mpos, Tempest::Size wsize) {
-  auto vInv = v;
-  auto vpInv = vp;
-  vInv.inverse();
-  vpInv.inverse();
-
-  Tempest::Vec2 pos = {mpos.x/float(wsize.w), mpos.y/float(wsize.h)};
-  pos = 2.f*pos - 1.f;
-
-  Vec3 dst = {pos.x, pos.y, 1};
-  vpInv.project(dst);
-
-  Vec3 src = {pos.x, pos.y, 0};
-  vInv.project(src);
-
-  auto ret  = physics->ray(src, dst);
-
-  float           rayT   = ret.hitFraction;
-  auto            uptr   = reinterpret_cast<zenkit::VirtualObject*>(ret.uptr);
-  WorldEdit::Vob* retVob = validatePointer(uptr, rootVob);
-
-  rayQueryLight(mpos, wsize, vp, src, dst, rayT, retVob, rootVob);
-
-  return retVob;
-  }
-
-WorldEdit::Vob* WorldEdit::rayQuery(const Tempest::Vec3 s, const Tempest::Vec3 e) {
-  auto ret  = physics->ray(s, e);
-  auto uptr = reinterpret_cast<zenkit::VirtualObject*>(ret.uptr);
-  return validatePointer(uptr, rootVob);
-  }
-
-void WorldEdit::rayQueryLight(Tempest::Point mpos, Tempest::Size wsize, const Tempest::Matrix4x4& vp,
-                              const Tempest::Vec3& src, const Tempest::Vec3& dst,
-                              float& rayT, WorldEdit::Vob*& ret, WorldEdit::Vob& v) {
-  if(v.get()!=nullptr && v.get()->type==zenkit::VirtualObjectType::zCVobLight) {
-    auto& vob  = *v.get();
-    auto  pos  = Vec3(vob.position.x,vob.position.y,vob.position.z);
-    auto  ndc  = pos;
-    vp.project(ndc);
-
-    ndc = (ndc*0.5 + 0.5);
-    ndc *= Vec3(wsize.w, wsize.h, 1);
-
-    const int spriteSize = Assets::inst().im.pointLight.w();
-    if(ndc.z>0 && Vec2(ndc.x - mpos.x, ndc.y - mpos.y).quadLength() < spriteSize*spriteSize) {
-      auto dir     = (dst - src);
-      auto forward = Vec3(vp[0][2], vp[1][2], vp[2][2]);
-      forward = Vec3::normalize(forward);
-
-      float bT = Vec3::dotProduct(pos - src, forward) / Vec3::dotProduct(dir, forward);
-      if(0<bT && bT < rayT) {
-        rayT = bT;
-        ret  = &v;
-        }
-      }
-    }
-
-  for(auto& i:v.child) {
-    rayQueryLight(mpos, wsize, vp, src, dst, rayT, ret, *i);
-    }
-  }
-
-WorldEdit::Vob* WorldEdit::validatePointer(const zenkit::VirtualObject* ptr, Vob& v) {
-  if(ptr==v.orig.get())
-    return &v;
-
-  for(auto& i:v.child) {
-    if(auto n = validatePointer(ptr, *i))
-      return n;
-    }
-  return nullptr;
   }
 
 
