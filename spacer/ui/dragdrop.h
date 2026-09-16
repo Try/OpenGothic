@@ -52,6 +52,7 @@ class DragDrop {
     struct Overlay : Tempest::UiOverlay {
       };
     enum State:uint8_t {
+      Idle,
       PreDrag,
       Drag
       };
@@ -70,5 +71,5 @@ class DragDrop {
     Tempest::Widget*         mDrop    = nullptr;
     size_t                   mDropAt  = 0;
 
-    State                    state    = PreDrag;
+    State                    state    = Idle;
   };

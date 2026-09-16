@@ -312,6 +312,7 @@ void WorldEditor::moveDropOver(DropOverEvent& ev) {
   }
 
 void WorldEditor::dropDone(DropOverEvent& ev) {
+  ev.ignore();
   }
 
 void WorldEditor::paintEvent(PaintEvent& e) {
