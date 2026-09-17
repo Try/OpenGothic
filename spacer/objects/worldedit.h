@@ -54,6 +54,7 @@ class WorldEdit {
 
       friend class WorldEdit;
 
+      friend class CmdNewVob;
       friend class CmdDeleteVob;
 
       template<class Vob, class F>
@@ -71,17 +72,19 @@ class WorldEdit {
     Vob                           rootVob {0};
   };
 
-class CmdMoveVob : public Command::Action<WorldEdit> {
+class CmdNewVob : public Command::Action<WorldEdit> {
   public:
-    CmdMoveVob(WorldEdit::Vob* vob, Tempest::Vec3 pos);
+    CmdNewVob(WorldEdit::Vob* vob);
 
   private:
     void redo(WorldEdit& subj) override;
     void undo(WorldEdit& subj) override;
-    bool merge(const Action& prev) override;
 
-    WorldEdit::Vob* vob = nullptr;
-    Tempest::Vec3   pos, orig;
+    WorldEdit::Vob* findParent(WorldEdit::Vob& v, const WorldEdit::Vob* dst);
+
+    WorldEdit::Vob*                 vob    = nullptr;
+    WorldEdit::Vob*                 parent = nullptr;
+    std::unique_ptr<WorldEdit::Vob> stash;
   };
 
 class CmdDeleteVob : public Command::Action<WorldEdit> {
@@ -98,6 +101,19 @@ class CmdDeleteVob : public Command::Action<WorldEdit> {
     WorldEdit::Vob*                 parent = nullptr;
     size_t                          index  = 0;
     std::unique_ptr<WorldEdit::Vob> stash;
+  };
+
+class CmdMoveVob : public Command::Action<WorldEdit> {
+  public:
+    CmdMoveVob(WorldEdit::Vob* vob, Tempest::Vec3 pos);
+
+  private:
+    void redo(WorldEdit& subj) override;
+    void undo(WorldEdit& subj) override;
+    bool merge(const Action& prev) override;
+
+    WorldEdit::Vob* vob = nullptr;
+    Tempest::Vec3   pos, orig;
   };
 
 template<class Vob, class F>

@@ -293,7 +293,6 @@ void WorldEditor::mouseDragEvent(Tempest::MouseEvent& e) {
 
 void WorldEditor::moveDropOver(DropOverEvent& ev) {
   if(auto itm = dynamic_cast<ProjectItemView*>(&ev.drop())) {
-    // itm->it.path();
     if(itm->it.type()==ProjectItem::T_StaticMesh) {
       auto name = std::string(itm->it.name());
       FileExt::exchangeExt(name,"MRM","3DS");
@@ -306,13 +305,19 @@ void WorldEditor::moveDropOver(DropOverEvent& ev) {
       insertVob->setPosition(query.hitPos());
 
       ev.accept();
+      ev.setUiVisible(false);
       update();
       }
     }
   }
 
 void WorldEditor::dropDone(DropOverEvent& ev) {
-  ev.ignore();
+  const auto query = rayQuery(ev.pos());
+
+  insertVob->setCollision(*level, true);
+  insertVob->setPosition(query.hitPos());
+
+  timeline.push(*level, new CmdNewVob(insertVob.release()));
   }
 
 void WorldEditor::paintEvent(PaintEvent& e) {

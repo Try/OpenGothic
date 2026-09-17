@@ -171,28 +171,20 @@ void WorldEdit::load(Vob& out, std::vector<std::shared_ptr<zenkit::VirtualObject
   }
 
 
-CmdMoveVob::CmdMoveVob(WorldEdit::Vob* vob, Vec3 pos) : vob(vob), pos(pos) {
-  auto p = vob->get()->position;
-  orig = {p.x, p.y, p.z};
+CmdNewVob::CmdNewVob(WorldEdit::Vob* vob):vob(vob), stash(vob) {
   }
 
-void CmdMoveVob::redo(WorldEdit& subj) {
-  vob->setPosition(pos);
+void CmdNewVob::redo(WorldEdit& subj) {
+  stash->initView(subj);
+  parent = &subj.root();
+  parent->insert(parent->size(), std::move(stash));
   }
 
-void CmdMoveVob::undo(WorldEdit& subj) {
-  vob->setPosition(orig);
+void CmdNewVob::undo(WorldEdit& subj) {
+  stash = parent->release(parent->size()-1);
+  stash->clearView();
   }
 
-bool CmdMoveVob::merge(const Action& prev) {
-  if(auto p = dynamic_cast<const CmdMoveVob*>(&prev)) {
-    if(p->vob==vob) {
-      pos = p->pos;
-      return true;
-      }
-    }
-  return false;
-  }
 
 CmdDeleteVob::CmdDeleteVob(WorldEdit::Vob* vob):vob(vob) {
   }
@@ -223,4 +215,27 @@ WorldEdit::Vob* CmdDeleteVob::findParent(WorldEdit::Vob& v, const WorldEdit::Vob
       return n;
     }
   return nullptr;
+  }
+
+CmdMoveVob::CmdMoveVob(WorldEdit::Vob* vob, Vec3 pos) : vob(vob), pos(pos) {
+  auto p = vob->get()->position;
+  orig = {p.x, p.y, p.z};
+  }
+
+void CmdMoveVob::redo(WorldEdit& subj) {
+  vob->setPosition(pos);
+  }
+
+void CmdMoveVob::undo(WorldEdit& subj) {
+  vob->setPosition(orig);
+  }
+
+bool CmdMoveVob::merge(const Action& prev) {
+  if(auto p = dynamic_cast<const CmdMoveVob*>(&prev)) {
+    if(p->vob==vob) {
+      pos = p->pos;
+      return true;
+      }
+    }
+  return false;
   }

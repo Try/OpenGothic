@@ -27,6 +27,11 @@ size_t DropOverEvent::dropLocation() const {
   return dpos;
   }
 
+void DropOverEvent::setUiVisible(bool vis) {
+  if(dropable!=nullptr)
+    dropable->setVisible(vis);
+  }
+
 void DropOverEvent::setPosition(const Point& p) {
   mpos = p;
   }
@@ -105,7 +110,8 @@ bool DragDrop::end(MouseEvent& e) {
       }
     }
 
-  if(mOwner!=nullptr && state!=PreDrag && !dropped){
+  if(mOwner!=nullptr && state!=PreDrag && !dropped) {
+    drItem->setVisible(true);
     mOwner->addWidget(drItem,mOwnerAt);
     }
   state  = Idle;

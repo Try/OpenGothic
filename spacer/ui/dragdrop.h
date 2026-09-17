@@ -14,6 +14,8 @@ class DropOverEvent : public Tempest::Event {
     void   setDropLocation(size_t pos);
     size_t dropLocation() const;
 
+    void setUiVisible(bool vis);
+
     void setPosition(const Tempest::Point& p);
     const Tempest::Point& pos() const;
 
