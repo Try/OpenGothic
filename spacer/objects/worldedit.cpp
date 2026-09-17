@@ -49,6 +49,14 @@ void WorldEdit::Vob::initView(WorldEdit& owner) {
                                 vob.rotation.columns[0].z, vob.rotation.columns[1].z, vob.rotation.columns[2].z, vob.position.z,
                                 0, 0, 0, 1);
 
+  if(!vob.show_visual) {
+    mesh  = MeshObjects::Mesh();
+    light = LightGroup::Light();
+    }
+  if(!vob.cd_dynamic) {
+    phys  = PhysicMesh();
+    }
+
   //FIXME: copypaste from ObjVisual
   if(vob.type==zenkit::VirtualObjectType::zCVob) {
     const auto& visName = vob.visual_name;
@@ -66,7 +74,7 @@ void WorldEdit::Vob::initView(WorldEdit& owner) {
          mesh.setWind(vob.anim_mode,vob.anim_strength);
          mesh.setObjMatrix(pos);
          }
-       if(vob.cd_dynamic){
+       if(vob.cd_dynamic) {
          phys = PhysicMesh(*view, *owner.physics, false);
          phys.setObjMatrix(pos);
          phys.setPayloadPtr(orig.get());
@@ -91,7 +99,9 @@ void WorldEdit::Vob::initView(WorldEdit& owner) {
       }
     once = true;
     */
-    light = owner.wview->addLight(reinterpret_cast<const zenkit::VLight&>(vob), 0);
+    if(vob.show_visual) {
+      light = owner.wview->addLight(reinterpret_cast<const zenkit::VLight&>(vob), 0);
+      }
     }
   }
 

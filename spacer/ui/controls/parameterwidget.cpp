@@ -98,12 +98,12 @@ struct ParameterWidget::EditEnum    : Base<EnumWidget> {
 
   void commit(size_t id) {
     Variant v;
-    v.set(float(id));
+    v.set(int(id));
     onChanged(pos,v,true);
     }
 
   Variant argv() const override {
-    return Variant(float(edit->currentIndex()));
+    return Variant(int(edit->currentIndex()));
     }
 
   void setArgv(const Variant& v) override {
