@@ -50,8 +50,7 @@ void WorldEdit::Vob::initView(WorldEdit& owner) {
                                 0, 0, 0, 1);
 
   if(!vob.show_visual) {
-    mesh  = MeshObjects::Mesh();
-    light = LightGroup::Light();
+    mesh = MeshObjects::Mesh();
     }
   if(!vob.cd_dynamic) {
     phys  = PhysicMesh();
@@ -99,7 +98,8 @@ void WorldEdit::Vob::initView(WorldEdit& owner) {
       }
     once = true;
     */
-    if(vob.show_visual) {
+    //NOTE: light is shown anyway, in vanilla
+    if(true || vob.show_visual) {
       light = owner.wview->addLight(reinterpret_cast<const zenkit::VLight&>(vob), 0);
       }
     }

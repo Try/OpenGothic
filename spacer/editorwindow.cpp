@@ -4,6 +4,7 @@
 #include <Tempest/Panel>
 #include <Tempest/ComboBox>
 
+#include "workers/dataworker.h"
 #include "ui/rootview.h"
 
 using namespace Tempest;
@@ -22,6 +23,10 @@ EditorWindow::~EditorWindow() {
   }
 
 void EditorWindow::render() {
+  if(DataWorker::needUpdate()) {
+    update();
+    }
+
   if(!needToUpdate())
     return;
 

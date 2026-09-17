@@ -308,6 +308,9 @@ void WorldEditor::moveDropOver(DropOverEvent& ev) {
       ev.setUiVisible(false);
       update();
       }
+    if(itm->it.type()==ProjectItem::T_Texture) {
+      // decals?
+      }
     }
   }
 
@@ -317,7 +320,9 @@ void WorldEditor::dropDone(DropOverEvent& ev) {
   insertVob->setCollision(*level, true);
   insertVob->setPosition(query.hitPos());
 
+  auto vob = insertVob.get();
   timeline.push(*level, new CmdNewVob(insertVob.release()));
+  selectVob(vob);
   }
 
 void WorldEditor::paintEvent(PaintEvent& e) {

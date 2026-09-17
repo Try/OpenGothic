@@ -46,27 +46,51 @@ void DataWorker::load(const ProjectItem& it) {
   instance->pushItem(it);
   }
 
+bool DataWorker::needUpdate() {
+  return instance->updateHint.exchange(0)!=0;
+  }
+
 void DataWorker::exec() {
   while(true) {
     ProjectItem it;
     if(!popItem(it))
       return;
 
+    const auto type = it.type();
     //TODO: loader by full name?! Doesn't seem to apply to how gothic game is structured..
     // auto name = std::string(it.path());
-    auto name = std::string(it.name());
-    FileExt::exchangeExt(name,"MRM","3DS");
-    if(auto proto = Resources::loadMesh(name)) {
-      auto mesh = MeshObjects::Mesh(render.itmGroup,*proto,0,0,0,false);
-      mesh.setObjMatrix(Matrix4x4::mkIdentity());
+    if(type==ProjectItem::T_StaticMesh) {
+      auto name = std::string(it.name());
+      FileExt::exchangeExt(name,"MRM","3DS");
+      if(auto proto = Resources::loadMesh(name)) {
+        auto mesh = MeshObjects::Mesh(render.itmGroup,*proto,0,0,0,false);
+        mesh.setObjMatrix(Matrix4x4::mkIdentity());
 
-      auto ret = createPreview(it, mesh, proto->bbox());
-      commit(it, [&](){
-        it.setPreview(ret);
-        // Log::d(it.name()," - loaded");
-        });
-      } else {
-      Log::d(it.name()," - unable to load mesh");
+        auto ret = createPreview(it, mesh, proto->bbox());
+        commit(it, [&](){
+          it.setPreview(ret);
+          // Log::d(it.name()," - loaded");
+          });
+        } else {
+        Log::d(it.name()," - unable to load mesh");
+        }
+      }
+    else if(type==ProjectItem::T_Texture) {
+      auto name = std::string(it.name());
+      if(FileExt::hasExt(name,"TEX") && name.ends_with("-C.TEX")) {
+        name.resize(name.size() - 6);
+        name += ".TGA";
+        }
+      if(auto proto = Resources::loadTexture(name)) {
+        commit(it, [&]() {
+          //HACK: non-owning pointer
+          auto ptr = std::shared_ptr<const Texture2d>(proto, [](const Texture2d*){});
+          it.setPreview(ptr);
+          // Log::d(it.name()," - loaded");
+          });
+        } else {
+        Log::d(it.name()," - unable to load texture");
+        }
       }
     }
   }
@@ -99,6 +123,7 @@ void DataWorker::commit(ProjectItem& out, std::function<void()> func) {
   std::unique_lock<std::mutex> lock(sync);
   items.erase(std::remove_if(items.begin(), items.end(), [&](const ProjectItem& it) { return it.data == out.data; }), items.end());
   func();
+  updateHint.fetch_add(1);
   }
 
 auto DataWorker::createPreview(ProjectItem& itm, const MeshObjects::Mesh& mesh, const Vec3* bbox) -> std::shared_ptr<Tempest::Texture2d> {

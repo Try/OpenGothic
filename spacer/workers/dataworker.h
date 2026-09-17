@@ -17,6 +17,7 @@ class DataWorker {
 
     static DataWorker& inst();
     static void        load(const ProjectItem& it);
+    static bool        needUpdate();
 
   private:
     void exec();
@@ -31,6 +32,7 @@ class DataWorker {
     std::mutex               sync;
     std::condition_variable  workWait;
     std::vector<ProjectItem> items;
+    std::atomic_int          updateHint = {};
     bool                     isExit = false;
 
     struct {

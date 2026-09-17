@@ -17,6 +17,7 @@ class ProjectItem {
       T_Dir,
       T_File,
       T_StaticMesh,
+      T_Texture,
       };
 
     std::string_view      displayName() const;
@@ -30,7 +31,7 @@ class ProjectItem {
     size_t                itemsCount() const;
     ProjectItem           item(size_t i) const;
 
-    auto                  preview() const -> std::shared_ptr<Tempest::Texture2d>;
+    auto                  preview() const -> std::shared_ptr<const Tempest::Texture2d>;
 
   private:
     struct Data {
@@ -40,12 +41,12 @@ class ProjectItem {
       size_t      depth = 0;
 
       SpinLock    sync;
-      std::shared_ptr<Tempest::Texture2d> preview;
+      std::shared_ptr<const Tempest::Texture2d> preview;
       };
 
     ProjectItem(std::shared_ptr<Data> data);
 
-    void setPreview(std::shared_ptr<Tempest::Texture2d> preview);
+    void setPreview(std::shared_ptr<const Tempest::Texture2d> preview);
 
     std::shared_ptr<Data> data;
 

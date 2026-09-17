@@ -68,6 +68,12 @@ struct Shelf::Item : ProjectItemView {
         drawIcon(p, *pr); else
         drawIcon(p, Assets::inst().ic.file_large);
       }
+    else if(it.type()==ProjectItem::T_Texture) {
+      auto pr = it.preview();
+      if(pr!=nullptr)
+        drawIcon(p, *pr); else
+        drawIcon(p, Assets::inst().ic.file_large);
+      }
     else {
       drawIcon(p, Assets::inst().ic.file_large);
       }
@@ -75,14 +81,20 @@ struct Shelf::Item : ProjectItemView {
     }
 
   void drawIcon(Painter& p, const Icon& ic) {
-    auto  sp = ic.sprite(w(),h(),Icon::ST_Normal);
+    auto sp = ic.sprite(w(),h(),Icon::ST_Normal);
     p.setBrush(sp);
     p.drawRect(Marg+(DefSize-sp.w())/2,Marg+(DefSize-sp.h())/2,sp.w(),sp.h());
     }
 
   void drawIcon(Painter& p, const Texture2d& sp) {
+    auto  sz = sp.size();
+    if(sz.isEmpty())
+      return;
+    float k      = std::min(1.f, std::min(float(DefSize)/sz.w, float(DefSize)/sz.h));
+    auto  scaled = Size(int(sz.w*k), int(sz.h*k));
     p.setBrush(sp);
-    p.drawRect(Marg+(DefSize-sp.w())/2,Marg+(DefSize-sp.h())/2,sp.w(),sp.h());
+    p.drawRect(Marg+(DefSize-scaled.w)/2,Marg+(DefSize-scaled.h)/2, scaled.w, scaled.h,
+               0,0,sz.w,sz.h);
     }
 
   void updateDisplay() {
@@ -109,10 +121,6 @@ struct Shelf::Central : Widget {
       setMargins(Margin(4,4,4,4));
       // ProjectMgr::inst().onProjectChange.bind(this,&Central::refreshProject);
       // ProjectMgr::inst().onFilesysChange.bind(this,&Central::refreshFileTree);
-      // ProjectMgr::inst().onAssetReady   .bind(this,&Central::updateDisplay);
-      // ProjectMgr::inst().onCompiled     .bind(this,&Central::updatePriview);
-      setCategory(0);
-      index();
       }
 
     void setCategory(size_t id) {
@@ -120,21 +128,17 @@ struct Shelf::Central : Widget {
         case 0:
           filterFn = [](const ProjectItem&)    { return true; };
           break;
+        case 1:
+          filterFn = [](const ProjectItem& it) { return it.type()==ProjectItem::T_StaticMesh; };
+          break;
+        case 2:
+          filterFn = [](const ProjectItem& it) { return it.type()==ProjectItem::T_Texture; };
+          break;
         default:
-          filterFn = [](const ProjectItem&)    { return true; };
+          filterFn = [](const ProjectItem&)    { return false; };
           break;
         }
       index();
-      }
-
-    void updatePriview() {
-      update();
-      updateDisplay();
-      }
-
-    void updateDisplay() {
-      for(auto& i:items)
-        i->updateDisplay();
       }
 
     void refreshProject() {
@@ -215,28 +219,41 @@ struct Shelf::Central : Widget {
       clear();
 
       auto&  pro = ProjectMgr::inst();
-      size_t id  = 0;
       if(proj<ProjectMgr::inst().vdfCount()) {
-        const auto folder = currentFolder();
-        for(size_t i=0; i<folder.itemsCount(); ++i) {
-          auto itm = folder.item(i);
-          if(owner.showByType) {
-            if(filterFn(itm)) {
-              auto& w = addWidget(new Item(itm,owner.showByType));
-              w.onClick.bind(&owner,&Shelf::onItem);
-              items.push_back(&w);
-              }
-            }
-          else if(filterFn(itm)) {
-            auto& w = addWidget(new Item(itm,owner.showByType));
-            w.onClick.bind(&owner,&Shelf::onItem);
-            items.push_back(&w);
-            }
-          }
+        if(!owner.showByType)
+          indexFolder(); else
+          indexType(ProjectMgr::inst().vdf(proj));
         }
 
       lockLayout = false;
       doLayout();
+      owner.doLayout();
+      }
+
+    void indexFolder() {
+      const auto folder = currentFolder();
+      for(size_t i=0; i<folder.itemsCount(); ++i) {
+        auto itm = folder.item(i);
+        if(filterFn(itm)) {
+          auto& w = addWidget(new Item(itm,owner.showByType));
+          w.onClick.bind(&owner,&Shelf::onItem);
+          items.push_back(&w);
+          }
+        }
+      }
+
+    void indexType(const ProjectItem& folder) {
+      for(size_t i=0; i<folder.itemsCount(); ++i) {
+        auto itm = folder.item(i);
+        if(itm.type()==ProjectItem::T_Dir) {
+          indexType(itm);
+          }
+        else if(filterFn(itm)) {
+          auto& w = addWidget(new Item(itm,owner.showByType));
+          w.onClick.bind(&owner,&Shelf::onItem);
+          items.push_back(&w);
+          }
+        }
       }
 
     void resizeEvent(Tempest::SizeEvent&) override {
