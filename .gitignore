@@ -3,10 +3,11 @@
 *.dylib
 *.dll
 
-# Executables
+# Binaries
 *.exe
 *.out
 *.app
+*.bin
 
 # IDE
 CMakeLists.txt.user*
