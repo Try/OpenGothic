@@ -64,6 +64,17 @@ CommandLine::CommandLine(int argc, const char** argv) {
       if(i<argc)
         gpath.assign(argv[i],argv[i]+std::strlen(argv[i]));
       }
+    else if(arg=="-saves") {
+      ++i;
+      if(i<argc) {
+        savesPath = TextCodec::toUtf16(argv[i]);
+
+        for(auto& c : savesPath)
+          if(c == u'\\') c = u'/';
+        if(!savesPath.empty() && savesPath.back() != u'/')
+          savesPath.push_back(u'/');
+        }
+      }
     else if(arg=="-devmode") {
       // http://www.gothic-library.ru/publ/marvin/1-1-0-547
       devmode = true;
@@ -243,3 +254,17 @@ bool CommandLine::validateGothicPath() const {
     return false;
   return true;
   }
+
+std::u16string CommandLine::saveFilePath(std::string_view fname) const {
+  std::u16string path16;
+  if(!savesPath.empty()) {
+    path16 = savesPath + TextCodec::toUtf16(fname);
+  } else {
+    path16 = TextCodec::toUtf16(fname);
+  }
+
+  for(auto& c : path16) {
+    if(c == u'\\') c = u'/';
+  }
+  return path16;
+}
