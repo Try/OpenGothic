@@ -71,8 +71,12 @@ CommandLine::CommandLine(int argc, const char** argv) {
 
         for(auto& c : savesPath)
           if(c == u'\\') c = u'/';
+
         if(!savesPath.empty() && savesPath.back() != u'/')
           savesPath.push_back(u'/');
+
+        if(!FileUtil::mkpath(savesPath))
+          Log::e("unable to create save directory: \"", TextCodec::toUtf8(savesPath), "\"");
         }
       }
     else if(arg=="-devmode") {
