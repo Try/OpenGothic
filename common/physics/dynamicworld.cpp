@@ -619,7 +619,7 @@ DynamicWorld::DynamicWorld(World* owner, const zenkit::Mesh& worldMesh) {
   bboxList  .reset(new BBoxList   (*this));
 
   if(owner!=nullptr) {
-    world->setItemHitCallback([&](::Item& itm, zenkit::MaterialGroup mat, float impulse, float mass) {
+    world->setItemHitCallback([owner](::Item& itm, zenkit::MaterialGroup mat, float impulse, float mass) {
       auto  snd = owner->addLandHitEffect(ItemMaterial(itm.handle().material),mat,itm.transform());
       float v   = impulse/mass;
       float vol = snd.volume()*std::min(v/10.f,1.f);
