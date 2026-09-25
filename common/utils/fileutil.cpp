@@ -8,6 +8,7 @@
 #include <shlwapi.h>
 #else
 #include <sys/stat.h>
+#include <cerrno>
 #endif
 
 using namespace Tempest;
@@ -20,6 +21,41 @@ bool FileUtil::exists(const std::u16string &path) {
   struct stat  buffer={};
   return stat(p.c_str(),&buffer)==0;
 #endif
+  }
+
+static bool mkdirOne(const std::u16string& path) {
+#ifdef __WINDOWS__
+  if(CreateDirectoryW(reinterpret_cast<const WCHAR*>(path.c_str()), nullptr))
+    return true;
+  return GetLastError()==ERROR_ALREADY_EXISTS;
+#else
+  std::string p = Tempest::TextCodec::toUtf8(path);
+  if(::mkdir(p.c_str(), 0755)==0)
+    return true;
+  return errno==EEXIST;
+#endif
+  }
+
+bool FileUtil::mkpath(const std::u16string& path) {
+  std::u16string cur;
+  for(size_t i=0; i<path.size(); ++i) {
+    cur.push_back(path[i]);
+    const bool isSep     = (path[i]==u'/');
+    const bool isLastChr = (i+1==path.size());
+    if(!isSep && !isLastChr)
+      continue;
+
+    if(cur.size()<=1)
+      continue;
+    if(cur.size()==3 && cur[1]==u':' && cur[2]==u'/')
+      continue;
+
+    if(FileUtil::exists(cur))
+      continue;
+    if(!mkdirOne(cur))
+      return false;
+    }
+  return true;
   }
 
 std::u16string FileUtil::caseInsensitiveSegment(std::u16string_view pathv,const char16_t* segment,Dir::FileType type) {
