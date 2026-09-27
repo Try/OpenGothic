@@ -187,7 +187,7 @@ bool MoveAlgo::implTick(uint64_t dt, MvFlags moveFlg) {
   const auto bs    = npc.bodyStateMasked();
   const auto pos0  = npc.position();
   const auto dp    = (!grav && state!=Slide) ? npcMoveSpeed(dt,moveFlg) : npcFallSpeed(dt);
-  const bool walk  = bool(npc.walkMode() & WalkBit::WM_Walk) && (state==Run);
+  const bool walk  = bool(npc.wlkMode & WalkBit::WM_Walk) && (state==Run);
 
   DynamicWorld::CollisionTest info;
   if(!tryMove(dp,info)) {
@@ -1048,7 +1048,7 @@ void MoveAlgo::rayMain(const Tempest::Vec3& pos) const {
     float dy        = threshold+100;  // 1 meter extra offset
     if(fallSpeed.y<0 || false)
       dy = 0; // whole world
-    const auto spos = Tempest::Vec3(pos.x, pos.y+threshold, pos.z);
+    const auto  spos = Tempest::Vec3(pos.x, pos.y+threshold, pos.z);
     static_cast<DynamicWorld::RayLandResult&>(cache) = npc.world().physic()->landRay(spos,dy);
     cache.x = pos.x;
     cache.y = pos.y;
