@@ -1109,6 +1109,7 @@ void MainWindow::saveGame(std::string_view slot, std::string_view name) {
     Tempest::WFile f(slot);
     Serialize      s(f);
     game->save(s,name,pm);
+    s.finalize();
 
     // no print yet, because threading
     // gothic.print("Game saved");

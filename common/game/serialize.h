@@ -48,6 +48,8 @@ class Serialize {
     Serialize(Serialize&&)=delete;
     ~Serialize();
 
+    void finalize();
+
     uint16_t version()              const { return wldVer; }
     void     setVersion(uint16_t v)       { wldVer = v;    }
     uint16_t globalVersion()        const { return curVer; }

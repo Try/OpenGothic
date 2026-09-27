@@ -62,7 +62,8 @@ Serialize::Serialize(Tempest::ODevice& fout) : fout(&fout) {
   impl.m_pWrite           = Serialize::writeFunc;
   impl.m_pIO_opaque       = this;
   impl.m_zip_type         = MZ_ZIP_TYPE_USER;
-  mz_zip_writer_init_v2(&impl, 0, 0);
+  if(!mz_zip_writer_init_v2(&impl, 0, 0))
+    throw std::runtime_error("unable to create game archive");
   }
 
 Serialize::Serialize(Tempest::IDevice& fin) : fin(&fin) {
@@ -72,18 +73,21 @@ Serialize::Serialize(Tempest::IDevice& fin) : fin(&fin) {
   impl.m_pRead            = Serialize::readFunc;
   impl.m_pIO_opaque       = this;
   impl.m_zip_type         = MZ_ZIP_TYPE_USER;
-  mz_zip_reader_init(&impl, fin.size(), 0);
+  if(!mz_zip_reader_init(&impl, fin.size(), 0))
+    throw std::runtime_error("unable to read game archive");
   }
 
 Serialize::~Serialize() {
   if(fin!=nullptr)
     mz_zip_reader_end(&impl);
-  closeEntry();
-  if(fout!=nullptr) {
-    mz_zip_writer_finalize_archive(&impl);
+  if(fout!=nullptr)
     mz_zip_writer_end(&impl);
-    //Tempest::Log::d("save time = ", Tempest::Application::tickCount()-time0);
-    }
+  }
+
+void Serialize::finalize() {
+  closeEntry();
+  if(!mz_zip_writer_finalize_archive(&impl) || !fout->flush())
+    throw std::runtime_error("unable to finalize game archive");
   }
 
 std::string_view Serialize::worldName() const {
