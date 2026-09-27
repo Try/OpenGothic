@@ -4,9 +4,11 @@
 
 layout(location = 0) out flat uint  axis;
 layout(location = 1) out flat float scale;
+layout(location = 2) out vec3       baseColor;
 
 layout(std140, push_constant) uniform Push {
   vec3 origin;
+  uint axisBits;
   };
 
 layout(binding = 0, std140) uniform UboScene {
@@ -43,21 +45,45 @@ void main() {
   vec3  pos   = vert * size;
   pos.x = max(pos.x, 10 * scale);
 
+  baseColor = vec3(1);
   if(gl_InstanceIndex==0) {
-    pos  = pos.xyz;
-    axis = 0;
+    pos       = pos.xyz;
+    axis      = 0;
+    baseColor = vec3(1,0,0);
     }
   else if(gl_InstanceIndex==1) {
-    pos  = pos.yxz;
-    axis = 1;
+    pos       = pos.yxz;
+    axis      = 1;
+    baseColor = vec3(0,1,0);
     }
   else if(gl_InstanceIndex==2) {
-    pos = pos.yzx;
-    axis = 2;
+    pos       = pos.yzx;
+    axis      = 2;
+    baseColor = vec3(0,0,1);
     }
   else if(gl_InstanceIndex==3) {
-    pos = pos.zzz;
-    axis = 4;
+    pos       = vert * vec3(10) * scale;
+    axis      = 3;
+    baseColor = vec3(1);
+    }
+  else if(gl_InstanceIndex==4) {
+    pos       = vert * vec3(5, 200, 200) * scale;
+    axis      = 4;
+    baseColor = vec3(1,0,0);
+    }
+  else if(gl_InstanceIndex==5) {
+    pos       = vert * vec3(200, 5, 200) * scale;
+    axis      = 5;
+    baseColor = vec3(0,1,0);
+    }
+  else if(gl_InstanceIndex==6) {
+    pos       = vert * vec3(200, 200, 5) * scale;
+    axis      = 6;
+    baseColor = vec3(0,0,1);
+    }
+  else {
+    pos  = vert * vec3(200) * scale;
+    axis = 5;
     }
   gl_Position = scene.viewProject * vec4(origin + pos, 1.0);
   }

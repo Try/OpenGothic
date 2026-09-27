@@ -10,7 +10,6 @@
 #include "physics/dynamicworld.h"
 #include "physics/physicmesh.h"
 #include "utils/workers.h"
-#include "assets.h"
 #include "resources.h"
 
 using namespace Tempest;
@@ -27,6 +26,14 @@ WorldEdit::Vob::Vob(std::shared_ptr<zenkit::VirtualObject> vob)  {
 
 void WorldEdit::Vob::insert(size_t i, std::unique_ptr<Vob> v) {
   child.insert(child.begin()+i, std::move(v));
+  }
+
+Vec3 WorldEdit::Vob::position() const {
+  return Vec3(orig->position.x, orig->position.y, orig->position.z);
+  }
+
+zenkit::Mat3 WorldEdit::Vob::rotation() const {
+  return orig->rotation;
   }
 
 void WorldEdit::Vob::clearView() {
@@ -116,6 +123,18 @@ void WorldEdit::Vob::setPosition(const Tempest::Vec3& v) {
   phys.setObjMatrix(pos);
   mesh.setObjMatrix(pos);
   light.setPosition(v);
+  }
+
+void WorldEdit::Vob::setRotation(const zenkit::Mat3& rot) {
+  auto& vob = *orig;
+  vob.rotation = rot;
+
+  auto pos = Tempest::Matrix4x4(vob.rotation.columns[0].x, vob.rotation.columns[1].x, vob.rotation.columns[2].x, vob.position.x,
+                                vob.rotation.columns[0].y, vob.rotation.columns[1].y, vob.rotation.columns[2].y, vob.position.y,
+                                vob.rotation.columns[0].z, vob.rotation.columns[1].z, vob.rotation.columns[2].z, vob.position.z,
+                                0, 0, 0, 1);
+  phys.setObjMatrix(pos);
+  mesh.setObjMatrix(pos);
   }
 
 void WorldEdit::Vob::setVisual(WorldEdit& owner, std::string_view vis) {
@@ -244,6 +263,28 @@ bool CmdMoveVob::merge(const Action& prev) {
   if(auto p = dynamic_cast<const CmdMoveVob*>(&prev)) {
     if(p->vob==vob) {
       pos = p->pos;
+      return true;
+      }
+    }
+  return false;
+  }
+
+CmdRotateVob::CmdRotateVob(WorldEdit::Vob* vob, zenkit::Mat3 ang) : vob(vob), ang(ang) {
+  orig = vob->get()->rotation;
+  }
+
+void CmdRotateVob::redo(WorldEdit& subj) {
+  vob->setRotation(ang);
+  }
+
+void CmdRotateVob::undo(WorldEdit& subj) {
+  vob->setRotation(orig);
+  }
+
+bool CmdRotateVob::merge(const Action& prev) {
+  if(auto p = dynamic_cast<const CmdRotateVob*>(&prev)) {
+    if(p->vob==vob) {
+      ang = p->ang;
       return true;
       }
     }

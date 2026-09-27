@@ -49,12 +49,21 @@ class WorldEditor: public BaseEditor,
   private:
     struct Gizmo;
 
+    enum class GizmoMode : int32_t {
+      Drag,
+      Rotate,
+      Scale,
+      };
+
     enum class State : uint32_t {
       T_Idle  = 0,
       T_WASD  = 1,
       T_DragX = 2,
       T_DragY = 3,
       T_DragZ = 4,
+      T_RotX  = 5,
+      T_RotY  = 6,
+      T_RotZ  = 7,
       };
 
     void load(std::string_view wname);
@@ -65,7 +74,8 @@ class WorldEditor: public BaseEditor,
 
     int  gizmoQuery(Tempest::Point mpos) const;
     auto rayQuery(Tempest::Point mpos) -> RayQuery;
-    void dragVob(Tempest::Point mpos, const WorldEdit::Vob& vob, State st);
+    void dragVob(Tempest::Point mpos, const WorldEdit::Vob& vob, State st, bool init = false);
+    void rotateVob(Tempest::Point mpos, WorldEdit::Vob& vob, State st, bool init = false);
     void deleteVob();
     void selectVob(WorldEdit::Vob* vob);
     bool setVobPosition(const WorldEdit::Vob* selVob, WorldEdit::Vob& root, Tempest::Vec3 pos);
@@ -73,11 +83,18 @@ class WorldEditor: public BaseEditor,
     void updateGizmo();
 
     Tempest::Shortcut          onDelete;
+    struct GizmoState {
+      Tempest::Vec3      pos0;
+      Tempest::Vec3      ang0;
+      Tempest::Matrix4x4 rot0;
+      };
 
     Tempest::Timer             timer;
     Camera                     camera;
     std::unique_ptr<WorldEdit> level;
     State                      state = State::T_Idle;
+    GizmoMode                  gizmoMode = GizmoMode::Drag;
+    GizmoState                 gizmoState;
 
     Tempest::Fence         fence   [Resources::MaxFramesInFlight];
     Tempest::CommandBuffer commands[Resources::MaxFramesInFlight];

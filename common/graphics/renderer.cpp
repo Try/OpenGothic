@@ -229,9 +229,10 @@ void Renderer::onWorldChanged() {
   resetSkyFog();
   }
 
-void Renderer::setGizmo(bool enable, Tempest::Vec3 center) {
+void Renderer::setGizmo(bool enable, Tempest::Vec3 center, int mode) {
   gizmo.enable = enable;
   gizmo.center = center;
+  gizmo.mode   = mode;
   }
 
 void Renderer::setLightsHud(const Tempest::Texture2d* tex) {
@@ -940,12 +941,27 @@ void Renderer::drawGizmo(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const Wo
   auto  vp  = wview.sceneGlobals().viewProject();
   vp.project(cen.x, cen.y, cen.z, w);
 
-  cmd.setPushData(gizmo.center);
+  struct Push {
+    Tempest::Vec3 center;
+    uint32_t      axisBits;
+  } push = {};
+  push.center   = gizmo.center;
+  push.axisBits = 0x7;
+
   cmd.setDebugMarker("Hud-Gizmo");
   cmd.setBinding(0, wview.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
   cmd.setBinding(1, zbuffer);
   cmd.setPipeline(shaders.gizmo);
-  cmd.draw(nullptr, 0, 36, 0, 3);
+  if(gizmo.mode==0) {
+    push.axisBits = 0xF;
+    cmd.setPushData(push);
+    cmd.draw(nullptr, 0, 36, 0, 4);
+    }
+  else if(gizmo.mode==1) {
+    push.axisBits = 0x70;
+    cmd.setPushData(push);
+    cmd.draw(nullptr, 0, 36, 4, 3);
+    }
   }
 
 void Renderer::drawLightsHud(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview) {

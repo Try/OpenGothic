@@ -16,9 +16,40 @@
 using namespace Tempest;
 
 struct WorldEditor::Gizmo {
+  static constexpr float TMax = 1e30f;
+
+  Gizmo(Vec3 origin):origin(origin) {}
+
+  Vec3 origin;
+
+  struct HitResult {
+    float hitT = TMax;
+    int   axis = -1;
+    };
+
+  static void handleHit(HitResult& hit, float t, int axis) {
+    if(t >= hit.hitT)
+      return;
+    // hit.norm = n;
+    hit.hitT = t;
+    hit.axis = axis;
+    }
+
+  static float sign(float x) {
+    if(x>0.f)
+      return +1.f;
+    if(x<0.f)
+      return -1.f;
+    return 0.f;
+    }
+
+  static float dot(Vec2 a, Vec2 b) { return Vec2::dotProduct(a,b); }
+
+  static float dot(Vec3 a, Vec3 b) { return Vec3::dotProduct(a,b); }
+
   static float dot2(Vec3 d) { return Vec3::dotProduct(d,d); }
 
-  static float cylIntersect(Vec3 ro, Vec3 rd, Vec3 a, Vec3 b, float ra ) {
+  static bool cylIntersect(HitResult& hit, int axis, Vec3 ro, Vec3 rd, Vec3 a, Vec3 b, float ra) {
     Vec3  ba = b  - a;
     Vec3  oc = ro - a;
 
@@ -31,23 +62,53 @@ struct WorldEditor::Gizmo {
     float h    = k1*k1 - k2*k0;
 
     if( h<0.0 )
-      return -1.0;//no intersection
+      return false;//no intersection
     h = std::sqrt(h);
     float t = (-k1-h)/k2;
     // body
     float y = baoc + t*bard;
-    if( y>0.0 && y<baba )
-      return t;
+    if( y>0.0 && y<baba ) {
+      handleHit(hit, t, axis);
+      return true;
+      }
 
     // caps
     t = ( ((y<0.0) ? 0.0 : baba) - baoc)/bard;
-    if(abs(k1+k2*t) < h)
-      return t;
+    if(abs(k1+k2*t) < h) {
+      handleHit(hit, t, axis);
+      return true;
+      }
 
-    return -1.0; //no intersection
+    return false; //no intersection
     }
 
-  static float coneIntersect(Vec3 ro, Vec3 rd, Vec3 pa, Vec3 pb, float ra, float rb) {
+  static bool sphereIntersect(HitResult& hit, int axis, Vec3 ro, Vec3 rd, Vec3 center, float radius) {
+    Vec3 oc = ro - center;
+
+    float b = dot(oc, rd);
+    float c = dot(oc, oc) - radius * radius;
+
+    float h = b*b - c;
+
+    if(h < 0.0)
+      return false;
+
+    h = sqrt(h);
+
+    float t = -b - h;
+
+    // Camera is inside sphere: use far intersection.
+    if(t < 0.0)
+      t = -b + h;
+
+    if(t < 0.0)
+      return false;
+
+    handleHit(hit, t, axis);
+    return true;
+    }
+
+  static bool coneIntersect(HitResult& hit, int axis, Vec3 ro, Vec3 rd, Vec3 pa, Vec3 pb, float ra, float rb) {
     Vec3  ba = pb - pa;
     Vec3  oa = ro - pa;
     Vec3  ob = ro - pb;
@@ -60,13 +121,18 @@ struct WorldEditor::Gizmo {
 
     // caps
     if(m1 < 0.0) {
-      if(dot2(oa*m2-rd*m1) < (ra*ra*m2*m2)) // delayed division
-        return (-m1/m2);
+      if(dot2(oa*m2-rd*m1) < (ra*ra*m2*m2)) {
+        // delayed division
+        handleHit(hit, -m1/m2, axis);
+        return true;
+        }
       }
     else if(m9 > 0.0) {
       float t = -m9/m2;                     // NOTE delayed division
-      if(dot2(ob+rd*t) < (rb*rb))
-        return t;
+      if(dot2(ob+rd*t) < (rb*rb)) {
+        handleHit(hit, t, axis);
+        return true;
+        }
       }
 
     // body
@@ -77,17 +143,16 @@ struct WorldEditor::Gizmo {
     float k0 = m0*m0*m5 - m1*m1*hy + m0*ra*(rr*m1*2.0 - m0*ra);
     float h  = k1*k1 - k2*k0;
     if(h < 0.0)
-      return -1.0; //no intersection
+      return false; //no intersection
     float t = (-k1-sqrt(h))/k2;
     float y = m1 + t*m2;
     if(y < 0.0 || y > m0)
-      return -1.0; //no intersection
-    return t;
+      return false; //no intersection
+    handleHit(hit, t, axis);
+    return true;
     }
 
-  static float arrowIntersect(Vec3 ro, Vec3 rd, Vec3 origin, int axis, float scale) {
-    //int axis = 0;
-
+  static void arrowIntersect(HitResult& hit, int axis, Vec3 ro, Vec3 rd, Vec3 origin, float scale) {
     Vec3 off0 = Vec3(0), off1 = Vec3(0), off2 = Vec3(0);
     if(axis==0) {
       off0.x = scale*10;
@@ -105,14 +170,97 @@ struct WorldEditor::Gizmo {
       off2.z = scale*200;
       }
 
-    float body = cylIntersect (ro, rd, origin, origin + off1, 4.0 * scale);
-    float cap  = coneIntersect(ro, rd, origin + off1, origin + off2, 10.0 * scale, 0);
-    if(body>=0 && (body<cap || cap<=0))
-      return body;
-    return cap;
+    cylIntersect (hit, axis, ro, rd, origin, origin + off1, 4.0 * scale);
+    coneIntersect(hit, axis, ro, rd, origin + off1, origin + off2, 10.0 * scale, 0);
     }
 
-  static int intersect(const Matrix4x4& v, const Matrix4x4& vp, Vec2 pos, Vec3 origin) {
+  bool rotationRingIntersect(HitResult& hit, int axis, Vec3 ro, Vec3 rd, float rIn, float rOut) {
+    ro -= origin;
+    if(axis == 0) {
+      ro = Vec3(ro.z, ro.y, ro.x);
+      rd = Vec3(rd.z, rd.y, rd.x);
+      }
+    else if(axis == 1) {
+      ro = Vec3(ro.x, ro.z, ro.y);
+      rd = Vec3(rd.x, rd.z, rd.y);
+      }
+    else {
+      ro = ro;
+      rd = rd;
+      }
+
+    float po  = 1.0;
+    float Ra2 = 0.5*(rIn + rOut); Ra2*=Ra2;
+    float ra2 = 0.5*(rIn - rOut); ra2*=ra2;
+
+    float m = Vec3::dotProduct(ro, ro);
+    float n = Vec3::dotProduct(ro, rd);
+    float k = (m + Ra2 - ra2)/2.0;
+    float k3 = n;
+    float k2 = n*n - Ra2*dot(Vec2(rd.x,rd.y),Vec2(rd.x,rd.y)) + k;
+    float k1 = n*k - Ra2*dot(Vec2(rd.x,rd.y),Vec2(ro.x,ro.y));
+    float k0 = k*k - Ra2*dot(Vec2(ro.x,ro.y),Vec2(ro.x,ro.y));
+
+    if(abs(k3*(k3*k3-k2)+k1) < 0.01) {
+      po = -1.0;
+      float tmp=k1; k1=k3; k3=tmp;
+      k0 = 1.0/k0;
+      k1 = k1*k0;
+      k2 = k2*k0;
+      k3 = k3*k0;
+      }
+
+    float c2 = k2*2.0 - 3.0*k3*k3;
+    float c1 = k3*(k3*k3-k2)+k1;
+    float c0 = k3*(k3*(c2+2.0*k2)-8.0*k1)+4.0*k0;
+    c2 /= 3.0;
+    c1 *= 2.0;
+    c0 /= 3.0;
+    float Q = c2*c2 + c0;
+    float R = c2*c2*c2 - 3.0*c2*c0 + c1*c1;
+    float h = R*R - Q*Q*Q;
+
+    if( h>=0.0 ) {
+      h = sqrt(h);
+      float v = sign(R+h)*pow(abs(R+h),1.0/3.0); // cube root
+      float u = sign(R-h)*pow(abs(R-h),1.0/3.0); // cube root
+      Vec2 s = Vec2( (v+u)+4.0*c2, (v-u)*sqrt(3.0));
+      float y = sqrt(0.5*(s.length()+s.x));
+      float x = 0.5*s.y/y;
+      float r = 2.0*c1/(x*x+y*y);
+      float t1 =  x - r - k3; t1 = (po<0.0)?2.0/t1:t1;
+      float t2 = -x - r - k3; t2 = (po<0.0)?2.0/t2:t2;
+      float t = TMax;
+      if( t1>0.0 ) t=t1;
+      if( t2>0.0 ) t=std::min(t,t2);
+
+      handleHit(hit, t, axis);
+      return true;
+      }
+
+    float sQ = sqrt(Q);
+    float w = sQ*cos( acos(-R/(sQ*Q)) / 3.0 );
+    float d2 = -(w+c2);
+    if( d2<0.0 )
+      return false;
+    float d1 = sqrt(d2);
+    float h1 = sqrt(w - 2.0*c2 + c1/d1);
+    float h2 = sqrt(w - 2.0*c2 - c1/d1);
+    float t1 = -d1 - h1 - k3; t1 = (po<0.0)?2.0/t1:t1;
+    float t2 = -d1 + h1 - k3; t2 = (po<0.0)?2.0/t2:t2;
+    float t3 =  d1 - h2 - k3; t3 = (po<0.0)?2.0/t3:t3;
+    float t4 =  d1 + h2 - k3; t4 = (po<0.0)?2.0/t4:t4;
+    float t = TMax;
+    if( t1>0.0 ) t=t1;
+    if( t2>0.0 ) t=std::min(t,t2);
+    if( t3>0.0 ) t=std::min(t,t3);
+    if( t4>0.0 ) t=std::min(t,t4);
+
+    handleHit(hit, t, axis);
+    return true;
+    }
+
+  static int intersectPos(const Matrix4x4& v, const Matrix4x4& vp, Vec2 pos, Vec3 origin) {
     auto vInv  = v;
     auto vpInv = vp;
     vInv.inverse();
@@ -128,16 +276,41 @@ struct WorldEditor::Gizmo {
     const float scale = pos4.w/1000.0;
     const auto  dir   = Vec3::normalize(dst-src);
 
-    int   ret  = -1;
-    float tMin = std::numeric_limits<float>::max();
+    HitResult ret = {};
+    ret.hitT = TMax;
+
+    Gizmo giz{origin};
     for(int axis = 0; axis<3; ++axis) {
-      const float v = arrowIntersect(src, dir, origin, axis, scale);
-      if(v > tMin || v<0)
-        continue;
-      tMin = v;
-      ret  = axis;
+      giz.arrowIntersect(ret, axis, src, dir, origin, scale);
       }
-    return ret;
+    return ret.axis;
+    }
+
+  static int intersectRot(const Matrix4x4& v, const Matrix4x4& vp, Vec2 pos, Vec3 origin) {
+    auto vInv  = v;
+    auto vpInv = vp;
+    vInv.inverse();
+    vpInv.inverse();
+
+    Vec3 dst = {pos.x, pos.y, 1};
+    vpInv.project(dst);
+
+    Vec3 src = {pos.x, pos.y, 0};
+    vInv.project(src);
+
+    const Vec4  pos4  = vp * Vec4(origin.x, origin.y, origin.z, 1.0);
+    const float scale = pos4.w/1000.0;
+    const auto  dir   = Vec3::normalize(dst-src);
+
+    HitResult ret = {};
+    ret.hitT = TMax;
+
+    Gizmo giz{origin};
+    for(int axis = 0; axis<3; ++axis) {
+      giz.rotationRingIntersect(ret, axis, src, dir, 145.0 * scale, 155.0 * scale);
+      }
+    giz.sphereIntersect(ret, -1, src, dir, origin, 145.0 * scale);
+    return ret.axis;
     }
   };
 
@@ -212,6 +385,7 @@ void WorldEditor::redo() {
   timeline.redo(*level);
   propertyDelegate->update();
   treeDelegate->update();
+  //selVob = level->root();
   update();
   }
 
@@ -238,6 +412,15 @@ void WorldEditor::keyDownEvent(Tempest::KeyEvent& e) {
 
 void WorldEditor::keyUpEvent(Tempest::KeyEvent& e) {
   processKeyboard(e);
+  if(e.key==KeyEvent::K_1) {
+    gizmoMode = GizmoMode::Drag;
+    }
+  else if(e.key==KeyEvent::K_2) {
+    gizmoMode = GizmoMode::Rotate;
+    }
+  else if(e.key==KeyEvent::K_3) {
+    gizmoMode = GizmoMode::Scale;
+    }
   update();
   }
 
@@ -247,8 +430,13 @@ void WorldEditor::mouseDownEvent(Tempest::MouseEvent& e) {
 
   if(e.button==Tempest::Event::ButtonLeft) {
     const int giz = gizmoQuery(mpos);
-    if(0<=giz && giz<3) {
+    if(0<=giz && giz<3 && gizmoMode==GizmoMode::Drag) {
       state = State(uint32_t(State::T_DragX) + giz);
+      dragVob(mpos, *selVob, state, true);
+      }
+    else if(0<=giz && giz<3 && gizmoMode==GizmoMode::Rotate) {
+      state = State(uint32_t(State::T_RotX) + giz);
+      rotateVob(mpos, *selVob, state, true);
       }
     else {
       if(auto vob = rayQuery(mpos).vob())
@@ -287,6 +475,11 @@ void WorldEditor::mouseDragEvent(Tempest::MouseEvent& e) {
   else if(state==State::T_DragX || state==State::T_DragY || state==State::T_DragZ) {
     if(selVob!=nullptr && selVob->get()!=nullptr) {
       dragVob(mpos, *selVob, state);
+      }
+    }
+  else if(state==State::T_RotX || state==State::T_RotY || state==State::T_RotZ) {
+    if(selVob!=nullptr && selVob->get()!=nullptr) {
+      rotateVob(mpos, *selVob, state);
       }
     }
   }
@@ -386,9 +579,16 @@ int WorldEditor::gizmoQuery(Tempest::Point mpos) const {
     pos = 2.f*pos - 1.f;
 
     const auto origin = selVob->get()->position;
-    const int  axi    = Gizmo::intersect(camera.view(), camera.viewProj(),
-                                         pos, Vec3(origin.x, origin.y, origin.z));
-    return axi;
+    if(gizmoMode == GizmoMode::Drag) {
+      const int axi = Gizmo::intersectPos(camera.view(), camera.viewProj(),
+                                          pos, Vec3(origin.x, origin.y, origin.z));
+      return axi;
+      }
+    else if(gizmoMode == GizmoMode::Rotate) {
+      const int axi = Gizmo::intersectRot(camera.view(), camera.viewProj(),
+                                          pos, Vec3(origin.x, origin.y, origin.z));
+      return axi;
+      }
     }
   return -1;
   }
@@ -399,7 +599,7 @@ auto WorldEditor::rayQuery(Tempest::Point mpos) -> RayQuery {
   return query;
   }
 
-void WorldEditor::dragVob(Tempest::Point mpos, const WorldEdit::Vob& vob, State st) {
+void WorldEditor::dragVob(Tempest::Point mpos, const WorldEdit::Vob& vob, State st, bool init) {
   Tempest::Vec2 pos = {mpos.x/float(w()), mpos.y/float(h())};
   pos = 2.f*pos - 1.f;
 
@@ -416,7 +616,7 @@ void WorldEditor::dragVob(Tempest::Point mpos, const WorldEdit::Vob& vob, State 
 
   Vec3 dir  = Vec3::normalize(dst-src);
   Vec3 adir = Vec3(std::abs(dir.x), std::abs(dir.y), std::abs(dir.z));
-  auto orig = selVob->get()->position;
+  auto orig = selVob->position();
 
   if(state==State::T_DragX)
     adir.x = -1;
@@ -433,9 +633,8 @@ void WorldEditor::dragVob(Tempest::Point mpos, const WorldEdit::Vob& vob, State 
   else if(adir.z>=adir.x && adir.z>=adir.y)
     t = (orig.z - src.z)/dir.z;
 
-  Vec3  hit = src + t*dir;
-
-  Vec3  vpos = Vec3(orig.x, orig.y, orig.z);
+  Vec3 hit  = src + t*dir;
+  Vec3 vpos = Vec3(orig.x, orig.y, orig.z);
   if(state==State::T_DragX) {
     vpos.x = hit.x;
     }
@@ -445,7 +644,83 @@ void WorldEditor::dragVob(Tempest::Point mpos, const WorldEdit::Vob& vob, State 
   else if(state==State::T_DragZ) {
     vpos.z = hit.z;
     }
+
+  if(init) {
+    gizmoState.pos0 = vpos - orig;
+    return;
+    }
+  vpos = (vpos - gizmoState.pos0);
   setVobPosition(selVob, level->root(), vpos);
+  }
+
+void WorldEditor::rotateVob(Tempest::Point mpos, WorldEdit::Vob& vob, State st, bool init) {
+  Tempest::Vec2 pos = {mpos.x/float(w()), mpos.y/float(h())};
+  pos = 2.f*pos - 1.f;
+
+  auto vInv  = camera.view();
+  auto vpInv = camera.viewProj();
+  vInv.inverse();
+  vpInv.inverse();
+
+  Vec3 dst = {pos.x, pos.y, 1};
+  vpInv.project(dst);
+
+  Vec3 src = {pos.x, pos.y, 0};
+  vInv.project(src);
+
+  Vec3 dir  = Vec3::normalize(dst-src);
+  auto orig = selVob->position();
+  auto ang  = Vec3();
+
+  if(state==State::T_RotX) {
+    float t   = (orig.x - src.x)/dir.x;
+    Vec3  hit = src + t*dir;
+    Vec3  dt  = hit - orig;
+    ang.x = float(std::atan2(dt.y, dt.z));
+    }
+  else if(state==State::T_RotY) {
+    float t   = (orig.y - src.y)/dir.y;
+    Vec3  hit = src + t*dir;
+    Vec3  dt  = hit - orig;
+    ang.y = -float(std::atan2(dt.x, dt.z));
+    }
+  else if(state==State::T_RotZ) {
+    float t   = (orig.z - src.z)/dir.z;
+    Vec3  hit = src + t*dir;
+    Vec3  dt  = hit - orig;
+    ang.z = float(std::atan2(dt.x, dt.y));
+    }
+
+  if(init) {
+    auto rot = vob.rotation();
+    gizmoState.rot0 = Matrix4x4(rot[0][0], rot[0][1], rot[0][2], 0,
+                                rot[1][0], rot[1][1], rot[1][2], 0,
+                                rot[2][0], rot[2][1], rot[2][2], 0,
+                                0, 0, 0, 1);
+    gizmoState.ang0 = ang;
+    return;
+    }
+
+  auto angle = ang - gizmoState.ang0;
+  auto mat   = Tempest::Matrix4x4::mkIdentity();
+  if(state==State::T_RotX) {
+    mat.rotateOX(angle.x*float(180.0/M_PI));
+    }
+  else if(state==State::T_RotY) {
+    mat.rotateOY(angle.y*float(180.0/M_PI));
+    }
+  else if(state==State::T_RotZ) {
+    mat.rotateOZ(angle.z*float(180.0/M_PI));
+    }
+
+  auto r = gizmoState.rot0;
+  r.mul(mat);
+
+  auto rt = zenkit::Mat3(r[0][0], r[0][1], r[0][2],
+                         r[1][0], r[1][1], r[1][2],
+                         r[2][0], r[2][1], r[2][2]);
+  timeline.push(*level, new CmdRotateVob(&vob, rt.transpose()), false);
+  update();
   }
 
 void WorldEditor::deleteVob() {
@@ -483,9 +758,9 @@ void WorldEditor::setVobProperty(std::unique_ptr<Command::Action<WorldEdit>>& cm
 
 void WorldEditor::updateGizmo() {
   if(selVob==nullptr || selVob->get()==nullptr) {
-    renderer.setGizmo(false, Vec3());
+    renderer.setGizmo(false, Vec3(), 0);
     return;
     }
   const auto pos = selVob->get()->position;
-  renderer.setGizmo(true, Vec3(pos.x,pos.y,pos.z));
+  renderer.setGizmo(true, Vec3(pos.x,pos.y,pos.z), int(gizmoMode));
   }

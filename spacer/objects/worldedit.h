@@ -37,7 +37,12 @@ class WorldEdit {
         auto release(size_t i) -> std::unique_ptr<Vob>;
         void insert(size_t i, std::unique_ptr<Vob> v);
 
+        Tempest::Vec3 position() const;
+        zenkit::Mat3  rotation() const;
+
         void setPosition(const Tempest::Vec3& pos);
+        void setRotation(const zenkit::Mat3&  rot);
+
         void setVisual(WorldEdit& owner, std::string_view vis);
         void setCollision(WorldEdit& owner, bool cd);
 
@@ -114,6 +119,19 @@ class CmdMoveVob : public Command::Action<WorldEdit> {
 
     WorldEdit::Vob* vob = nullptr;
     Tempest::Vec3   pos, orig;
+  };
+
+class CmdRotateVob : public Command::Action<WorldEdit> {
+  public:
+    CmdRotateVob(WorldEdit::Vob* vob, zenkit::Mat3 ang);
+
+  private:
+    void redo(WorldEdit& subj) override;
+    void undo(WorldEdit& subj) override;
+    bool merge(const Action& prev) override;
+
+    WorldEdit::Vob* vob = nullptr;
+    zenkit::Mat3    ang, orig;
   };
 
 template<class Vob, class F>

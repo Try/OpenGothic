@@ -21,7 +21,7 @@ class Renderer final {
     ~Renderer();
 
     void onWorldChanged();
-    void setGizmo(bool enable, Tempest::Vec3 center);
+    void setGizmo(bool enable, Tempest::Vec3 center, int mode);
     void setLightsHud(const Tempest::Texture2d* tex);
 
     void draw(Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId,
@@ -300,6 +300,7 @@ class Renderer final {
     struct {
       Tempest::Vec3 center = {};
       bool          enable = false;
+      int           mode   = 0;
       } gizmo;
 
     struct {
