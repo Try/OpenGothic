@@ -74,11 +74,10 @@ class WorldEditor: public BaseEditor,
 
     int  gizmoQuery(Tempest::Point mpos) const;
     auto rayQuery(Tempest::Point mpos) -> RayQuery;
-    void dragVob(Tempest::Point mpos, const WorldEdit::Vob& vob, State st, bool init = false);
+    void dragVob(Tempest::Point mpos, WorldEdit::Vob& vob, State st, bool init = false);
     void rotateVob(Tempest::Point mpos, WorldEdit::Vob& vob, State st, bool init = false);
     void deleteVob();
     void selectVob(WorldEdit::Vob* vob);
-    bool setVobPosition(const WorldEdit::Vob* selVob, WorldEdit::Vob& root, Tempest::Vec3 pos);
     void setVobProperty(std::unique_ptr<Command::Action<WorldEdit>>& cmd, bool commit);
     void updateGizmo();
 

@@ -599,7 +599,7 @@ auto WorldEditor::rayQuery(Tempest::Point mpos) -> RayQuery {
   return query;
   }
 
-void WorldEditor::dragVob(Tempest::Point mpos, const WorldEdit::Vob& vob, State st, bool init) {
+void WorldEditor::dragVob(Tempest::Point mpos, WorldEdit::Vob& vob, State st, bool init) {
   Tempest::Vec2 pos = {mpos.x/float(w()), mpos.y/float(h())};
   pos = 2.f*pos - 1.f;
 
@@ -650,7 +650,8 @@ void WorldEditor::dragVob(Tempest::Point mpos, const WorldEdit::Vob& vob, State 
     return;
     }
   vpos = (vpos - gizmoState.pos0);
-  setVobPosition(selVob, level->root(), vpos);
+  timeline.push(*level, new CmdMoveVob(&vob, vpos), false);
+  update();
   }
 
 void WorldEditor::rotateVob(Tempest::Point mpos, WorldEdit::Vob& vob, State st, bool init) {
@@ -737,18 +738,6 @@ void WorldEditor::selectVob(WorldEdit::Vob* vob) {
   treeDelegate->setVob(selVob);
   propertyDelegate->setVob(selVob);
   update();
-  }
-
-bool WorldEditor::setVobPosition(const WorldEdit::Vob* selVob, WorldEdit::Vob& vob, Tempest::Vec3 pos) {
-  if(&vob==selVob) {
-    timeline.push(*level, new CmdMoveVob(&vob, pos), false);
-    update();
-    return true;
-    }
-  for(size_t i=0; i<vob.size(); ++i)
-    if(setVobPosition(selVob, vob[i], pos))
-      return true;
-  return false;
   }
 
 void WorldEditor::setVobProperty(std::unique_ptr<Command::Action<WorldEdit>>& cmd, bool commit) {
