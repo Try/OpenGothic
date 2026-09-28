@@ -173,6 +173,6 @@ class Shaders {
 
     static Shaders* instance;
 
-    std::future<void>        deferredCompilation;
+    std::shared_future<void> deferredCompilation;
     mutable std::list<Entry> materials;
   };

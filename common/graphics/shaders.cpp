@@ -33,7 +33,7 @@ Shaders::~Shaders() {
   }
 
 void Shaders::waitCompiler() {
-  deferredCompilation.wait();
+  deferredCompilation.get();
   }
 
 Shaders& Shaders::inst(bool waitCompiler) {
