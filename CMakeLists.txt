@@ -206,4 +206,4 @@ target_include_directories(Spacer PRIVATE "spacer")
 target_link_libraries(Spacer PRIVATE OpenGothic SpacerAssets)
 
 # installation
-install(TARGETS Gothic2Notr DESTINATION bin)
+install(TARGETS Gothic2Notr Spacer DESTINATION bin)
