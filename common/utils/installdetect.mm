@@ -15,25 +15,23 @@
 std::u16string InstallDetect::applicationSupportDirectory() {
   std::string ret;
 
+  @autoreleasepool {
 #if defined(__OSX__)
-  NSArray* paths = NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, YES);
+    NSArray* paths = NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, YES);
 #else
-  NSArray* paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    NSArray* paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
 #endif
-  if(paths!=nil && [paths count]>0) {
+    if(paths!=nil && [paths count]>0) {
 #if defined(__OSX__)
-    NSString* app = [[paths firstObject] stringByAppendingPathComponent:@"OpenGothic"];
+      NSString* app = [[paths firstObject] stringByAppendingPathComponent:@"OpenGothic"];
 #else
-    NSString* app = [[paths firstObject] stringByAppendingPathComponent:@""];
+      NSString* app = [[paths firstObject] stringByAppendingPathComponent:@""];
 #endif
-    if(app!=nil) {
-      ret = [app cStringUsingEncoding:NSUTF8StringEncoding];
-      [app release];
+      if(app!=nil) {
+        ret = [app cStringUsingEncoding:NSUTF8StringEncoding];
+        }
       }
     }
-
-  if(paths!=nil)
-    [paths release];
 
   return Tempest::TextCodec::toUtf16(ret);
   }
