@@ -160,7 +160,7 @@ class Shaders {
       };
 
     void                     compileKeyShaders();
-    void                     compileShaders();
+    void                     compileShaders() noexcept;
 
     Tempest::RenderPipeline  postEffect(std::string_view name);
     Tempest::RenderPipeline  postEffect(std::string_view name, Tempest::RenderState::ZTestMode ztest);
@@ -173,6 +173,6 @@ class Shaders {
 
     static Shaders* instance;
 
-    std::shared_future<void> deferredCompilation;
+    std::future<void>        deferredCompilation;
     mutable std::list<Entry> materials;
   };
