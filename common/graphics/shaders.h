@@ -160,7 +160,7 @@ class Shaders {
       };
 
     void                     compileKeyShaders();
-    void                     compileShaders();
+    void                     compileShaders() noexcept;
 
     Tempest::RenderPipeline  postEffect(std::string_view name);
     Tempest::RenderPipeline  postEffect(std::string_view name, Tempest::RenderState::ZTestMode ztest);

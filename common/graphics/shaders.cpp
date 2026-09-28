@@ -47,7 +47,7 @@ void Shaders::compileKeyShaders() {
   downscale = postEffect("downscale");
   }
 
-void Shaders::compileShaders() {
+void Shaders::compileShaders() noexcept {
   auto& device = Resources::device();
 
   const bool meshlets = Gothic::options().doMeshShading;
