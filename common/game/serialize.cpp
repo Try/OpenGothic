@@ -1,6 +1,7 @@
 #include "serialize.h"
 
 #include <cstring>
+#include <exception>
 
 #include "savegameheader.h"
 #include "world/world.h"
@@ -77,17 +78,23 @@ Serialize::Serialize(Tempest::IDevice& fin) : fin(&fin) {
     throw std::runtime_error("unable to read game archive");
   }
 
-Serialize::~Serialize() {
+Serialize::~Serialize() noexcept(false) {
   if(fin!=nullptr)
     mz_zip_reader_end(&impl);
-  if(fout!=nullptr)
+  if(fout==nullptr)
+    return;
+  try {
+    if(std::uncaught_exceptions()==0) {
+      closeEntry();
+      if(!mz_zip_writer_finalize_archive(&impl) || !fout->flush())
+        throw std::runtime_error("unable to finalize game archive");
+      }
+    }
+  catch(...) {
     mz_zip_writer_end(&impl);
-  }
-
-void Serialize::finalize() {
-  closeEntry();
-  if(!mz_zip_writer_finalize_archive(&impl) || !fout->flush())
-    throw std::runtime_error("unable to finalize game archive");
+    throw;
+    }
+  mz_zip_writer_end(&impl);
   }
 
 std::string_view Serialize::worldName() const {

@@ -12,7 +12,6 @@ WorldStateStorage::WorldStateStorage(World &w)
   Tempest::MemWriter wr{storage};
   Serialize          sr{wr};
   w.save(sr);
-  sr.finalize();
   }
 
 void WorldStateStorage::save(Serialize &fout) const {
