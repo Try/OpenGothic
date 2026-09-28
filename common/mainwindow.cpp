@@ -1276,13 +1276,11 @@ void MainWindow::render(){
     cmdId = (cmdId+1u)%Resources::MaxFramesInFlight;
 
     auto t = Application::tickCount();
-    if(t-time<16 && !Gothic::inst().isInGame() && !video.isActive()) {
-      uint32_t delay = uint32_t(16-(t-time));
-      Application::sleep(delay);
-      t += delay;
-      }
-    else if(maxFpsInv>0 && t-time<maxFpsInv) {
-      uint32_t delay = uint32_t(maxFpsInv-(t-time));
+    auto frameTime = maxFpsInv;
+    if(!Gothic::inst().isInGame() && !video.isActive())
+      frameTime = std::max<uint64_t>(frameTime,16);
+    if(t-time<frameTime) {
+      uint32_t delay = uint32_t(frameTime-(t-time));
       Application::sleep(delay);
       t += delay;
       }
