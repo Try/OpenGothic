@@ -191,6 +191,7 @@ void SceneGlobals::prepareGlobals(Tempest::Encoder<Tempest::CommandBuffer>& cmd,
   static_assert(sizeof(UboGlobal)%sizeof(uint32_t)==0);
 
   cmd.setDebugMarker("Update globals");
+  cmd.setFramebuffer({});
   auto& pso = Shaders::inst().copyBuf;
   for(uint8_t lay=0; lay<V_Count; ++lay) {
     cmd.setBinding(0, uboGlobal[lay]);

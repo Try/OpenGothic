@@ -1,11 +1,13 @@
 #include "rootview.h"
 
+#include <Tempest/Log>
+#include <Tempest/Painter>
+
+#include "project/projectmgr.h"
+#include "project/projectitem.h"
 #include "editorarea.h"
 #include "editorsettings.h"
 #include "assets.h"
-
-#include <Tempest/Log>
-#include <Tempest/Painter>
 
 using namespace Tempest;
 
@@ -29,7 +31,8 @@ RootView::RootView() {
     edit->openApp();
     }
   */
-  edit->load(); // TEMP: start level view
+  auto ow = ProjectMgr::inst().find("OLDWORLD.ZEN");
+  edit->load(ow); // TEMP: start level view
   setFocus(true);
   }
 

@@ -21,10 +21,13 @@ class ProjectMgr {
     ProjectItem  vdf(size_t id);
     ProjectItem  root();
 
+    ProjectItem  find(std::string_view name);
+
     Tempest::Signal<void()> onGpuAssetChanged;
 
   private:
     std::shared_ptr<ProjectItem::Data> mkIndex(const zenkit::VfsNode& node, size_t depth, const std::string& prefix);
+    ProjectItem  find(const ProjectItem& itm, std::string_view name);
 
     std::shared_ptr<ProjectItem::Data> rootItem;
     std::shared_ptr<ProjectItem::Data> files;

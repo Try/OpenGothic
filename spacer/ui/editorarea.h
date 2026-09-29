@@ -11,6 +11,7 @@ class Tabs;
 class ToolGroup;
 class ResizableArea;
 class ProjectTree;
+class ProjectItem;
 
 class EditorArea : public Tempest::Widget,
                    public DropReciver {
@@ -18,7 +19,7 @@ class EditorArea : public Tempest::Widget,
     EditorArea();
     ~EditorArea();
 
-    void               load();
+    void               load(const ProjectItem&);
     void               save();
     void               undo();
     void               redo();
@@ -47,7 +48,7 @@ class EditorArea : public Tempest::Widget,
     void pokeLoading();
     void showEditor (size_t i);
     void closeEditor(size_t i);
-    void openFile   (size_t id);
+    void openFile   (const ProjectItem& itm);
     void onFilesysChange();
     void invalidateTools();
     void saveUiLayout();
@@ -56,7 +57,7 @@ class EditorArea : public Tempest::Widget,
     EditorWrapper* currentEditor();
 
     template<class T>
-    void implLoad();
+    void implLoad(const ProjectItem& itm);
 
     std::vector<EditorWrapper*> editor;
 

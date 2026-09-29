@@ -5,6 +5,8 @@
 #include <Tempest/Label>
 #include <Tempest/Log>
 
+#include "project/projectmgr.h"
+
 #include "ui/editors/baseeditor.h"
 #include "ui/editors/worldeditor.h"
 #include "ui/views/projecttree.h"
@@ -24,11 +26,11 @@
 using namespace Tempest;
 
 struct EditorArea::EditorWrapper : public Tempest::Widget {
-  EditorWrapper(BaseEditor* ed):edit(ed) {
+  EditorWrapper(const ProjectItem& itm, BaseEditor* ed):item(itm), edit(ed) {
     setLayout(Horizontal);
 
     //item.projectSettings(); // fetch settings
-    //edit->preload(item);
+    edit->preload(item);
 
     for(size_t i=0; i<ToolWindow::T_Count; ++i)
       tool[i].reset(edit->createToolpanel(ToolWindow::Tool(i)));
@@ -53,19 +55,26 @@ struct EditorArea::EditorWrapper : public Tempest::Widget {
   bool pokeItem() {
     if(loaded)
       return true;
-    /*
     if(!item.isReady())
       return false;
+    /*
     if(item.projectSettings()==nullptr)
       return false;
-    Log::d("open: ",item.name());
-    if(edit->load(item))
-      Log::d("open: ",item.name()," - OK"); else
-      Log::d("open: ",item.name()," - FAILED");
     */
+    Log::d("open: ", item.name());
+    if(edit->load(item))
+      Log::d("open: ", item.name(), " - OK"); else
+      Log::d("open: ", item.name(), " - FAILED");
     addWidget(edit.get());
     loaded = true;
     return true;
+    }
+
+  std::string_view title() const {
+    auto sv = (edit!=nullptr) ? edit->title() : "";
+    if(sv.empty())
+      sv = item.displayName();
+    return sv;
     }
 
   void undo() {
@@ -94,7 +103,7 @@ struct EditorArea::EditorWrapper : public Tempest::Widget {
         i->setVisible(v);
     }
 
-  // ProjectItem                 item;
+  ProjectItem                 item;
   std::unique_ptr<BaseEditor> edit;
   std::unique_ptr<Widget>     tool[ToolWindow::T_Count];
 
@@ -306,7 +315,7 @@ EditorArea::EditorArea() {
   auto& top  = mid.addWidget(new TopBar());
   top.addWidget(new MenuBar());
   tabs       = &top.addWidget(new Tabs(*this));
-  areaM      = &mid .addWidget(new ResizableArea(Vertical));
+  areaM      = &mid.addWidget(new ResizableArea(Vertical));
   central    = &areaM->addWidget(new Widget());
   areaB      = &areaM->addWidget(new ToolArea(*this,BaseEditor::ToolType::Bottom));
 
@@ -370,22 +379,30 @@ EditorArea::~EditorArea() {
     delete i;
   }
 
-void EditorArea::load() {
-  implLoad<WorldEditor>();
+void EditorArea::load(const ProjectItem& itm) {
+  switch(itm.type()) {
+    case ProjectItem::T_Project:
+    case ProjectItem::T_Dir:
+    case ProjectItem::T_File:
+    case ProjectItem::T_StaticMesh:
+    case ProjectItem::T_Texture:
+      break;
+    case ProjectItem::T_World:
+      implLoad<WorldEditor>(itm);
+      break;
+    }
   }
 
 template<class T>
-void EditorArea::implLoad() {
-  /*
+void EditorArea::implLoad(const ProjectItem& itm) {
   for(size_t i=0;i<editor.size();++i) {
-    if(editor[i]->item==p) {
+    if(editor[i]->item==itm) {
       showEditor(i);
       return;
       }
     }
-  */
 
-  EditorWrapper* ed = &central->addWidget(new EditorWrapper(new T()));
+  EditorWrapper* ed = &central->addWidget(new EditorWrapper(itm, new T()));
   editor.emplace_back(ed);
   ed->edit->invalidateTab.bind(tabs,&Tabs::invalidate);
 
@@ -477,7 +494,7 @@ void EditorArea::closeAll() {
   }
 
 std::string_view EditorArea::editorTitle(size_t i) const {
-  return editor[i]->edit->title();
+  return editor[i]->title();
   }
 
 bool EditorArea::hasUnsavedChanges(size_t i) const {
@@ -536,9 +553,8 @@ void EditorArea::closeEditor(size_t i) {
     showEditor(editor.size()-1);
   }
 
-void EditorArea::openFile(size_t id) {
-  // auto& it = ProjectMgr::inst().item(id);
-  // load(it);
+void EditorArea::openFile(const ProjectItem& itm) {
+  load(itm);
   }
 
 void EditorArea::onFilesysChange() {

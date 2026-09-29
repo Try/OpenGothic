@@ -318,19 +318,6 @@ struct WorldEditor::Gizmo {
 WorldEditor::WorldEditor() {
   setFocusPolicy(Tempest::ClickFocus);
 
-  try {
-    // level.reset(new WorldEdit("dragonisland.zen"));
-    level.reset(new WorldEdit("oldworld.zen"));
-
-    camera.setMarvinMode(Camera::M_Free);
-    camera.setPosition(Vec3(0,500,0));
-    camera.setSpin(PointF(0));
-    camera.setAngles(camera.spin());
-    }
-  catch(...) {
-    Tempest::Log::e("unable to load landscape mesh");
-    }
-
   onDelete = Shortcut(*this, Event::M_NoModifier, Event::K_Delete);
   onDelete.onActivated.bind(this, &WorldEditor::deleteVob);
 
@@ -345,14 +332,36 @@ WorldEditor::~WorldEditor() {
   }
 
 std::string_view WorldEditor::title() const {
-  return "World editor";
+  return "";
+  }
+
+void WorldEditor::preload(ProjectItem& it) const {
+  }
+
+bool WorldEditor::load(ProjectItem& it) {
+  try {
+    level.reset(new WorldEdit(it.name()));
+
+    camera.setMarvinMode(Camera::M_Free);
+    camera.setPosition(Vec3(0,500,0));
+    camera.setSpin(PointF(0));
+    camera.setAngles(camera.spin());
+
+    treeDelegate->setWorld(*level);
+
+    return true;
+    }
+  catch(...) {
+    Tempest::Log::e("unable to load landscape mesh");
+    return false;
+    }
   }
 
 BaseEditor::BaseTool* WorldEditor::createToolpanel(ToolWindow::Tool tool) {
   if(tool==ToolWindow::T_VobTree) {
     auto ctrl = new BaseTool();
     auto& list     = ctrl->addWidget(new Tempest::ListView());
-    auto& delegate = *list.setDelegate(new VobTreeDelegate(*level));
+    auto& delegate = *list.setDelegate(new VobTreeDelegate());
     ctrl->setLayout(Vertical);
     delegate.onVobSelected.bind(this, &WorldEditor::selectVob);
 

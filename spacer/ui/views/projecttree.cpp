@@ -12,5 +12,5 @@ ProjectTree::ProjectTree() {
 
   auto& list = addWidget(new Shelf());
   setLayout(Vertical);
-  //list.onItemSelected.bind(&onFile,&Signal<void(size_t)>::operator());
+  list.onItemSelected.bind(&onFile,&Signal<void(const ProjectItem&)>::operator());
   }

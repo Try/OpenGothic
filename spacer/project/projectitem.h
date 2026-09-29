@@ -12,17 +12,23 @@ class ProjectItem {
   public:
     ProjectItem();
 
+    bool operator == (const ProjectItem& other) const;
+    bool operator != (const ProjectItem& other) const;
+
     enum Type {
       T_Project,
       T_Dir,
       T_File,
       T_StaticMesh,
       T_Texture,
+      T_World,
       };
 
     std::string_view      displayName() const;
     std::string_view      name() const;
     Type                  type() const;
+    bool                  isReady() const;
+    bool                  isEmpty() const;
     bool                  isVisible() const;
 
     std::string_view      path() const;

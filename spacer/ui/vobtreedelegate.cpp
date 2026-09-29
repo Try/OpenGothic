@@ -5,8 +5,11 @@
 
 using namespace Tempest;
 
-VobTreeDelegate::VobTreeDelegate(WorldEdit& world)
-  :world(world) {
+VobTreeDelegate::VobTreeDelegate() {
+  }
+
+void VobTreeDelegate::setWorld(WorldEdit& w) {
+  world = &w;
   mkIndex();
   }
 
@@ -64,7 +67,8 @@ void VobTreeDelegate::emitClick(Widget* w, size_t id) {
 
 void VobTreeDelegate::mkIndex() {
   index.clear();
-  mkIndex(world.root(), index, 0);
+  if(world!=nullptr)
+    mkIndex(world->root(), index, 0);
   // invalidateView();
   updateView();
   }

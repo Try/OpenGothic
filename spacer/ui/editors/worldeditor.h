@@ -32,6 +32,8 @@ class WorldEditor: public BaseEditor,
     void undo() override;
     void redo() override;
     bool hasUnsavedChanges() const override;
+    void preload(ProjectItem& it) const override;
+    bool load(ProjectItem& it)override;
 
     void keyDownEvent(Tempest::KeyEvent& e) override;
     void keyUpEvent  (Tempest::KeyEvent& e) override;

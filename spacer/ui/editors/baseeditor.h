@@ -5,6 +5,8 @@
 
 #include "ui/toolwindow.h"
 
+class ProjectItem;
+
 class BaseEditor : public Tempest::Widget {
   public:
     BaseEditor();
@@ -21,10 +23,10 @@ class BaseEditor : public Tempest::Widget {
         BaseTool();
       };
 
-    virtual auto      title() const -> std::string_view = 0;
+    virtual auto      title() const -> std::string_view { return ""; }
     virtual BaseTool* createToolpanel(ToolWindow::Tool tool) = 0;
-    // virtual void      preload(ProjectItem& it) const = 0;
-    // virtual bool      load(ProjectItem& it) = 0;
+    virtual void      preload(ProjectItem& it) const = 0;
+    virtual bool      load(ProjectItem& it) = 0;
     virtual void      save() {}
     virtual bool      hasUnsavedChanges() const { return false; }
 

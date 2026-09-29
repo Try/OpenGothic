@@ -9,12 +9,28 @@ ProjectItem::ProjectItem() {
 ProjectItem::ProjectItem(std::shared_ptr<Data> data):data(data) {
   }
 
+bool ProjectItem::operator ==(const ProjectItem& other) const {
+  return data==other.data;
+  }
+
+bool ProjectItem::operator !=(const ProjectItem& other) const {
+  return data!=other.data;
+  }
+
 std::string_view ProjectItem::displayName() const {
   return data ? std::string_view(data->name) : "";
   }
 
 std::string_view ProjectItem::name() const {
   return data ? std::string_view(data->name) : "";
+  }
+
+bool ProjectItem::isReady() const {
+  return true;
+  }
+
+bool ProjectItem::isEmpty() const {
+  return data==nullptr;
   }
 
 std::string_view ProjectItem::path() const {
@@ -45,6 +61,9 @@ ProjectItem::Type ProjectItem::type() const {
     return T_Texture;
   if(FileExt::hasExt(data->name,"TGA"))
     return T_Texture;
+
+  if(FileExt::hasExt(data->name,"ZEN"))
+    return T_World;
 
   return T_File;
   }

@@ -2,10 +2,12 @@
 
 #include <Tempest/Widget>
 
+class ProjectItem;
+
 class ProjectTree : public Tempest::Widget {
   public:
     ProjectTree();
 
-    Tempest::Signal<void(size_t)> onFile;
+    Tempest::Signal<void(const ProjectItem&)> onFile;
   };
 
