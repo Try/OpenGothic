@@ -30,6 +30,13 @@ static const T variantCast(const Variant& v) {
       return zenkit::Color(uint8_t(x), uint8_t(y), uint8_t(z), uint8_t(w));
       }
     }
+
+  if constexpr(std::is_same_v<T,bool>) {
+    if(auto f = v.get<int>()) {
+      return bool(*f!=0);
+      }
+    }
+
   Tempest::Log::d("failed variant cast (", typeid(T).name(), ")");
   return T();
   }
