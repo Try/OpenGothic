@@ -448,8 +448,8 @@ bool EditorArea::closeApp() {
     return false;
 
   char buf[256]={};
-  if(false && count==1) {
-    // std::snprintf(buf,sizeof(buf),"Save changes to \"%s\"?", last->item.name().c_str());
+  if(count==1) {
+    std::snprintf(buf,sizeof(buf),"Save changes to \"%.*s\"?", int(last->item.name().size()), last->item.name().data());
     } else {
     std::snprintf(buf,sizeof(buf),"Save changes to project?");
     }
@@ -524,8 +524,7 @@ void EditorArea::closeEditor(size_t i) {
 
   if(ed->edit->hasUnsavedChanges()) {
     char buf[256]={};
-    // std::snprintf(buf,sizeof(buf),"Save changes to \"%s\"?", ed->item.name().c_str());
-    std::snprintf(buf,sizeof(buf),"Save changes to the file?");
+    std::snprintf(buf,sizeof(buf),"Save changes to \"%.*s\"?", int(ed->item.name().size()), ed->item.name().data());
     switch(QuestionBox::ask(buf,QuestionBox::No|QuestionBox::Yes|QuestionBox::Cancel)) {
       case QuestionBox::Cancel:
         return;
