@@ -84,15 +84,15 @@ Serialize::~Serialize() noexcept(false) {
   if(fout==nullptr)
     return;
   try {
-    if(std::uncaught_exceptions()==0) {
-      closeEntry();
-      if(!mz_zip_writer_finalize_archive(&impl) || !fout->flush())
-        throw std::runtime_error("unable to finalize game archive");
-      }
+    closeEntry();
+    if(!mz_zip_writer_finalize_archive(&impl) || !fout->flush())
+      throw std::runtime_error("unable to finalize game archive");
     }
   catch(...) {
     mz_zip_writer_end(&impl);
-    throw;
+    if(std::uncaught_exceptions()==0)
+      throw;
+    return;
     }
   mz_zip_writer_end(&impl);
   }
