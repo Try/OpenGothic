@@ -91,6 +91,10 @@ There are ongoing efforts to support parts of it to make at least some popular m
 - Ninja
 
 ## Build Instructions
+### Android
+
+The basic ARM64 APK build and ADB game-file setup are documented in [android/README.md](android/README.md).
+
 ### Linux
 Install dependencies:
 * Ubuntu 20.04/22.04 and their derived distros
