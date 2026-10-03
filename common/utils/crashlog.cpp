@@ -14,7 +14,7 @@
 #include <stacktrace>
 #endif
 
-#if defined(__LINUX__) || defined(__APPLE__)
+#if (defined(__LINUX__) && !defined(__ANDROID__)) || defined(__APPLE__)
 #include <execinfo.h> // backtrace
 #include <dlfcn.h>    // dladdr
 #include <cxxabi.h>   // __cxa_demangle
@@ -136,7 +136,7 @@ void CrashLog::dumpStack(const char *sig, const char *extGpuLog) {
 #elif defined(__WINDOWS__)
   traceback.collect(0);
   traceback.log(db, std::cout);
-#elif defined(__LINUX__) || defined(__APPLE__)
+#elif (defined(__LINUX__) && !defined(__ANDROID__)) || defined(__APPLE__)
   tracebackLinux(std::cout);
 #endif
   std::cout << std::endl;
@@ -150,7 +150,7 @@ void CrashLog::dumpStack(const char *sig, const char *extGpuLog) {
   tracebackStd(fout);
 #elif defined(__WINDOWS__)
   traceback.log(db, fout);
-#elif defined(__LINUX__) || defined(__APPLE__)
+#elif (defined(__LINUX__) && !defined(__ANDROID__)) || defined(__APPLE__)
   tracebackLinux(fout);
 #endif
   fout.flush();
@@ -169,7 +169,7 @@ void CrashLog::tracebackStd(std::ostream &out) {
   }
 
 void CrashLog::tracebackLinux(std::ostream &out) {
-#if defined(__LINUX__) || defined(__APPLE__)
+#if (defined(__LINUX__) && !defined(__ANDROID__)) || defined(__APPLE__)
   // inspired by https://gist.github.com/fmela/591333/36faca4c2f68f7483cd0d3a357e8a8dd5f807edf (BSD)
   void *callstack[64] = {};
   char **symbols = nullptr;
