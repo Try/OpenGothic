@@ -23,7 +23,7 @@ Use a legally owned Gothic II: Night of the Raven installation. No game files ar
 adb install -r build/android/OpenGothic-apk/build/outputs/apk/release/OpenGothic-apk-release.apk
 adb shell mkdir -p /sdcard/Android/data/org.opengothic.app/files/Gothic2
 adb push "/path/to/Gothic II/." /sdcard/Android/data/org.opengothic.app/files/Gothic2/
-adb shell am start -n org.opengothic.app/.GothicActivity
+adb shell am start -n org.opengothic.app/android.app.NativeActivity
 adb logcat -s OpenGothic AndroidRuntime DEBUG
 ```
 

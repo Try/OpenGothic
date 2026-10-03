@@ -16,8 +16,8 @@ if(ANDROID)
   add_library(Gothic2Notr SHARED)
 else()
   add_executable(Gothic2Notr)
-  add_executable(Spacer)
 endif()
+add_executable(Spacer)
 
 if(MSVC)
   add_definitions(-D_USE_MATH_DEFINES)
@@ -81,9 +81,7 @@ add_subdirectory(shader)
 target_link_libraries(${PROJECT_NAME} GothicShaders)
 
 # editor icons and such
-if(NOT ANDROID)
-  add_subdirectory(spacer/assets)
-endif()
+add_subdirectory(spacer/assets)
 
 include_directories("common")
 
@@ -212,22 +210,17 @@ endif()
 target_link_libraries(Gothic2Notr PRIVATE OpenGothic)
 
 # editor
-if(NOT ANDROID)
-  target_sources(Spacer PRIVATE ${SPACER_SOURCES} spacer/main.cpp)
-  target_include_directories(Spacer PRIVATE "spacer")
-  target_link_libraries(Spacer PRIVATE OpenGothic SpacerAssets)
-endif()
+target_sources(Spacer PRIVATE ${SPACER_SOURCES} spacer/main.cpp)
+target_include_directories(Spacer PRIVATE "spacer")
+target_link_libraries(Spacer PRIVATE OpenGothic SpacerAssets)
 
 if(ANDROID)
   add_android_apk(OpenGothic-apk
     PACKAGE_NAME org.opengothic.app
     CODE Gothic2Notr
-    MANIFEST android/AndroidManifest.xml
-    JAVA_DIRS android/java)
+    MANIFEST android/AndroidManifest.xml)
 endif()
 
 # installation
 install(TARGETS Gothic2Notr DESTINATION bin)
-if(NOT ANDROID)
-  install(TARGETS Spacer DESTINATION bin)
-endif()
+install(TARGETS Spacer DESTINATION bin)

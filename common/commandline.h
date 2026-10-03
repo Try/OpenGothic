@@ -64,7 +64,7 @@ class CommandLine {
     Benchmark           isBenchmark  = Benchmark::None;
     bool                isWindow     = false;
     bool                isDebug      = false;
-#if defined(__OSX__)
+#if defined(__OSX__) || defined(__ANDROID__)
     bool                isRQuery     = false;
     bool                isMeshSh     = false;
 #else

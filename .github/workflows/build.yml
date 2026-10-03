@@ -105,6 +105,50 @@ jobs:
           name: opengothic_${{ needs.setup.outputs.semver }}_linux_x64.deb
           path: opengothic_${{ needs.setup.outputs.semver }}_linux_x64.deb
 
+  android-arm64:
+    needs: setup
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v5
+        with:
+          gradle-version: '8.9'
+
+      - uses: ./.github/actions/setup-vulkan
+        with:
+          os: Linux
+          vk-sdk: ${{ env.VK_SDK }}
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y glslang-tools ninja-build
+          sdkmanager "platforms;android-35" "build-tools;35.0.0" "ndk;27.0.12077973" "cmake;3.22.1"
+
+      - name: Generate build version
+        run: |
+          echo '#pragma once' > game/build.h
+          echo "static const char* appBuild = \"${{ needs.setup.outputs.version }}\";" >> game/build.h
+
+      - name: Configure
+        run: |
+          "$ANDROID_HOME/cmake/3.22.1/bin/cmake" -S . -B build/android -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE="$ANDROID_HOME/ndk/27.0.12077973/build/cmake/android.toolchain.cmake" \
+            -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-24 \
+            -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+
+      - name: Build APK
+        run: |
+          "$ANDROID_HOME/cmake/3.22.1/bin/cmake" --build build/android --target OpenGothic-apk
+
   windows:
     needs: setup
     runs-on: windows-latest

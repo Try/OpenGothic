@@ -14,16 +14,13 @@
 #include <Tempest/MetalApi>
 #endif
 
-#if defined(__IOS__)
+#if defined(__IOS__) || defined(__ANDROID__)
 #include "utils/installdetect.h"
+#include <filesystem>
 #endif
 
 #if defined(__ANDROID__)
 #include <android/log.h>
-#include <jni.h>
-#include <filesystem>
-#include <stdexcept>
-#include <string>
 #endif
 
 #include "utils/crashlog.h"
@@ -33,48 +30,6 @@
 #include "commandline.h"
 
 #include <dmusic.h>
-
-#if defined(__ANDROID__)
-static std::string androidGamePath;
-
-static std::string androidPath(JNIEnv* env, jstring path) {
-  if(path==nullptr)
-    throw std::invalid_argument("Missing application storage path");
-  const char* text = env->GetStringUTFChars(path,nullptr);
-  if(text==nullptr)
-    throw std::runtime_error("Unable to read application storage path");
-  try {
-    std::string result(text);
-    env->ReleaseStringUTFChars(path,text);
-    return result;
-    }
-  catch(...) {
-    env->ReleaseStringUTFChars(path,text);
-    throw;
-    }
-  }
-
-static void throwAndroidError(JNIEnv* env, const char* message) {
-  if(env->ExceptionCheck())
-    return;
-  jclass type = env->FindClass("java/lang/IllegalStateException");
-  if(type!=nullptr)
-    env->ThrowNew(type,message);
-  }
-
-extern "C" JNIEXPORT void JNICALL Java_org_opengothic_app_GothicActivity_prepareStorage(JNIEnv* env, jclass, jstring writablePath, jstring gamePath) {
-  try {
-    std::filesystem::current_path(androidPath(env,writablePath));
-    androidGamePath = androidPath(env,gamePath);
-    }
-  catch(const std::exception& e) {
-    throwAndroidError(env,e.what());
-    }
-  catch(...) {
-    throwAndroidError(env,"Unable to initialize application storage");
-    }
-  }
-#endif
 
 std::string_view selectDevice(const Tempest::AbstractGraphicsApi& api) {
   auto d = api.devices();
@@ -118,12 +73,7 @@ std::unique_ptr<Tempest::AbstractGraphicsApi> mkApi(const CommandLine& g) {
   }
 
 int main(int argc,const char** argv) {
-#if defined(__ANDROID__)
-  const char* androidArgs[] = {"Gothic2Notr", "-g", androidGamePath.c_str(), "-rt", "0", "-ms", "0"};
-  argc = sizeof(androidArgs)/sizeof(androidArgs[0]);
-  argv = androidArgs;
-#endif
-#if defined(__IOS__)
+#if defined(__IOS__) || defined(__ANDROID__)
   {
     auto appdir = InstallDetect::applicationSupportDirectory();
     std::filesystem::current_path(appdir);
