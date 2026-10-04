@@ -4,8 +4,6 @@
 
 #ifdef __ANDROID__
 #include <Tempest/AndroidApi>
-#include <Tempest/TextCodec>
-#include <filesystem>
 #endif
 
 #ifdef __WINDOWS__
@@ -41,19 +39,19 @@ std::u16string InstallDetect::detectG2() {
   auto path = Tempest::AndroidApi::externalDataPath();
   if(path.empty())
     return u"";
-  path += "/Gothic2";
+  path /= "Gothic2";
   std::filesystem::create_directories(path);
-  return Tempest::TextCodec::toUtf16(path);
+  return path.u16string();
 #else
   return u"";
 #endif
   }
 
 #ifdef __ANDROID__
-std::u16string InstallDetect::applicationSupportDirectory() {
+std::filesystem::path InstallDetect::androidInternalDataPath() {
   auto path = Tempest::AndroidApi::internalDataPath();
   std::filesystem::create_directories(path);
-  return Tempest::TextCodec::toUtf16(path);
+  return path;
   }
 #endif
 

@@ -24,7 +24,7 @@ adb install -r build/android/OpenGothic-apk/build/outputs/apk/release/OpenGothic
 adb shell mkdir -p /sdcard/Android/data/org.opengothic.app/files/Gothic2
 adb push "/path/to/Gothic II/." /sdcard/Android/data/org.opengothic.app/files/Gothic2/
 adb shell am start -n org.opengothic.app/android.app.NativeActivity
-adb logcat -s OpenGothic AndroidRuntime DEBUG
+adb logcat -s app AndroidRuntime DEBUG
 ```
 
 Game files use app-specific external storage, without storage permissions. Logs, saves and writable settings use the app's internal files directory. Uninstalling removes both directories. Ray tracing and mesh shading are disabled for this initial Android build.

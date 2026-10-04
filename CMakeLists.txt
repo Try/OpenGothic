@@ -222,5 +222,4 @@ if(ANDROID)
 endif()
 
 # installation
-install(TARGETS Gothic2Notr DESTINATION bin)
-install(TARGETS Spacer DESTINATION bin)
+install(TARGETS Gothic2Notr Spacer DESTINATION bin)

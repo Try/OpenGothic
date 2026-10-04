@@ -19,10 +19,6 @@
 #include <filesystem>
 #endif
 
-#if defined(__ANDROID__)
-#include <android/log.h>
-#endif
-
 #include "utils/crashlog.h"
 #include "mainwindow.h"
 #include "gothic.h"
@@ -73,7 +69,9 @@ std::unique_ptr<Tempest::AbstractGraphicsApi> mkApi(const CommandLine& g) {
   }
 
 int main(int argc,const char** argv) {
-#if defined(__IOS__) || defined(__ANDROID__)
+#if defined(__ANDROID__)
+  std::filesystem::current_path(InstallDetect::androidInternalDataPath());
+#elif defined(__IOS__)
   {
     auto appdir = InstallDetect::applicationSupportDirectory();
     std::filesystem::current_path(appdir);
@@ -83,10 +81,6 @@ int main(int argc,const char** argv) {
   try {
     static Tempest::WFile logFile("log.txt");
     Tempest::Log::setOutputCallback([](Tempest::Log::Mode mode, const char* text) {
-#if defined(__ANDROID__)
-      const int priority = mode==Tempest::Log::Error ? ANDROID_LOG_ERROR : mode==Tempest::Log::Debug ? ANDROID_LOG_DEBUG : ANDROID_LOG_INFO;
-      __android_log_write(priority,"OpenGothic",text);
-#endif
       logFile.write(text,std::strlen(text));
       logFile.write("\n",1);
       if(mode==Tempest::Log::Error)
