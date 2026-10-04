@@ -243,10 +243,7 @@ void MoveTrigger::preProcessTrigger(State prev) {
   }
 
 void MoveTrigger::postProcessTrigger() {
-  if(!target.empty()) {
-    TriggerEvent e(target,vobName,TriggerEvent::T_Trigger);
-    world.triggerEvent(e);
-    }
+  emitTargetTriggerEvent();
   if(state==Open)
     emitSound(sfxOpenEnd);
   if(state==Close)

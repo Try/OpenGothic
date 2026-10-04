@@ -63,10 +63,7 @@ void CodeMaster::onFailure() {
 
 void CodeMaster::onSuccess() {
   zeroState();
-  if(!target.empty()) {
-    TriggerEvent e(target,vobName,TriggerEvent::T_Trigger);
-    world.triggerEvent(e);
-    }
+  emitTargetTriggerEvent();
   }
 
 void CodeMaster::zeroState() {
