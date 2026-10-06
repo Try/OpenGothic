@@ -40,6 +40,7 @@ class EditorArea : public Tempest::Widget,
     struct EditorWrapper;
     struct ToolArea;
     struct TopBar;
+    struct Central;
 
     void moveDropOver(DropOverEvent& ev) override;
     void moveDropLeave(DropOverEvent&) override;

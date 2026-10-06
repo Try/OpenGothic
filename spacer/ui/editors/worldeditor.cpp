@@ -335,12 +335,12 @@ std::string_view WorldEditor::title() const {
   return "";
   }
 
-void WorldEditor::preload(ProjectItem& it) const {
+void WorldEditor::preload(ProjectItem&) const {
   }
 
 bool WorldEditor::load(ProjectItem& it) {
   try {
-    level.reset(new WorldEdit(it.name()));
+    level = it.get();
 
     camera.setMarvinMode(Camera::M_Free);
     camera.setPosition(Vec3(0,500,0));

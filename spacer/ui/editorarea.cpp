@@ -30,6 +30,7 @@ struct EditorArea::EditorWrapper : public Tempest::Widget {
     setLayout(Horizontal);
 
     //item.projectSettings(); // fetch settings
+    item.get(); //preload
     edit->preload(item);
 
     for(size_t i=0; i<ToolWindow::T_Count; ++i)
@@ -38,6 +39,8 @@ struct EditorArea::EditorWrapper : public Tempest::Widget {
 
   void paintEvent(Tempest::PaintEvent &e) override {
     if(widgetsCount()==0) {
+      Painter p(e);
+      p.drawText(Rect(0,0,w(),h()), "Loading...", Tempest::AlignHCenter|Tempest::AlignVCenter);
       /*
       Painter p(e);
       const uint64_t period = 3000;
@@ -55,7 +58,7 @@ struct EditorArea::EditorWrapper : public Tempest::Widget {
   bool pokeItem() {
     if(loaded)
       return true;
-    if(!item.isReady())
+    if(item.isPending())
       return false;
     /*
     if(item.projectSettings()==nullptr)
@@ -303,6 +306,11 @@ struct EditorArea::TopBar : public Widget {
     }
   };
 
+struct EditorArea::Central : public Widget {
+  void mouseDownEvent(Tempest::MouseEvent&) override {}
+  void mouseMoveEvent(Tempest::MouseEvent&) override {}
+  };
+
 EditorArea::EditorArea() {
   setLayout(Horizontal);
   setSpacing(0);
@@ -316,7 +324,7 @@ EditorArea::EditorArea() {
   top.addWidget(new MenuBar());
   tabs       = &top.addWidget(new Tabs(*this));
   areaM      = &mid.addWidget(new ResizableArea(Vertical));
-  central    = &areaM->addWidget(new Widget());
+  central    = &areaM->addWidget(new Central());
   areaB      = &areaM->addWidget(new ToolArea(*this,BaseEditor::ToolType::Bottom));
 
   tabs->onClicked.bind(this,&EditorArea::showEditor);

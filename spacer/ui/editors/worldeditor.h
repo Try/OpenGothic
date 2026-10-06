@@ -92,7 +92,7 @@ class WorldEditor: public BaseEditor,
 
     Tempest::Timer             timer;
     Camera                     camera;
-    std::unique_ptr<WorldEdit> level;
+    std::shared_ptr<WorldEdit> level;
     State                      state = State::T_Idle;
     GizmoMode                  gizmoMode = GizmoMode::Drag;
     GizmoState                 gizmoState;

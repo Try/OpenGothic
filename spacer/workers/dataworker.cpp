@@ -3,6 +3,7 @@
 #include <Tempest/Log>
 #include <Tempest/Fence>
 
+#include "objects/worldedit.h"
 #include "project/projectitem.h"
 #include "graphics/shaders.h"
 #include "utils/fileext.h"
@@ -69,10 +70,11 @@ void DataWorker::exec() {
         auto ret = createPreview(it, mesh, proto->bbox());
         commit(it, [&](){
           it.setPreview(ret);
-          // Log::d(it.name()," - loaded");
+          it.setPayload(proto);
           });
         } else {
         Log::d(it.name()," - unable to load mesh");
+        it.setError();
         }
       }
     else if(type==ProjectItem::T_Texture) {
@@ -83,13 +85,25 @@ void DataWorker::exec() {
         }
       if(auto proto = Resources::loadTexture(name)) {
         commit(it, [&]() {
-          //HACK: non-owning pointer
           auto ptr = std::shared_ptr<const Texture2d>(proto, [](const Texture2d*){});
           it.setPreview(ptr);
-          // Log::d(it.name()," - loaded");
+          it.setPayload(proto);
           });
         } else {
         Log::d(it.name()," - unable to load texture");
+        it.setError();
+        }
+      }
+    else if(type==ProjectItem::T_World) {
+      try {
+        auto ptr = std::make_shared<WorldEdit>(it.name());
+        commit(it, [&]() {
+          it.setPayload(ptr);
+          });
+        }
+      catch(...){
+        Log::d(it.name()," - unable to load world");
+        it.setError();
         }
       }
     }
@@ -100,10 +114,13 @@ void DataWorker::pushItem(const ProjectItem& it) {
     std::lock_guard<std::mutex> lock(sync);
     if (isExit)
         return;
+    if(it.isPending())
+      return;
     for(auto& i:items)
       if(i.data==it.data)
         return;
     items.push_back(std::move(it));
+    items.back().setPending();
   }
   workWait.notify_all();
   }

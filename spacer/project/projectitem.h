@@ -8,6 +8,9 @@
 
 #include <Tempest/Texture2d>
 
+class WorldEdit;
+class ProtoMesh;
+
 class ProjectItem {
   public:
     ProjectItem();
@@ -24,11 +27,19 @@ class ProjectItem {
       T_World,
       };
 
+    enum State : uint32_t {
+      S_Idle,
+      S_Pending,
+      S_Ready,
+      S_Error,
+      };
+
     std::string_view      displayName() const;
     std::string_view      name() const;
     Type                  type() const;
     bool                  isReady() const;
     bool                  isEmpty() const;
+    bool                  isPending() const;
     bool                  isVisible() const;
 
     std::string_view      path() const;
@@ -38,6 +49,7 @@ class ProjectItem {
     ProjectItem           item(size_t i) const;
 
     auto                  preview() const -> std::shared_ptr<const Tempest::Texture2d>;
+    auto                  get() const -> std::shared_ptr<WorldEdit>;
 
   private:
     struct Data {
@@ -45,14 +57,22 @@ class ProjectItem {
       std::string name;
       std::string path;
       size_t      depth = 0;
+      State       state = S_Idle;
 
       SpinLock    sync;
       std::shared_ptr<const Tempest::Texture2d> preview;
+
+      std::shared_ptr<WorldEdit> world;
       };
 
     ProjectItem(std::shared_ptr<Data> data);
 
+    void setPending();
+    void setError();
     void setPreview(std::shared_ptr<const Tempest::Texture2d> preview);
+    void setPayload(std::shared_ptr<WorldEdit> payload);
+    void setPayload(const Tempest::Texture2d* payload);
+    void setPayload(const ProtoMesh* payload);
 
     std::shared_ptr<Data> data;
 

@@ -26,11 +26,18 @@ std::string_view ProjectItem::name() const {
   }
 
 bool ProjectItem::isReady() const {
+  if(type()==T_World)
+    return get()!=nullptr; //WIP
   return true;
   }
 
 bool ProjectItem::isEmpty() const {
   return data==nullptr;
+  }
+
+bool ProjectItem::isPending() const {
+  std::lock_guard<SpinLock> guard(data->sync);
+  return data!=nullptr && data->state==S_Pending;
   }
 
 std::string_view ProjectItem::path() const {
@@ -88,9 +95,55 @@ auto ProjectItem::preview() const -> std::shared_ptr<const Tempest::Texture2d> {
   return nullptr;
   }
 
+auto ProjectItem::get() const -> std::shared_ptr<WorldEdit> {
+  if(data==nullptr)
+    return nullptr;
+  {
+    std::lock_guard<SpinLock> guard(data->sync);
+    if(data->world!=nullptr)
+      return data->world;
+  }
+  DataWorker::load(*this);
+  return nullptr;
+  }
+
+void ProjectItem::setPending() {
+  std::lock_guard<SpinLock> guard(data->sync);
+  data->state = S_Pending;
+  }
+
+void ProjectItem::setError() {
+  std::lock_guard<SpinLock> guard(data->sync);
+  data->state = S_Error;
+  }
+
 void ProjectItem::setPreview(std::shared_ptr<const Tempest::Texture2d> preview) {
   if(data==nullptr)
     return;
   std::lock_guard<SpinLock> guard(data->sync);
   data->preview = preview;
+  }
+
+void ProjectItem::setPayload(std::shared_ptr<WorldEdit> payload) {
+  if(data==nullptr)
+    return;
+  std::lock_guard<SpinLock> guard(data->sync);
+  data->world = payload;
+  data->state = S_Ready;
+  }
+
+void ProjectItem::setPayload(const Tempest::Texture2d*) {
+  if(data==nullptr)
+    return;
+  std::lock_guard<SpinLock> guard(data->sync);
+  // data->world = payload;
+  data->state = S_Ready;
+  }
+
+void ProjectItem::setPayload(const ProtoMesh* payload) {
+  if(data==nullptr)
+    return;
+  std::lock_guard<SpinLock> guard(data->sync);
+  // data->world = payload;
+  data->state = S_Ready;
   }
