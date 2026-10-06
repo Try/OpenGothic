@@ -116,10 +116,10 @@ void Renderer::setupSettings() {
   settings.zFogRadial         = Gothic::settingsGetI("RENDERER_D3D","zFogRadial")!=0;
   {
     // wind
-    settings.zWindEnabled = Gothic::inst().settingsGetI("ENGINE","zWindEnabled")!=0;
+    settings.zWindEnabled = Gothic::settingsGetI("ENGINE","zWindEnabled")!=0;
 
-    const float period  = Gothic::inst().settingsGetF("ENGINE","zWindCycleTime");
-    const float periodV = Gothic::inst().settingsGetF("ENGINE","zWindCycleTimeVar");
+    const float period  = Gothic::settingsGetF("ENGINE","zWindCycleTime");
+    const float periodV = Gothic::settingsGetF("ENGINE","zWindCycleTimeVar");
     settings.windPeriod = uint64_t((period+periodV)*1000.f);
     if(settings.windPeriod<=0) {
       settings.windPeriod   = 1;
@@ -138,7 +138,7 @@ void Renderer::setupSettings() {
   if(settings.moonSize<=1)
     settings.moonSize = 400;
 
-  settings.vidResIndex = Gothic::inst().settingsGetF("INTERNAL","vidResIndex");
+  settings.vidResIndex = Gothic::settingsGetF("INTERNAL","vidResIndex");
   settings.aaEnabled   = (Gothic::options().aaPreset>0) && (settings.vidResIndex==0);
 
   // direct lighting

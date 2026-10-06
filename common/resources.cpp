@@ -128,7 +128,7 @@ void Resources::mountWork(const std::filesystem::path& path) {
 
 void Resources::loadVdfs(const std::vector<std::u16string>& modvdfs, bool modFilter) {
   std::vector<Archive> archives;
-  inst->detectVdf(archives,Gothic::inst().nestedPath({u"Data"},Dir::FT_Dir));
+  inst->detectVdf(archives,Gothic::nestedPath({u"Data"},Dir::FT_Dir));
 
   // Remove all mod files, that are not listed in modvdfs
   if(modFilter) {
