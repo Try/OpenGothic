@@ -1,9 +1,10 @@
 #include "staticmesh.h"
 
 #include <cassert>
+#include "gothic.h"
 
 #include "graphics/mesh/submesh/packedmesh.h"
-#include "gothic.h"
+#include "graphics/shaders.h"
 
 StaticMesh::StaticMesh(const PackedMesh& mesh) {
   const Vertex* vert=mesh.vertices.data();
@@ -20,7 +21,7 @@ StaticMesh::StaticMesh(const PackedMesh& mesh) {
     }
   bbox.assign(mesh.bbox());
 
-  if(Gothic::options().doRayQuery) {
+  if(Shaders::options().doRtScene) {
     for(size_t i=0;i<mesh.subMeshes.size();++i) {
       sub[i].blas = Resources::blas(vbo, ibo, sub[i].iboOffset, sub[i].iboLength);
       }
@@ -39,7 +40,7 @@ StaticMesh::StaticMesh(const Material& mat, std::vector<Resources::Vertex> cvbo,
   assert(cvbo.size()<=PackedMesh::MaxVert);
   assert(cibo.size()<=PackedMesh::MaxInd);
 
-  if(Gothic::options().doMeshShading || true) {
+  if(Shaders::options().doMeshShading || true) {
     const size_t vert = cvbo.size();
     const size_t prim = cibo.size()/3;
 
@@ -69,7 +70,7 @@ StaticMesh::StaticMesh(const Material& mat, std::vector<Resources::Vertex> cvbo,
     sub[i].material  = mat;
     //sub[i].iboLength = Gothic::options().doMeshShading ? PackedMesh::MaxInd : ibo.size();
     sub[i].iboLength = PackedMesh::MaxInd;
-    if(Gothic::options().doRayQuery)
+    if(Shaders::options().doRtScene)
       sub[i].blas = Resources::blas(vbo, ibo, 0, ibo.size());
     }
   bbox.assign(cvbo);

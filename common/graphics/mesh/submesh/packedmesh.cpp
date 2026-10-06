@@ -7,7 +7,7 @@
 #include <algorithm>
 
 #include "game/compatibility/phoenix.h"
-#include "gothic.h"
+#include "graphics/shaders.h"
 
 using namespace Tempest;
 
@@ -145,7 +145,7 @@ void PackedMesh::Meshlet::flush(std::vector<Vertex>& vertices,
     indices[iboSz+i] = uint32_t(vboSz+indSz/3);
     }
 
-  if(Gothic::options().doMeshShading || true) {
+  if(Shaders::options().doMeshShading || true) {
     size_t iboSz8 = indices8.size();
     indices8.resize(iboSz8 + MaxPrim*4);
     for(size_t i=0; i<indSz; i+=3) {
@@ -250,7 +250,7 @@ void PackedMesh::Meshlet::flush(std::vector<Vertex>& vertices, std::vector<Verte
     indices[iboSz+i] = uint32_t(vboSz+indSz/3);
     }
 
-  if(Gothic::options().doMeshShading || true) {
+  if(Shaders::options().doMeshShading || true) {
     size_t iboSz8 = indices8.size();
     indices8.resize(iboSz8 + MaxPrim*4);
     for(size_t i=0; i<indSz; i+=3) {
@@ -406,7 +406,7 @@ void PackedMesh::Meshlet::merge(const Meshlet& other) {
 
 
 PackedMesh::PackedMesh(const zenkit::Mesh& mesh, PkgType type) {
-  if(type==PK_VisualLnd && Gothic::inst().options().doSoftwareRT) {
+  if(type==PK_VisualLnd && Shaders::options().doSoftwareRT) {
     packBVH(mesh);
     }
 

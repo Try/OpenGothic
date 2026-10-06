@@ -40,8 +40,7 @@ bool DrawCommands::DrawCmd::isBindless() const {
   }
 
 bool DrawCommands::DrawCmd::isMeshShader() const {
-  auto& opt = Gothic::inst().options();
-  if(!opt.doMeshShading)
+  if(!Shaders::options().doMeshShading)
     return false;
   if(Material::isTesselated(alpha) && type==DrawCommands::Landscape && Resources::device().properties().tesselationShader)
     return false;
@@ -144,7 +143,7 @@ void DrawCommands::setBindings(Tempest::Encoder<CommandBuffer>& cmd, const DrawC
   }
 
 uint16_t DrawCommands::commandId(const Material& m, Type type, uint32_t bucketId) {
-  const bool bindlessSys = Gothic::inst().options().doBindless;
+  const bool bindlessSys = Shaders::options().doBindless;
   const bool bindless    = bindlessSys && !m.hasFrameAnimation();
 
   auto pMain    = Shaders::inst().materialPipeline(m, type, Shaders::T_Main,   bindless);
@@ -263,7 +262,7 @@ void DrawCommands::visibilityPass(Encoder<CommandBuffer>& cmd, int pass) {
         continue;
       if(!isViewEnabled(v.viewport))
         continue;
-      const uint32_t isMeshShader = (Gothic::options().doMeshShading ? 1 : 0);
+      const uint32_t isMeshShader = (Shaders::options().doMeshShading ? 1 : 0);
       cmd.setBinding(T_Indirect, v.indirectCmd);
       cmd.setPushData(&isMeshShader, sizeof(isMeshShader));
       cmd.setPipeline(Shaders::inst().clusterInit);

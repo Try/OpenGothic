@@ -88,10 +88,10 @@ Renderer::Renderer() {
   Gothic::inst().togglePathtrace.bind(this, &Renderer::togglePathtrace);
 
   settings.giMethod         = Gothic::options().doGi;
-  settings.vsmEnabled       = Gothic::options().doVirtualShadow;
-  settings.rtsmEnabled      = Gothic::options().doSoftwareShadow;
-  settings.swrEnabled       = Gothic::options().swRenderingPreset>0;
-  settings.swrtEnabled      = Gothic::options().doSoftwareRT;
+  settings.vsmEnabled       = Shaders::options().doVirtualShadow;
+  settings.rtsmEnabled      = Shaders::options().doSoftwareShadow;
+  settings.swrEnabled       = Shaders::options().swRenderingPreset>0;
+  settings.swrtEnabled      = Shaders::options().doSoftwareRT;
 
   sky.sampler = Tempest::Sampler::bilinear();
   sky.sampler.vClamp = ClampMode::ClampToEdge;
@@ -146,8 +146,7 @@ void Renderer::setupSettings() {
     shadow.directLightPso = &shaders.rtsmDirectLight;
   else if(settings.vsmEnabled)
     shadow.directLightPso = &shaders.vsmDirectLight; //TODO: naming
-  else if(Gothic::options().doRayQuery && Resources::device().properties().descriptors.nonUniformIndexing &&
-           settings.shadowResolution>0)
+  else if(Shaders::options().doRayQuery && settings.shadowResolution>0)
     shadow.directLightPso = &shaders.directLightRq;
   else if(settings.shadowResolution>0)
     shadow.directLightPso = &shaders.directLightSh;
@@ -157,16 +156,16 @@ void Renderer::setupSettings() {
   // point-lights
   if(settings.vsmEnabled)
     lights.directLightPso = &shaders.lightsVsm;
-  else if(Gothic::options().doRayQuery && Resources::device().properties().descriptors.nonUniformIndexing)
+  else if(Shaders::options().doRayQuery)
     lights.directLightPso = &shaders.lightsRq;
   else
     lights.directLightPso = &shaders.lights;
 
   const auto gi = settings.giMethod;
-  if(gi==GiMethod::Probes && Shaders::isGi1Supported() && Gothic::options().doRayQuery) {
+  if(gi==GiMethod::Probes && Shaders::isGi1Supported() && Shaders::options().doRtScene) {
     settings.giMethod = GiMethod::Probes;
     }
-  else if(gi==GiMethod::IrrC && Shaders::isGi2Supported() && Gothic::options().doRayQuery) {
+  else if(gi==GiMethod::IrrC && Shaders::isGi2Supported() && Shaders::options().doRtScene) {
     settings.giMethod = GiMethod::IrrC;
     }
   else {
@@ -184,7 +183,7 @@ void Renderer::setupSettings() {
 
 void Renderer::toggleGi() {
   auto& device = Resources::device();
-  if(!Gothic::options().doRayQuery)
+  if(!Shaders::options().doRtScene)
     return;
 
   if(settings.giMethod==GiMethod::None && Gothic::options().doGi!=GiMethod::None)
@@ -255,8 +254,8 @@ void Renderer::updateCamera(const WorldView& wview, const Camera& camera) {
   clipInfo.z = zFar;
   }
 
-bool Renderer::requiresTlas() const {
-  if(!Gothic::options().doRayQuery)
+bool Renderer::requiresRtScene() const {
+  if(!Shaders::options().doRtScene)
     return false;
 
   if(settings.giMethod!=GiMethod::None || settings.pathTraceEnabled)
@@ -620,7 +619,7 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
     resetViewport(res, result.size());
     }
 
-  if(requiresTlas())
+  if(requiresRtScene())
     wview.updateRtScene();
   wview.updateLights(gameTime);
 
@@ -1687,7 +1686,7 @@ void Renderer::drawSwr(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView&
   cmd.setBinding(8, Sampler::bilinear());
 
   auto* pso = &Shaders::inst().swRendering;
-  switch(Gothic::options().swRenderingPreset) {
+  switch(Shaders::options().swRenderingPreset) {
     case 1: {
       cmd.setPushData(&push, sizeof(push));
       cmd.setPipeline(*pso);
@@ -1750,7 +1749,7 @@ void Renderer::drawReflections(Encoder<CommandBuffer>& cmd, const WorldView& wvi
   cmd.setBinding(5, sceneDepth,  Sampler::nearest (ClampMode::ClampToEdge));
   cmd.setBinding(6, sky.viewCldLut, sky.sampler);
   cmd.setPipeline(pso);
-  if(Gothic::options().doMeshShading) {
+  if(Shaders::options().doMeshShading) {
     cmd.dispatchMeshThreads(gbufDiffuse.size());
     } else {
     cmd.draw(nullptr, 0, 3);

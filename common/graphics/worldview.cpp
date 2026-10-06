@@ -5,7 +5,7 @@
 #include "graphics/mesh/submesh/packedmesh.h"
 #include "game/gametime.h"
 #include "camera.h"
-#include "gothic.h"
+#include "shaders.h"
 
 using namespace Tempest;
 
@@ -235,7 +235,7 @@ bool WorldView::updateLights(const gtime gameTime) {
   }
 
 bool WorldView::updateRtScene() {
-  if(!Gothic::options().doRayQuery)
+  if(!Shaders::options().doRtScene)
     return false;
   if(!visuals.updateRtScene(sGlobal.rtScene))
     return false;

@@ -46,7 +46,7 @@ class Renderer final {
     float         internalResolutionScale() const;
 
     void updateCamera(const WorldView& wview, const Camera &camera);
-    bool requiresTlas() const;
+    bool requiresRtScene() const;
     bool requiresLightsTree() const;
 
     Tempest::StorageImage&  usesImage2d(Tempest::StorageImage& ret, Tempest::TextureFormat frm, uint32_t w, uint32_t h, bool mips = false);

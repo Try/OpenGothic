@@ -7,8 +7,8 @@
 #include <list>
 
 #include "graphics/drawcommands.h"
-#include "material.h"
 #include "game/constants.h"
+#include "material.h"
 
 class Shaders {
   public:
@@ -24,7 +24,21 @@ class Shaders {
       T_Main,
       };
 
+    struct Options {
+      bool     doBindless        = false;
+      bool     doRtScene         = false;
+      bool     doRayQuery        = false;
+      bool     doMeshShading     = false;
+      bool     doVirtualShadow   = false;
+      bool     doSoftwareShadow  = false;
+
+      bool     doSoftwareRT      = false;
+      uint32_t swRenderingPreset = 0;
+      };
+
     static Shaders& inst(bool waitCompiler = true);
+    static const Options& options();
+
     static bool isVsmSupported();
     static bool isRtsmSupported();
     static bool isLightsTreeSupported();
@@ -159,6 +173,7 @@ class Shaders {
       bool                    trivial      = false;
       };
 
+    void                     setupOptions();
     void                     compileKeyShaders();
     void                     compileShaders() noexcept;
 
@@ -171,6 +186,7 @@ class Shaders {
     Tempest::RenderPipeline  reflectionShader(std::string_view name, bool hasMeshlets);
     Tempest::RenderPipeline  ambientLightShader(std::string_view name);
 
+    Options         opts;
     static Shaders* instance;
 
     std::future<void>        deferredCompilation;

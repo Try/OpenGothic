@@ -4,8 +4,7 @@
 
 #include "graphics/mesh/submesh/staticmesh.h"
 #include "graphics/mesh/submesh/animmesh.h"
-
-#include "gothic.h"
+#include "graphics/shaders.h"
 
 using namespace Tempest;
 
@@ -74,7 +73,7 @@ const std::vector<DrawBuckets::Bucket>& DrawBuckets::buckets() {
   }
 
 void DrawBuckets::updateBindlessArrays() {
-  if(!Gothic::inst().options().doBindless)
+  if(!Shaders::options().doBindless)
     return;
 
   std::vector<const Tempest::Texture2d*>     tex;

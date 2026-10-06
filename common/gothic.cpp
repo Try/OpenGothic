@@ -17,7 +17,6 @@
 #include "game/definitions/particlesdefinitions.h"
 
 #include "world/objects/npc.h"
-#include "graphics/shaders.h"
 
 #include "utils/fileutil.h"
 #include "utils/inifile.h"
@@ -29,20 +28,6 @@ using namespace Tempest;
 using namespace FileUtil;
 
 Gothic* Gothic::instance = nullptr;
-
-static bool hasMeshShader() {
-  const auto& p = Resources::device().properties();
-  if(p.meshlets.meshShader && p.meshlets.taskShader)
-    return true;
-  return false;
-  }
-
-static bool hasBindless() {
-  const auto& p = Resources::device().properties();
-  if(p.descriptors.nonUniformIndexing && p.descriptors.maxTexture>=65000 && p.descriptors.maxStorage>=65000)
-    return true;
-  return false;
-  }
 
 Gothic::Gothic() {
   instance = this;
@@ -83,26 +68,8 @@ Gothic::Gothic() {
 
   auto& gpu = Resources::device().properties();
   if(gpu.raytracing.rayQuery) {
-    opts.doRayQuery = CommandLine::inst().isRayQuery();
-    opts.doGi       = CommandLine::inst().isRtGi();
+    opts.doGi = CommandLine::inst().isRtGi();
     }
-
-  if(hasMeshShader()) {
-    opts.doMeshShading = CommandLine::inst().isMeshShading();
-    }
-
-  if(hasBindless()) {
-    opts.doBindless = CommandLine::inst().isBindless();
-    }
-
-  if(Shaders::isVsmSupported()) {
-    opts.doVirtualShadow = CommandLine::inst().isVirtualShadow();
-    }
-
-  if(Shaders::isRtsmSupported()) {
-    opts.doSoftwareShadow = CommandLine::inst().isSoftwareShadow();
-    }
-  opts.doSoftwareRT = false;
 
   opts.aaPreset = CommandLine::inst().aaPreset();
 
@@ -495,6 +462,7 @@ void Gothic::setBenchmarkMode(Benchmark b) {
   }
 
 const Gothic::Options& Gothic::options() {
+  assert(instance!=nullptr);
   return instance->opts;
   }
 

@@ -3,8 +3,10 @@
 #include <Tempest/Application>
 #include <Tempest/Device>
 #include <Tempest/Log>
+#include <cassert>
 
 #include "gothic.h"
+#include "commandline.h"
 #include "resources.h"
 
 #include "shader.h"
@@ -12,10 +14,18 @@
 
 using namespace Tempest;
 
+static bool hasBindless() {
+  const auto& p = Resources::device().properties();
+  if(p.descriptors.nonUniformIndexing && p.descriptors.maxTexture>=65000 && p.descriptors.maxStorage>=65000)
+    return true;
+  return false;
+  }
+
 Shaders* Shaders::instance = nullptr;
 
 Shaders::Shaders() {
   instance = this;
+  setupOptions();
   compileKeyShaders();
   deferredCompilation = std::async(std::launch::async, [this]() {
     Workers::setThreadName("Shader compilation");
@@ -42,6 +52,22 @@ Shaders& Shaders::inst(bool waitCompiler) {
   return *instance;
   }
 
+const Shaders::Options& Shaders::options() {
+  assert(instance!=nullptr);
+  return instance->opts;
+  }
+
+void Shaders::setupOptions() {
+  auto& gpu = Resources::device().properties();
+  opts.doBindless       = hasBindless() && CommandLine::inst().isBindless();
+  opts.doRtScene        = gpu.raytracing.rayQuery && CommandLine::inst().isRayQuery();
+  opts.doRayQuery       = opts.doRtScene && opts.doBindless;
+  opts.doMeshShading    = gpu.meshlets.meshShader && CommandLine::inst().isMeshShading();
+  opts.doSoftwareShadow = Shaders::isRtsmSupported() && CommandLine::inst().isSoftwareShadow();
+  opts.doVirtualShadow  = Shaders::isVsmSupported()  && CommandLine::inst().isVirtualShadow();
+  opts.doSoftwareRT     = false;
+  }
+
 void Shaders::compileKeyShaders() {
   bink      = postEffect("bink");
   downscale = postEffect("downscale");
@@ -49,8 +75,6 @@ void Shaders::compileKeyShaders() {
 
 void Shaders::compileShaders() noexcept {
   auto& device = Resources::device();
-
-  const bool meshlets = Gothic::options().doMeshShading;
 
   copyBuf   = computeShader("copy.comp.sprv");
   copyImg   = computeShader("copy_img.comp.sprv");
@@ -71,7 +95,7 @@ void Shaders::compileShaders() noexcept {
 
   directLight      = postEffect("direct_light",    RenderState::ZTestMode::NoEqual);
   directLightSh    = postEffect("direct_light_sh", RenderState::ZTestMode::NoEqual);
-  if(Gothic::options().doRayQuery && device.properties().descriptors.nonUniformIndexing)
+  if(opts.doRayQuery && device.properties().descriptors.nonUniformIndexing)
     directLightRq  = postEffect("direct_light_rq", RenderState::ZTestMode::NoEqual);
 
   ambientLight       = ambientLightShader("ambient_light");
@@ -112,8 +136,8 @@ void Shaders::compileShaders() noexcept {
 
   underwaterT        = inWaterShader("underwater_t", false);
   underwaterS        = inWaterShader("underwater_s", true);
-  waterReflection    = reflectionShader("water_reflection.frag.sprv",meshlets);
-  waterReflectionSSR = reflectionShader("water_reflection_ssr.frag.sprv",meshlets);
+  waterReflection    = reflectionShader("water_reflection.frag.sprv", opts.doMeshShading);
+  waterReflectionSSR = reflectionShader("water_reflection_ssr.frag.sprv", opts.doMeshShading);
 
   {
   RenderState state;
@@ -144,8 +168,8 @@ void Shaders::compileShaders() noexcept {
   sh           = GothicShader::get("light.frag.sprv");
   auto fsLight = device.shader(sh.data,sh.len);
   lights       = device.pipeline(Triangles, state, vsLight, fsLight);
-  if(Gothic::options().doRayQuery) {
-    if(Resources::device().properties().descriptors.nonUniformIndexing) {
+  if(opts.doRtScene) {
+    if(opts.doRayQuery) {
       sh      = GothicShader::get("light_rq_at.frag.sprv");
       fsLight = device.shader(sh.data,sh.len);
       } else {
@@ -203,12 +227,12 @@ void Shaders::compileShaders() noexcept {
   hiZPot  = computeShader("hiz_pot.comp.sprv");
   hiZMip  = computeShader("hiz_mip.comp.sprv");
 
-  if(Gothic::options().doRayQuery) {
+  if(opts.doRayQuery) {
     rtDbg       = postEffect("triangle_uv", "rt_dbg", RenderState::ZTestMode::NoEqual);
     }
   hashDbg = postEffect("triangle_uv", "hash_dbg");
 
-  if(Gothic::options().doRayQuery) {
+  if(opts.doRayQuery) {
     RenderState state;
     state.setZTestMode    (RenderState::ZTestMode::Always);
     state.setZWriteEnabled(true);
@@ -371,8 +395,8 @@ void Shaders::compileShaders() noexcept {
   swRaytracing8   = computeShader("sw_raytracing8.comp.sprv");
   swRaytracing64  = computeShader("sw_raytracing64.comp.sprv");
 
-  if(Gothic::options().swRenderingPreset>0) {
-    switch(Gothic::options().swRenderingPreset) {
+  if(options().swRenderingPreset>0) {
+    switch(options().swRenderingPreset) {
       case 1:
         swRendering = computeShader("sw_rendering_imm.comp.sprv");
         break;
@@ -409,7 +433,7 @@ bool Shaders::isVsmSupported() {
   }
 
 bool Shaders::isRtsmSupported() {
-  if(!Gothic::options().doBindless) {
+  if(!Shaders::options().doBindless) {
     return false;
     }
   auto& gpu = Resources::device().properties();
@@ -637,7 +661,7 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawCommand
     auto fs = device.shader(shFs.data,shFs.len);
     b.pipeline = device.pipeline(Triangles, state, vs, tc, te, fs);
     }
-  else if(Gothic::options().doMeshShading && t!=DrawCommands::Pfx) {
+  else if(options().doMeshShading && t!=DrawCommands::Pfx) {
     auto shMs = GothicShader::get(string_frm("main_", vsTok, typeVs, bindless, ".mesh.sprv"));
     auto shFs = GothicShader::get(string_frm("main_", fsTok, typeFs, bindless, ".frag.sprv"));
 

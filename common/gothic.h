@@ -42,15 +42,7 @@ class Gothic final {
       };
 
     struct Options {
-      bool     doRayQuery        = false;
       GiMethod doGi              = GiMethod::None;
-      bool     doMeshShading     = false;
-      bool     doBindless        = false;
-      bool     doVirtualShadow   = false;
-      bool     doSoftwareShadow  = false;
-      bool     doSoftwareRT      = false;
-      uint32_t swRenderingPreset = 0;
-
       uint32_t aaPreset          = 0;
 
       bool     hideFocus         = false;

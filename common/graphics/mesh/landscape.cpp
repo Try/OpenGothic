@@ -4,7 +4,7 @@
 #include <cstddef>
 
 #include "graphics/mesh/submesh/packedmesh.h"
-#include "gothic.h"
+#include "graphics/shaders.h"
 
 using namespace Tempest;
 
@@ -26,7 +26,7 @@ Landscape::Landscape(VisualObjects& visual, const PackedMesh &packed)
       continue;
       }
 
-    if(Gothic::options().doRayQuery) {
+    if(Shaders::options().doRtScene) {
       mesh.sub[i].blas = device.blas(mesh.vbo,mesh.ibo,sub.iboOffset,sub.iboLength);
       }
 
