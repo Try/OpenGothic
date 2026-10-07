@@ -20,7 +20,7 @@ file(GLOB_RECURSE GLSL_SOURCES
   "${CMAKE_SOURCE_DIR}/shader/*.glsl")
 
 # GLSL to SPIRV compiler
-find_program(GLSLANGVALIDATOR glslangValidator "/opt/homebrew/bin")
+find_program(GLSLANGVALIDATOR glslangValidator "/opt/homebrew/bin" NO_CMAKE_FIND_ROOT_PATH)
 if(NOT GLSLANGVALIDATOR)
   message(FATAL_ERROR "glslangValidator required")
 endif()
