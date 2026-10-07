@@ -11,6 +11,7 @@ class CrashLog final {
 
   private:
     static void tracebackStd(std::ostream& out);
+    static void tracebackAndroid(std::ostream &out);
     static void tracebackLinux(std::ostream &out);
     static void tracebackGpu(std::ostream &out, const char* extGpuLog);
     static void writeSysInfo(std::ostream& fout);
