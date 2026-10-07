@@ -58,6 +58,9 @@ void MenuRoot::setMenu(std::string_view menuEv, KeyCodec::Action key) {
   }
 
 void MenuRoot::setMenu(GameMenu *w) {
+#if defined(__MOBILE_PLATFORM__)
+  touchId = -1;
+#endif
   removeAllWidgets();
   if(w)
     addWidget(w);
@@ -65,6 +68,9 @@ void MenuRoot::setMenu(GameMenu *w) {
   }
 
 void MenuRoot::pushMenu(GameMenu *w) {
+#if defined(__MOBILE_PLATFORM__)
+  touchId = -1;
+#endif
   if(widgetsCount()>0) {
     takeWidget(current);
     menuStack.emplace_back(current);
@@ -77,6 +83,9 @@ void MenuRoot::pushMenu(GameMenu *w) {
   }
 
 void MenuRoot::popMenu() {
+#if defined(__MOBILE_PLATFORM__)
+  touchId = -1;
+#endif
   if(menuStack.size()==0) {
     if(Gothic::inst().isInGame() || Gothic::inst().checkLoading()!=Gothic::LoadState::Idle) {
       current=nullptr;
@@ -96,6 +105,9 @@ void MenuRoot::popMenu() {
   }
 
 void MenuRoot::closeAll() {
+#if defined(__MOBILE_PLATFORM__)
+  touchId = -1;
+#endif
   menuStack.clear();
   if(Gothic::inst().isInGame() || Gothic::inst().checkLoading()!=Gothic::LoadState::Idle) {
     current=nullptr;
@@ -131,15 +143,75 @@ void MenuRoot::mouseDownEvent(MouseEvent& event) {
     if(event.button==Event::ButtonRight) {
       popMenu();
       } else {
+#if defined(__MOBILE_PLATFORM__)
+      if(touchId!=-1)
+        return;
+      touchId = event.mouseID;
+      touchStart = event.pos();
+      touchLast = touchStart;
+      touchMoved = false;
+#else
       current->onKeyboard(KeyCodec::ActionGeneric);
+#endif
       }
     } else {
     event.ignore();
     }
   }
 
+#if defined(__MOBILE_PLATFORM__)
+void MenuRoot::mouseDragEvent(MouseEvent& event) {
+  if(current==nullptr || event.mouseID!=touchId)
+    return;
+
+  const int step = std::max(1, int(20.f*Gothic::interfaceScale(this)));
+  const auto delta = event.pos()-touchLast;
+  if(!touchMoved) {
+    if(std::max(std::abs(delta.x), std::abs(delta.y))<step)
+      return;
+    touchHorizontal = std::abs(delta.x)>std::abs(delta.y);
+    touchMoved = true;
+    if(!touchHorizontal) {
+      current->onKeyboard(delta.y<0 ? KeyCodec::Forward : KeyCodec::Back);
+      return;
+      }
+    }
+
+  if(!touchHorizontal || !current->canAdjustValue())
+    return;
+
+  const int steps = delta.x/step;
+  touchLast.x += steps*step;
+
+  for(int i=0; i<std::abs(steps) && touchId==event.mouseID; ++i) {
+    current->onKeyboard(steps<0 ? KeyCodec::Left : KeyCodec::Right);
+    }
+  }
+
+void MenuRoot::mouseUpEvent(MouseEvent& event) {
+  if(current==nullptr || event.mouseID!=touchId)
+    return;
+
+  mouseDragEvent(event);
+  if(event.mouseID!=touchId)
+    return;
+  touchId = -1;
+  if(!touchMoved) {
+    if(touchStart.x>=w()*84/100 && touchStart.y<h()*23/100)
+      popMenu();
+    else
+      current->onKeyboard(KeyCodec::ActionGeneric);
+    } else if(touchHorizontal && !current->canAdjustValue()) {
+    if(event.x<touchStart.x)
+      popMenu();
+    else
+      current->onKeyboard(KeyCodec::ActionGeneric);
+    }
+  }
+#else
 void MenuRoot::mouseUpEvent(MouseEvent&) {
   }
+#endif
 
 void MenuRoot::mouseWheelEvent(MouseEvent &event) {
   if(current!=nullptr) {

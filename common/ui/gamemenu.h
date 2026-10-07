@@ -28,6 +28,7 @@ class GameMenu : public Tempest::Widget {
     void setPlayer(const Npc& pl);
 
     void onKeyboard(KeyCodec::Action k);
+    bool canAdjustValue();
     void onTick();
     void processMusicTheme();
 

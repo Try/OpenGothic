@@ -588,6 +588,24 @@ void GameMenu::resizeEvent(SizeEvent &) {
   onTick();
   }
 
+bool GameMenu::canAdjustValue() {
+  auto* selected = selectedItem();
+  auto* it = selected;
+  for(int i=0; i<zenkit::IMenu::item_count && it!=nullptr; ++i) {
+    if(it->handle==nullptr)
+      return false;
+    if((it->handle->type==zenkit::MenuItemType::SLIDER || it->handle->type==zenkit::MenuItemType::CHOICEBOX) &&
+       !it->handle->on_chg_set_option_section.empty() && !it->handle->on_chg_set_option.empty())
+      return true;
+    if(!(it->handle->flags & zenkit::MenuItemFlag::EFFECTS))
+      break;
+    it = selectedNextItem(it);
+    if(it==selected)
+      break;
+    }
+  return false;
+  }
+
 void GameMenu::onKeyboard(KeyCodec::Action key) {
   auto sel = selectedItem();
   if(sel!=nullptr && isHorSelectable(sel->handle)) {
