@@ -70,7 +70,10 @@ std::unique_ptr<Tempest::AbstractGraphicsApi> mkApi(const CommandLine& g) {
 
 int main(int argc,const char** argv) {
 #if defined(__ANDROID__)
-  std::filesystem::current_path(InstallDetect::androidInternalDataPath());
+  {
+    auto appdir = InstallDetect::androidInternalDataPath();
+    std::filesystem::current_path(appdir);
+  }
 #elif defined(__IOS__)
   {
     auto appdir = InstallDetect::applicationSupportDirectory();

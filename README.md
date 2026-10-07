@@ -91,10 +91,6 @@ There are ongoing efforts to support parts of it to make at least some popular m
 - Ninja
 
 ## Build Instructions
-### Android
-
-The basic ARM64 APK build and ADB game-file setup are documented in [android/README.md](android/README.md).
-
 ### Linux
 Install dependencies:
 * Ubuntu 20.04/22.04 and their derived distros
@@ -150,6 +146,17 @@ cmake -H. -Bbuild -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo
 cmake --build ./build --target Gothic2Notr
 ```
 Executables can be located at `OpenGothic/build/opengothic`.
+
+### Android
+Install dependencies: JDK 17, Gradle 8.9, CMake 3.22.1 or newer, Ninja and the Android SDK with SDK 35, build-tools 35.0.0, NDK 27.0.12077973 and SDK CMake 3.22.1.
+Set `JAVA_HOME`, `ANDROID_HOME` and `VULKAN_SDK`. Put Gradle, Ninja and the host Vulkan SDK's `glslangValidator` on `PATH`. 
+Vulkan headers come from the host SDK; Android links the NDK's Vulkan loader.
+```bash
+cmake -S . -B build/android -G Ninja -DCMAKE_TOOLCHAIN_FILE=/path/to/ndk/build/cmake/android.toolchain.cmake -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-24 -DCMAKE_BUILD_TYPE=Release
+cmake --build build/android --target OpenGothic-apk
+```
+Details on APK build and ADB game-file setup are documented in [android/README.md](android/README.md).
+
 
 ## Video
 [![Video](https://img.youtube.com/vi/TpayMkyZ58Y/0.jpg)](https://www.youtube.com/watch?v=TpayMkyZ58Y)
