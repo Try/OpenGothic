@@ -2,6 +2,10 @@
 
 #include <Tempest/Platform>
 
+#ifdef __ANDROID__
+#include <Tempest/AndroidApi>
+#endif
+
 #ifdef __WINDOWS__
 #include "windows.h"
 #include "shlobj.h"
@@ -31,10 +35,24 @@ std::u16string InstallDetect::detectG2() {
   if(FileUtil::exists(appDir))
     return appDir;
   return u"";
+#elif defined(__ANDROID__)
+  auto path = Tempest::AndroidApi::externalDataPath().u16string();
+  if(path.empty())
+    return u"";
+  path = FileUtil::nestedPath(path + u"/", {u"gothic2"}, Tempest::Dir::FT_Dir);
+  return path;
 #else
   return u"";
 #endif
   }
+
+#ifdef __ANDROID__
+std::filesystem::path InstallDetect::androidInternalDataPath() {
+  auto path = Tempest::AndroidApi::internalDataPath();
+  std::filesystem::create_directories(path);
+  return path;
+  }
+#endif
 
 std::u16string InstallDetect::detectG2(std::u16string pfiles) {
   if(pfiles.empty())

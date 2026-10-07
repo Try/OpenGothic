@@ -10,11 +10,17 @@
 #include <fstream>
 #include <cstring>
 
+#if defined(__ANDROID__)
+#include <cstdint>
+#include <dlfcn.h>  // dladdr
+#include <unwind.h> // _Unwind_Backtrace
+#endif
+
 #if defined(__cpp_lib_stacktrace)
 #include <stacktrace>
 #endif
 
-#if defined(__LINUX__) || defined(__APPLE__)
+#if (defined(__LINUX__) && !defined(__ANDROID__)) || defined(__APPLE__)
 #include <execinfo.h> // backtrace
 #include <dlfcn.h>    // dladdr
 #include <cxxabi.h>   // __cxa_demangle
@@ -136,6 +142,8 @@ void CrashLog::dumpStack(const char *sig, const char *extGpuLog) {
 #elif defined(__WINDOWS__)
   traceback.collect(0);
   traceback.log(db, std::cout);
+#elif defined(__ANDROID__)
+  tracebackAndroid(std::cout);
 #elif defined(__LINUX__) || defined(__APPLE__)
   tracebackLinux(std::cout);
 #endif
@@ -150,6 +158,8 @@ void CrashLog::dumpStack(const char *sig, const char *extGpuLog) {
   tracebackStd(fout);
 #elif defined(__WINDOWS__)
   traceback.log(db, fout);
+#elif defined(__ANDROID__)
+  tracebackAndroid(fout);
 #elif defined(__LINUX__) || defined(__APPLE__)
   tracebackLinux(fout);
 #endif
@@ -168,8 +178,38 @@ void CrashLog::tracebackStd(std::ostream &out) {
 #endif
   }
 
+void CrashLog::tracebackAndroid(std::ostream &out) {
+#if defined(__ANDROID__)
+  struct Backtrace {
+    void*  frames[64] = {};
+    size_t count = 0;
+    } trace;
+  _Unwind_Backtrace([](_Unwind_Context* context, void* arg) {
+    auto& trace = *static_cast<Backtrace*>(arg);
+    const uintptr_t pc = _Unwind_GetIP(context);
+    if(pc!=0)
+      trace.frames[trace.count++] = reinterpret_cast<void*>(pc);
+    return trace.count==64 ? _URC_END_OF_STACK : _URC_NO_REASON;
+    }, &trace);
+
+  for(size_t i=0; i<trace.count; ++i) {
+    Dl_info info = {};
+    out << "#" << i+1 << ": ";
+    if(dladdr(trace.frames[i], &info)) {
+      const uintptr_t offset = reinterpret_cast<uintptr_t>(trace.frames[i])-reinterpret_cast<uintptr_t>(info.dli_fbase);
+      out << (info.dli_sname ? info.dli_sname : "?") << " - " << (info.dli_fname ? info.dli_fname : "?");
+      out << " + 0x" << std::hex << offset << std::dec;
+      }
+    else {
+      out << trace.frames[i];
+      }
+    out << std::endl;
+    }
+#endif
+  }
+
 void CrashLog::tracebackLinux(std::ostream &out) {
-#if defined(__LINUX__) || defined(__APPLE__)
+#if (defined(__LINUX__) && !defined(__ANDROID__)) || defined(__APPLE__)
   // inspired by https://gist.github.com/fmela/591333/36faca4c2f68f7483cd0d3a357e8a8dd5f807edf (BSD)
   void *callstack[64] = {};
   char **symbols = nullptr;

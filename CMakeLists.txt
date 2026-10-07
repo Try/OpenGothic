@@ -12,8 +12,13 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_SKIP_RPATH ON)
 
 add_library(${PROJECT_NAME} STATIC)
-add_executable(Gothic2Notr)
-add_executable(Spacer)
+if(ANDROID)
+  add_library(Gothic2Notr SHARED)
+  add_library(Spacer SHARED)
+else()
+  add_executable(Gothic2Notr)
+  add_executable(Spacer)
+endif()
 
 if(MSVC)
   add_definitions(-D_USE_MATH_DEFINES)
@@ -92,6 +97,8 @@ endif()
 
 if(WIN32)
   target_link_libraries(${PROJECT_NAME} shlwapi DbgHelp)
+elseif(ANDROID)
+  target_link_libraries(${PROJECT_NAME} dl)
 elseif(UNIX)
   target_link_libraries(${PROJECT_NAME} -lpthread -ldl)
 endif()
@@ -178,7 +185,7 @@ if(WIN32)
 endif()
 
 # in debug mode, enable sanitizers
-if(${CMAKE_BUILD_TYPE} MATCHES "Debug")
+if(${CMAKE_BUILD_TYPE} MATCHES "Debug" AND NOT ANDROID)
   add_compile_options(-fsanitize=address)
   add_compile_options(-fsanitize=leak)
   add_link_options   (-fsanitize=address)
@@ -200,13 +207,23 @@ if(IOS)
     XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "iPhone Developer")
 endif()
 
-target_sources(Gothic2Notr PRIVATE game/main.cpp icon.rc)
+target_sources(Gothic2Notr PRIVATE game/main.cpp)
+if(WIN32)
+  target_sources(Gothic2Notr PRIVATE icon.rc)
+endif()
 target_link_libraries(Gothic2Notr PRIVATE OpenGothic)
 
 # editor
 target_sources(Spacer PRIVATE ${SPACER_SOURCES} spacer/main.cpp)
 target_include_directories(Spacer PRIVATE "spacer")
 target_link_libraries(Spacer PRIVATE OpenGothic SpacerAssets)
+
+if(ANDROID)
+  add_android_apk(OpenGothic-apk
+    PACKAGE_NAME org.opengothic.app
+    CODE Gothic2Notr
+    MANIFEST android/AndroidManifest.xml)
+endif()
 
 # installation
 install(TARGETS Gothic2Notr Spacer DESTINATION bin)
