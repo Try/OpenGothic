@@ -147,6 +147,38 @@ cmake --build ./build --target Gothic2Notr
 ```
 Executables can be located at `OpenGothic/build/opengothic`.
 
+### iOS
+
+Requires Xcode 26 or newer and targets iOS 15 or newer. Clone with submodules
+as above, then generate an Xcode project:
+
+```bash
+brew install glslang
+cmake -S . -B build-ios -G Xcode \
+  -DCMAKE_SYSTEM_NAME=iOS \
+  -DCMAKE_OSX_SYSROOT=iphoneos \
+  -DCMAKE_OSX_ARCHITECTURES=arm64 \
+  -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0 \
+  -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+  -DOPENGOTHIC_IOS_BUNDLE_IDENTIFIER=org.example.opengothic
+open build-ios/OpenGothic.xcodeproj
+```
+
+Choose the `Gothic2Notr` scheme, select your development team under Signing
+& Capabilities, and run on your device. The bundle identifier must be unique
+to your signing team. The existing target name also applies to Gothic 1.
+
+For an unsigned build, add `-DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED=NO`
+when configuring, then run `cmake --build build-ios --config Release`.
+The application is generated at `build-ios/opengothic/Release/Gothic2Notr.app`.
+Use a separate build directory with `-DCMAKE_OSX_SYSROOT=iphonesimulator`
+for the simulator. The CMake policy option is needed by older bundled
+dependencies when using CMake 4.
+
+Game data is not included. Before launching, copy your installation's
+`Data`, `_work`, and `System` folders into the app's Documents directory
+using Finder file sharing. Missing game data currently makes the app exit.
+
 ## Video
 [![Video](https://img.youtube.com/vi/TpayMkyZ58Y/0.jpg)](https://www.youtube.com/watch?v=TpayMkyZ58Y)
 

@@ -34,12 +34,22 @@
   <true/>
   <key>LSSupportsOpeningDocumentsInPlace</key>
   <true/>
-  <key>com.apple.developer.kernel.increased-memory-limit</key>
-  <true/>
-  <key>UILaunchScreen</key>
+  <key>UIApplicationSceneManifest</key>
   <dict>
-    <key>UIColorName</key>
-    <string>black</string>
+    <key>UIApplicationSupportsMultipleScenes</key>
+    <false/>
+    <key>UISceneConfigurations</key>
+    <dict>
+      <key>UIWindowSceneSessionRoleApplication</key>
+      <array>
+        <dict>
+          <key>UISceneConfigurationName</key>
+          <string>OpenGothic</string>
+        </dict>
+      </array>
+    </dict>
   </dict>
+  <key>UILaunchScreen</key>
+  <dict/>
 </dict>
 </plist>
