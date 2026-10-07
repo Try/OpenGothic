@@ -159,7 +159,6 @@ cmake -S . -B build-ios -G Xcode \
   -DCMAKE_OSX_SYSROOT=iphoneos \
   -DCMAKE_OSX_ARCHITECTURES=arm64 \
   -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0 \
-  -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
   -DOPENGOTHIC_IOS_BUNDLE_IDENTIFIER=org.example.opengothic
 open build-ios/OpenGothic.xcodeproj
 ```
@@ -172,8 +171,7 @@ For an unsigned build, add `-DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED=NO`
 when configuring, then run `cmake --build build-ios --config Release`.
 The application is generated at `build-ios/opengothic/Release/Gothic2Notr.app`.
 Use a separate build directory with `-DCMAKE_OSX_SYSROOT=iphonesimulator`
-for the simulator. The CMake policy option is needed by older bundled
-dependencies when using CMake 4.
+for the simulator.
 
 Game data is not included. Before launching, copy your installation's
 `Data`, `_work`, and `System` folders into the app's Documents directory

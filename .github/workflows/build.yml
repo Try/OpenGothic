@@ -245,7 +245,6 @@ jobs:
             -DCMAKE_OSX_SYSROOT=${{ matrix.sdk }} \
             -DCMAKE_OSX_ARCHITECTURES=arm64 \
             -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0 \
-            -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
             -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED=NO
 
       - name: Build
