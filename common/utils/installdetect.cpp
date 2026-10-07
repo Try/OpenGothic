@@ -36,12 +36,11 @@ std::u16string InstallDetect::detectG2() {
     return appDir;
   return u"";
 #elif defined(__ANDROID__)
-  auto path = Tempest::AndroidApi::externalDataPath();
+  auto path = Tempest::AndroidApi::externalDataPath().u16string();
   if(path.empty())
     return u"";
-  path /= "Gothic2";
-  std::filesystem::create_directories(path);
-  return path.u16string();
+  path = FileUtil::nestedPath(path + u"/", {u"gothic2"}, Tempest::Dir::FT_Dir);
+  return path;
 #else
   return u"";
 #endif
