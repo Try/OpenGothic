@@ -32,7 +32,7 @@ class Renderer final {
 
     void dbgDraw(Tempest::Painter& painter);
 
-    Tempest::Attachment screenshoot(uint8_t frameId);
+    Tempest::Attachment screenshoot(uint8_t frameId, Tempest::Size size);
 
   private:
     enum Quality : uint8_t {
