@@ -458,7 +458,7 @@ void MainWindow::keyDownEvent(KeyEvent &event) {
   player.onKeyPressed(act,event.key,mapping);
 
   if(event.key==Event::K_F11) {
-    auto tex = renderer.screenshoot(cmdId);
+    auto tex = renderer.screenshoot(cmdId, Size(int(swapchain.w()),int(swapchain.h())));
     auto pm  = device.readPixels(textureCast<const Texture2d&>(tex));
     pm.save("dbg.png");
     }
@@ -1074,7 +1074,7 @@ void MainWindow::saveGame(std::string_view slot, std::string_view name) {
   if(auto w = Gothic::inst().world(); w!=nullptr && w->currentCs()!=nullptr)
     return;
 
-  auto tex  = renderer.screenshoot(cmdId);
+  auto tex  = renderer.screenshoot(cmdId, Size(int(swapchain.w()),int(swapchain.h())));
   auto lres = Attachment();
 
   static int32_t kThumbW = 800;
