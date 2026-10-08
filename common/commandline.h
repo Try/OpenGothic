@@ -31,6 +31,7 @@ class CommandLine {
     std::u16string      cutscenePath(ScriptLang lang) const;
     std::u16string_view modPath() const { return gmod; }
     std::u16string      nestedPath(const std::initializer_list<const char16_t*> &name, Tempest::Dir::FileType type) const;
+    std::u16string      savesPath;
 
     bool                isDevMode()        const { return devmode;      }
     bool                isValidationMode() const { return isDebug;      }
@@ -48,6 +49,7 @@ class CommandLine {
     bool                doForceG2NR()      const { return forceG2NR;    }
     bool                aaPreset()         const { return aaPresetId;   }
     std::string_view    defaultSave()      const { return saveDef;    }
+    std::u16string      saveFilePath(std::string_view fname) const;
 
     std::string         wrldDef;
 
