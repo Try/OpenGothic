@@ -3049,7 +3049,7 @@ void Npc::tickRoutine() {
 
     if(aiState.eTime<=owner.time()) {
       // Avoid interruption of ZS_TALK/ZS_ATTACK
-      if(currentTarget==nullptr && outputPipe->isFinished())
+      if(isInDailyRoutine())
         loop = LOOP_END;
       }
 
@@ -3060,6 +3060,15 @@ void Npc::tickRoutine() {
       }
     }
   }
+
+bool Npc::isInDailyRoutine() const {
+  ScriptFn fn = currentRoutine().callback;
+  if(fn.isValid() && aiState.funcIni==fn)
+    return true;
+  if(isUnconscious() || isDead() || isAttack() || isTalk())
+    return false;
+  return (currentTarget==nullptr && outputPipe->isFinished());
+}
 
 void Npc::setTarget(Npc *t) {
   if(currentTarget==t)
@@ -4357,7 +4366,9 @@ void Npc::addRoutine(gtime s, gtime e, uint32_t callback, std::string_view point
 void Npc::excRoutine(size_t callback) {
   routines.clear();
   owner.script().invokeState(this,currentOther,currentVictim,callback);
-  // aiState.eTime = gtime();
+  // npc routine is changed immediatley if not in ZS_Talk/ZS_Attack
+  if(isInDailyRoutine())
+    clearState(true);
   }
 
 void Npc::multSpeed(float s) {
