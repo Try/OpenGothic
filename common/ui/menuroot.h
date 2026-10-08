@@ -33,7 +33,9 @@ class MenuRoot : public Tempest::Widget {
     void keyDownEvent   (Tempest::KeyEvent&   event) override;
 
   protected:
+#if defined(__IOS__)
     void resizeEvent(Tempest::SizeEvent& event) override;
+#endif
     void mouseDownEvent (Tempest::MouseEvent& event) override;
     void mouseUpEvent   (Tempest::MouseEvent& event) override;
 
