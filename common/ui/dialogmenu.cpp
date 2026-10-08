@@ -285,13 +285,23 @@ bool DialogMenu::onStart(Npc &p, Npc &ot) {
   }
 
 void DialogMenu::printScreen(std::string_view msg, int x, int y, int time, const GthFont &font) {
+  if(x>=0 && y>=0) {
+    for(auto& sc:pscreen) {
+      if(sc.x==x && sc.y==y) {
+        sc.txt  = msg;
+        sc.font = &font;
+        sc.time = uint32_t(time*1000);
+        return;
+        }
+      }
+    }
   PScreen e;
   e.txt  = msg;
   e.font = &font;
-  e.time = uint32_t(time*1000)+1000;
+  e.time = uint32_t(time*1000);
   e.x    = x;
   e.y    = y;
-  pscreen.emplace(pscreen.begin(),std::move(e));
+  pscreen.emplace_back(std::move(e));
   update();
   }
 
