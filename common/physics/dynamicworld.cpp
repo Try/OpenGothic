@@ -835,16 +835,17 @@ float DynamicWorld::soundOclusion(const Tempest::Vec3& from, const Tempest::Vec3
   callback.m_flags = btTriangleRaycastCallback::kF_KeepUnflippedNormal;
 
   world->rayCast(from,to,callback);
-  if(callback.cnt<2)
+  const uint32_t count = callback.cnt;
+  if(count<2)
     return 0;
 
-  if(callback.cnt>=CallBack::FRAC_MAX)
+  if(count>=CallBack::FRAC_MAX)
     return 1;
 
   float tlen = (callback.m_rayFromWorld-callback.m_rayToWorld).length();
   float tr   = 1.f;
-  std::sort(callback.frac,callback.frac+callback.cnt);
-  for(size_t i=1;i<callback.cnt;i+=2) {
+  std::sort(callback.frac, callback.frac+count);
+  for(size_t i=1; i<count; i+=2) {
     auto t = std::exp(-(callback.frac[i]-callback.frac[i-1])*tlen/3.5f);
     tr *= t;
     }
