@@ -93,6 +93,9 @@ class MainWindow : public Tempest::Window {
     void onSettings();
 
     void setupUi();
+#if defined(__IOS__)
+    void updateSafeArea();
+#endif
 
     void render() override;
 

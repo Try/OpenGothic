@@ -30,6 +30,7 @@ struct ConsoleWidget::Overlay : public Tempest::UiOverlay {
     }
 
   void paintEvent(PaintEvent&) override {
+    setMargins(owner.mainWindow.margins());
     }
 
   void keyDownEvent(Tempest::KeyEvent& e) override {
@@ -243,5 +244,4 @@ void ConsoleWidget::updateSizeHint() {
   const float scale = Gothic::interfaceScale(this);
   setSizeHint(int(1024*scale), int(256*scale));
   }
-
 

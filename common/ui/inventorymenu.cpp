@@ -418,6 +418,8 @@ void InventoryMenu::paintNumOverlay(PaintEvent& e) {
     return;
 
   Painter p(e);
+  const auto pos = mapToRoot(Point());
+  p.translate(pos.x,pos.y);
   drawAll(p,*player,DrawPass::Front);
   }
 
@@ -643,7 +645,8 @@ void InventoryMenu::drawSlot(Painter &p, DrawPass pass, const Inventory::Iterato
       }
 
     const int dsz = (id==sel.sel ? 5 : 0);
-    renderer.drawItem(x-dsz, y-dsz, slotSize().w+2*dsz, slotSize().h+2*dsz, *it);
+    const auto pos = mapToRoot(Point(x-dsz,y-dsz));
+    renderer.drawItem(pos.x, pos.y, slotSize().w+2*dsz, slotSize().h+2*dsz, *it);
     } else {
     auto fnt = Resources::font(scale);
 
@@ -749,7 +752,8 @@ void InventoryMenu::drawInfo(Painter &p) {
     }
 
   const int sz = dh;
-  renderer.drawItem(x+dw-sz-sz/2,y,sz,sz,r);
+  const auto pos = mapToRoot(Point(x+dw-sz-sz/2,y));
+  renderer.drawItem(pos.x,pos.y,sz,sz,r);
   }
 
 void InventoryMenu::draw(Tempest::Encoder<CommandBuffer>& cmd) {

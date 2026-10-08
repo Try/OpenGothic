@@ -131,12 +131,14 @@ MainWindow::~MainWindow() {
   Gothic::inst().setGame(std::unique_ptr<GameSession>());
   }
 
+#if !defined(__IOS__)
 float MainWindow::uiScale() const {
   return SystemApi::uiScale(hwnd());
   }
+#endif
 
 void MainWindow::setupUi() {
-  setLayout(new StackLayout());
+  setLayout(new StackLayout(video));
   addWidget(&document);
   addWidget(&dialogs);
   addWidget(&inventory);
@@ -147,6 +149,9 @@ void MainWindow::setupUi() {
   addWidget(&mobileUi);
 #endif
 
+#if defined(__IOS__)
+  updateSafeArea();
+#endif
   rootMenu.setMainMenu();
 
   Gothic::inst().onDialogPipe  .bind(&dialogs,&DialogMenu::openPipe);
@@ -163,6 +168,7 @@ void MainWindow::paintEvent(PaintEvent& event) {
   Painter p(event);
   auto world = Gothic::inst().world();
   auto st    = Gothic::inst().checkLoading();
+  const auto area = clientRect();
 
   if(!Gothic::inst().isInGame() && st==Gothic::LoadState::Idle && background.isEmpty()) {
     background = Resources::loadTextureUncached("STARTSCREEN.TGA");
@@ -194,11 +200,11 @@ void MainWindow::paintEvent(PaintEvent& event) {
         }
       if(loadBox!=nullptr && !loadBox->isEmpty()) {
         if(Gothic::inst().version().game==1) {
-          int lw = int(w()*0.5);
-          int lh = int(h()*0.05);
-          drawLoading(p,(w()-lw)/2, int(h()*0.75), lw, lh);
+          int lw = int(area.w*0.5);
+          int lh = int(area.h*0.05);
+          drawLoading(p,area.x+(area.w-lw)/2, area.y+int(area.h*0.75), lw, lh);
           } else {
-          drawLoading(p,int(w()*0.92)-loadBox->w(), int(h()*0.12), loadBox->w(),loadBox->h());
+          drawLoading(p,area.x+int(area.w*0.92)-loadBox->w(), area.y+int(area.h*0.12), loadBox->w(),loadBox->h());
           }
         }
       }
@@ -225,15 +231,15 @@ void MainWindow::paintEvent(PaintEvent& event) {
           bool showSwimBar   = (opt.showSwimBar==2) || (opt.showSwimBar==1 && pl->isDive());
 
           if(showHealthBar)
-            drawBar(p,barHp, 10, h()-10, hp, AlignLeft | AlignBottom);
+            drawBar(p,barHp, area.x+10, area.y+area.h-10, hp, AlignLeft | AlignBottom);
           if(showManaBar)
-            drawBar(p,barMana, w()-10, h()-10, mp, AlignRight | AlignBottom);
+            drawBar(p,barMana, area.x+area.w-10, area.y+area.h-10, mp, AlignRight | AlignBottom);
           if(showSwimBar) {
             uint32_t gl = pl->guild();
             auto     v  = float(pl->world().script().guildVal().dive_time[gl]);
             if(v>0) {
               auto t = float(pl->diveTime())/1000.f;
-              drawBar(p,barMisc,w()/2,h()-10, (v-t)/(v), AlignHCenter | AlignBottom);
+              drawBar(p,barMisc,area.x+area.w/2,area.y+area.h-10, (v-t)/(v), AlignHCenter | AlignBottom);
               }
             }
           }
@@ -260,7 +266,7 @@ void MainWindow::paintEvent(PaintEvent& event) {
     std::snprintf(fpsT,sizeof(fpsT),"fps = %.2f",fps.get());
 
     auto& fnt = Resources::font(scale);
-    fnt.drawText(p,5,fnt.pixelSize()+5,fpsT);
+    fnt.drawText(p,area.x+5,area.y+fnt.pixelSize()+5,fpsT);
     }
 
   if(!Gothic::inst().isDesktop() && world!=nullptr) {
@@ -269,7 +275,7 @@ void MainWindow::paintEvent(PaintEvent& event) {
       auto min  = world->time().minute();
       auto& fnt = Resources::font(scale);
       string_frm clockT(int(hour),":",int(min));
-      fnt.drawText(p,w()-fnt.textSize(clockT).w-5,fnt.pixelSize()+5,clockT);
+      fnt.drawText(p,area.x+area.w-fnt.textSize(clockT).w-5,area.y+fnt.pixelSize()+5,clockT);
       }
 
     auto c = Gothic::inst().camera();
@@ -599,7 +605,8 @@ void MainWindow::paintFocus(Painter& p, const Focus& focus, const Matrix4x4& vp)
 
   if(focus.npc!=nullptr && !focus.npc->isDead()) {
     float hp = float(focus.npc->attribute(ATR_HITPOINTS))/float(focus.npc->attribute(ATR_HITPOINTSMAX));
-    drawBar(p,barHp, w()/2,10, hp, AlignHCenter|AlignTop);
+    const auto area = clientRect();
+    drawBar(p,barHp, area.x+area.w/2,area.y+10, hp, AlignHCenter|AlignTop);
     }
 
   const int foc = Gothic::settingsGetI("GAME","highlightMeleeFocus");
@@ -709,7 +716,11 @@ void MainWindow::drawMsg(Tempest::Painter& p) {
   const float destH   = float(barBack->h())*k;
 
   const int y = 10 + int(destH) + 10;
+  p.pushState();
+  const auto pos = dialogs.mapToRoot(Point());
+  p.translate(pos.x,pos.y);
   dialogs.drawMsg(p, y);
+  p.popState();
   }
 
 void MainWindow::drawProgress(Painter &p, int x, int y, int w, int h, float v) {
@@ -763,7 +774,8 @@ void MainWindow::drawSaving(Painter &p) {
   }
 
 void MainWindow::drawSaving(Painter& p, const Tempest::Texture2d& back, int sw, int sh, float scale) {
-  const int x = (w()-sw)/2, y = (h()-sh)/2;
+  const auto area = clientRect();
+  const int x = area.x+(area.w-sw)/2, y = area.y+(area.h-sh)/2;
 
   // SAVING.TGA is semi-transparent image with the idea to accomulate alpha over time
   // ... for loop for now
@@ -1219,6 +1231,9 @@ void MainWindow::setFullscreen(bool fs) {
 
 void MainWindow::render(){
   try {
+#if defined(__IOS__)
+    updateSafeArea();
+#endif
     static uint64_t time=Application::tickCount();
 
     static bool once=true;

@@ -33,6 +33,7 @@ class MenuRoot : public Tempest::Widget {
     void keyDownEvent   (Tempest::KeyEvent&   event) override;
 
   protected:
+    void resizeEvent(Tempest::SizeEvent& event) override;
     void mouseDownEvent (Tempest::MouseEvent& event) override;
     void mouseUpEvent   (Tempest::MouseEvent& event) override;
 
