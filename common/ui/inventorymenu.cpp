@@ -400,7 +400,7 @@ void InventoryMenu::mouseWheelEvent(MouseEvent &e) {
   }
 
 size_t InventoryMenu::rowsCount() const {
-  int iy=30+34+70;
+  int iy=30+int(34*Gothic::interfaceScale(this))+70;
   return size_t((h()-iy-infoHeight()-20)/slotSize().h);
   }
 
@@ -557,7 +557,7 @@ void InventoryMenu::adjustScroll() {
 void InventoryMenu::drawAll(Painter &p, Npc &player, DrawPass pass) {
   const int padd = 43;
 
-  int iy=30+34+70;
+  int iy=30+int(34*Gothic::interfaceScale(this))+70;
 
   if(state==State::LockPicking)
     return;

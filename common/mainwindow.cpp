@@ -310,6 +310,10 @@ void MainWindow::resizeEvent(SizeEvent&) {
   }
 
 void MainWindow::mouseDownEvent(MouseEvent &event) {
+  if(rootMenu.isActive() || dialogs.isActive() || inventory.isActive()) {
+    event.ignore();
+    return;
+    }
   if(event.button<sizeof(mouseP))
     mouseP[event.button]=true;
   auto act     = keycodec.tr(event);
@@ -399,6 +403,10 @@ void MainWindow::onSettings() {
   }
 
 void MainWindow::mouseWheelEvent(MouseEvent &event) {
+  if(rootMenu.isActive() || dialogs.isActive() || inventory.isActive()) {
+    event.ignore();
+    return;
+    }
   if(auto camera = Gothic::inst().camera())
     camera->changeZoom(event.delta);
   }
