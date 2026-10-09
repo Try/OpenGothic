@@ -266,6 +266,42 @@ jobs:
           path: |
             build/opengothic/*
 
+  ios:
+    runs-on: macos-15
+    strategy:
+      fail-fast: false
+      matrix:
+        sdk: [iphoneos, iphonesimulator]
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.0.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: brew install glslang
+
+      - name: Configure
+        run: |
+          cmake -B build -G Xcode \
+            -DCMAKE_SYSTEM_NAME=iOS \
+            -DCMAKE_OSX_SYSROOT=${{ matrix.sdk }} \
+            -DCMAKE_OSX_ARCHITECTURES=arm64 \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0 \
+            -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED=NO
+
+      - name: Build
+        run: cmake --build build --config ${{ env.BUILD_TYPE }} -j "$(sysctl -n hw.ncpu)"
+
+      - name: Check app bundle
+        run: |
+          app=build/opengothic/${{ env.BUILD_TYPE }}/Gothic2Notr.app
+          plutil -lint "$app/Info.plist"
+          executable=$(plutil -extract CFBundleExecutable raw -o - "$app/Info.plist")
+          test -x "$app/$executable"
+          plutil -extract UIApplicationSceneManifest.UISceneConfigurations.UIWindowSceneSessionRoleApplication.0.UISceneConfigurationName raw -o - "$app/Info.plist"
+
   release:
     if: startsWith(github.ref, 'refs/tags/')
     needs: [setup, linux, linux-deb, windows, macos-arm64, macos-x64]
