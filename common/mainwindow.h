@@ -52,6 +52,7 @@ class MainWindow : public Tempest::Window {
   private:
     void paintEvent     (Tempest::PaintEvent& event) override;
     void resizeEvent    (Tempest::SizeEvent & event) override;
+    void safeAreaEvent  () override;
 
     void mouseDownEvent (Tempest::MouseEvent& event) override;
     void mouseUpEvent   (Tempest::MouseEvent& event) override;
@@ -93,9 +94,6 @@ class MainWindow : public Tempest::Window {
     void onSettings();
 
     void setupUi();
-#if defined(__IOS__)
-    void updateSafeArea();
-#endif
 
     void render() override;
 

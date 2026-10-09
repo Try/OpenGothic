@@ -400,12 +400,8 @@ void InventoryMenu::mouseWheelEvent(MouseEvent &e) {
   }
 
 size_t InventoryMenu::rowsCount() const {
-#if defined(__IOS__)
-  int iy=30+int(34*Gothic::interfaceScale(this))+70;
-#else
   int iy=30+34+70;
-#endif
-  return size_t((h()-iy-infoHeight()-20)/slotSize().h);
+  return size_t((clientRect().h-iy-infoHeight()-20)/slotSize().h);
   }
 
 void InventoryMenu::paintEvent(PaintEvent &e) {
@@ -422,8 +418,6 @@ void InventoryMenu::paintNumOverlay(PaintEvent& e) {
     return;
 
   Painter p(e);
-  const auto pos = mapToRoot(Point());
-  p.translate(pos.x,pos.y);
   drawAll(p,*player,DrawPass::Front);
   }
 
@@ -561,11 +555,8 @@ void InventoryMenu::adjustScroll() {
 void InventoryMenu::drawAll(Painter &p, Npc &player, DrawPass pass) {
   const int padd = 43;
 
-#if defined(__IOS__)
-  int iy=30+int(34*Gothic::interfaceScale(this))+70;
-#else
-  int iy=30+34+70;
-#endif
+  const auto area = clientRect();
+  int iy=area.y+30+34+70;
 
   if(state==State::LockPicking)
     return;
@@ -575,20 +566,20 @@ void InventoryMenu::drawAll(Painter &p, Npc &player, DrawPass pass) {
 
   if(chest!=nullptr){
     if(pass==DrawPass::Back)
-      drawHeader(p,chest->displayName(),padd,70);
-    drawItems(p,pass,*pageOth,pageLocal[0],padd,iy,wcount,hcount);
+      drawHeader(p,chest->displayName(),area.x+padd,area.y+70);
+    drawItems(p,pass,*pageOth,pageLocal[0],area.x+padd,iy,wcount,hcount);
     }
 
   if(trader!=nullptr) {
     if(pass==DrawPass::Back)
-      drawHeader(p,trader->displayName(),padd,70);
-    drawItems(p,pass,*pageOth,pageLocal[0],padd,iy,wcount,hcount);
+      drawHeader(p,trader->displayName(),area.x+padd,area.y+70);
+    drawItems(p,pass,*pageOth,pageLocal[0],area.x+padd,iy,wcount,hcount);
     }
 
   if(state!=State::Ransack) {
     if(pass==DrawPass::Back)
-      drawGold (p,player,w()-padd-2*slotSize().w,70);
-    drawItems(p,pass,*pagePl,pageLocal[1],w()-padd-wcount*slotSize().w,iy,wcount,hcount);
+      drawGold (p,player,area.x+area.w-padd-2*slotSize().w,area.y+70);
+    drawItems(p,pass,*pagePl,pageLocal[1],area.x+area.w-padd-wcount*slotSize().w,iy,wcount,hcount);
     }
 
   if(pass==DrawPass::Back)
@@ -653,8 +644,7 @@ void InventoryMenu::drawSlot(Painter &p, DrawPass pass, const Inventory::Iterato
       }
 
     const int dsz = (id==sel.sel ? 5 : 0);
-    const auto pos = mapToRoot(Point(x-dsz,y-dsz));
-    renderer.drawItem(pos.x, pos.y, slotSize().w+2*dsz, slotSize().h+2*dsz, *it);
+    renderer.drawItem(x-dsz, y-dsz, slotSize().w+2*dsz, slotSize().h+2*dsz, *it);
     } else {
     auto fnt = Resources::font(scale);
 
@@ -715,10 +705,11 @@ void InventoryMenu::drawHeader(Painter &p, std::string_view title, int x, int y)
 
 void InventoryMenu::drawInfo(Painter &p) {
   const float scale = Gothic::interfaceScale(this);
-  const int   dw    = std::min(w(), int(720*scale));
+  const auto  area  = clientRect();
+  const int   dw    = std::min(area.w, int(720*scale));
   const int   dh    = infoHeight();
-  const int   x     = (w()-dw)/2;
-  const int   y     = h()-dh-20;
+  const int   x     = area.x+(area.w-dw)/2;
+  const int   y     = area.y+area.h-dh-20;
 
   auto& pg  = activePage();
   auto& sel = activePageSel();
@@ -760,8 +751,7 @@ void InventoryMenu::drawInfo(Painter &p) {
     }
 
   const int sz = dh;
-  const auto pos = mapToRoot(Point(x+dw-sz-sz/2,y));
-  renderer.drawItem(pos.x,pos.y,sz,sz,r);
+  renderer.drawItem(x+dw-sz-sz/2,y,sz,sz,r);
   }
 
 void InventoryMenu::draw(Tempest::Encoder<CommandBuffer>& cmd) {

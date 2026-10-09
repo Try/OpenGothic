@@ -126,13 +126,6 @@ bool MenuRoot::hasVersionLine() const {
   return showVersionHint;
   }
 
-#if defined(__IOS__)
-void MenuRoot::resizeEvent(SizeEvent&) {
-  if(current!=nullptr)
-    current->onTick();
-  }
-#endif
-
 void MenuRoot::mouseDownEvent(MouseEvent& event) {
   if(current!=nullptr) {
     if(event.button==Event::ButtonRight) {

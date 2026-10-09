@@ -131,14 +131,18 @@ MainWindow::~MainWindow() {
   Gothic::inst().setGame(std::unique_ptr<GameSession>());
   }
 
-#if !defined(__IOS__)
 float MainWindow::uiScale() const {
+#if defined(__IOS__)
+  const auto area = clientRect();
+  // Keep the default 800x600 UI inside the safe area on smaller screens.
+  return std::max(1.f, std::min({SystemApi::uiScale(hwnd()), float(area.w)/800.f, float(area.h)/600.f}));
+#else
   return SystemApi::uiScale(hwnd());
-  }
 #endif
+  }
 
 void MainWindow::setupUi() {
-  setLayout(new StackLayout(video));
+  setLayout(new StackLayout());
   addWidget(&document);
   addWidget(&dialogs);
   addWidget(&inventory);
@@ -149,9 +153,7 @@ void MainWindow::setupUi() {
   addWidget(&mobileUi);
 #endif
 
-#if defined(__IOS__)
-  updateSafeArea();
-#endif
+  safeAreaEvent();
   rootMenu.setMainMenu();
 
   Gothic::inst().onDialogPipe  .bind(&dialogs,&DialogMenu::openPipe);
@@ -296,6 +298,7 @@ void MainWindow::paintEvent(PaintEvent& event) {
   }
 
 void MainWindow::resizeEvent(SizeEvent&) {
+  safeAreaEvent();
   for(auto& i:fence)
     i.wait();
   swapchain.reset();
@@ -309,13 +312,21 @@ void MainWindow::resizeEvent(SizeEvent&) {
   dMouse = Point();
   }
 
-void MainWindow::mouseDownEvent(MouseEvent &event) {
-#if defined(__IOS__)
-  if(rootMenu.isActive() || dialogs.isActive() || inventory.isActive()) {
-    event.ignore();
-    return;
-    }
+void MainWindow::safeAreaEvent() {
+  const auto margin = safeAreaMargins();
+  setMargins(margin);
+  document.setMargins(margin);
+  dialogs.setMargins(margin);
+  inventory.setMargins(margin);
+  chapter.setMargins(margin);
+  rootMenu.setMargins(margin);
+#if defined(__MOBILE_PLATFORM__)
+  mobileUi.setMargins(margin);
 #endif
+  update();
+  }
+
+void MainWindow::mouseDownEvent(MouseEvent &event) {
   if(event.button<sizeof(mouseP))
     mouseP[event.button]=true;
   auto act     = keycodec.tr(event);
@@ -405,12 +416,6 @@ void MainWindow::onSettings() {
   }
 
 void MainWindow::mouseWheelEvent(MouseEvent &event) {
-#if defined(__IOS__)
-  if(rootMenu.isActive() || dialogs.isActive() || inventory.isActive()) {
-    event.ignore();
-    return;
-    }
-#endif
   if(auto camera = Gothic::inst().camera())
     camera->changeZoom(event.delta);
   }
@@ -728,11 +733,7 @@ void MainWindow::drawMsg(Tempest::Painter& p) {
   const float destH   = float(barBack->h())*k;
 
   const int y = 10 + int(destH) + 10;
-  p.pushState();
-  const auto pos = dialogs.mapToRoot(Point());
-  p.translate(pos.x,pos.y);
   dialogs.drawMsg(p, y);
-  p.popState();
   }
 
 void MainWindow::drawProgress(Painter &p, int x, int y, int w, int h, float v) {
@@ -1243,9 +1244,6 @@ void MainWindow::setFullscreen(bool fs) {
 
 void MainWindow::render(){
   try {
-#if defined(__IOS__)
-    updateSafeArea();
-#endif
     static uint64_t time=Application::tickCount();
 
     static bool once=true;

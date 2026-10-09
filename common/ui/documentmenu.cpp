@@ -61,7 +61,8 @@ void DocumentMenu::paintEvent(PaintEvent &e) {
 
   float k  = std::min(1.f,float(800.f+float(document.margins.xMargin()))*scale/std::max(mw,1.f));
 
-  int   x  = (w()-int(k*mw))/2, y = (h()-int(mh))/2;
+  const auto area = clientRect();
+  int   x  = area.x+(area.w-int(k*mw))/2, y = area.y+(area.h-int(mh))/2;
   auto  pl = Gothic::inst().player();
 
   Painter p(e);
