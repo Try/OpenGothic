@@ -1,4 +1,5 @@
 #include "world.h"
+#include "worlddata.h"
 
 #include <functional>
 #include <future>
@@ -73,32 +74,27 @@ World::World(GameSession& game, std::string_view file, bool startup, std::functi
     }
 
   try {
-    auto          buf = entry->open_read();
-    zenkit::World world;
-    world.load(buf.get(), version().game == 1 ? zenkit::GameVersion::GOTHIC_1
-                                              : zenkit::GameVersion::GOTHIC_2);
+    const auto data = Resources::loadWorld(wname, version().game==1 ? zenkit::GameVersion::GOTHIC_1
+                                                                  : zenkit::GameVersion::GOTHIC_2);
+    const auto& world = data->world;
 
     loadProgress(20);
-    auto& worldMesh = world.world_mesh;
-
     auto wdynamicFut = std::async(std::launch::async, [&]() {
       Workers::setThreadName("Loading: BVH thread");
-      return std::unique_ptr<DynamicWorld>(new DynamicWorld(this,worldMesh));
+      return std::unique_ptr<DynamicWorld>(new DynamicWorld(this,data->landscape));
       });
     auto wviewFut = std::async(std::launch::async, [&]() {
       Workers::setThreadName("Loading: PackedMesh thread");
-      PackedMesh vmesh(worldMesh,PackedMesh::PK_VisualLnd);
-      return std::unique_ptr<WorldView>(new WorldView(vmesh, wname));
+      return std::unique_ptr<WorldView>(new WorldView(*data->visual, wname));
       });
 
     loadProgress(30);
 
     {
-      bsp.nodes             = std::move(world.world_bsp_tree.nodes);
-      bsp.sectors           = std::move(world.world_bsp_tree.sectors);
-      bsp.leaf_node_indices = std::move(world.world_bsp_tree.leaf_node_indices);
+      bsp.nodes             = world.world_bsp_tree.nodes;
+      bsp.sectors           = world.world_bsp_tree.sectors;
+      bsp.leaf_node_indices = world.world_bsp_tree.leaf_node_indices;
       bsp.sectorsData.resize(bsp.sectors.size());
-      world.world_bsp_tree  = zenkit::BspTree();
     }
     loadProgress(50);
 
@@ -106,7 +102,6 @@ World::World(GameSession& game, std::string_view file, bool startup, std::functi
     loadProgress(60);
 
     wdynamic = wdynamicFut.get();
-    world.world_mesh = zenkit::Mesh();
     loadProgress(70);
 
     globFx.reset(new GlobalEffects(*this));

@@ -98,6 +98,11 @@ bool PhysicVbo::isEmpty() const {
   return segments.size()==0;
   }
 
+size_t PhysicVbo::byteSize() const {
+  return sizeof(*this) + vStorage.capacity()*sizeof(btVector3) + id.capacity()*sizeof(uint32_t) +
+         segments.capacity()*sizeof(Segment) + size_t(m_indexedMeshes.capacity())*sizeof(btIndexedMesh);
+  }
+
 void PhysicVbo::adjustMesh(){
   for(int i=0;i<m_indexedMeshes.size();++i) {
     btIndexedMesh& meshIndex=m_indexedMeshes[i];

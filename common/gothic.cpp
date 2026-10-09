@@ -90,6 +90,7 @@ Gothic::Gothic() {
   defaults->set("GAME", "useGothic1Controls",  1);
   defaults->set("GAME", "highlightMeleeFocus", 0);
   defaults->set("GAME", "useQuickSaveKeys",    1);
+  defaults->set("ENGINE", "worldCacheMiB",    512);
 
   defaults->set("GAME", "animatedWindows",     1);
   defaults->set("GAME", "subTitles",           1);

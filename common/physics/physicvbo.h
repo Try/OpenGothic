@@ -26,6 +26,7 @@ class PhysicVbo : public btTriangleIndexVertexArray {
     auto                    sectorName(size_t segment) const -> const char*;
     bool                    useQuantization() const;
     bool                    isEmpty() const;
+    size_t                  byteSize() const;
 
     void                    adjustMesh();
 

@@ -27,6 +27,11 @@
 #include "graphics/mesh/animation.h"
 #include "graphics/mesh/attachbinder.h"
 #include "graphics/material.h"
+#include "graphics/shaders.h"
+#include "utils/workers.h"
+#include "world/worlddata.h"
+#include <future>
+#include <stdexcept>
 #include "dmusic/directmusic.h"
 #include "utils/fileext.h"
 #include "utils/gthfont.h"
@@ -122,11 +127,15 @@ Resources::Resources(Tempest::Device &device)
   }
 
 void Resources::mountWork(const std::filesystem::path& path) {
+  std::lock_guard<std::mutex> guard(inst->syncWorld);
+  inst->worldCache.reset();
   inst->gothicAssets.mkdir("/_work");
   inst->gothicAssets.mount_host(path, "/_work", zenkit::VfsOverwriteBehavior::NONE);
   }
 
 void Resources::loadVdfs(const std::vector<std::u16string>& modvdfs, bool modFilter) {
+  std::lock_guard<std::mutex> guard(inst->syncWorld);
+  inst->worldCache.reset();
   std::vector<Archive> archives;
   inst->detectVdf(archives,Gothic::nestedPath({u"Data"},Dir::FT_Dir));
 
@@ -308,6 +317,69 @@ const Tempest::StorageImage& Resources::fallbackImage() {
 
 const zenkit::Vfs& Resources::vdfsIndex() {
   return inst->gothicAssets;
+  }
+
+std::shared_ptr<const WorldData> Resources::loadWorld(std::string_view name, zenkit::GameVersion version) {
+  std::lock_guard<std::mutex> guard(inst->syncWorld);
+  const auto* source = vdfsIndex().find(name);
+  if(source==nullptr)
+    throw std::runtime_error("unable to open Zen-file: " + std::string(name));
+  const auto budget = size_t(std::clamp(Gothic::settingsGetI("ENGINE", "worldCacheMiB"),0,1024))*1024*1024;
+  const bool softwareRayTracing = Shaders::options().doSoftwareRT;
+  auto& cache = inst->worldCache;
+  if(cache && cache->source==source && cache->version==version &&
+     cache->softwareRayTracing==softwareRayTracing && cache->cacheBytes<=budget) {
+    return cache;
+    }
+  // Only one level is retained. Release it before preparing a different level.
+  cache.reset();
+  auto data = std::make_shared<WorldData>();
+  data->source = source;
+  data->version = version;
+  data->softwareRayTracing = softwareRayTracing;
+  auto input = source->open_read();
+  data->world.load(input.get(),version);
+
+  auto physics = std::async(std::launch::async, [&] {
+    Workers::setThreadName("Loading: BVH thread");
+    return DynamicWorld::buildLandscape(data->world.world_mesh);
+    });
+  data->visual = std::make_unique<PackedMesh>(data->world.world_mesh,PackedMesh::PK_VisualLnd);
+  data->landscape = physics.get();
+  // Discard the raw mesh after both prepared representations are ready.
+  data->world.world_mesh = zenkit::Mesh();
+  auto& mesh = *data->visual;
+  auto bytes = [](const auto& values) { return values.capacity()*sizeof(values[0]); };
+  auto& bsp = data->world.world_bsp_tree;
+  decltype(bsp.polygon_indices)().swap(bsp.polygon_indices);
+  decltype(bsp.leaf_polygons)().swap(bsp.leaf_polygons);
+  decltype(bsp.light_points)().swap(bsp.light_points);
+  decltype(bsp.portal_polygon_indices)().swap(bsp.portal_polygon_indices);
+  std::vector<const zenkit::VirtualObject*> pending;
+  for(const auto& vob:data->world.world_vobs)
+    pending.push_back(vob.get());
+  size_t vobCount = 0;
+  while(!pending.empty()) {
+    const auto* vob = pending.back();
+    pending.pop_back();
+    ++vobCount;
+    for(const auto& child:vob->children)
+      pending.push_back(child.get());
+    }
+  // Allow an additional KiB per vob for derived descriptors, strings and child lists.
+  // This is a cache estimate, not an allocator-level RAM limit.
+  size_t metadataBytes = vobCount*(sizeof(zenkit::VirtualObject)+1024) + bytes(bsp.nodes) + bytes(bsp.leaf_node_indices) + bytes(bsp.sectors);
+  for(const auto& sector:bsp.sectors)
+    metadataBytes += sector.name.capacity() + bytes(sector.node_indices) + bytes(sector.portal_polygon_indices);
+  if(data->world.way_net)
+    metadataBytes += data->world.way_net->points.size()*512 + bytes(data->world.way_net->edges);
+  const auto visualBytes = bytes(mesh.vertices) + bytes(mesh.verticesA) + bytes(mesh.indices) + bytes(mesh.indices8) +
+                           bytes(mesh.subMeshes) + bytes(mesh.meshletBounds) + bytes(mesh.verticesId) +
+                           bytes(mesh.bvhNodes) + bytes(mesh.bvh8Nodes);
+  data->cacheBytes = metadataBytes + visualBytes + DynamicWorld::landscapeBytes(*data->landscape);
+  if(data->cacheBytes<=budget)
+    cache = data;
+  return data;
   }
 
 const Tempest::IndexBuffer<uint16_t>& Resources::cubeIbo() {
