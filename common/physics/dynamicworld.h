@@ -41,7 +41,11 @@ class DynamicWorld final {
     static constexpr float bulletSpeed = 3; // centimeters per milliseconds
     static constexpr float spellSpeed  = 1; // centimeters per milliseconds
 
+    struct Landscape;
+    static std::shared_ptr<const Landscape> buildLandscape(const zenkit::Mesh& mesh);
+    static size_t landscapeBytes(const Landscape& landscape);
     DynamicWorld(World *world, const zenkit::Mesh& mesh);
+    DynamicWorld(World *world, std::shared_ptr<const Landscape> landscape);
     DynamicWorld(const DynamicWorld&)=delete;
     ~DynamicWorld();
 
@@ -304,16 +308,9 @@ class DynamicWorld final {
 
     std::unique_ptr<CollisionWorld>    world;
 
-    std::vector<std::string>           sectors;
-
-    std::vector<btVector3>             landVbo;
-    std::unique_ptr<PhysicVbo>         landMesh;
-    std::unique_ptr<btCollisionShape>  landShape;
+    std::shared_ptr<const Landscape>  landscape;
     std::unique_ptr<btRigidBody>       landBody;
-
-    std::unique_ptr<btCollisionShape>  waterShape;
     std::unique_ptr<btRigidBody>       waterBody;
-    std::unique_ptr<PhysicVbo>         waterMesh;
 
     std::unique_ptr<NpcBodyList>       npcList;
     std::unique_ptr<BulletsList>       bulletList;
