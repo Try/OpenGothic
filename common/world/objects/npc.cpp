@@ -4508,7 +4508,8 @@ void Npc::transformBack() {
   setVisualBody(vHead,vTeeth,vColor,bdColor,body,head);
   closeWeapon(true);
 
-  // invalidate tallent overlays
+  visual.clearOverlays();
+  // invalidate talent overlays
   for(size_t i=0; i<TALENT_MAX_G2; ++i)
     setTalentSkill(Talent(i),talentsSk[i]);
 
