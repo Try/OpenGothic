@@ -18,13 +18,14 @@
 class World;
 class Camera;
 class ParticleFx;
-class PackedMesh;
 class gtime;
 
 class WorldView {
   public:
-    WorldView(const PackedMesh& wmesh, std::string_view skyPreset);
+    WorldView(std::unique_ptr<Landscape::Mesh> land, std::string_view skyPreset);
     ~WorldView();
+
+    auto takeLand() -> std::unique_ptr<Landscape::Mesh>;
 
     const LightSource&        mainLight() const;
     const Tempest::Vec3&      ambientLight() const;
