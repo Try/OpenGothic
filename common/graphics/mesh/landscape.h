@@ -5,15 +5,26 @@
 #include <Tempest/UniformBuffer>
 
 #include "graphics/visualobjects.h"
+#include "graphics/mesh/submesh/packedmesh.h"
 #include "graphics/mesh/submesh/staticmesh.h"
-
-class PackedMesh;
 
 class Landscape final {
   public:
-    Landscape(VisualObjects& visual, const PackedMesh& wmesh);
+    // Immutable GPU data of the level mesh, which can be moved into a reload of the same level
+    struct Mesh final {
+      explicit Mesh(const PackedMesh& wmesh);
 
-    const Tempest::StorageBuffer& bvh()   const { return bvhNodes; }
+      StaticMesh                       mesh;
+      std::vector<PackedMesh::Cluster> meshletBounds;
+      Tempest::StorageBuffer           meshletDesc;
+      Tempest::StorageBuffer           bvhNodes;
+      };
+
+    Landscape(VisualObjects& visual, std::unique_ptr<Mesh> mesh);
+
+    auto takeMesh() -> std::unique_ptr<Mesh>;
+
+    const Tempest::StorageBuffer& bvh()   const { return data->bvhNodes; }
 
   private:
     using Item = VisualObjects::Item;
@@ -23,8 +34,5 @@ class Landscape final {
       };
 
     std::vector<Block>     blocks;
-    StaticMesh             mesh;
-    Tempest::StorageBuffer meshletDesc;
-
-    Tempest::StorageBuffer bvhNodes;
+    std::unique_ptr<Mesh>  data;
   };

@@ -1051,16 +1051,20 @@ void MainWindow::startGame(std::string_view slot) {
   }
 
 void MainWindow::loadGame(std::string_view slot) {
+  // shared_ptr, since std::function must be copyable
+  auto land = std::make_shared<WorldLand>();
   if(Gothic::inst().checkLoading()==Gothic::LoadState::Idle) {
+    if(auto game = Gothic::inst().gameSession())
+      *land = game->takeLand();
     setGameImpl(nullptr);
     }
 
   Gothic::inst().setBenchmarkMode(Benchmark::None);
-  Gothic::inst().startLoad("LOADING.TGA",[slot=std::string(slot)](std::unique_ptr<GameSession>&& game){
+  Gothic::inst().startLoad("LOADING.TGA",[slot=std::string(slot),land](std::unique_ptr<GameSession>&& game){
     game = nullptr; // clear world-memory now
     Tempest::RFile file(slot);
     Serialize      s(file);
-    std::unique_ptr<GameSession> w(new GameSession(s));
+    std::unique_ptr<GameSession> w(new GameSession(s,std::move(*land)));
     return w;
     });
 
