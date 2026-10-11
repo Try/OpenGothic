@@ -105,6 +105,9 @@ CommandLine::CommandLine(int argc, const char** argv) {
     else if(arg=="-g2") {
       forceG2NR = true;
       }
+    else if(arg=="-classic") {
+      arpgMode = false;
+      }
     else if(arg=="-dx12") {
       graphics = GraphicBackend::DirectX12;
       }

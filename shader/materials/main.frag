@@ -52,6 +52,49 @@ float unproject(float depth) {
   }
 #endif
 
+#if (MESH_TYPE!=T_PFX) && !defined(VIRTUAL_SHADOW)
+// gothic-diablo: hide geometry that blocks the ARPG view of the hero
+float arpgBayer4(vec2 p) {
+  const float m[16] = float[16]( 0.0,  8.0,  2.0, 10.0,
+                                12.0,  4.0, 14.0,  6.0,
+                                 3.0, 11.0,  1.0,  9.0,
+                                15.0,  7.0, 13.0,  5.0);
+  const ivec2 i = ivec2(p) & ivec2(3);
+  return (m[i.y*4+i.x]+0.5)/16.0;
+  }
+
+bool arpgHidden() {
+  if(scene.arpgPlayer.w<=0.0)
+    return false;
+
+  const vec2 ndc  = (gl_FragCoord.xy*scene.screenResInv)*2.0-vec2(1.0);
+  vec4       wpos = scene.viewProjectInv*vec4(ndc, gl_FragCoord.z, 1.0);
+  wpos.xyz /= wpos.w;
+
+  // 1. indoors: cut away everything above the hero's head (ceilings, roofs, upper floors)
+  const float cutHeight = scene.arpgCenter.w;
+  if(cutHeight>0.0 && wpos.y > scene.arpgPlayer.y+cutHeight) {
+    const vec2  d = wpos.xz - scene.arpgPlayer.xz;
+    const float r = scene.arpgParams.x;
+    if(dot(d,d) < r*r)
+      return true;
+    }
+
+  // 2. see-through circle: walls/objects between the camera and the hero (screen-door transparency)
+  const float fadeR = scene.arpgParams.y;
+  if(fadeR>0.0 && wpos.y > scene.arpgPlayer.y+40.0) {
+    vec2 sd = ndc - scene.arpgParams.zw;
+    sd.x *= scene.arpgParams2.x;
+    const float r = length(sd)/fadeR;
+    if(r<1.0 && distance(wpos.xyz, scene.camPos) < scene.arpgParams2.y-120.0) {
+      const float a = 1.0 - smoothstep(0.55, 1.0, r);
+      return arpgBayer4(gl_FragCoord.xy) < a*0.85;
+      }
+    }
+  return false;
+  }
+#endif
+
 bool isFlat() {
 #if defined(GBUFFER) && defined(FLAT_NORMAL)
   {
@@ -323,6 +366,11 @@ void mainWater(vec4 t) {
 #endif
 
 void main() {
+#if (MESH_TYPE!=T_PFX) && !defined(VIRTUAL_SHADOW)
+  if(arpgHidden())
+    discard;
+#endif
+
 #if defined(MAT_UV)
   vec4 t = diffuseTex();
 #  if defined(ATEST)

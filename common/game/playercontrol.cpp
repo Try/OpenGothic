@@ -1,5 +1,6 @@
 #include "playercontrol.h"
 
+#include <algorithm>
 #include <cmath>
 
 #include "world/objects/npc.h"
@@ -612,6 +613,9 @@ void PlayerControl::implMove(uint64_t dt) {
   auto  ws        = pl.weaponState();
   auto  bs        = pl.bodyStateMasked();
   bool  allowRot  = !ctrl[KeyCodec::ActionGeneric] && pl.isRotationAllowed();
+  // gothic-diablo: isometric ARPG controls (screen-relative movement)
+  auto  camera    = Gothic::inst().camera();
+  bool  arpg      = (camera!=nullptr && camera->isArpgActive());
 
   Npc::Anim ani = Npc::Anim::Idle;
 
@@ -681,7 +685,17 @@ void PlayerControl::implMove(uint64_t dt) {
     }
 
   int rotation = 0;
-  if(allowRot) {
+  if(allowRot && arpg) {
+    // turn keys rotate the ARPG camera; mouse does not rotate the hero
+    const float camSpeed = 90.f*(float(dt)/1000.f);
+    if(this->wantsToTurnLeft())
+      camera->arpgRotate(+camSpeed);
+    if(this->wantsToTurnRight())
+      camera->arpgRotate(-camSpeed);
+    rotMouse  = 0;
+    rotMouseY = 0;
+    }
+  else if(allowRot) {
     if(this->wantsToTurnLeft()) {
       rot += rspeed;
       rotation = -1;
@@ -854,7 +868,28 @@ void PlayerControl::implMove(uint64_t dt) {
       }
     }
 
-  if(this->wantsToStrafeLeft()) {
+  const bool arpgMove = arpg && !ctrl[KeyCodec::ActionGeneric] &&
+                        (pl.walkMode()&WalkBit::WM_Dive)!=WalkBit::WM_Dive;
+  if(arpgMove) {
+    // W/S/A/D (and arrows) move up/down/left/right on screen, hero turns to the move direction
+    const float fb = movement.forwardBackward.value();
+    const float lr = movement.strafeRightLeft.value();
+    if(fb!=0.f || lr!=0.f) {
+      const float dest = camera->arpgYaw() + std::atan2(-lr, fb)*180.f/float(M_PI);
+      const float da   = std::remainder(dest-rot, 360.f);
+      if(allowRot) {
+        const float step = 900.f*(float(dt)/1000.f);
+        rot += std::clamp(da, -step, step);
+        }
+      if(std::fabs(da)<100.f || !allowRot) {
+        ani = Npc::Anim::Move;
+        } else {
+        ani      = Npc::Anim::Idle;
+        rotation = (da>0.f) ? -1 : 1;
+        }
+      }
+    }
+  else if(this->wantsToStrafeLeft()) {
     ani = Npc::Anim::MoveL;
     }
   else if(this->wantsToStrafeRight()) {

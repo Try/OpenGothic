@@ -48,6 +48,8 @@ class CommandLine {
     bool                doForceG2NR()      const { return forceG2NR;    }
     bool                aaPreset()         const { return aaPresetId;   }
     std::string_view    defaultSave()      const { return saveDef;    }
+    // gothic-diablo: isometric ARPG camera/controls; disabled with -classic
+    bool                isArpgMode()       const { return arpgMode;     }
 
     std::string         wrldDef;
 
@@ -74,6 +76,7 @@ class CommandLine {
     bool                isBindlessSh = true;
     bool                isVsm        = false;
     bool                isRtSm       = false;
+    bool                arpgMode     = true;
     GiMethod            isGi         = GiMethod::None;
     bool                forceG1      = false;
     bool                forceG2      = false;

@@ -35,6 +35,8 @@ class SceneGlobals final {
     void setSky(const Sky& s);
     void setWorld(const WorldView& wview);
     void setUnderWater(bool w);
+    void setArpgView(bool enabled, const Tempest::Vec3& feet, const Tempest::Vec3& center,
+                     float cutHeight, float cutRadius, float fadeRadius);
 
     void setTime(uint64_t time);
     void commitUbo(uint8_t fId);
@@ -120,6 +122,12 @@ class SceneGlobals final {
       Tempest::Vec2                   cloudsDir[2] = {};
 
       float                           probeGridBias = 3;
+      // gothic-diablo: ARPG view (must match scene.glsl, std140)
+      float                           arpgPad0[3] = {};
+      Tempest::Vec4                   arpgPlayer  = {};
+      Tempest::Vec4                   arpgCenter  = {};
+      Tempest::Vec4                   arpgParams  = {};
+      Tempest::Vec4                   arpgParams2 = {};
       };
 
     Tempest::UniformBuffer<UboGlobal> uboGlobalPf[Resources::MaxFramesInFlight][V_Count];

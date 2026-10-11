@@ -12,6 +12,7 @@
 #include "utils/gthfont.h"
 #include "utils/dbgpainter.h"
 #include "gothic.h"
+#include "commandline.h"
 
 #include "utils/string_frm.h"
 
@@ -97,6 +98,8 @@ void Camera::reset(const Npc* pl) {
                        def.best_azimuth,
                        def.best_rot_z);
 
+  arpg.init     = false;
+  inter.target  = state.target;
   tickThirdPerson(-1.f);
   }
 
@@ -118,6 +121,11 @@ void Camera::load(Serialize &s, Npc* pl) {
   }
 
 void Camera::changeZoom(int delta) {
+  if(isArpgActive()) {
+    arpg.rangeDest += (delta>0 ? -100.f : 100.f);
+    arpg.rangeDest  = std::clamp(arpg.rangeDest, 500.f, 2200.f);
+    return;
+    }
   if(fpEnable)
     return;
   if(delta>0)
@@ -741,6 +749,8 @@ void Camera::tick(uint64_t dt) {
       }
     }
 
+  updateArpgView(dtF);
+
   if(auto w = Gothic::inst().world()) {
     Vec3 sh;
     w->globalFx()->shake(sh);
@@ -785,6 +795,11 @@ void Camera::tickFirstPerson(float /*dtF*/) {
   }
 
 void Camera::tickThirdPerson(float dtF) {
+  if(isArpgActive()) {
+    tickArpg(dtF);
+    return;
+    }
+
   const auto& def = cameraDef();
 
   auto mkRotMatrix = [this](Vec3 spin){
@@ -1034,4 +1049,118 @@ Matrix4x4 Camera::viewProjLwc() const {
   Matrix4x4 ret=projective();
   ret.mul(viewLwc());
   return ret;
+  }
+
+// gothic-diablo: isometric ARPG camera
+
+bool Camera::isArpgEnabled() {
+  return CommandLine::inst().isArpgMode();
+  }
+
+bool Camera::isArpgActive() const {
+  if(!isArpgEnabled() || camMarvinMod!=M_Normal)
+    return false;
+  switch(camMod) {
+    case Normal:
+    case Inventory:
+    case Melee:
+    case Ranged:
+    case Magic:
+    case Mobsi:
+    case Swim:
+    case Fall:
+      return true;
+    case Dialog:
+    case Death:
+    case Dive:
+    case Cutscene:
+    case FirstPerson:
+      return false;
+    }
+  return false;
+  }
+
+void Camera::arpgRotate(float deltaDeg) {
+  arpg.yawDest += deltaDeg;
+  }
+
+void Camera::tickArpg(float dtF) {
+  if(!arpg.init) {
+    const auto pl = Gothic::inst().player();
+    arpg.yaw     = (pl!=nullptr ? pl->rotation() : state.spin.y);
+    arpg.yawDest = arpg.yaw;
+    arpg.range   = arpg.rangeDest;
+    arpg.init    = true;
+    }
+
+  if(dtF<0.f) {
+    arpg.yaw   = arpg.yawDest;
+    arpg.range = arpg.rangeDest;
+    } else {
+    followAng(arpg.yaw, arpg.yawDest, 6.f, dtF);
+    arpg.range += (arpg.rangeDest-arpg.range)*std::min(1.f, 6.f*dtF);
+    }
+
+  const Vec3 spin = Vec3(arpg.elevation, arpg.yaw, 0);
+  state.spin      = spin;
+  inter.rotOffset = Vec3(0);
+  inter.target    = followTarget(inter.target, state.target, dtF);
+
+  // direction from target to camera, same math as in tickThirdPerson
+  auto rot = mkRotation(spin);
+  rot.inverse();
+  Vec3 dir = {0,0,1};
+  rot.project(dir);
+
+  // no collision: geometry between camera and player is hidden in shaders instead
+  origin = inter.target + dir*arpg.range;
+  angles = calcLookAtAngles(origin, inter.target, Vec3(0), spin);
+  }
+
+void Camera::updateArpgView(float dtF) {
+  arpgV = ArpgView();
+  if(!isArpgActive()) {
+    arpg.indoor     = false;
+    arpg.indoorHold = 0;
+    return;
+    }
+
+  const auto world = Gothic::inst().world();
+  const auto pl    = Gothic::inst().player();
+  if(world==nullptr || pl==nullptr)
+    return;
+
+  const Vec3 feet   = pl->position();
+  const Vec3 center = state.target;
+
+  // indoor test: something above the head (ceiling, roof, cave, overhang),
+  // or the floor belongs to an indoor sector of the world mesh
+  bool roof = false;
+  {
+    auto&      physic = *world->physic();
+    const Vec3 from   = center + Vec3(0,60,0);
+    const Vec3 to     = from   + Vec3(0,2000,0);
+    roof = physic.ray(from,to).hasCol;
+    if(!roof) {
+      auto down = physic.ray(center, feet-Vec3(0,100,0));
+      roof = down.hasCol && down.sector!=nullptr && down.sector[0]!='\0';
+      }
+  }
+
+  if(roof) {
+    arpg.indoor     = true;
+    arpg.indoorHold = 0.5f;
+    }
+  else if(dtF>0.f) {
+    arpg.indoorHold -= dtF;
+    if(arpg.indoorHold<=0.f)
+      arpg.indoor = false;
+    }
+
+  arpgV.enabled    = true;
+  arpgV.feet       = feet;
+  arpgV.center     = center;
+  arpgV.cutHeight  = arpg.indoor ? 250.f : 0.f;
+  arpgV.cutRadius  = 3000.f;
+  arpgV.fadeRadius = 0.22f;
   }

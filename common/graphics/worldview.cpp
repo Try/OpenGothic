@@ -50,6 +50,10 @@ void WorldView::preFrameUpdate(const Camera& camera, uint64_t tickCount, uint8_t
   sGlobal.setViewVsm(camera.viewShadowVsm(ldir), camera.viewShadowVsmLwc(ldir));
   sGlobal.originLwc = camera.originLwc();
   sGlobal.setUnderWater(camera.isInWater());
+  {
+    const auto& a = camera.arpgView();
+    sGlobal.setArpgView(a.enabled, a.feet, a.center, a.cutHeight, a.cutRadius, a.fadeRadius);
+  }
   sGlobal.setSky(gSky);
   sGlobal.setWorld(*this);
 

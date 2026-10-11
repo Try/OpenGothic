@@ -46,6 +46,16 @@ class Camera final {
       Tempest::Vec3 pos;
       };
 
+    // gothic-diablo: data for hiding geometry around the player in ARPG view
+    struct ArpgView {
+      bool          enabled    = false;
+      Tempest::Vec3 feet       = {};   // player feet, world space (cm)
+      Tempest::Vec3 center     = {};   // player body center, world space (cm)
+      float         cutHeight  = 0;    // cut everything above feet+cutHeight (0 = off)
+      float         cutRadius  = 0;    // horizontal radius of the cut (cm)
+      float         fadeRadius = 0;    // see-through circle radius (NDC, vertical units)
+      };
+
     void reset();
     void reset(const Npc* pl);
 
@@ -117,7 +127,30 @@ class Camera final {
     float              zNear() const;
     float              zFar()  const;
 
+    // gothic-diablo: isometric ARPG camera
+    static bool        isArpgEnabled();
+    bool               isArpgActive() const;
+    float              arpgYaw() const { return arpg.yaw; }
+    void               arpgRotate(float deltaDeg);
+    const ArpgView&    arpgView() const { return arpgV; }
+
   private:
+    struct Arpg {
+      bool  init        = false;
+      float yaw         = 0;      // world yaw, same convention as Npc::rotation()
+      float yawDest     = 0;
+      float elevation   = 55.f;   // degrees above horizon
+      float range       = 1100.f; // cm
+      float rangeDest   = 1100.f;
+      bool  indoor      = false;
+      float indoorHold  = 0;      // seconds left before 'indoor' may switch off
+      };
+    Arpg                  arpg;
+    ArpgView              arpgV;
+
+    void                  tickArpg(float dtF);
+    void                  updateArpgView(float dtF);
+
     struct Pin {
       Tempest::Vec3       origin = {};
       Tempest::Vec3       spin   = {};
