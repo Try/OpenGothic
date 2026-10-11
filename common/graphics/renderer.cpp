@@ -2708,12 +2708,12 @@ void Renderer::drawAmbient(Encoder<CommandBuffer>& cmd, const WorldView& view) {
   cmd.draw(nullptr, 0, 3);
   }
 
-Tempest::Attachment Renderer::screenshoot(uint8_t frameId) {
+Tempest::Attachment Renderer::screenshoot(uint8_t frameId, Tempest::Size size) {
   auto& device = Resources::device();
   device.waitIdle();
 
-  uint32_t w    = uint32_t(zbuffer.w());
-  uint32_t h    = uint32_t(zbuffer.h());
+  uint32_t w    = uint32_t(size.w);
+  uint32_t h    = uint32_t(size.h);
   auto     img  = device.attachment(Tempest::TextureFormat::RGBA8,w,h);
 
   auto wview  = Gothic::inst().worldView();
