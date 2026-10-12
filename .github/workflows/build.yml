@@ -16,6 +16,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: build-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   setup:
     runs-on: ubuntu-latest
@@ -159,6 +163,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           submodules: recursive
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - uses: ./.github/actions/setup-vulkan
         with:
@@ -203,6 +208,22 @@ jobs:
             build/opengothic/*.exe
             build/opengothic/*.dll
             build/opengothic/*.bat
+
+      # gothic-diablo launcher: game only (no Spacer), published as a GitHub release by the publish job
+      - name: Package for launcher
+        shell: pwsh
+        run: |
+          Push-Location build/opengothic
+          7z a -tzip -mx=5 ../../gothic-diablo-win64.zip Gothic2Notr.exe *.dll
+          Pop-Location
+
+      - name: Upload launcher package
+        uses: actions/upload-artifact@v6
+        with:
+          name: launcher-win64
+          path: gothic-diablo-win64.zip
+          retention-days: 1
+          compression-level: 0
 
   macos-arm64:
     needs: setup
@@ -265,6 +286,49 @@ jobs:
           name: opengothic_${{ needs.setup.outputs.semver }}_osx_x64
           path: |
             build/opengothic/*
+
+  # gothic-diablo launcher: every Windows build from master or a PR branch of this repo
+  # becomes a release "build-<N>"; launcher.ps1 downloads the newest one.
+  publish:
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/master') ||
+      (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
+    needs: [setup, windows]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      BRANCH: ${{ github.head_ref || github.ref_name }}
+      SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      PR: ${{ github.event.pull_request.number }}
+      BUILD: ${{ needs.setup.outputs.semver }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: launcher-win64
+
+      - name: Create release
+        run: |
+          N="${BUILD##*.}"
+          {
+            echo "branch: $BRANCH"
+            echo "commit: ${SHA:0:7}"
+            [ -n "$PR" ] && echo "pr: #$PR"
+            echo
+            gh api "repos/$GH_REPO/commits/$SHA" --jq .commit.message
+          } > notes.md
+          FLAGS=""
+          [ "$BRANCH" != "master" ] && FLAGS="--prerelease --latest=false"
+          gh release create "build-$N" gothic-diablo-win64.zip \
+            --target "$SHA" --title "#$N $BRANCH" --notes-file notes.md $FLAGS
+
+      - name: Delete old builds (keep 15)
+        run: |
+          gh release list --limit 200 --json tagName --jq '.[].tagName' \
+            | grep '^build-' | sort -t- -k2 -n -r | tail -n +16 \
+            | xargs -r -n1 gh release delete --cleanup-tag -y
 
   release:
     if: startsWith(github.ref, 'refs/tags/')
