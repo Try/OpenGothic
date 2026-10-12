@@ -1,4 +1,4 @@
 @echo off
-rem gothic-diablo: aktualizuje gre (najnowszy build z GitHuba) i uruchamia w trybie ARPG
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0launcher.ps1" %*
+rem gothic-diablo: szybki start bez okna - aktualizacja + gra w trybie ARPG
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0launcher.ps1" -Console %*
 if errorlevel 1 pause
