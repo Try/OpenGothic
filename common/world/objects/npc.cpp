@@ -887,6 +887,8 @@ Tempest::Vec3 Npc::animMoveSpeed(uint64_t dt) const {
   }
 
 void Npc::setVisual(const Skeleton* v) {
+  if(visual.visualSkeleton()==v)
+    return;
   visual.setVisual(v);
   visual.clearOverlays();
   invalidateTalentOverlays();
