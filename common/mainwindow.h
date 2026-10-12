@@ -67,6 +67,8 @@ class MainWindow : public Tempest::Window {
 
     void paintFocus     (Tempest::Painter& p, const Focus& fc, const Tempest::Matrix4x4& vp);
     void paintFocus     (Tempest::Painter& p, Tempest::Rect rect);
+    void paintArpgLabels(Tempest::Painter& p, const Tempest::Matrix4x4& vp);
+    Focus arpgLabelAt   (const Tempest::Point& pos) const;
 
     void drawBar(Tempest::Painter& p, const Tempest::Texture2d *bar, int x, int y, float v, Tempest::AlignFlag flg);
     void drawMsg(Tempest::Painter& p);
@@ -162,6 +164,14 @@ class MainWindow : public Tempest::Window {
     Tempest::Point            arpgCursor;          // gothic-diablo: visible mouse cursor (window pixels)
     bool                      arpgCursorValid = false;
     bool                      arpgLeftDown    = false;
+    bool                      arpgRightDown   = false;
+    bool                      arpgShowAll     = false; // Z held: labels of all items/usable objects in sight
+    struct ArpgLabel {
+      Tempest::Rect           rect;
+      Focus                   focus;
+      };
+    std::vector<ArpgLabel>    arpgLabels;
+    std::vector<Focus>        arpgLabelObjs;
     PlayerControl             player;
     uint64_t                  lastTick=0;
 

@@ -212,7 +212,15 @@ void MainWindow::paintEvent(PaintEvent& event) {
       drawMsg(p);
 
       auto focus = world->validateFocus(player.focus());
-      paintFocus(p,focus,vp);
+      if(arpgShowAll && isArpgMouse()) {
+        // gothic-diablo: labels of everything in sight; the hover label is drawn by paintArpgLabels
+        paintArpgLabels(p,vp);
+        if(focus.npc!=nullptr)
+          paintFocus(p,focus,vp);
+        } else {
+        arpgLabels.clear();
+        paintFocus(p,focus,vp);
+        }
 
       if(auto pl = Gothic::inst().player()){
         if (!Gothic::inst().isDesktop()) {
@@ -311,7 +319,24 @@ void MainWindow::mouseDownEvent(MouseEvent &event) {
     arpgLeftDown    = true;
     updateArpgAim();
     player.tickFocus();
+    if(arpgShowAll) {
+      // click on a label picks that object even if something else is under the cursor
+      auto w = Gothic::inst().world();
+      auto f = arpgLabelAt(event.pos());
+      if(w!=nullptr && f)
+        f = w->validateFocus(f);
+      if(f) {
+        player.arpgMouseDown(f);
+        return;
+        }
+      }
     player.arpgMouseDown();
+    return;
+    }
+  if(event.button==Event::ButtonRight && isArpgMouse()) {
+    // gothic-diablo: right button = dodge (side step / jump back)
+    arpgRightDown = true;
+    player.arpgDodge();
     return;
     }
   if(event.button<sizeof(mouseP))
@@ -325,6 +350,10 @@ void MainWindow::mouseUpEvent(MouseEvent &event) {
   if(event.button==Event::ButtonLeft && arpgLeftDown) {
     arpgLeftDown = false;
     player.arpgMouseUp();
+    return;
+    }
+  if(event.button==Event::ButtonRight && arpgRightDown) {
+    arpgRightDown = false;
     return;
     }
   auto act     = keycodec.tr(event);
@@ -521,6 +550,9 @@ void MainWindow::keyDownEvent(KeyEvent &event) {
     }
   uiKeyUp=nullptr;
 
+  if(event.key==Event::K_Z && Camera::isArpgEnabled())
+    arpgShowAll = true; // gothic-diablo: hold Z to show all items / usable objects in sight
+
   auto act     = keycodec.tr(event);
   auto mapping = keycodec.mapping(event);
   player.onKeyPressed(act,event.key,mapping);
@@ -563,6 +595,8 @@ void MainWindow::keyRepeatEvent(KeyEvent& event) {
   }
 
 void MainWindow::keyUpEvent(KeyEvent &event) {
+  if(event.key==Event::K_Z)
+    arpgShowAll = false;
   if(uiKeyUp==&video){
     video.keyUpEvent(event);
     if(event.isAccepted())
@@ -712,6 +746,80 @@ void MainWindow::paintFocus(Painter& p, const Focus& focus, const Matrix4x4& vp)
   if(auto pl = focus.interactive){
     pl->marchInteractives(p,vp,w(),h());
     }*/
+  }
+
+void MainWindow::paintArpgLabels(Painter& p, const Matrix4x4& vp) {
+  arpgLabels.clear();
+  player.arpgVisibleObjects(arpgLabelObjs);
+  if(arpgLabelObjs.empty())
+    return;
+
+  const float scale = Gothic::interfaceScale(this);
+  auto&       fnt   = Resources::font(scale);
+  const int   pad   = int(4.f*scale);
+
+  for(auto& f:arpgLabelObjs) {
+    auto name = f.displayName();
+    if(name.empty())
+      continue;
+    auto pw  = 1.f;
+    auto pos = f.displayPosition();
+    vp.project(pos.x,pos.y,pos.z,pw);
+    if(pw<=0.f)
+      continue;
+    pos /= pw;
+    if(pos.x<-1.f || pos.x>1.f || pos.y<-1.f || pos.y>1.f)
+      continue;
+    const int  ix = int((0.5f*pos.x+0.5f)*float(w()));
+    const int  iy = int((0.5f*pos.y+0.5f)*float(h()));
+    const auto ts = fnt.textSize(name);
+    ArpgLabel l;
+    l.rect  = Rect(ix-ts.w/2-pad, iy-ts.h-pad, ts.w+2*pad, ts.h+2*pad);
+    l.focus = f;
+    arpgLabels.push_back(l);
+    }
+
+  // lowest on screen (usually closest) first, then push overlapping labels upwards
+  std::sort(arpgLabels.begin(), arpgLabels.end(), [](const ArpgLabel& a, const ArpgLabel& b){
+    return a.rect.y>b.rect.y;
+    });
+  auto overlaps = [](const Rect& a, const Rect& b) {
+    return a.x<b.x+b.w && b.x<a.x+a.w && a.y<b.y+b.h && b.y<a.y+a.h;
+    };
+  for(size_t i=0; i<arpgLabels.size(); ++i) {
+    for(int iter=0; iter<12; ++iter) {
+      bool hit = false;
+      for(size_t r=0; r<i; ++r)
+        if(overlaps(arpgLabels[i].rect, arpgLabels[r].rect)) {
+          arpgLabels[i].rect.y = arpgLabels[r].rect.y - arpgLabels[i].rect.h - 1;
+          hit = true;
+          }
+      if(!hit)
+        break;
+      }
+    }
+
+  const Focus hover = arpgLabelAt(arpgCursor);
+  for(auto& l:arpgLabels) {
+    const bool hi = (l.focus.item==hover.item && l.focus.interactive==hover.interactive && bool(hover));
+    p.setBrush(Brush(hi ? Color(0.25f,0.2f,0.05f,0.8f) : Color(0.f,0.f,0.f,0.6f), Painter::Alpha));
+    p.drawRect(l.rect.x, l.rect.y, l.rect.w, l.rect.h);
+
+    auto& f = Resources::font(hi ? Resources::FontType::Hi :
+                              (l.focus.item!=nullptr ? Resources::FontType::Normal : Resources::FontType::Yellow), scale);
+    p.setBrush(Color(1.0));
+    f.drawText(p, l.rect.x+pad, l.rect.y+l.rect.h-pad, l.focus.displayName());
+    }
+  }
+
+Focus MainWindow::arpgLabelAt(const Point& pos) const {
+  // labels drawn last are on top
+  for(size_t i=arpgLabels.size(); i>0; --i) {
+    auto& l = arpgLabels[i-1];
+    if(l.rect.contains(pos))
+      return l.focus;
+    }
+  return Focus();
   }
 
 void MainWindow::paintFocus(Painter& p, Rect rect) {

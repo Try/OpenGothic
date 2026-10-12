@@ -43,6 +43,11 @@ Dachy i ściany dalej rzucają cienie (ukrywanie działa tylko w widoku kamery).
 | Ctrl + LPM: atak na dowolną postać | `arpgMouseDown` |
 | Omijanie przeszkód: prosta linia, a gdy coś zasłania — sieć waypointów; zablokowanie → waynet → rezygnacja | `arpgNextPoint` |
 | W/S/A/D przerywa ruch myszą | `PlayerControl::implMove` |
+| Wskazywanie ignoruje wycięte wyższe piętra (promień startuje od płaszczyzny cięcia; przedmioty, obiekty i postacie nad „sufitem” pomijane) | `arpgPick`, `arpgCeiling` |
+| Podnoszenie przedmiotów także z bronią w ręku (bez animacji); ponawianie, gdy postać jeszcze biegnie; zablokowany ≤3,2 m od celu → akcja i tak się wykona | `Npc::takeItem`, `arpgClickTick` |
+| Z (przytrzymanie): etykiety wszystkich przedmiotów i obiektów użytkowych w zasięgu wzroku (mgła wojny, bez ścian); klik w etykietę = podejście i akcja | `MainWindow::paintArpgLabels`, `arpgVisibleObjects` |
+| Walka: klik = jeden atak, klik w trakcie ciosu = kombinacja, przytrzymanie = ciągłe ataki; ogłuszony człowiek = cios dobijający | `arpgClickTick` |
+| Unik: PPM lub skok (Alt) z bronią w ręku — krok w bok albo odskok w tył; kierunek z W/S/A/D, bez klawiszy = od wroga; postać zostaje zwrócona do wroga | `arpgDodge`, `arpgStartDodge` |
 
 Łuki i czary — w fazie walki.
 

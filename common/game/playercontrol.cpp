@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 #include "world/objects/npc.h"
 #include "world/objects/item.h"
@@ -109,6 +110,12 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
       if(ws==WeaponState::Mage && slot==id)
         wctrl[WeaponClose] = true; else
         wctrl[id         ] = true;
+      return;
+      }
+
+    // gothic-diablo: jump key with a weapon in hand = dodge (side step / jump back)
+    if(a==Action::Jump && ws!=WeaponState::NoWeapon && c!=nullptr && c->isArpgActive()) {
+      arpgDodge();
       return;
       }
 
@@ -703,6 +710,27 @@ void PlayerControl::implMove(uint64_t dt) {
     return;
     }
 
+  // gothic-diablo: dodge
+  if(arpg) {
+    const float dtF = float(dt)/1000.f;
+    if(arpgDodgeLock>0.f) {
+      arpgDodgeLock -= dtF;
+      runAngleDest   = 0;
+      return;
+      }
+    if(arpgDodgeReq) {
+      arpgDodgeWait -= dtF;
+      if(arpgDodgeWait<=0.f || casting || pl.isFalling() || pl.isInAir() || pl.isJump() ||
+         pl.isSwim() || pl.isDive() || pl.isInWater())
+        arpgDodgeReq = false;
+      else if(arpgStartDodge(pl,rot))
+        return;
+      }
+    } else {
+    arpgDodgeReq  = false;
+    arpgDodgeLock = 0;
+    }
+
   int rotation = 0;
   if(allowRot && arpg) {
     // turn keys rotate the ARPG camera; mouse does not rotate the hero
@@ -1179,6 +1207,16 @@ static bool arpgIsHostile(const Npc& pl, const Npc& npc) {
   return npc.isEnemy(pl);
   }
 
+float PlayerControl::arpgCeiling() const {
+  // indoors everything above this height is cut away in the ARPG view: ignore it when picking
+  if(auto c = Gothic::inst().camera()) {
+    const auto& a = c->arpgView();
+    if(a.enabled && a.cutHeight>0.f)
+      return a.feet.y + a.cutHeight;
+    }
+  return std::numeric_limits<float>::max();
+  }
+
 Focus PlayerControl::arpgPick() {
   arpgGroundValid = false;
 
@@ -1190,11 +1228,22 @@ Focus PlayerControl::arpgPick() {
   auto&         physic = *w->physic();
   Tempest::Vec3 from   = arpgCursor.rayFrom;
   Tempest::Vec3 dir    = arpgCursor.rayTo - from;
-  const float   len    = dir.length();
+  float         len    = dir.length();
   if(len<1.f)
     return Focus();
   dir = dir/len;
-  const Tempest::Vec3 to = from + dir*std::min(len, 8000.f);
+  len = std::min(len, 8000.f);
+
+  // start the ray where it crosses the cut-away plane (upper floors are invisible)
+  const float ceiling = arpgCeiling();
+  if(from.y>ceiling && dir.y<0.f) {
+    const float t = (from.y-ceiling)/(-dir.y);
+    if(t<len) {
+      from += dir*t;
+      len  -= t;
+      }
+    }
+  const Tempest::Vec3 to = from + dir*len;
 
   const auto land = physic.ray(from, to);
   if(land.hasCol) {
@@ -1208,11 +1257,9 @@ Focus PlayerControl::arpgPick() {
     if(hit.npcHit!=nullptr && hit.npcHit!=pl)
       return Focus(*hit.npcHit);
   }
-  if(!arpgGroundValid)
-    return Focus();
 
-  const Tempest::Vec3 g     = arpgGround;
-  const float         scale = std::max(arpgCursor.screen.y, 1.f)/1080.f;
+  const Tempest::Vec3 center = pl->position();
+  const float         scale  = std::max(arpgCursor.screen.y, 1.f)/1080.f;
   auto screenDist = [this](const Tempest::Vec3& p) {
     Tempest::Vec4 v = {p.x, p.y, p.z, 1.f};
     arpgCursor.viewProj.project(v);
@@ -1223,12 +1270,15 @@ Focus PlayerControl::arpgPick() {
     return std::hypot(sx-arpgCursor.pixel.x, sy-arpgCursor.pixel.y);
     };
 
-  // 2. item lying near the cursor
+  // 2. item near the cursor (anywhere around the hero, not only on the floor)
   {
     Item* best  = nullptr;
-    float bestD = 40.f*scale;
-    w->forEachItemNear(g, 300.f, [&](Item& it) {
-      const float d = screenDist(it.midPosition());
+    float bestD = 45.f*scale;
+    w->forEachItemNear(center, 2500.f, [&](Item& it) {
+      const auto p = it.midPosition();
+      if(p.y>ceiling)
+        return;
+      const float d = screenDist(p);
       if(d<bestD) {
         bestD = d;
         best  = &it;
@@ -1243,11 +1293,14 @@ Focus PlayerControl::arpgPick() {
     return Focus(*land.vob);
   {
     Interactive* best  = nullptr;
-    float        bestD = 45.f*scale;
-    w->forEachInteractiveNear(g, 300.f, [&](Interactive& m) {
+    float        bestD = 50.f*scale;
+    w->forEachInteractiveNear(center, 2500.f, [&](Interactive& m) {
       if(m.focusName().empty())
         return;
-      const float d = screenDist(m.displayPosition());
+      const auto p = m.displayPosition();
+      if(m.position().y>ceiling)
+        return;
+      const float d = screenDist(p);
       if(d<bestD) {
         bestD = d;
         best  = &m;
@@ -1265,7 +1318,8 @@ Focus PlayerControl::arpgPick() {
       auto npc = w->npcById(i);
       if(npc==nullptr || npc==pl)
         continue;
-      if((npc->position()-g).quadLength() > 600.f*600.f)
+      const auto p = npc->position();
+      if(p.y>ceiling || (p-center).quadLength() > 2500.f*2500.f)
         continue;
       const float d = screenDist(npc->centerPosition());
       if(d<bestD) {
@@ -1280,6 +1334,10 @@ Focus PlayerControl::arpgPick() {
   }
 
 void PlayerControl::arpgMouseDown() {
+  arpgMouseDown(arpgHover);
+  }
+
+void PlayerControl::arpgMouseDown(const Focus& f) {
   auto w  = Gothic::inst().world();
   auto pl = w!=nullptr ? w->player() : nullptr;
   arpgClick      = ArpgClick();
@@ -1287,8 +1345,8 @@ void PlayerControl::arpgMouseDown() {
   if(pl==nullptr)
     return;
 
+  arpgHover = f;
   const bool force = ctrl[KeyCodec::ActionGeneric]; // Ctrl + click: attack anyone
-  const auto f     = arpgHover;
   if(f.npc!=nullptr) {
     arpgClick.target = Focus(*f.npc);
     if(f.npc->isDown())
@@ -1410,7 +1468,7 @@ PlayerControl::ArpgStep PlayerControl::arpgClickTick(Npc& pl, float& rot, int& r
       break;
     case ArpgClick::PickUp:
       dest  = c.target.item->position();
-      reach = 110.f;
+      reach = 180.f;
       break;
     case ArpgClick::Use:
       dest  = c.target.interactive->nearestPoint(pl);
@@ -1445,9 +1503,20 @@ PlayerControl::ArpgStep PlayerControl::arpgClickTick(Npc& pl, float& rot, int& r
     }
 
   if(!inRange) {
-    const auto  next = arpgNextPoint(pl, dest, dt);
-    if(c.kind==ArpgClick::None)
-      return ArpgStop; // gave up: stuck
+    const auto kind = c.kind;
+    arpgNextPoint(pl, dest, dt);
+    if(c.kind==ArpgClick::None) {
+      // stuck (furniture, shelves): close enough still counts for using things
+      if(kind!=ArpgClick::Ground && kind!=ArpgClick::Attack && dist2<=320.f*320.f) {
+        c.kind  = kind;
+        inRange = true;
+        } else {
+        return ArpgStop;
+        }
+      }
+    }
+  if(!inRange) {
+    const auto next = (c.path.size()>c.pathIdx) ? c.path[c.pathIdx] : dest;
     const float ang  = std::atan2(next.z-pos.z, next.x-pos.x)*180.f/float(M_PI);
     const float da   = std::remainder(ang-rot, 360.f);
     if(allowRot)
@@ -1475,7 +1544,13 @@ PlayerControl::ArpgStep PlayerControl::arpgClickTick(Npc& pl, float& rot, int& r
         return ArpgStop; // button still down: wait for the cursor to move
       break;
     case ArpgClick::PickUp:
-      interact(*c.target.item);
+      // also with a weapon in hand (Npc::takeItem skips the animation then);
+      // the hero may still be running/turning: keep trying for a moment
+      if(!pl.isDown() && pl.takeItem(*c.target.item)==nullptr) {
+        c.actTimer += float(dt)/1000.f;
+        if(c.actTimer<1.5f)
+          return ArpgStop;
+        }
       break;
     case ArpgClick::Use:
       interact(*c.target.interactive);
@@ -1492,7 +1567,7 @@ PlayerControl::ArpgStep PlayerControl::arpgClickTick(Npc& pl, float& rot, int& r
       break;
     case ArpgClick::Attack: {
       auto& tg = *c.target.npc;
-      if(tg.isDown() || tg.isDead())
+      if(tg.isDead())
         break;
       const auto ws = pl.weaponState();
       if(ws==WeaponState::NoWeapon) {
@@ -1501,17 +1576,121 @@ PlayerControl::ArpgStep PlayerControl::arpgClickTick(Npc& pl, float& rot, int& r
         }
       if(ws!=WeaponState::Fist && ws!=WeaponState::W1H && ws!=WeaponState::W2H)
         break; // bows and spells: next phase
-      if(std::fabs(faceDa)<30.f && !pl.isAttackAnim()) {
-        if(!c.held && c.swings>0)
-          break; // single click: one attack
-        if(ws==WeaponState::Fist)
-          pl.fistShoot(); else
-          pl.swingSword();
-        c.swings++;
+      if(tg.isDown()) {
+        // unconscious human: finishing move, otherwise leave it
+        if(c.swings==0 && !pl.isAttackAnim() && pl.canFinish(tg))
+          pl.finishingMove();
+        break;
+        }
+      if(std::fabs(faceDa)<45.f) {
+        // single click: one attack (clicking again during the swing continues the combo);
+        // held button: keep attacking, combos chain as soon as the animation allows
+        if(c.held || c.swings==0) {
+          if(ws==WeaponState::Fist)
+            pl.fistShoot(); else
+            pl.swingSword();
+          if(pl.isAttackAnim())
+            c.swings++;
+          }
+        else if(!pl.isAttackAnim()) {
+          break;
+          }
         }
       return ArpgStop;
       }
     }
   c = ArpgClick();
   return ArpgStop;
+  }
+
+void PlayerControl::arpgDodge() {
+  arpgDodgeReq  = true;
+  arpgDodgeWait = 0.35f; // pressed during an attack: dodge as soon as the swing can be interrupted
+  }
+
+bool PlayerControl::arpgStartDodge(Npc& pl, float& rot) {
+  auto camera = Gothic::inst().camera();
+  if(camera==nullptr)
+    return false;
+
+  // reference direction: the enemy we fight, otherwise where the hero looks
+  float face = pl.rotation();
+  Npc*  tg   = (arpgClick.kind==ArpgClick::Attack) ? arpgClick.target.npc : pl.target();
+  if(tg!=nullptr && tg!=&pl && !tg->isDown()) {
+    const auto d = tg->position()-pl.position();
+    if(d.x*d.x+d.z*d.z > 1.f && d.x*d.x+d.z*d.z < 2000.f*2000.f)
+      face = std::atan2(d.z,d.x)*180.f/float(M_PI);
+    }
+
+  // dodge direction: W/S/A/D on screen, otherwise away from the enemy
+  float dir = face+180.f;
+  const float fb = movement.forwardBackward.value();
+  const float lr = movement.strafeRightLeft.value();
+  if(fb!=0.f || lr!=0.f)
+    dir = camera->arpgYaw() + std::atan2(-lr, fb)*180.f/float(M_PI);
+
+  // Gothic has a side step (left/right) and a jump back: pick the one that keeps the hero
+  // facing the enemy best, and turn him so that the animation moves exactly towards 'dir'
+  struct Opt { Npc::Anim anim; float face; float err; };
+  Opt opt[3] = {
+    {Npc::Anim::MoveBack, dir+180.f, 0},
+    {Npc::Anim::MoveL,    dir- 90.f, 0},
+    {Npc::Anim::MoveR,    dir+ 90.f, 0},
+    };
+  for(auto& o:opt)
+    o.err = std::fabs(std::remainder(o.face-face, 360.f));
+  std::sort(std::begin(opt), std::end(opt), [](const Opt& a, const Opt& b){ return a.err<b.err; });
+
+  for(auto& o:opt) {
+    auto sq = pl.setAnimAngGet(o.anim);
+    if(sq==nullptr)
+      continue;
+    rot = o.face;
+    pl.setAnimRotate(0);
+    pl.setDirection(rot);
+    arpgDodgeReq  = false;
+    arpgDodgeLock = std::clamp(sq->totalTime()/1000.f, 0.25f, 0.9f);
+    arpgClick     = ArpgClick(); // dodging cancels the current mouse order
+    runAngleDest  = 0;
+    return true;
+    }
+  return false;
+  }
+
+void PlayerControl::arpgVisibleObjects(std::vector<Focus>& out) const {
+  out.clear();
+  auto w  = Gothic::inst().world();
+  auto pl = w!=nullptr ? w->player() : nullptr;
+  auto c  = Gothic::inst().camera();
+  if(w==nullptr || pl==nullptr || c==nullptr || !c->isArpgActive())
+    return;
+
+  const auto& view    = c->arpgView();
+  const float radius  = view.fowRadius>0.f ? view.fowRadius : 2500.f;
+  const float ceiling = arpgCeiling();
+  const auto  center  = pl->position();
+  const auto  eye     = pl->centerPosition() + Tempest::Vec3(0,50.f,0);
+  auto&       physic  = *w->physic();
+
+  // in the hero's sight: inside the fog of war and not behind a wall
+  auto visible = [&](const Tempest::Vec3& p, const Interactive* self) {
+    const auto d = p-center;
+    if(d.x*d.x+d.z*d.z > radius*radius || p.y>ceiling)
+      return false;
+    const auto land = physic.ray(eye, p);
+    if(!land.hasCol || (self!=nullptr && land.vob==self))
+      return true;
+    return (land.v-p).quadLength() < 100.f*100.f;
+    };
+
+  w->forEachItemNear(center, radius, [&](Item& it) {
+    if(visible(it.midPosition(), nullptr))
+      out.push_back(Focus(it));
+    });
+  w->forEachInteractiveNear(center, radius, [&](Interactive& m) {
+    if(m.focusName().empty())
+      return;
+    if(visible(m.displayPosition(), &m))
+      out.push_back(Focus(m));
+    });
   }

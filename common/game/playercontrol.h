@@ -62,7 +62,11 @@ class PlayerControl final {
       };
     void  setArpgCursor(const ArpgCursor& c);
     void  arpgMouseDown();
+    void  arpgMouseDown(const Focus& f);         // click on a label (show-all key held)
     void  arpgMouseUp();
+    void  arpgDodge();                           // side step / jump back
+    void  arpgVisibleObjects(std::vector<Focus>& out) const; // items and usable objects the hero can see
+    float arpgCeiling() const;                   // indoors: everything above is cut away
 
   private:
     enum WeaponAction : uint8_t {
@@ -191,6 +195,7 @@ class PlayerControl final {
       Tempest::Vec3              stuckPos    = {};
       float                      stuckTimer  = 0;
       int                        swings      = 0;
+      float                      actTimer    = 0;      // s, waiting in range for the action to succeed
       };
     enum ArpgStep : uint8_t {
       ArpgStop,
@@ -208,6 +213,11 @@ class PlayerControl final {
     ArpgStep       arpgClickTick(Npc& pl, float& rot, int& rotation, bool allowRot, uint64_t dt);
     Tempest::Vec3  arpgNextPoint(Npc& pl, const Tempest::Vec3& dest, uint64_t dt);
     bool           arpgLineClear(const Tempest::Vec3& from, const Tempest::Vec3& to) const;
+    bool           arpgStartDodge(Npc& pl, float& rot);
+
+    bool           arpgDodgeReq  = false; // dodge requested, waiting for the hero to be able to do it
+    float          arpgDodgeWait = 0;     // s, how long the request is kept
+    float          arpgDodgeLock = 0;     // s, dodge animation in progress: no steering
 
     DialogMenu&    dlg;
     InventoryMenu& inv;

@@ -3408,7 +3408,10 @@ Item* Npc::takeItem(Item& item) {
 
   const auto  dpos = item.midPosition()-centerPosition();
   const auto* sq   = setAnimAngGet(Npc::Anim::ItmGet, Pose::calcAniCombVert(dpos));
-  if(sq==nullptr)
+  // gothic-diablo: in ARPG mode the player picks items up also with a weapon in hand (no animation then)
+  const bool  arpgNoAnim = (sq==nullptr && isPlayer() && Camera::isArpgEnabled() &&
+                            weaponState()!=WeaponState::NoWeapon);
+  if(sq==nullptr && !arpgNoAnim)
     return nullptr;
 
   std::unique_ptr<Item> ptr = owner.takeItem(item);
@@ -3429,7 +3432,8 @@ Item* Npc::takeItem(Item& item) {
   if(isPlayer() && it!=nullptr)
     owner.sendPassivePerc(*this,*this,*it,PERC_ASSESSTHEFT);
 
-  implAniWait(uint64_t(sq->totalTime()));
+  if(sq!=nullptr)
+    implAniWait(uint64_t(sq->totalTime()));
   return it;
   }
 
