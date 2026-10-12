@@ -9,6 +9,9 @@ ProjectItem::ProjectItem() {
 ProjectItem::ProjectItem(std::shared_ptr<Data> data):data(data) {
   }
 
+ProjectItem::~ProjectItem() {
+  }
+
 bool ProjectItem::operator ==(const ProjectItem& other) const {
   return data==other.data;
   }

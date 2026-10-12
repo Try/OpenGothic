@@ -3,10 +3,12 @@
 #include <Tempest/Log>
 #include <Tempest/Painter>
 
+#include "ui/dialogs/openfiledialog.h"
 #include "project/projectmgr.h"
 #include "project/projectitem.h"
 #include "editorarea.h"
 #include "editorsettings.h"
+#include "editorwindow.h"
 #include "assets.h"
 
 using namespace Tempest;
@@ -40,9 +42,18 @@ RootView& RootView::inst() {
   return *instance;
   }
 
+void* RootView::mainWindow() {
+  auto w = instance->owner();
+  while(w->owner()!=nullptr)
+    w = w->owner();
+  if(auto wx = dynamic_cast<EditorWindow*>(w))
+    return wx->hwnd();
+  return nullptr;
+  }
+
 void RootView::paintEvent(PaintEvent& e) {
-  // if(!ProjectMgr::inst().hasVisibleProject())
-  //   return;
+  if(!ProjectMgr::inst().hasVisibleProject())
+    return;
   Painter p(e);
   p.setBrush(Assets::inst().colors.workspace);
   p.drawRect(0,0,w(),h());
@@ -106,13 +117,11 @@ void RootView::onRedo() {
   }
 
 bool RootView::onOpenProject() {
-  //auto proj = OpenFileDialog::getProjOpenFileName(nullptr);
-  //return onOpenProjectF(proj);
-  return true;
+  auto proj = OpenFileDialog::getProjOpenFileName("");
+  return onOpenProjectF(proj);
   }
 
 bool RootView::onOpenProjectF(const std::filesystem::path& proj) {
-  /*
   if(proj.empty() || !std::filesystem::exists(proj))
     return false;
   edit->closeAll();
@@ -120,8 +129,6 @@ bool RootView::onOpenProjectF(const std::filesystem::path& proj) {
   if(!ProjectMgr::inst().addProject(proj))
     return false;
   edit->openApp();
-  return true;
-  */
   return true;
   }
 

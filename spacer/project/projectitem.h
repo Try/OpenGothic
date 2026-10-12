@@ -14,6 +14,7 @@ class ProtoMesh;
 class ProjectItem {
   public:
     ProjectItem();
+    ~ProjectItem();
 
     bool operator == (const ProjectItem& other) const;
     bool operator != (const ProjectItem& other) const;

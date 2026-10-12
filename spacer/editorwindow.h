@@ -21,6 +21,8 @@ class EditorWindow : public Tempest::Window {
       MaxFramesInFlight = 2
       };
 
+    using Tempest::Window::hwnd;
+
   protected:
     void render() override;
 

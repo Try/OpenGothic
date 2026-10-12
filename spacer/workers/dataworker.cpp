@@ -23,10 +23,7 @@ DataWorker::DataWorker() {
   mv.scale(0.8f,1.f,1.f);
   render.scene.setViewProject(mv,p,0,1,shMv);
 
-  th = std::thread([this](){
-    Workers::setThreadName("Data thread");
-    exec();
-    });
+  implUnloadAll();
   }
 
 DataWorker::~DataWorker() {
@@ -47,8 +44,30 @@ void DataWorker::load(const ProjectItem& it) {
   instance->pushItem(it);
   }
 
+void DataWorker::unloadAll() {
+  instance->implUnloadAll();
+  }
+
 bool DataWorker::needUpdate() {
   return instance->updateHint.exchange(0)!=0;
+  }
+
+void DataWorker::implUnloadAll() {
+  {
+    std::lock_guard<std::mutex> lock(sync);
+    isExit = true;
+  }
+  workWait.notify_all();
+  if(th.joinable())
+    th.join();
+
+  std::lock_guard<std::mutex> lock(instance->sync);
+  isExit = false;
+  items.clear();
+  th = std::thread([this](){
+    Workers::setThreadName("Data thread");
+    exec();
+    });
   }
 
 void DataWorker::exec() {
