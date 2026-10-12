@@ -93,8 +93,8 @@ void main() {
 
   outColor = vec4(lum, 1.0-tr);
 
-  // gothic-diablo: indoors, paint everything outside the hero's room black
-  const float outside = arpgOutside(arpgWorldPos(inPos, z), z>=1.0);
+  // gothic-diablo: fog of war around the hero
+  const float outside = arpgFogOfWar(arpgWorldPos(inPos, z), z>=1.0);
   outColor = vec4(outColor.rgb*(1.0-outside), mix(outColor.a, 1.0, outside));
   // outColor = vec4(dbgColor.rgb, 1);
   // outColor = vec4(inPos*0.5+0.5, 0, 1);

@@ -160,15 +160,13 @@ void SceneGlobals::setUnderWater(bool w) {
 
 void SceneGlobals::setArpgView(bool enabled, const Tempest::Vec3& feet, const Tempest::Vec3& center,
                                float cutHeight, float cutRadius, float fadeRadius,
-                               bool roomMask, const float* roomRadius16, float floorDrop) {
-  static_assert(sizeof(UboGlobal)==1280, "UboGlobal must match SceneDesc in scene.glsl");
+                               float fowRadius, float fowFade) {
+  static_assert(sizeof(UboGlobal)==1216, "UboGlobal must match SceneDesc in scene.glsl");
   if(!enabled) {
     uboGlobalCpu.arpgPlayer  = {};
     uboGlobalCpu.arpgCenter  = {};
     uboGlobalCpu.arpgParams  = {};
     uboGlobalCpu.arpgParams2 = {};
-    for(auto& r:uboGlobalCpu.arpgRoom)
-      r = {};
     return;
     }
 
@@ -184,11 +182,7 @@ void SceneGlobals::setArpgView(bool enabled, const Tempest::Vec3& feet, const Te
   uboGlobalCpu.arpgPlayer  = Tempest::Vec4(feet.x,   feet.y,   feet.z,   1.f);
   uboGlobalCpu.arpgCenter  = Tempest::Vec4(center.x, center.y, center.z, cutHeight);
   uboGlobalCpu.arpgParams  = Tempest::Vec4(cutRadius, (c.w>0.f ? fadeRadius : 0.f), ndcX, ndcY);
-  uboGlobalCpu.arpgParams2 = Tempest::Vec4(aspect, dist, (roomMask ? 1.f : 0.f), floorDrop);
-  for(size_t i=0; i<4; ++i) {
-    const float* r = roomRadius16 + i*4;
-    uboGlobalCpu.arpgRoom[i] = Tempest::Vec4(r[0], r[1], r[2], r[3]);
-    }
+  uboGlobalCpu.arpgParams2 = Tempest::Vec4(aspect, dist, fowRadius, fowFade);
   }
 
 void SceneGlobals::setTime(uint64_t time) {

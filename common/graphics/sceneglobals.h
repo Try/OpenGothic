@@ -37,7 +37,7 @@ class SceneGlobals final {
     void setUnderWater(bool w);
     void setArpgView(bool enabled, const Tempest::Vec3& feet, const Tempest::Vec3& center,
                      float cutHeight, float cutRadius, float fadeRadius,
-                     bool roomMask, const float* roomRadius16, float floorDrop);
+                     float fowRadius, float fowFade);
 
     void setTime(uint64_t time);
     void commitUbo(uint8_t fId);
@@ -129,7 +129,6 @@ class SceneGlobals final {
       Tempest::Vec4                   arpgCenter  = {};
       Tempest::Vec4                   arpgParams  = {};
       Tempest::Vec4                   arpgParams2 = {};
-      Tempest::Vec4                   arpgRoom[4] = {};
       };
 
     Tempest::UniformBuffer<UboGlobal> uboGlobalPf[Resources::MaxFramesInFlight][V_Count];

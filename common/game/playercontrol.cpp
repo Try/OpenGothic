@@ -22,6 +22,7 @@ PlayerControl::~PlayerControl() {
   }
 
 void PlayerControl::setArpgAim(bool valid, const Tempest::Vec3& point) {
+  // gothic-diablo: cursor aim is kept for the combat phase; movement does not use it yet
   arpgAimValid = valid;
   arpgAimPoint = point;
   }
@@ -875,50 +876,22 @@ void PlayerControl::implMove(uint64_t dt) {
 
   const bool arpgMove = arpg && !ctrl[KeyCodec::ActionGeneric] &&
                         (pl.walkMode()&WalkBit::WM_Dive)!=WalkBit::WM_Dive;
-  if(arpg && (pl.walkMode()&WalkBit::WM_Dive)!=WalkBit::WM_Dive) {
-    // gothic-diablo: the hero faces the mouse cursor (twin-stick style, like Path of Exile 2)
-    const bool canTurn = pl.isRotationAllowed() && !inv.isActive();
-    float      aimDa   = 0.f;
-    if(arpgAimValid && canTurn) {
-      const auto dp = arpgAimPoint - pl.position();
-      if(dp.x*dp.x + dp.z*dp.z > 40.f*40.f) {
-        const float aim  = std::atan2(dp.z, dp.x)*180.f/float(M_PI);
-        const float step = 1080.f*(float(dt)/1000.f);
-        aimDa = std::remainder(aim-rot, 360.f);
-        rot  += std::clamp(aimDa, -step, step);
+  if(arpgMove) {
+    // W/S/A/D (and arrows) move up/down/left/right on screen, hero turns to the move direction
+    const float fb = movement.forwardBackward.value();
+    const float lr = movement.strafeRightLeft.value();
+    if(fb!=0.f || lr!=0.f) {
+      const float dest = camera->arpgYaw() + std::atan2(-lr, fb)*180.f/float(M_PI);
+      const float da   = std::remainder(dest-rot, 360.f);
+      if(allowRot) {
+        const float step = 900.f*(float(dt)/1000.f);
+        rot += std::clamp(da, -step, step);
         }
-      }
-
-    if(arpgMove) {
-      // W/S/A/D (and arrows) move up/down/left/right on screen
-      const float fb = movement.forwardBackward.value();
-      const float lr = movement.strafeRightLeft.value();
-      if(fb!=0.f || lr!=0.f) {
-        const float dest = camera->arpgYaw() + std::atan2(-lr, fb)*180.f/float(M_PI);
-        if(!arpgAimValid) {
-          // no cursor: turn to the move direction
-          const float da = std::remainder(dest-rot, 360.f);
-          if(canTurn) {
-            const float step = 900.f*(float(dt)/1000.f);
-            rot += std::clamp(da, -step, step);
-            }
-          ani = Npc::Anim::Move;
-          } else {
-          // pick the animation from the move direction relative to where the hero looks
-          const float rel = std::remainder(dest-rot, 360.f);
-          if(std::fabs(rel)<=50.f)
-            ani = Npc::Anim::Move;
-          else if(rel>50.f && rel<130.f)
-            ani = Npc::Anim::MoveL;
-          else if(rel<-50.f && rel>-130.f)
-            ani = Npc::Anim::MoveR;
-          else
-            ani = Npc::Anim::MoveBack;
-          }
-        }
-      else if(std::fabs(aimDa)>5.f) {
-        // turning in place
-        rotation = (aimDa>0.f) ? -1 : 1;
+      if(std::fabs(da)<100.f || !allowRot) {
+        ani = Npc::Anim::Move;
+        } else {
+        ani      = Npc::Anim::Idle;
+        rotation = (da>0.f) ? -1 : 1;
         }
       }
     }

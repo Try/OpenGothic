@@ -42,8 +42,7 @@ struct SceneDesc {
   vec4  arpgPlayer;  // xyz = hero feet (world), w = 1 when active for this view
   vec4  arpgCenter;  // xyz = hero body center (world), w = cut height above feet (0 = no cut)
   vec4  arpgParams;  // x = cut radius, y = see-through radius (NDC), zw = hero center (NDC)
-  vec4  arpgParams2; // x = aspect (w/h), y = distance camera->hero center, z = 1 when room mask is active, w = floor drop (cm)
-  vec4  arpgRoom[4]; // 16 room radii (cm) around the hero, ray i points at angle i*22.5 deg in xz
+  vec4  arpgParams2; // x = aspect (w/h), y = distance camera->hero center, z = fog of war radius (cm, 0 = off), w = fog of war fade (cm)
   };
 
 struct LightSource {
