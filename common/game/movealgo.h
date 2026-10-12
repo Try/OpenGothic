@@ -93,6 +93,15 @@ class MoveAlgo final {
 
     bool    checkLastBounce() const;
 
+    // gothic-diablo: last blocked move (for the click-to-move obstacle avoidance)
+    struct MoveFail {
+      Tempest::Vec3 normal = {};   // collision normal (sign not guaranteed)
+      Tempest::Vec3 dir    = {};   // attempted move
+      uint64_t      time   = 0;    // world tick of the failure
+      bool          npc    = false;
+      };
+    const MoveFail& lastMoveFail() const { return moveFail; }
+
   private:
     void    tickMobsi (uint64_t dt);
     void    tickClimb (uint64_t dt);
@@ -158,6 +167,7 @@ class MoveAlgo final {
 
     uint64_t            diveStart  = 0;
     uint64_t            lastBounce = 0;
+    MoveFail            moveFail;
 
     static const float   gravity;
     static const float   eps;

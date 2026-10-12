@@ -915,6 +915,11 @@ void MoveAlgo::onMoveFailed(const Tempest::Vec3& dp, const DynamicWorld::Collisi
   if(dp==Tempest::Vec3())
     return;
 
+  moveFail.normal = info.normal;
+  moveFail.dir    = dp;
+  moveFail.time   = npc.world().tickCount();
+  moveFail.npc    = (info.npc!=nullptr);
+
   const auto  ortho   = Tempest::Vec3::crossProduct(Tempest::Vec3::normalize(dp),Tempest::Vec3(0,1,0));
   const float stp     = speed*float(dt)/1000.f;
   const float val     = Tempest::Vec3::dotProduct(ortho,info.normal);

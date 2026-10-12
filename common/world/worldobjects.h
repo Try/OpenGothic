@@ -122,6 +122,12 @@ class WorldObjects final {
     bool           testFocusNpc       (const Npc &pl, Npc *def, const SearchOpt& opt);
 
     Interactive*   findInteractive(const Npc& pl, Interactive *def, const SearchOpt& opt);
+
+    // gothic-diablo: spatial queries for picking objects under the mouse cursor
+    template<class F>
+    void           forEachItemNear       (const Tempest::Vec3& p, float R, const F& f) { items.find(p,R,f); }
+    template<class F>
+    void           forEachInteractiveNear(const Tempest::Vec3& p, float R, const F& f) { interactiveObj.find(p,R,f); }
     Npc*           findNpcNear    (const Npc& pl, Npc* def, const SearchOpt& opt);
     Item*          findItem       (const Npc& pl, Item* def, const SearchOpt& opt);
 

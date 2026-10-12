@@ -67,6 +67,12 @@ class MainWindow : public Tempest::Window {
 
     void paintFocus     (Tempest::Painter& p, const Focus& fc, const Tempest::Matrix4x4& vp);
     void paintFocus     (Tempest::Painter& p, Tempest::Rect rect);
+    void paintArpgLabels(Tempest::Painter& p, const Tempest::Matrix4x4& vp, const Focus& hover);
+    void paintArpgFocus (Tempest::Painter& p, const Focus& fc, const Tempest::Matrix4x4& vp);
+    void paintArpgCombo (Tempest::Painter& p, const Tempest::Matrix4x4& vp);
+    bool arpgLabelRect  (const Focus& f, const Tempest::Matrix4x4& vp, Tempest::Rect& out) const;
+    void drawArpgLabel  (Tempest::Painter& p, const Tempest::Rect& r, const Focus& f, bool hi);
+    Focus arpgLabelAt   (const Tempest::Point& pos) const;
 
     void drawBar(Tempest::Painter& p, const Tempest::Texture2d *bar, int x, int y, float v, Tempest::AlignFlag flg);
     void drawMsg(Tempest::Painter& p);
@@ -91,6 +97,7 @@ class MainWindow : public Tempest::Window {
     void processMouse(Tempest::MouseEvent& event, bool enable);
     void tickMouse(uint64_t dt);
     void updateArpgAim();
+    bool isArpgMouse() const;
     void onSettings();
 
     void setupUi();
@@ -160,6 +167,19 @@ class MainWindow : public Tempest::Window {
     Tempest::Point            dMouse;
     Tempest::Point            arpgCursor;          // gothic-diablo: visible mouse cursor (window pixels)
     bool                      arpgCursorValid = false;
+    bool                      arpgLeftDown    = false;
+    bool                      arpgRightDown   = false;
+    bool                      arpgMidDown     = false; // middle button: drag = rotate the camera, click = original binding
+    bool                      arpgMidRotating = false;
+    Tempest::Point            arpgMidStart;
+    Tempest::Point            arpgMidLast;
+    bool                      arpgShowAll     = false; // Z held: labels of all items/usable objects in sight
+    struct ArpgLabel {
+      Tempest::Rect           rect;
+      Focus                   focus;
+      };
+    std::vector<ArpgLabel>    arpgLabels;
+    std::vector<Focus>        arpgLabelObjs;
     PlayerControl             player;
     uint64_t                  lastTick=0;
 

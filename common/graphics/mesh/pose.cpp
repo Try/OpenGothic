@@ -10,6 +10,7 @@
 #include "animmath.h"
 
 #include <cmath>
+#include <algorithm>
 
 using namespace Tempest;
 
@@ -788,6 +789,45 @@ const Animation::Sequence* Pose::continueCombo(const AnimationSolver &solver, co
 
 uint16_t Pose::comboLength() const {
   return combo.len();
+  }
+
+Pose::ComboTiming Pose::comboTiming(uint64_t tickCount) const {
+  ComboTiming r;
+  for(auto& i:lay) {
+    if(!i.seq->isAttackAnim() || i.seq->data==nullptr)
+      continue;
+    auto& d = *i.seq->data;
+    if(d.defWindow.empty() || d.defHitEnd.empty())
+      continue;
+    r.attack = true;
+    r.broken = combo.isBreak();
+    r.len    = combo.len();
+
+    const size_t id = size_t(combo.len())*2;
+    if(id+1>=d.defWindow.size()) {
+      r.last = true;
+      return r;
+      }
+    // continueCombo shifts sAnim, so that 't' of a chained hit starts at the previous hit-end
+    const int64_t t  = int64_t(tickCount) - int64_t(i.sAnim);
+    const int64_t t0 = (combo.len()>0 && size_t(combo.len()-1)<d.defHitEnd.size()) ? int64_t(d.defHitEnd[combo.len()-1]) : 0;
+    const int64_t w0 = int64_t(d.defWindow[id+0]);
+    const int64_t w1 = int64_t(d.defWindow[id+1]);
+    if(t<=w0) {
+      r.progress = (w0>t0) ? std::clamp(float(t-t0)/float(w0-t0), 0.f, 1.f) : 1.f;
+      }
+    else if(t<=w1) {
+      r.open       = true;
+      r.progress   = 1.f;
+      r.windowLeft = (w1>w0) ? std::clamp(float(w1-t)/float(w1-w0), 0.f, 1.f) : 0.f;
+      }
+    else {
+      r.missed   = true;
+      r.progress = 1.f;
+      }
+    return r;
+    }
+  return r;
   }
 
 const Tempest::Matrix4x4 Pose::rootNode() const {

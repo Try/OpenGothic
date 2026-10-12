@@ -3408,7 +3408,10 @@ Item* Npc::takeItem(Item& item) {
 
   const auto  dpos = item.midPosition()-centerPosition();
   const auto* sq   = setAnimAngGet(Npc::Anim::ItmGet, Pose::calcAniCombVert(dpos));
-  if(sq==nullptr)
+  // gothic-diablo: in ARPG mode the player picks items up also with a weapon in hand (no animation then)
+  const bool  arpgNoAnim = (sq==nullptr && isPlayer() && Camera::isArpgEnabled() &&
+                            weaponState()!=WeaponState::NoWeapon);
+  if(sq==nullptr && !arpgNoAnim)
     return nullptr;
 
   std::unique_ptr<Item> ptr = owner.takeItem(item);
@@ -3429,7 +3432,8 @@ Item* Npc::takeItem(Item& item) {
   if(isPlayer() && it!=nullptr)
     owner.sendPassivePerc(*this,*this,*it,PERC_ASSESSTHEFT);
 
-  implAniWait(uint64_t(sq->totalTime()));
+  if(sq!=nullptr)
+    implAniWait(uint64_t(sq->totalTime()));
   return it;
   }
 
@@ -3817,8 +3821,8 @@ bool Npc::doAttack(Anim anim, BodyState bs) {
   return false;
   }
 
-void Npc::fistShoot() {
-  doAttack(Anim::Attack,BS_HIT);
+bool Npc::fistShoot() {
+  return doAttack(Anim::Attack,BS_HIT);
   }
 
 bool Npc::blockFist() {
@@ -3842,11 +3846,11 @@ bool Npc::finishingMove() {
   return false;
   }
 
-void Npc::swingSword() {
+bool Npc::swingSword() {
   auto active=invent.activeWeapon();
   if(active==nullptr)
-    return;
-  doAttack(Anim::Attack,BS_HIT);
+    return false;
+  return doAttack(Anim::Attack,BS_HIT);
   }
 
 bool Npc::swingSwordL() {
@@ -4150,6 +4154,10 @@ bool Npc::isTalk() const {
 
 bool Npc::isAttackAnim() const {
   return visual.pose().isAttackAnim();
+  }
+
+Pose::ComboTiming Npc::comboTiming() const {
+  return visual.pose().comboTiming(owner.tickCount());
   }
 
 bool Npc::isPrehit() const {

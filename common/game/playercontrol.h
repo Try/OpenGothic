@@ -5,6 +5,9 @@
 #include "constants.h"
 
 #include <array>
+#include <vector>
+
+#include <Tempest/Matrix4x4>
 
 class DialogMenu;
 class InventoryMenu;
@@ -48,8 +51,24 @@ class PlayerControl final {
     bool  tickMove(uint64_t dt);
     bool  tickCameraMove(uint64_t dt);
 
-    // gothic-diablo: world point under the mouse cursor; the hero faces it in ARPG mode
-    void  setArpgAim(bool valid, const Tempest::Vec3& point);
+    // gothic-diablo: mouse cursor in ARPG mode (Diablo-like click to move / interact / attack)
+    struct ArpgCursor {
+      bool               valid   = false;
+      Tempest::Vec3      rayFrom = {};   // world space point on the near plane under the cursor
+      Tempest::Vec3      rayTo   = {};   // world space point on the far plane under the cursor
+      Tempest::Matrix4x4 viewProj;
+      Tempest::Vec2      pixel   = {};   // cursor position, window pixels
+      Tempest::Vec2      screen  = {};   // window size, pixels
+      };
+    void  setArpgCursor(const ArpgCursor& c);
+    void  arpgMouseDown();
+    void  arpgMouseDown(const Focus& f);         // click on a label (show-all key held)
+    void  arpgMouseUp();
+    void  arpgDodge();                           // side step / jump back
+    void  arpgVisibleObjects(std::vector<Focus>& out) const; // items and usable objects the hero can see
+    float arpgCeiling() const;                   // indoors: everything above is cut away
+    bool  arpgIsEnemy(const Npc& npc) const;     // would be attacked by a click
+    bool  arpgAttackQueued() const;              // an attack waits for its moment (combo window)
 
   private:
     enum WeaponAction : uint8_t {
@@ -156,8 +175,60 @@ class PlayerControl final {
     int            rotationAni    = 0;
     bool           g2Ctrl         = false;
 
-    bool           arpgAimValid   = false;
-    Tempest::Vec3  arpgAimPoint   = {};
+    // gothic-diablo: click-to-move / interact / attack
+    struct ArpgClick {
+      enum Kind : uint8_t {
+        None,
+        Ground,
+        PickUp,
+        Use,
+        Talk,
+        Loot,
+        Attack,
+        };
+      Kind                       kind        = None;
+      bool                       held        = false;  // left mouse button still down
+      Focus                      target;
+      Tempest::Vec3              point       = {};
+      std::vector<Tempest::Vec3> path;
+      size_t                     pathIdx     = 0;
+      float                      repathTimer = 0;
+      bool                       useWaynet   = false;
+      Tempest::Vec3              stuckPos    = {};
+      float                      stuckTimer  = 0;
+      int                        stuckCount  = 0;
+      int                        avoidSide   = 0;      // +1 / -1: side we walk around obstacles on
+      float                      detourAng   = 0;      // direction along the obstacle we bumped into
+      float                      detourTime  = 0;
+      uint64_t                   lastFail    = 0;      // last handled MoveAlgo::MoveFail::time
+      int                        swings      = 0;
+      float                      actTimer    = 0;      // s, waiting in range for the action to succeed
+      };
+    enum ArpgStep : uint8_t {
+      ArpgStop,
+      ArpgTurn,
+      ArpgMove,
+      };
+
+    ArpgCursor     arpgCursor;
+    ArpgClick      arpgClick;
+    Focus          arpgHover;
+    Tempest::Vec3  arpgGround      = {};
+    bool           arpgGroundValid = false;
+
+    Focus          arpgPick();
+    ArpgStep       arpgClickTick(Npc& pl, float& rot, int& rotation, bool allowRot, uint64_t dt);
+    Tempest::Vec3  arpgNextPoint(Npc& pl, const Tempest::Vec3& dest, uint64_t dt);
+    bool           arpgLineClear(const Tempest::Vec3& from, const Tempest::Vec3& to) const;
+    bool           arpgStartDodge(Npc& pl, float& rot);
+    float          arpgSteer(Npc& pl, const Tempest::Vec3& next, uint64_t dt);
+    bool           arpgCanSee(const Tempest::Vec3& p, float baseY, const Interactive* self) const;
+    bool           arpgFeelerClear(const Npc& pl, float ang, float len) const;
+    float          arpgFreeDistance(const Npc& pl, float ang) const;
+
+    bool           arpgDodgeReq  = false; // dodge requested, waiting for the hero to be able to do it
+    float          arpgDodgeWait = 0;     // s, how long the request is kept
+    float          arpgDodgeLock = 0;     // s, dodge animation in progress: no steering
 
     DialogMenu&    dlg;
     InventoryMenu& inv;

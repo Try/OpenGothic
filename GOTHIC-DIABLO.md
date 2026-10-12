@@ -20,7 +20,7 @@ Fork [OpenGothic](https://github.com/Try/OpenGothic): Gothic II Noc Kruka jako i
 | Zoom kółkiem myszy (5–22 m) | `Camera::changeZoom` |
 | Q / E (klawisze obrotu) obracają kamerę | `PlayerControl::implMove` |
 | W/S/A/D = góra/dół/lewo/prawo ekranu, postać obraca się w stronę ruchu | `PlayerControl::implMove` |
-| Widoczny, wolny kursor myszy; jego punkt w świecie liczony co klatkę (na razie nieużywany — wróci przy walce) | `MainWindow::updateArpgAim` |
+| Widoczny, wolny kursor myszy; promień spod kursora liczony co klatkę | `MainWindow::updateArpgAim` |
 | Wnętrza: wycięcie wszystkiego powyżej głowy (sufity, dachy, piętra) w promieniu 30 m | `shader/materials/main.frag` — `arpgHidden` |
 | Ściany między kamerą a postacią: przezroczysty krąg (siatka pikseli), promień 0,275 wysokości ekranu | `shader/materials/main.frag` — `arpgHidden` |
 | Wnętrza: ogień/pochodnie (particle) nad głową też są wycinane | `shader/materials/main.frag` — `arpgHidden` |
@@ -29,3 +29,30 @@ Fork [OpenGothic](https://github.com/Try/OpenGothic): Gothic II Noc Kruka jako i
 
 Dialogi, śmierć, nurkowanie i widok z pierwszej osoby używają oryginalnej kamery.
 Dachy i ściany dalej rzucają cienie (ukrywanie działa tylko w widoku kamery).
+
+## Faza 2 — sterowanie myszą (jak Diablo)
+
+| Element | Gdzie |
+|---|---|
+| Podświetlenie obiektu pod kursorem (nazwa / pasek życia jak fokus w Gothicu): postać, przedmiot, obiekt użytkowy | `PlayerControl::arpgPick` |
+| LPM na ziemi: bieg do punktu; przytrzymanie: postać podąża za kursorem | `PlayerControl::arpgMouseDown`, `arpgClickTick` |
+| LPM na przedmiocie: podejście i podniesienie | `arpgClickTick` |
+| LPM na skrzyni / drzwiach / łóżku itp.: podejście i użycie | `arpgClickTick` |
+| LPM na postaci: podejście i rozmowa (broń chowana automatycznie); na ciele: przeszukanie | `arpgClickTick` |
+| LPM na wrogu (potwór, ork, wrogi człowiek): dobycie broni w biegu, podejście, atak; przytrzymanie = kolejne ataki | `arpgClickTick` |
+| Ctrl + LPM: atak na dowolną postać | `arpgMouseDown` |
+| Omijanie przeszkód: prosta linia, a gdy coś zasłania — sieć waypointów (co 0,5 s) | `arpgNextPoint` |
+| Omijanie lokalne („jak robot sprzątający”): po zderzeniu marsz wzdłuż przeszkody po stronie bliższej celowi (normalna kolizji z `MoveAlgo::onMoveFailed`), „czułki” — 2 promienie na wysokości klatki piersiowej — skręt o 30/60/90° w stronę wolną, trzymanie się jednej strony | `arpgSteer`, `arpgFeelerClear`, `MoveAlgo::lastMoveFail` |
+| Zablokowanie: brak postępu przez 0,4 s → druga strona; 2× → waynet; 4× (~1,6 s) → rezygnacja | `arpgNextPoint` |
+| Obrót kamery: Q/E (zawsze, także w walce) albo przeciąganie środkowym przyciskiem; kąt nachylenia stały; zwykły klik środkowym = dotychczasowe przypisanie (np. broń) | `PlayerControl::tickMove`, `MainWindow::mouseDragEvent` |
+| W/S/A/D przerywa ruch myszą | `PlayerControl::implMove` |
+| Wskazywanie ignoruje wycięte wyższe piętra (promień startuje od płaszczyzny cięcia; przedmioty, obiekty i postacie nad „sufitem” pomijane) | `arpgPick`, `arpgCeiling` |
+| Wskazywanie według tych samych zasad co Z: tylko to, co postać widzi (zasięg mgły wojny, linia wzroku od oczu — bez rzeczy za ścianą i piętro niżej); etykieta pod kursorem w stylu Z, wrogowie na czerwono | `arpgPick`, `arpgCanSee`, `MainWindow::paintArpgFocus` |
+| Podnoszenie przedmiotów także z bronią w ręku (bez animacji); ponawianie, gdy postać jeszcze biegnie; zablokowany ≤3,2 m od celu → akcja i tak się wykona | `Npc::takeItem`, `arpgClickTick` |
+| Z (przytrzymanie): etykiety wszystkich przedmiotów i obiektów użytkowych w zasięgu wzroku (mgła wojny, bez ścian); klik w etykietę = podejście i akcja | `MainWindow::paintArpgLabels`, `arpgVisibleObjects` |
+| Walka: klik = jeden atak; klik w trakcie ciosu zostaje zapamiętany i wykonany dokładnie w oknie kombinacji (nigdy za wcześnie — Gothic wtedy przerywa combo); przytrzymanie = ciągłe ataki łączone w kombinacje; ogłuszony człowiek = cios dobijający | `arpgClickTick`, `Pose::comboTiming` |
+| Wskaźnik combo nad postacią: pasek napełnia się do momentu kolejnego ciosu, złoty = teraz (kurczy się do końca okna), czerwony = przerwane; złote kwadraty = połączone ciosy, biała kropka = cios w kolejce | `MainWindow::paintArpgCombo` |
+| Unik: PPM lub skok (Alt) z bronią w ręku — krok w bok albo odskok w tył; kierunek z W/S/A/D, bez klawiszy = od wroga; postać zostaje zwrócona do wroga | `arpgDodge`, `arpgStartDodge` |
+
+Łuki i czary — w fazie walki.
+

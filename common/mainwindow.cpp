@@ -212,7 +212,18 @@ void MainWindow::paintEvent(PaintEvent& event) {
       drawMsg(p);
 
       auto focus = world->validateFocus(player.focus());
-      paintFocus(p,focus,vp);
+      if(isArpgMouse()) {
+        // gothic-diablo: labels like in Diablo; Z = labels of everything in sight
+        if(arpgShowAll)
+          paintArpgLabels(p,vp,focus); else
+          arpgLabels.clear();
+        if(!arpgShowAll || focus.npc!=nullptr)
+          paintArpgFocus(p,focus,vp);
+        paintArpgCombo(p,vp);
+        } else {
+        arpgLabels.clear();
+        paintFocus(p,focus,vp);
+        }
 
       if(auto pl = Gothic::inst().player()){
         if (!Gothic::inst().isDesktop()) {
@@ -304,6 +315,41 @@ void MainWindow::resizeEvent(SizeEvent&) {
   }
 
 void MainWindow::mouseDownEvent(MouseEvent &event) {
+  if(event.button==Event::ButtonLeft && isArpgMouse()) {
+    // gothic-diablo: left button = move / interact / attack under the cursor
+    arpgCursor      = event.pos();
+    arpgCursorValid = true;
+    arpgLeftDown    = true;
+    updateArpgAim();
+    player.tickFocus();
+    if(arpgShowAll) {
+      // click on a label picks that object even if something else is under the cursor
+      auto w = Gothic::inst().world();
+      auto f = arpgLabelAt(event.pos());
+      if(w!=nullptr && f)
+        f = w->validateFocus(f);
+      if(f) {
+        player.arpgMouseDown(f);
+        return;
+        }
+      }
+    player.arpgMouseDown();
+    return;
+    }
+  if(event.button==Event::ButtonMid && isArpgMouse()) {
+    // gothic-diablo: middle button drag = rotate the camera; a plain click keeps its binding
+    arpgMidDown     = true;
+    arpgMidRotating = false;
+    arpgMidStart    = event.pos();
+    arpgMidLast     = event.pos();
+    return;
+    }
+  if(event.button==Event::ButtonRight && isArpgMouse()) {
+    // gothic-diablo: right button = dodge (side step / jump back)
+    arpgRightDown = true;
+    player.arpgDodge();
+    return;
+    }
   if(event.button<sizeof(mouseP))
     mouseP[event.button]=true;
   auto act     = keycodec.tr(event);
@@ -312,6 +358,26 @@ void MainWindow::mouseDownEvent(MouseEvent &event) {
   }
 
 void MainWindow::mouseUpEvent(MouseEvent &event) {
+  if(event.button==Event::ButtonLeft && arpgLeftDown) {
+    arpgLeftDown = false;
+    player.arpgMouseUp();
+    return;
+    }
+  if(event.button==Event::ButtonRight && arpgRightDown) {
+    arpgRightDown = false;
+    return;
+    }
+  if(event.button==Event::ButtonMid && arpgMidDown) {
+    arpgMidDown = false;
+    if(!arpgMidRotating) {
+      auto act     = keycodec.tr(event);
+      auto mapping = keycodec.mapping(event);
+      player.onKeyPressed (act,KeyEvent::K_NoKey,mapping);
+      player.onKeyReleased(act,mapping);
+      }
+    arpgMidRotating = false;
+    return;
+    }
   auto act     = keycodec.tr(event);
   auto mapping = keycodec.mapping(event);
   player.onKeyReleased(act,mapping);
@@ -321,6 +387,15 @@ void MainWindow::mouseUpEvent(MouseEvent &event) {
 
 void MainWindow::mouseDragEvent(MouseEvent &event) {
   if(Camera::isArpgEnabled()) {
+    if(arpgMidDown) {
+      if(!arpgMidRotating && std::abs(event.x-arpgMidStart.x)>6)
+        arpgMidRotating = true;
+      if(arpgMidRotating) {
+        if(auto c = Gothic::inst().camera())
+          c->arpgRotate(-float(event.x-arpgMidLast.x)*0.3f);
+        }
+      arpgMidLast = event.pos();
+      }
     arpgCursor      = event.pos();
     arpgCursorValid = true;
     return;
@@ -395,43 +470,45 @@ void MainWindow::tickMouse(uint64_t dt) {
   }
 
 void MainWindow::updateArpgAim() {
-  // gothic-diablo: project the mouse cursor onto a horizontal plane at the hero's waist
+  // gothic-diablo: world ray under the mouse cursor, for picking and click-to-move
+  PlayerControl::ArpgCursor cur;
   auto camera = Gothic::inst().camera();
   auto pl     = Gothic::inst().player();
   if(!Camera::isArpgEnabled() || !arpgCursorValid || camera==nullptr || pl==nullptr ||
      !camera->isArpgActive() || w()<=0 || h()<=0) {
-    player.setArpgAim(false, Vec3());
+    player.setArpgCursor(cur);
     return;
     }
 
   const float x = (float(arpgCursor.x)+0.5f)/float(w())*2.f - 1.f;
   const float y = (float(arpgCursor.y)+0.5f)/float(h())*2.f - 1.f;
 
-  auto inv = camera->viewProj();
+  const auto vp  = camera->viewProj();
+  auto       inv = vp;
   inv.inverse();
   Vec4 p0 = {x, y, 0.f, 1.f};
   Vec4 p1 = {x, y, 1.f, 1.f};
   inv.project(p0);
   inv.project(p1);
   if(p0.w==0.f || p1.w==0.f) {
-    player.setArpgAim(false, Vec3());
+    player.setArpgCursor(cur);
     return;
     }
 
-  const Vec3  a      = Vec3(p0.x, p0.y, p0.z)/p0.w;
-  const Vec3  b      = Vec3(p1.x, p1.y, p1.z)/p1.w;
-  const Vec3  dir    = b - a;
-  const float planeY = pl->position().y + 100.f;
-  if(std::abs(dir.y)<1e-4f) {
-    player.setArpgAim(false, Vec3());
-    return;
-    }
-  const float t = (planeY - a.y)/dir.y;
-  if(t<0.f) {
-    player.setArpgAim(false, Vec3());
-    return;
-    }
-  player.setArpgAim(true, a + dir*t);
+  cur.valid    = true;
+  cur.rayFrom  = Vec3(p0.x, p0.y, p0.z)/p0.w;
+  cur.rayTo    = Vec3(p1.x, p1.y, p1.z)/p1.w;
+  cur.viewProj = vp;
+  cur.pixel    = Vec2(float(arpgCursor.x), float(arpgCursor.y));
+  cur.screen   = Vec2(float(w()), float(h()));
+  player.setArpgCursor(cur);
+  }
+
+bool MainWindow::isArpgMouse() const {
+  auto camera = Gothic::inst().camera();
+  return Camera::isArpgEnabled() && camera!=nullptr && camera->isArpgActive() &&
+         Gothic::inst().player()!=nullptr &&
+         !dialogs.isActive() && !inventory.isActive() && !document.isActive();
   }
 
 void MainWindow::onSettings() {
@@ -504,6 +581,9 @@ void MainWindow::keyDownEvent(KeyEvent &event) {
     }
   uiKeyUp=nullptr;
 
+  if(event.key==Event::K_Z && Camera::isArpgEnabled())
+    arpgShowAll = true; // gothic-diablo: hold Z to show all items / usable objects in sight
+
   auto act     = keycodec.tr(event);
   auto mapping = keycodec.mapping(event);
   player.onKeyPressed(act,event.key,mapping);
@@ -546,6 +626,8 @@ void MainWindow::keyRepeatEvent(KeyEvent& event) {
   }
 
 void MainWindow::keyUpEvent(KeyEvent &event) {
+  if(event.key==Event::K_Z)
+    arpgShowAll = false;
   if(uiKeyUp==&video){
     video.keyUpEvent(event);
     if(event.isAccepted())
@@ -695,6 +777,170 @@ void MainWindow::paintFocus(Painter& p, const Focus& focus, const Matrix4x4& vp)
   if(auto pl = focus.interactive){
     pl->marchInteractives(p,vp,w(),h());
     }*/
+  }
+
+bool MainWindow::arpgLabelRect(const Focus& f, const Matrix4x4& vp, Rect& out) const {
+  auto name = f.displayName();
+  if(name.empty())
+    return false;
+  auto pw  = 1.f;
+  auto pos = f.displayPosition();
+  vp.project(pos.x,pos.y,pos.z,pw);
+  if(pw<=0.f)
+    return false;
+  pos /= pw;
+  if(pos.x<-1.f || pos.x>1.f || pos.y<-1.f || pos.y>1.f)
+    return false;
+  const float scale = Gothic::interfaceScale(this);
+  auto&       fnt   = Resources::font(scale);
+  const int   pad   = int(4.f*scale);
+  const int   ix    = int((0.5f*pos.x+0.5f)*float(w()));
+  const int   iy    = int((0.5f*pos.y+0.5f)*float(h()));
+  const auto  ts    = fnt.textSize(name);
+  out = Rect(ix-ts.w/2-pad, iy-ts.h-pad, ts.w+2*pad, ts.h+2*pad);
+  out.y = std::clamp(out.y, 0, std::max(0, h()-out.h));
+  return true;
+  }
+
+void MainWindow::drawArpgLabel(Painter& p, const Rect& r, const Focus& f, bool hi) {
+  const float scale = Gothic::interfaceScale(this);
+  const int   pad   = int(4.f*scale);
+  const bool  enemy = (f.npc!=nullptr && player.arpgIsEnemy(*f.npc));
+
+  p.setBrush(Brush(hi ? Color(0.25f,0.2f,0.05f,0.8f) : Color(0.f,0.f,0.f,0.6f), Painter::Alpha));
+  p.drawRect(r.x, r.y, r.w, r.h);
+
+  auto type = Resources::FontType::Normal;
+  if(enemy)
+    type = Resources::FontType::Red;
+  else if(hi)
+    type = Resources::FontType::Hi;
+  else if(f.interactive!=nullptr)
+    type = Resources::FontType::Yellow;
+  auto& fnt = Resources::font(type, scale);
+  p.setBrush(Color(1.0));
+  fnt.drawText(p, r.x+pad, r.y+r.h-pad, f.displayName());
+  }
+
+void MainWindow::paintArpgFocus(Painter& p, const Focus& focus, const Matrix4x4& vp) {
+  if(!focus || dialogs.isActive())
+    return;
+  Rect r;
+  if(arpgLabelRect(focus, vp, r))
+    drawArpgLabel(p, r, focus, true);
+  if(focus.npc!=nullptr && !focus.npc->isDead()) {
+    float hp = float(focus.npc->attribute(ATR_HITPOINTS))/float(std::max(1,focus.npc->attribute(ATR_HITPOINTSMAX)));
+    drawBar(p,barHp, w()/2,10, hp, AlignHCenter|AlignTop);
+    }
+  }
+
+void MainWindow::paintArpgCombo(Painter& p, const Matrix4x4& vp) {
+  // small bar above the hero: fills up until the moment for the next combo hit, gold = now
+  auto pl = Gothic::inst().player();
+  if(pl==nullptr || dialogs.isActive() || inventory.isActive())
+    return;
+  const auto ws = pl->weaponState();
+  if(ws!=WeaponState::Fist && ws!=WeaponState::W1H && ws!=WeaponState::W2H)
+    return;
+  const auto ct = pl->comboTiming();
+  if(!ct.attack || ct.last || ct.missed)
+    return;
+
+  auto pw  = 1.f;
+  auto pos = pl->position() + Vec3(0,210.f,0);
+  vp.project(pos.x,pos.y,pos.z,pw);
+  if(pw<=0.f)
+    return;
+  pos /= pw;
+
+  const float scale = Gothic::interfaceScale(this);
+  const int   bw    = int(70.f*scale);
+  const int   bh    = std::max(3, int(6.f*scale));
+  const int   x     = int((0.5f*pos.x+0.5f)*float(w())) - bw/2;
+  const int   y     = int((0.5f*pos.y+0.5f)*float(h())) - bh/2;
+
+  p.setBrush(Brush(Color(0.f,0.f,0.f,0.6f), Painter::Alpha));
+  p.drawRect(x-1, y-1, bw+2, bh+2);
+  if(ct.broken) {
+    p.setBrush(Brush(Color(0.8f,0.15f,0.1f,0.85f), Painter::Alpha));
+    p.drawRect(x, y, bw, bh);
+    }
+  else if(ct.open) {
+    const int fw = std::max(2, int(float(bw)*ct.windowLeft));
+    p.setBrush(Brush(Color(1.f,0.78f,0.2f,0.95f), Painter::Alpha));
+    p.drawRect(x+(bw-fw)/2, y, fw, bh);
+    }
+  else {
+    p.setBrush(Brush(Color(0.8f,0.8f,0.8f,0.6f), Painter::Alpha));
+    p.drawRect(x, y, int(float(bw)*ct.progress), bh);
+    p.setBrush(Brush(Color(1.f,0.78f,0.2f,0.95f), Painter::Alpha));
+    p.drawRect(x+bw-2, y, 2, bh); // where the window opens
+    }
+
+  // hits chained so far, and a dot when the next one is already queued
+  const int pip = std::max(3, int(5.f*scale));
+  for(int i=0; i<int(ct.len) && i<6; ++i) {
+    p.setBrush(Brush(Color(1.f,0.78f,0.2f,0.9f), Painter::Alpha));
+    p.drawRect(x + i*(pip+2), y+bh+3, pip, pip);
+    }
+  if(player.arpgAttackQueued()) {
+    p.setBrush(Brush(Color(1.f,1.f,1.f,0.9f), Painter::Alpha));
+    p.drawRect(x+bw+4, y+(bh-pip)/2, pip, pip);
+    }
+  }
+
+void MainWindow::paintArpgLabels(Painter& p, const Matrix4x4& vp, const Focus& focus) {
+  arpgLabels.clear();
+  player.arpgVisibleObjects(arpgLabelObjs);
+  if(arpgLabelObjs.empty())
+    return;
+
+  for(auto& f:arpgLabelObjs) {
+    ArpgLabel l;
+    if(!arpgLabelRect(f, vp, l.rect))
+      continue;
+    l.focus = f;
+    arpgLabels.push_back(l);
+    }
+
+  // lowest on screen (usually closest) first, then push overlapping labels upwards
+  std::sort(arpgLabels.begin(), arpgLabels.end(), [](const ArpgLabel& a, const ArpgLabel& b){
+    return a.rect.y>b.rect.y;
+    });
+  auto overlaps = [](const Rect& a, const Rect& b) {
+    return a.x<b.x+b.w && b.x<a.x+a.w && a.y<b.y+b.h && b.y<a.y+a.h;
+    };
+  for(size_t i=0; i<arpgLabels.size(); ++i) {
+    for(int iter=0; iter<12; ++iter) {
+      bool hit = false;
+      for(size_t r=0; r<i; ++r)
+        if(overlaps(arpgLabels[i].rect, arpgLabels[r].rect)) {
+          arpgLabels[i].rect.y = arpgLabels[r].rect.y - arpgLabels[i].rect.h - 1;
+          hit = true;
+          }
+      if(!hit)
+        break;
+      }
+    }
+
+  // highlighted: label under the cursor, otherwise the object picked under the cursor
+  Focus hover = arpgLabelAt(arpgCursor);
+  if(!hover && focus.npc==nullptr)
+    hover = focus;
+  for(auto& l:arpgLabels) {
+    const bool hi = bool(hover) && l.focus.item==hover.item && l.focus.interactive==hover.interactive;
+    drawArpgLabel(p, l.rect, l.focus, hi);
+    }
+  }
+
+Focus MainWindow::arpgLabelAt(const Point& pos) const {
+  // labels drawn last are on top
+  for(size_t i=arpgLabels.size(); i>0; --i) {
+    auto& l = arpgLabels[i-1];
+    if(l.rect.contains(pos))
+      return l.focus;
+    }
+  return Focus();
   }
 
 void MainWindow::paintFocus(Painter& p, Rect rect) {
