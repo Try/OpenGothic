@@ -31,6 +31,8 @@ class Shaders {
       bool     doMeshShading     = false;
       bool     doVirtualShadow   = false;
       bool     doSoftwareShadow  = false;
+      GiMethod doGi              = GiMethod::None;
+      uint32_t aaPreset          = 0;
 
       bool     doSoftwareRT      = false;
       uint32_t swRenderingPreset = 0;

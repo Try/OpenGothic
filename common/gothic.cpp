@@ -67,11 +67,6 @@ Gothic::Gothic() {
   setBenchmarkMode(CommandLine::inst().isBenchmarkMode());
 
   auto& gpu = Resources::device().properties();
-  if(gpu.raytracing.rayQuery) {
-    opts.doGi = CommandLine::inst().isRtGi();
-    }
-
-  opts.aaPreset = CommandLine::inst().aaPreset();
 
   wrldDef = CommandLine::inst().wrldDef;
 

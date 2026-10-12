@@ -87,7 +87,7 @@ Renderer::Renderer() {
 
   Gothic::inst().togglePathtrace.bind(this, &Renderer::togglePathtrace);
 
-  settings.giMethod         = Gothic::options().doGi;
+  settings.giMethod         = Shaders::options().doGi;
   settings.vsmEnabled       = Shaders::options().doVirtualShadow;
   settings.rtsmEnabled      = Shaders::options().doSoftwareShadow;
   settings.swrEnabled       = Shaders::options().swRenderingPreset>0;
@@ -139,7 +139,7 @@ void Renderer::setupSettings() {
     settings.moonSize = 400;
 
   settings.vidResIndex = Gothic::settingsGetF("INTERNAL","vidResIndex");
-  settings.aaEnabled   = (Gothic::options().aaPreset>0) && (settings.vidResIndex==0);
+  settings.aaEnabled   = (Shaders::options().aaPreset>0) && (settings.vidResIndex==0);
 
   // direct lighting
   if(settings.rtsmEnabled)
@@ -186,8 +186,8 @@ void Renderer::toggleGi() {
   if(!Shaders::options().doRtScene)
     return;
 
-  if(settings.giMethod==GiMethod::None && Gothic::options().doGi!=GiMethod::None)
-    settings.giMethod = Gothic::options().doGi;
+  if(settings.giMethod==GiMethod::None && Shaders::options().doGi!=GiMethod::None)
+    settings.giMethod = Shaders::options().doGi;
   else if(settings.giMethod==GiMethod::None && Shaders::isGi1Supported())
     settings.giMethod = GiMethod::Probes; // default for now
   else
@@ -765,7 +765,7 @@ void Renderer::drawTonemapping(Attachment& result, Encoder<CommandBuffer>& cmd, 
   }
 
 void Renderer::drawCMAA2(Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview) {
-  auto&          pso             = shaders.cmaa2EdgeColor2x2Presets[Gothic::options().aaPreset];
+  auto&          pso             = shaders.cmaa2EdgeColor2x2Presets[Shaders::options().aaPreset];
   const IVec3    inputGroupSize  = pso.workGroupSize();
   const IVec3    outputGroupSize = inputGroupSize - IVec3(2, 2, 0);
   const uint32_t groupCountX     = uint32_t((sceneLinear.w() + outputGroupSize.x * 2 - 1) / (outputGroupSize.x * 2));

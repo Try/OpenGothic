@@ -42,9 +42,6 @@ class Gothic final {
       };
 
     struct Options {
-      GiMethod doGi              = GiMethod::None;
-      uint32_t aaPreset          = 0;
-
       bool     hideFocus         = false;
       float    cameraFov         = 67.5f;
       int      fpsLimit          = 0;
