@@ -67,6 +67,8 @@ class PlayerControl final {
     void  arpgDodge();                           // side step / jump back
     void  arpgVisibleObjects(std::vector<Focus>& out) const; // items and usable objects the hero can see
     float arpgCeiling() const;                   // indoors: everything above is cut away
+    bool  arpgIsEnemy(const Npc& npc) const;     // would be attacked by a click
+    bool  arpgAttackQueued() const;              // an attack waits for its moment (combo window)
 
   private:
     enum WeaponAction : uint8_t {
@@ -194,6 +196,11 @@ class PlayerControl final {
       bool                       useWaynet   = false;
       Tempest::Vec3              stuckPos    = {};
       float                      stuckTimer  = 0;
+      int                        stuckCount  = 0;
+      int                        avoidSide   = 0;      // +1 / -1: side we walk around obstacles on
+      float                      detourAng   = 0;      // direction along the obstacle we bumped into
+      float                      detourTime  = 0;
+      uint64_t                   lastFail    = 0;      // last handled MoveAlgo::MoveFail::time
       int                        swings      = 0;
       float                      actTimer    = 0;      // s, waiting in range for the action to succeed
       };
@@ -214,6 +221,10 @@ class PlayerControl final {
     Tempest::Vec3  arpgNextPoint(Npc& pl, const Tempest::Vec3& dest, uint64_t dt);
     bool           arpgLineClear(const Tempest::Vec3& from, const Tempest::Vec3& to) const;
     bool           arpgStartDodge(Npc& pl, float& rot);
+    float          arpgSteer(Npc& pl, const Tempest::Vec3& next, uint64_t dt);
+    bool           arpgCanSee(const Tempest::Vec3& p, float baseY, const Interactive* self) const;
+    bool           arpgFeelerClear(const Npc& pl, float ang, float len) const;
+    float          arpgFreeDistance(const Npc& pl, float ang) const;
 
     bool           arpgDodgeReq  = false; // dodge requested, waiting for the hero to be able to do it
     float          arpgDodgeWait = 0;     // s, how long the request is kept

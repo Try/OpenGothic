@@ -67,7 +67,11 @@ class MainWindow : public Tempest::Window {
 
     void paintFocus     (Tempest::Painter& p, const Focus& fc, const Tempest::Matrix4x4& vp);
     void paintFocus     (Tempest::Painter& p, Tempest::Rect rect);
-    void paintArpgLabels(Tempest::Painter& p, const Tempest::Matrix4x4& vp);
+    void paintArpgLabels(Tempest::Painter& p, const Tempest::Matrix4x4& vp, const Focus& hover);
+    void paintArpgFocus (Tempest::Painter& p, const Focus& fc, const Tempest::Matrix4x4& vp);
+    void paintArpgCombo (Tempest::Painter& p, const Tempest::Matrix4x4& vp);
+    bool arpgLabelRect  (const Focus& f, const Tempest::Matrix4x4& vp, Tempest::Rect& out) const;
+    void drawArpgLabel  (Tempest::Painter& p, const Tempest::Rect& r, const Focus& f, bool hi);
     Focus arpgLabelAt   (const Tempest::Point& pos) const;
 
     void drawBar(Tempest::Painter& p, const Tempest::Texture2d *bar, int x, int y, float v, Tempest::AlignFlag flg);
@@ -165,6 +169,10 @@ class MainWindow : public Tempest::Window {
     bool                      arpgCursorValid = false;
     bool                      arpgLeftDown    = false;
     bool                      arpgRightDown   = false;
+    bool                      arpgMidDown     = false; // middle button: drag = rotate the camera, click = original binding
+    bool                      arpgMidRotating = false;
+    Tempest::Point            arpgMidStart;
+    Tempest::Point            arpgMidLast;
     bool                      arpgShowAll     = false; // Z held: labels of all items/usable objects in sight
     struct ArpgLabel {
       Tempest::Rect           rect;

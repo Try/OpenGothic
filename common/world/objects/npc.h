@@ -187,6 +187,8 @@ class Npc final {
     bool       isJumpAnim() const;
     bool       isFlyAnim() const;
     bool       isFalling() const;
+    auto       lastMoveFail() const -> const MoveAlgo::MoveFail& { return mvAlgo.lastMoveFail(); } // gothic-diablo
+    auto       comboTiming() const -> Pose::ComboTiming;                                        // gothic-diablo
     bool       isFallingDeep() const;
     bool       isSlide() const;
     bool       isInAir() const;
@@ -264,10 +266,10 @@ class Npc final {
     auto      weaponState() const -> WeaponState;
 
     bool      canFinish(Npc &oth);
-    void      fistShoot();
+    bool      fistShoot();
     bool      blockFist();
     bool      finishingMove();
-    void      swingSword();
+    bool      swingSword();
     bool      swingSwordL();
     bool      swingSwordR();
     bool      blockSword();

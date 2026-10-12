@@ -75,6 +75,19 @@ class Pose final {
     auto               continueCombo(const AnimationSolver &solver, const Animation::Sequence *sq, BodyState bs, uint64_t tickCount) -> const Animation::Sequence*;
     uint16_t           comboLength() const;
 
+    // gothic-diablo: timing of the next combo hit (input buffering, UI hint)
+    struct ComboTiming {
+      bool     attack     = false; // a melee attack with combo windows is playing
+      bool     open       = false; // the next hit can be chained right now
+      bool     broken     = false; // combo was broken (pressed too early)
+      bool     last       = false; // no further hit in this combo
+      bool     missed     = false; // window is over
+      float    progress   = 0;     // 0..1 time until the window opens
+      float    windowLeft = 0;     // 0..1 part of the window that is left
+      uint16_t len        = 0;     // hits already chained
+      };
+    ComboTiming        comboTiming(uint64_t tickCount) const;
+
     float              translateY() const { return trY; }
     auto               rootNode() const -> const Tempest::Matrix4x4;
     auto               rootBone() const -> const Tempest::Matrix4x4;

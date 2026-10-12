@@ -3821,8 +3821,8 @@ bool Npc::doAttack(Anim anim, BodyState bs) {
   return false;
   }
 
-void Npc::fistShoot() {
-  doAttack(Anim::Attack,BS_HIT);
+bool Npc::fistShoot() {
+  return doAttack(Anim::Attack,BS_HIT);
   }
 
 bool Npc::blockFist() {
@@ -3846,11 +3846,11 @@ bool Npc::finishingMove() {
   return false;
   }
 
-void Npc::swingSword() {
+bool Npc::swingSword() {
   auto active=invent.activeWeapon();
   if(active==nullptr)
-    return;
-  doAttack(Anim::Attack,BS_HIT);
+    return false;
+  return doAttack(Anim::Attack,BS_HIT);
   }
 
 bool Npc::swingSwordL() {
@@ -4154,6 +4154,10 @@ bool Npc::isTalk() const {
 
 bool Npc::isAttackAnim() const {
   return visual.pose().isAttackAnim();
+  }
+
+Pose::ComboTiming Npc::comboTiming() const {
+  return visual.pose().comboTiming(owner.tickCount());
   }
 
 bool Npc::isPrehit() const {
