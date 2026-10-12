@@ -1,5 +1,7 @@
 #include "camera.h"
 
+#include <limits>
+
 #include <Tempest/Application>
 #include <Tempest/Log>
 
@@ -1120,8 +1122,10 @@ void Camera::tickArpg(float dtF) {
 void Camera::updateArpgView(float dtF) {
   arpgV = ArpgView();
   if(!isArpgActive()) {
-    arpg.indoor     = false;
-    arpg.indoorHold = 0;
+    arpg.indoor      = false;
+    arpg.indoorHold  = 0;
+    arpg.indoorBlend = 0;
+    arpg.seeThrough  = 0;
     return;
     }
 
@@ -1162,7 +1166,49 @@ void Camera::updateArpgView(float dtF) {
   arpgV.center     = center;
   arpgV.cutHeight  = arpg.indoor ? 250.f : 0.f;
   arpgV.cutRadius  = 3000.f;
-  arpgV.fadeRadius = 0.275f;
+
+  // see-through circle: fixed size in the world (~1.85 m around the hero's chest), so it does not change with zoom
+  {
+    const float dist = std::max(100.f, (center-origin).length());
+    arpgV.fadeRadius = std::clamp(185.f/dist*std::fabs(proj.at(1,1)), 0.12f, 0.5f);
+  }
+
+  // ... and only while something actually hides the hero: rays camera -> head / chest / knees.
+  // The part of a ray above the cut-away ceiling is skipped (invisible roofs and upper floors).
+  {
+    auto&       physic  = *world->physic();
+    const float ceiling = arpgV.cutHeight>0.f ? feet.y+arpgV.cutHeight : std::numeric_limits<float>::max();
+    bool        hidden  = false;
+    for(float h:{170.f, 110.f, 50.f}) {
+      const Vec3 to   = feet + Vec3(0,h,0);
+      Vec3       from = origin;
+      if(from.y>ceiling && to.y<ceiling) {
+        const float t = (from.y-ceiling)/(from.y-to.y);
+        from = from + (to-from)*t;
+        }
+      const auto r = physic.ray(from, to);
+      if(r.hasCol && (r.v-to).quadLength() > 40.f*40.f) {
+        hidden = true;
+        break;
+        }
+      }
+    const float dst = hidden ? 1.f : 0.f;
+    if(dtF<0.f)
+      arpg.seeThrough = dst; else
+      arpg.seeThrough += std::clamp(dst-arpg.seeThrough, -2.5f*dtF, 5.f*dtF); // opens in 0.2 s, closes in 0.4 s
+    arpgV.seeThrough = arpg.seeThrough;
+  }
+
+  // indoors: what is far below the hero's feet (cellars, the valley under a tower) fades to black
+  {
+    const float dst = arpg.indoor ? 1.f : 0.f;
+    if(dtF<0.f)
+      arpg.indoorBlend = dst; else
+      arpg.indoorBlend += std::clamp(dst-arpg.indoorBlend, -2.f*dtF, 2.f*dtF);
+    arpgV.indoor     = arpg.indoorBlend;
+    arpgV.lowerStart = 350.f;
+    arpgV.lowerEnd   = 900.f;
+  }
 
   // fog of war: radius from the game's "sight range" option (Video menu, 20%..300%, 100% = 15 m)
   {

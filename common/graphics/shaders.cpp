@@ -500,6 +500,13 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawCommand
   state.setZTestMode   (RenderState::ZTestMode::LEqual);
   //state.setZTestMode   (RenderState::ZTestMode::Less);
 
+  // gothic-diablo: in ARPG mode the inner side of the world mesh is drawn (as solid black, see main.frag),
+  // so that the cut-away and holes in the mesh do not show the locations below
+  if(CommandLine::inst().isArpgMode() && t==DrawCommands::Landscape && alpha==Material::Solid &&
+     (pt==PipelineType::T_Main || pt==PipelineType::T_Depth)) {
+    state.setCullFaceMode(RenderState::CullMode::NoCull);
+    }
+
   if(pt==PipelineType::T_Shadow || pt==PipelineType::T_Vsm) {
     state.setZTestMode(RenderState::ZTestMode::Greater); //FIXME
     }

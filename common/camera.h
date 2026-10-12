@@ -56,6 +56,10 @@ class Camera final {
       float         fadeRadius = 0;    // see-through circle radius (NDC, vertical units)
       float         fowRadius  = 0;    // fog of war: world fades to black beyond this distance from the hero (cm)
       float         fowFade    = 0;    // fog of war: width of the fade (cm)
+      float         seeThrough = 0;    // 0..1: something hides the hero -> see-through circle (animated)
+      float         indoor     = 0;    // 0..1: indoors -> lower levels fade to black (animated)
+      float         lowerStart = 0;    // lower levels: start of the fade, cm below the feet
+      float         lowerEnd   = 0;    // lower levels: fully black, cm below the feet
       };
 
     void reset();
@@ -146,6 +150,8 @@ class Camera final {
       float rangeDest   = 1100.f;
       bool  indoor      = false;
       float indoorHold  = 0;      // seconds left before 'indoor' may switch off
+      float indoorBlend = 0;      // 0..1, smooth version of 'indoor'
+      float seeThrough  = 0;      // 0..1, smooth "hero is hidden" factor
       };
     Arpg                  arpg;
     ArpgView              arpgV;

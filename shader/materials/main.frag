@@ -55,14 +55,22 @@ float unproject(float depth) {
 #if !defined(VIRTUAL_SHADOW)
 #include "arpg.glsl"
 
+// gothic-diablo: landscape is drawn without back-face culling in ARPG mode (see Shaders::materialPipeline):
+// the inner side of the world mesh, seen through the cut-away or through holes, becomes solid black
+// (like a cross-section of rock) and hides the locations below it.
+#if defined(FLAT_NORMAL) && !defined(ATEST) && (defined(GBUFFER) || defined(DEPTH_ONLY))
+#define ARPG_BACKFACE 1
+#endif
+
+bool arpgIsBackFace() {
+  // NOTE: in this engine visible (front) faces have gl_FrontFacing==false, see mainWater
+  return gl_FrontFacing;
+  }
+
 // gothic-diablo: hide geometry that blocks the ARPG view of the hero
-float arpgBayer4(vec2 p) {
-  const float m[16] = float[16]( 0.0,  8.0,  2.0, 10.0,
-                                12.0,  4.0, 14.0,  6.0,
-                                 3.0, 11.0,  1.0,  9.0,
-                                15.0,  7.0, 13.0,  5.0);
-  const ivec2 i = ivec2(p) & ivec2(3);
-  return (m[i.y*4+i.x]+0.5)/16.0;
+float arpgDither(vec2 p) {
+  // interleaved gradient noise: smoother looking edge than a small Bayer matrix
+  return fract(52.9829189*fract(dot(floor(p), vec2(0.06711056, 0.00583715))));
   }
 
 bool arpgHidden() {
@@ -82,15 +90,24 @@ bool arpgHidden() {
     }
 
 #if (MESH_TYPE!=T_PFX)
-  // 2. see-through circle: walls/objects between the camera and the hero (screen-door transparency)
-  const float fadeR = scene.arpgParams.y;
-  if(fadeR>0.0 && wpos.y > scene.arpgPlayer.y+40.0) {
+  // 2. see-through circle: walls/objects between the camera and the hero are cut down to a low stub,
+  //    only while something really hides the hero (strength animated on the CPU);
+  //    foliage (alpha-tested, no collision for the test) always
+#if defined(ATEST)
+  const float strength = 1.0;
+#else
+  const float strength = scene.arpgParams3.w;
+#endif
+  const float fadeR = scene.arpgParams.y*strength;
+  if(fadeR>0.0 && wpos.y > scene.arpgPlayer.y+50.0) {
     vec2 sd = ndc - scene.arpgParams.zw;
     sd.x *= scene.arpgParams2.x;
+    sd.y *= 0.85; // a bit taller than wide: the hero is standing
     const float r = length(sd)/fadeR;
-    if(r<1.0 && distance(wpos, scene.camPos) < scene.arpgParams2.y-120.0) {
-      const float a = 1.0 - smoothstep(0.55, 1.0, r);
-      return arpgBayer4(gl_FragCoord.xy) < a*0.85;
+    if(r<1.0 && distance(wpos, scene.camPos) < scene.arpgParams2.y-100.0) {
+      // clean hole in the middle, soft dithered rim
+      const float a = 1.0 - smoothstep(0.6, 1.0, r);
+      return arpgDither(gl_FragCoord.xy) < a;
       }
     }
 #endif
@@ -228,6 +245,13 @@ vec4 diffuseTex() {
 
 #if defined(GBUFFER)
 void mainGBuffer(vec4 t) {
+#if defined(ARPG_BACKFACE)
+  if(arpgIsBackFace()) {
+    outDiffuse = vec4(0.0, 0.0, 0.0, encodeHintBits());
+    outNormal  = encodeNormal(-shInp.normal);
+    return;
+    }
+#endif
   outDiffuse.rgb = t.rgb;
   outDiffuse.a   = encodeHintBits();
   outNormal      = encodeNormal(shInp.normal);
@@ -369,6 +393,10 @@ void mainWater(vec4 t) {
 #endif
 
 void main() {
+#if defined(ARPG_BACKFACE) && !defined(VIRTUAL_SHADOW)
+  if(arpgIsBackFace() && scene.arpgPlayer.w<=0.0)
+    discard; // not in the ARPG view: behave like regular back-face culling
+#endif
 #if !defined(VIRTUAL_SHADOW)
   if(arpgHidden())
     discard;

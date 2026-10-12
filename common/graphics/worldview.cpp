@@ -53,7 +53,7 @@ void WorldView::preFrameUpdate(const Camera& camera, uint64_t tickCount, uint8_t
   {
     const auto& a = camera.arpgView();
     sGlobal.setArpgView(a.enabled, a.feet, a.center, a.cutHeight, a.cutRadius, a.fadeRadius,
-                        a.fowRadius, a.fowFade);
+                        a.fowRadius, a.fowFade, a.seeThrough, a.indoor, a.lowerStart, a.lowerEnd);
   }
   sGlobal.setSky(gSky);
   sGlobal.setWorld(*this);

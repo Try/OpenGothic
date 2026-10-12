@@ -43,6 +43,7 @@ struct SceneDesc {
   vec4  arpgCenter;  // xyz = hero body center (world), w = cut height above feet (0 = no cut)
   vec4  arpgParams;  // x = cut radius, y = see-through radius (NDC), zw = hero center (NDC)
   vec4  arpgParams2; // x = aspect (w/h), y = distance camera->hero center, z = fog of war radius (cm, 0 = off), w = fog of war fade (cm)
+  vec4  arpgParams3; // x = indoor 0..1, y/z = lower levels fade start/end (cm below the feet), w = see-through strength 0..1
   };
 
 struct LightSource {
