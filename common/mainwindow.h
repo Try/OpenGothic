@@ -91,6 +91,7 @@ class MainWindow : public Tempest::Window {
     void processMouse(Tempest::MouseEvent& event, bool enable);
     void tickMouse(uint64_t dt);
     void updateArpgAim();
+    bool isArpgMouse() const;
     void onSettings();
 
     void setupUi();
@@ -160,6 +161,7 @@ class MainWindow : public Tempest::Window {
     Tempest::Point            dMouse;
     Tempest::Point            arpgCursor;          // gothic-diablo: visible mouse cursor (window pixels)
     bool                      arpgCursorValid = false;
+    bool                      arpgLeftDown    = false;
     PlayerControl             player;
     uint64_t                  lastTick=0;
 

@@ -5,6 +5,9 @@
 #include "constants.h"
 
 #include <array>
+#include <vector>
+
+#include <Tempest/Matrix4x4>
 
 class DialogMenu;
 class InventoryMenu;
@@ -48,8 +51,18 @@ class PlayerControl final {
     bool  tickMove(uint64_t dt);
     bool  tickCameraMove(uint64_t dt);
 
-    // gothic-diablo: world point under the mouse cursor; the hero faces it in ARPG mode
-    void  setArpgAim(bool valid, const Tempest::Vec3& point);
+    // gothic-diablo: mouse cursor in ARPG mode (Diablo-like click to move / interact / attack)
+    struct ArpgCursor {
+      bool               valid   = false;
+      Tempest::Vec3      rayFrom = {};   // world space point on the near plane under the cursor
+      Tempest::Vec3      rayTo   = {};   // world space point on the far plane under the cursor
+      Tempest::Matrix4x4 viewProj;
+      Tempest::Vec2      pixel   = {};   // cursor position, window pixels
+      Tempest::Vec2      screen  = {};   // window size, pixels
+      };
+    void  setArpgCursor(const ArpgCursor& c);
+    void  arpgMouseDown();
+    void  arpgMouseUp();
 
   private:
     enum WeaponAction : uint8_t {
@@ -156,8 +169,45 @@ class PlayerControl final {
     int            rotationAni    = 0;
     bool           g2Ctrl         = false;
 
-    bool           arpgAimValid   = false;
-    Tempest::Vec3  arpgAimPoint   = {};
+    // gothic-diablo: click-to-move / interact / attack
+    struct ArpgClick {
+      enum Kind : uint8_t {
+        None,
+        Ground,
+        PickUp,
+        Use,
+        Talk,
+        Loot,
+        Attack,
+        };
+      Kind                       kind        = None;
+      bool                       held        = false;  // left mouse button still down
+      Focus                      target;
+      Tempest::Vec3              point       = {};
+      std::vector<Tempest::Vec3> path;
+      size_t                     pathIdx     = 0;
+      float                      repathTimer = 0;
+      bool                       useWaynet   = false;
+      Tempest::Vec3              stuckPos    = {};
+      float                      stuckTimer  = 0;
+      int                        swings      = 0;
+      };
+    enum ArpgStep : uint8_t {
+      ArpgStop,
+      ArpgTurn,
+      ArpgMove,
+      };
+
+    ArpgCursor     arpgCursor;
+    ArpgClick      arpgClick;
+    Focus          arpgHover;
+    Tempest::Vec3  arpgGround      = {};
+    bool           arpgGroundValid = false;
+
+    Focus          arpgPick();
+    ArpgStep       arpgClickTick(Npc& pl, float& rot, int& rotation, bool allowRot, uint64_t dt);
+    Tempest::Vec3  arpgNextPoint(Npc& pl, const Tempest::Vec3& dest, uint64_t dt);
+    bool           arpgLineClear(const Tempest::Vec3& from, const Tempest::Vec3& to) const;
 
     DialogMenu&    dlg;
     InventoryMenu& inv;

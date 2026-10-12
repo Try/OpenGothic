@@ -120,6 +120,12 @@ class World final {
     gtime                time() const;
 
     Focus                validateFocus(const Focus& def);
+
+    // gothic-diablo: spatial queries for picking objects under the mouse cursor
+    template<class F>
+    void                 forEachItemNear       (const Tempest::Vec3& p, float R, const F& f) { wobj.forEachItemNear(p,R,f); }
+    template<class F>
+    void                 forEachInteractiveNear(const Tempest::Vec3& p, float R, const F& f) { wobj.forEachInteractiveNear(p,R,f); }
     Focus                findFocus(const Npc& pl, const Focus &def);
     Focus                findFocus(const Focus& def);
     bool                 testFocusNpc(Npc *def);

@@ -304,6 +304,16 @@ void MainWindow::resizeEvent(SizeEvent&) {
   }
 
 void MainWindow::mouseDownEvent(MouseEvent &event) {
+  if(event.button==Event::ButtonLeft && isArpgMouse()) {
+    // gothic-diablo: left button = move / interact / attack under the cursor
+    arpgCursor      = event.pos();
+    arpgCursorValid = true;
+    arpgLeftDown    = true;
+    updateArpgAim();
+    player.tickFocus();
+    player.arpgMouseDown();
+    return;
+    }
   if(event.button<sizeof(mouseP))
     mouseP[event.button]=true;
   auto act     = keycodec.tr(event);
@@ -312,6 +322,11 @@ void MainWindow::mouseDownEvent(MouseEvent &event) {
   }
 
 void MainWindow::mouseUpEvent(MouseEvent &event) {
+  if(event.button==Event::ButtonLeft && arpgLeftDown) {
+    arpgLeftDown = false;
+    player.arpgMouseUp();
+    return;
+    }
   auto act     = keycodec.tr(event);
   auto mapping = keycodec.mapping(event);
   player.onKeyReleased(act,mapping);
@@ -395,43 +410,45 @@ void MainWindow::tickMouse(uint64_t dt) {
   }
 
 void MainWindow::updateArpgAim() {
-  // gothic-diablo: project the mouse cursor onto a horizontal plane at the hero's waist
+  // gothic-diablo: world ray under the mouse cursor, for picking and click-to-move
+  PlayerControl::ArpgCursor cur;
   auto camera = Gothic::inst().camera();
   auto pl     = Gothic::inst().player();
   if(!Camera::isArpgEnabled() || !arpgCursorValid || camera==nullptr || pl==nullptr ||
      !camera->isArpgActive() || w()<=0 || h()<=0) {
-    player.setArpgAim(false, Vec3());
+    player.setArpgCursor(cur);
     return;
     }
 
   const float x = (float(arpgCursor.x)+0.5f)/float(w())*2.f - 1.f;
   const float y = (float(arpgCursor.y)+0.5f)/float(h())*2.f - 1.f;
 
-  auto inv = camera->viewProj();
+  const auto vp  = camera->viewProj();
+  auto       inv = vp;
   inv.inverse();
   Vec4 p0 = {x, y, 0.f, 1.f};
   Vec4 p1 = {x, y, 1.f, 1.f};
   inv.project(p0);
   inv.project(p1);
   if(p0.w==0.f || p1.w==0.f) {
-    player.setArpgAim(false, Vec3());
+    player.setArpgCursor(cur);
     return;
     }
 
-  const Vec3  a      = Vec3(p0.x, p0.y, p0.z)/p0.w;
-  const Vec3  b      = Vec3(p1.x, p1.y, p1.z)/p1.w;
-  const Vec3  dir    = b - a;
-  const float planeY = pl->position().y + 100.f;
-  if(std::abs(dir.y)<1e-4f) {
-    player.setArpgAim(false, Vec3());
-    return;
-    }
-  const float t = (planeY - a.y)/dir.y;
-  if(t<0.f) {
-    player.setArpgAim(false, Vec3());
-    return;
-    }
-  player.setArpgAim(true, a + dir*t);
+  cur.valid    = true;
+  cur.rayFrom  = Vec3(p0.x, p0.y, p0.z)/p0.w;
+  cur.rayTo    = Vec3(p1.x, p1.y, p1.z)/p1.w;
+  cur.viewProj = vp;
+  cur.pixel    = Vec2(float(arpgCursor.x), float(arpgCursor.y));
+  cur.screen   = Vec2(float(w()), float(h()));
+  player.setArpgCursor(cur);
+  }
+
+bool MainWindow::isArpgMouse() const {
+  auto camera = Gothic::inst().camera();
+  return Camera::isArpgEnabled() && camera!=nullptr && camera->isArpgActive() &&
+         Gothic::inst().player()!=nullptr &&
+         !dialogs.isActive() && !inventory.isActive() && !document.isActive();
   }
 
 void MainWindow::onSettings() {

@@ -20,7 +20,7 @@ Fork [OpenGothic](https://github.com/Try/OpenGothic): Gothic II Noc Kruka jako i
 | Zoom kółkiem myszy (5–22 m) | `Camera::changeZoom` |
 | Q / E (klawisze obrotu) obracają kamerę | `PlayerControl::implMove` |
 | W/S/A/D = góra/dół/lewo/prawo ekranu, postać obraca się w stronę ruchu | `PlayerControl::implMove` |
-| Widoczny, wolny kursor myszy; jego punkt w świecie liczony co klatkę (na razie nieużywany — wróci przy walce) | `MainWindow::updateArpgAim` |
+| Widoczny, wolny kursor myszy; promień spod kursora liczony co klatkę | `MainWindow::updateArpgAim` |
 | Wnętrza: wycięcie wszystkiego powyżej głowy (sufity, dachy, piętra) w promieniu 30 m | `shader/materials/main.frag` — `arpgHidden` |
 | Ściany między kamerą a postacią: przezroczysty krąg (siatka pikseli), promień 0,275 wysokości ekranu | `shader/materials/main.frag` — `arpgHidden` |
 | Wnętrza: ogień/pochodnie (particle) nad głową też są wycinane | `shader/materials/main.frag` — `arpgHidden` |
@@ -29,3 +29,20 @@ Fork [OpenGothic](https://github.com/Try/OpenGothic): Gothic II Noc Kruka jako i
 
 Dialogi, śmierć, nurkowanie i widok z pierwszej osoby używają oryginalnej kamery.
 Dachy i ściany dalej rzucają cienie (ukrywanie działa tylko w widoku kamery).
+
+## Faza 2 — sterowanie myszą (jak Diablo)
+
+| Element | Gdzie |
+|---|---|
+| Podświetlenie obiektu pod kursorem (nazwa / pasek życia jak fokus w Gothicu): postać, przedmiot, obiekt użytkowy | `PlayerControl::arpgPick` |
+| LPM na ziemi: bieg do punktu; przytrzymanie: postać podąża za kursorem | `PlayerControl::arpgMouseDown`, `arpgClickTick` |
+| LPM na przedmiocie: podejście i podniesienie | `arpgClickTick` |
+| LPM na skrzyni / drzwiach / łóżku itp.: podejście i użycie | `arpgClickTick` |
+| LPM na postaci: podejście i rozmowa (broń chowana automatycznie); na ciele: przeszukanie | `arpgClickTick` |
+| LPM na wrogu (potwór, ork, wrogi człowiek): dobycie broni w biegu, podejście, atak; przytrzymanie = kolejne ataki | `arpgClickTick` |
+| Ctrl + LPM: atak na dowolną postać | `arpgMouseDown` |
+| Omijanie przeszkód: prosta linia, a gdy coś zasłania — sieć waypointów; zablokowanie → waynet → rezygnacja | `arpgNextPoint` |
+| W/S/A/D przerywa ruch myszą | `PlayerControl::implMove` |
+
+Łuki i czary — w fazie walki.
+
