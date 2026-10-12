@@ -38,6 +38,11 @@ struct SceneDesc {
   ivec2 screenRes;
   vec4  cloudsDir;
   float probeGridBias;
+  // gothic-diablo: hiding geometry around the hero in ARPG view
+  vec4  arpgPlayer;  // xyz = hero feet (world), w = 1 when active for this view
+  vec4  arpgCenter;  // xyz = hero body center (world), w = cut height above feet (0 = no cut)
+  vec4  arpgParams;  // x = cut radius, y = see-through radius (NDC), zw = hero center (NDC)
+  vec4  arpgParams2; // x = aspect (w/h), y = distance camera->hero center, z = fog of war radius (cm, 0 = off), w = fog of war fade (cm)
   };
 
 struct LightSource {

@@ -158,6 +158,33 @@ void SceneGlobals::setUnderWater(bool w) {
   uboGlobalCpu.underWater = w ? 1 : 0;
   }
 
+void SceneGlobals::setArpgView(bool enabled, const Tempest::Vec3& feet, const Tempest::Vec3& center,
+                               float cutHeight, float cutRadius, float fadeRadius,
+                               float fowRadius, float fowFade) {
+  static_assert(sizeof(UboGlobal)==1216, "UboGlobal must match SceneDesc in scene.glsl");
+  if(!enabled) {
+    uboGlobalCpu.arpgPlayer  = {};
+    uboGlobalCpu.arpgCenter  = {};
+    uboGlobalCpu.arpgParams  = {};
+    uboGlobalCpu.arpgParams2 = {};
+    return;
+    }
+
+  // hero center in NDC; same convention as gl_FragCoord-based reconstruction in shaders
+  Tempest::Vec4 c = {center.x, center.y, center.z, 1.f};
+  uboGlobalCpu.viewProject.project(c);
+  const float ndcX = (c.w!=0.f) ? c.x/c.w : 0.f;
+  const float ndcY = (c.w!=0.f) ? c.y/c.w : 0.f;
+
+  const float aspect = (uboGlobalCpu.screenRes.y>0) ? float(uboGlobalCpu.screenRes.x)/float(uboGlobalCpu.screenRes.y) : 1.f;
+  const float dist   = (center-uboGlobalCpu.camPos).length();
+
+  uboGlobalCpu.arpgPlayer  = Tempest::Vec4(feet.x,   feet.y,   feet.z,   1.f);
+  uboGlobalCpu.arpgCenter  = Tempest::Vec4(center.x, center.y, center.z, cutHeight);
+  uboGlobalCpu.arpgParams  = Tempest::Vec4(cutRadius, (c.w>0.f ? fadeRadius : 0.f), ndcX, ndcY);
+  uboGlobalCpu.arpgParams2 = Tempest::Vec4(aspect, dist, fowRadius, fowFade);
+  }
+
 void SceneGlobals::setTime(uint64_t time) {
   tickCount                = time;
   uboGlobalCpu.waveAnim    = 2.f*float(M_PI)*float(tickCount%3000)/3000.f;
@@ -179,6 +206,8 @@ void SceneGlobals::commitUbo(uint8_t fId) {
       ubo.viewProject = uboGlobalCpu.viewShadow[i-V_Shadow0];
     if(i==V_Vsm)
       ubo.viewProject = uboGlobalCpu.viewVirtualShadow;
+    if(isShadowView(VisCamera(i)))
+      ubo.arpgPlayer.w = 0.f; // gothic-diablo: roofs and walls still cast shadows
     std::memcpy(ubo.frustrum, frustrum[i].f, sizeof(ubo.frustrum));
     }
 
