@@ -54,6 +54,9 @@ class Camera final {
       float         cutHeight  = 0;    // cut everything above feet+cutHeight (0 = off)
       float         cutRadius  = 0;    // horizontal radius of the cut (cm)
       float         fadeRadius = 0;    // see-through circle radius (NDC, vertical units)
+      bool          roomMask   = false;// indoors: paint everything outside the room black
+      float         roomRadius[16] = {}; // room radius (cm) along ray i at angle i*22.5 deg in xz
+      float         floorDrop  = 0;    // indoors: everything this far below the feet is black (cm)
       };
 
     void reset();
@@ -144,6 +147,8 @@ class Camera final {
       float rangeDest   = 1100.f;
       bool  indoor      = false;
       float indoorHold  = 0;      // seconds left before 'indoor' may switch off
+      bool  roomValid   = false;
+      float room[16]    = {};     // smoothed room radii (cm)
       };
     Arpg                  arpg;
     ArpgView              arpgV;

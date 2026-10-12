@@ -296,7 +296,7 @@ void MainWindow::resizeEvent(SizeEvent&) {
   if(auto camera = Gothic::inst().camera())
     camera->setViewport(swapchain.w(),swapchain.h());
 
-  if(SystemApi::isFullscreen(hwnd())) {
+  if(SystemApi::isFullscreen(hwnd()) && !Camera::isArpgEnabled()) {
     setCursorPosition(Point(w()/2,h()/2));
     }
 
@@ -320,6 +320,11 @@ void MainWindow::mouseUpEvent(MouseEvent &event) {
   }
 
 void MainWindow::mouseDragEvent(MouseEvent &event) {
+  if(Camera::isArpgEnabled()) {
+    arpgCursor      = event.pos();
+    arpgCursorValid = true;
+    return;
+    }
   const bool fs = SystemApi::isFullscreen(hwnd());
   if(!mouseP[Event::ButtonLeft] && !fs)
     return;
@@ -333,6 +338,12 @@ void MainWindow::mouseMoveEvent(MouseEvent &event) {
   }
 
 void MainWindow::processMouse(MouseEvent& event, bool enable) {
+  if(Camera::isArpgEnabled()) {
+    // gothic-diablo: free, visible cursor; the hero turns towards it
+    arpgCursor      = event.pos();
+    arpgCursorValid = true;
+    return;
+    }
   auto center = Point(w()/2,h()/2);
   if(enable && event.pos()!=center && hasFocus()) {
     dMouse += (event.pos()-center);
@@ -381,6 +392,46 @@ void MainWindow::tickMouse(uint64_t dt) {
     }
 
   dMouse = Point();
+  }
+
+void MainWindow::updateArpgAim() {
+  // gothic-diablo: project the mouse cursor onto a horizontal plane at the hero's waist
+  auto camera = Gothic::inst().camera();
+  auto pl     = Gothic::inst().player();
+  if(!Camera::isArpgEnabled() || !arpgCursorValid || camera==nullptr || pl==nullptr ||
+     !camera->isArpgActive() || w()<=0 || h()<=0) {
+    player.setArpgAim(false, Vec3());
+    return;
+    }
+
+  const float x = (float(arpgCursor.x)+0.5f)/float(w())*2.f - 1.f;
+  const float y = (float(arpgCursor.y)+0.5f)/float(h())*2.f - 1.f;
+
+  auto inv = camera->viewProj();
+  inv.inverse();
+  Vec4 p0 = {x, y, 0.f, 1.f};
+  Vec4 p1 = {x, y, 1.f, 1.f};
+  inv.project(p0);
+  inv.project(p1);
+  if(p0.w==0.f || p1.w==0.f) {
+    player.setArpgAim(false, Vec3());
+    return;
+    }
+
+  const Vec3  a      = Vec3(p0.x, p0.y, p0.z)/p0.w;
+  const Vec3  b      = Vec3(p1.x, p1.y, p1.z)/p1.w;
+  const Vec3  dir    = b - a;
+  const float planeY = pl->position().y + 100.f;
+  if(std::abs(dir.y)<1e-4f) {
+    player.setArpgAim(false, Vec3());
+    return;
+    }
+  const float t = (planeY - a.y)/dir.y;
+  if(t<0.f) {
+    player.setArpgAim(false, Vec3());
+    return;
+    }
+  player.setArpgAim(true, a + dir*t);
   }
 
 void MainWindow::onSettings() {
@@ -562,7 +613,7 @@ void MainWindow::focusEvent(FocusEvent &event) {
     return;
   dMouse = Point();
 
-  if(SystemApi::isFullscreen(hwnd()))
+  if(SystemApi::isFullscreen(hwnd()) && !Camera::isArpgEnabled())
     setCursorPosition(Point(w()/2,h()/2));
   }
 
@@ -927,6 +978,7 @@ uint64_t MainWindow::tick() {
   if(document.isActive())
     clearInput();
   tickMouse(dt);
+  updateArpgAim();
   player.tickMove(dt);
   update();
   return dt;
@@ -1214,7 +1266,7 @@ void MainWindow::clearInput() {
 
 void MainWindow::setFullscreen(bool fs) {
   SystemApi::setAsFullscreen(hwnd(),fs);
-  setCursorShape(fs ? CursorShape::Hidden : CursorShape::Arrow);
+  setCursorShape((fs && !Camera::isArpgEnabled()) ? CursorShape::Hidden : CursorShape::Arrow);
   }
 
 void MainWindow::render(){

@@ -48,6 +48,9 @@ class PlayerControl final {
     bool  tickMove(uint64_t dt);
     bool  tickCameraMove(uint64_t dt);
 
+    // gothic-diablo: world point under the mouse cursor; the hero faces it in ARPG mode
+    void  setArpgAim(bool valid, const Tempest::Vec3& point);
+
   private:
     enum WeaponAction : uint8_t {
       WeaponClose,
@@ -152,6 +155,9 @@ class PlayerControl final {
     uint64_t       turnAniSmooth  = 0;
     int            rotationAni    = 0;
     bool           g2Ctrl         = false;
+
+    bool           arpgAimValid   = false;
+    Tempest::Vec3  arpgAimPoint   = {};
 
     DialogMenu&    dlg;
     InventoryMenu& inv;

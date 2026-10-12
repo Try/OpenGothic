@@ -32,6 +32,8 @@ layout(binding = 3, std140) uniform UboScene {
   SceneDesc scene;
   };
 
+#include "arpg.glsl"
+
 vec3 inverse(vec3 pos) {
   vec4 ret = scene.viewProjectInv*vec4(pos,1.0);
   return (ret.xyz/ret.w)/100.f;
@@ -200,6 +202,10 @@ void main_frag() {
   lum *= scene.exposure;
 
   outColor = vec4(lum, 1.0-tr);
+
+  // gothic-diablo: indoors, paint everything outside the hero's room black
+  const float outside = arpgOutside(arpgWorldPos(inPos, dMax), isSky);
+  outColor = vec4(outColor.rgb*(1.0-outside), mix(outColor.a, 1.0, outside));
   }
 #else
 void main_comp() {

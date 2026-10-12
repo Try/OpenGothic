@@ -12,6 +12,7 @@
 layout(location = 0) out vec4 outColor;
 
 layout(binding = 0, std140) uniform UboScene    { SceneDesc scene;     };
+#include "arpg.glsl"
 layout(binding = 1)         uniform texture2D   depth;
 layout(binding = 2)         uniform texture2D   rayData;
 layout(binding = 3, std430) readonly buffer Ep0 { Epipole   epipole[]; };
@@ -91,6 +92,10 @@ void main() {
   lum *= scene.exposure;
 
   outColor = vec4(lum, 1.0-tr);
+
+  // gothic-diablo: indoors, paint everything outside the hero's room black
+  const float outside = arpgOutside(arpgWorldPos(inPos, z), z>=1.0);
+  outColor = vec4(outColor.rgb*(1.0-outside), mix(outColor.a, 1.0, outside));
   // outColor = vec4(dbgColor.rgb, 1);
   // outColor = vec4(inPos*0.5+0.5, 0, 1);
   // outColor = vec4(dbgColor.rgb,1);

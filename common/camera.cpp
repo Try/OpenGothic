@@ -1122,6 +1122,7 @@ void Camera::updateArpgView(float dtF) {
   if(!isArpgActive()) {
     arpg.indoor     = false;
     arpg.indoorHold = 0;
+    arpg.roomValid  = false;
     return;
     }
 
@@ -1157,10 +1158,38 @@ void Camera::updateArpgView(float dtF) {
       arpg.indoor = false;
     }
 
+  // indoors: line of sight around the hero; everything beyond the walls is painted black
+  static constexpr float maxRoom = 5000.f;
+  if(arpg.indoor) {
+    auto& physic = *world->physic();
+    for(int i=0; i<16; ++i) {
+      const float a   = float(i)*float(M_PI)/8.f;
+      const Vec3  dir = Vec3(std::cos(a), 0.f, std::sin(a));
+      float dist = 0;
+      // two heights: above furniture, below most door lintels
+      for(float h : {160.f, 220.f}) {
+        const Vec3 from = feet + Vec3(0,h,0);
+        const auto r    = physic.ray(from, from + dir*maxRoom);
+        dist = std::max(dist, r.hasCol ? r.hitFraction*maxRoom : maxRoom);
+        }
+      const float target = std::min(dist+120.f, maxRoom);
+      if(!arpg.roomValid || dtF<0.f)
+        arpg.room[i] = target; else
+        arpg.room[i] += (target-arpg.room[i])*std::min(1.f, 8.f*dtF);
+      }
+    arpg.roomValid = true;
+    } else {
+    arpg.roomValid = false;
+    }
+
   arpgV.enabled    = true;
   arpgV.feet       = feet;
   arpgV.center     = center;
   arpgV.cutHeight  = arpg.indoor ? 250.f : 0.f;
   arpgV.cutRadius  = 3000.f;
-  arpgV.fadeRadius = 0.22f;
+  arpgV.fadeRadius = 0.275f;
+  arpgV.roomMask   = arpg.indoor && arpg.roomValid;
+  arpgV.floorDrop  = 600.f;
+  for(int i=0; i<16; ++i)
+    arpgV.roomRadius[i] = arpg.roomValid ? arpg.room[i] : maxRoom;
   }
