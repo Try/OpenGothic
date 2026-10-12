@@ -161,8 +161,9 @@ void SceneGlobals::setUnderWater(bool w) {
 void SceneGlobals::setArpgView(bool enabled, const Tempest::Vec3& feet, const Tempest::Vec3& center,
                                float cutHeight, float cutRadius, float fadeRadius,
                                float fowRadius, float fowFade,
-                               float seeThrough, float indoor, float lowerStart, float lowerEnd) {
-  static_assert(sizeof(UboGlobal)==1232, "UboGlobal must match SceneDesc in scene.glsl");
+                               float seeThrough, float indoor, float lowerStart, float lowerEnd,
+                               const float* los128) {
+  static_assert(sizeof(UboGlobal)==1744, "UboGlobal must match SceneDesc in scene.glsl");
   if(!enabled) {
     uboGlobalCpu.arpgPlayer  = {};
     uboGlobalCpu.arpgCenter  = {};
@@ -186,6 +187,8 @@ void SceneGlobals::setArpgView(bool enabled, const Tempest::Vec3& feet, const Te
   uboGlobalCpu.arpgParams  = Tempest::Vec4(cutRadius, (c.w>0.f ? fadeRadius : 0.f), ndcX, ndcY);
   uboGlobalCpu.arpgParams2 = Tempest::Vec4(aspect, dist, fowRadius, fowFade);
   uboGlobalCpu.arpgParams3 = Tempest::Vec4(indoor, lowerStart, lowerEnd, seeThrough);
+  if(los128!=nullptr)
+    std::memcpy(uboGlobalCpu.arpgLos, los128, sizeof(uboGlobalCpu.arpgLos));
   }
 
 void SceneGlobals::setTime(uint64_t time) {

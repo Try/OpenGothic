@@ -247,7 +247,7 @@ vec4 diffuseTex() {
 void mainGBuffer(vec4 t) {
 #if defined(ARPG_BACKFACE)
   if(arpgIsBackFace()) {
-    outDiffuse = vec4(0.0, 0.0, 0.0, encodeHintBits());
+    outDiffuse = vec4(0.0, 0.0, 0.0, encodeHintBits() + float(ARPG_CAP_BIT)/255.0);
     outNormal  = encodeNormal(-shInp.normal);
     return;
     }
@@ -255,6 +255,11 @@ void mainGBuffer(vec4 t) {
   outDiffuse.rgb = t.rgb;
   outDiffuse.a   = encodeHintBits();
   outNormal      = encodeNormal(shInp.normal);
+#if !defined(FLAT_NORMAL) && (MESH_TYPE!=T_PFX)
+  // gothic-diablo: creatures (animated meshes) a bit brighter, so they stand out from the ARPG camera
+  if(scene.arpgPlayer.w>0.0 && (bucket[bucketId].flags & BK_SKIN)!=0)
+    outDiffuse.rgb = min(outDiffuse.rgb*1.4, vec3(1.0));
+#endif
   // outNormal      = vec4(flatNormal()*0.5 + vec3(0.5), 1.0);
 #if DEBUG_DRAW
   outDiffuse.rgb *= debugColors[debugId%debugColors.length()];

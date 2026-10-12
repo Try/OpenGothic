@@ -20,6 +20,8 @@
 #include <Tempest/Swapchain>
 
 #include <vector>
+#include <unordered_map>
+#include <unordered_set>
 #include <thread>
 
 #include "world/world.h"
@@ -70,6 +72,7 @@ class MainWindow : public Tempest::Window {
     void paintArpgLabels(Tempest::Painter& p, const Tempest::Matrix4x4& vp, const Focus& hover);
     void paintArpgFocus (Tempest::Painter& p, const Focus& fc, const Tempest::Matrix4x4& vp);
     void paintArpgCombo (Tempest::Painter& p, const Tempest::Matrix4x4& vp);
+    void paintArpgMinimap(Tempest::Painter& p);
     bool arpgLabelRect  (const Focus& f, const Tempest::Matrix4x4& vp, Tempest::Rect& out) const;
     void drawArpgLabel  (Tempest::Painter& p, const Tempest::Rect& r, const Focus& f, bool hi);
     Focus arpgLabelAt   (const Tempest::Point& pos) const;
@@ -174,6 +177,16 @@ class MainWindow : public Tempest::Window {
     Tempest::Point            arpgMidStart;
     Tempest::Point            arpgMidLast;
     bool                      arpgShowAll     = false; // Z held: labels of all items/usable objects in sight
+    bool                      uiWasActive     = false;
+    // gothic-diablo: minimap (Tab), map texture from the world map item of the scripts, explored 4 m cells
+    bool                      arpgMinimap     = false;
+    bool                      arpgTabDown     = false;
+    bool                      arpgIDown       = false;
+    std::string               arpgMapWorld;
+    std::string               arpgMapTex;
+    Tempest::Rect             arpgMapBounds;
+    bool                      arpgMapValid    = false;
+    std::unordered_map<std::string, std::unordered_set<int64_t>> arpgExplored;
     struct ArpgLabel {
       Tempest::Rect           rect;
       Focus                   focus;

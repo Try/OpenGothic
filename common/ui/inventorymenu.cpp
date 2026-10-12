@@ -1,5 +1,7 @@
 #include "inventorymenu.h"
 
+#include "camera.h"
+
 #include <Tempest/Painter>
 #include <Tempest/SoundEffect>
 
@@ -319,7 +321,8 @@ void InventoryMenu::keyDownEvent(KeyEvent &e) {
       slot = uint8_t(e.key-KeyEvent::K_0);
     onItemAction(slot);
     }
-  else if(e.key==KeyEvent::K_ESCAPE || keycodec.tr(e)==KeyCodec::Inventory){
+  else if(e.key==KeyEvent::K_ESCAPE || keycodec.tr(e)==KeyCodec::Inventory ||
+          (e.key==KeyEvent::K_I && Camera::isArpgEnabled())) {
     close();
     }
   else if(e.key==KeyEvent::K_Space) {

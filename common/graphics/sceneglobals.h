@@ -38,7 +38,8 @@ class SceneGlobals final {
     void setArpgView(bool enabled, const Tempest::Vec3& feet, const Tempest::Vec3& center,
                      float cutHeight, float cutRadius, float fadeRadius,
                      float fowRadius, float fowFade,
-                     float seeThrough, float indoor, float lowerStart, float lowerEnd);
+                     float seeThrough, float indoor, float lowerStart, float lowerEnd,
+                     const float* los128);
 
     void setTime(uint64_t time);
     void commitUbo(uint8_t fId);
@@ -131,6 +132,7 @@ class SceneGlobals final {
       Tempest::Vec4                   arpgParams  = {};
       Tempest::Vec4                   arpgParams2 = {};
       Tempest::Vec4                   arpgParams3 = {};
+      Tempest::Vec4                   arpgLos[32] = {};
       };
 
     Tempest::UniformBuffer<UboGlobal> uboGlobalPf[Resources::MaxFramesInFlight][V_Count];

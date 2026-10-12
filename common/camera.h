@@ -4,6 +4,8 @@
 #include <Tempest/Matrix4x4>
 #include <Tempest/Point>
 
+#include <array>
+
 #include <zenkit/addon/daedalus.hh>
 
 class World;
@@ -60,6 +62,10 @@ class Camera final {
       float         indoor     = 0;    // 0..1: indoors -> lower levels fade to black (animated)
       float         lowerStart = 0;    // lower levels: start of the fade, cm below the feet
       float         lowerEnd   = 0;    // lower levels: fully black, cm below the feet
+      // line of sight around the hero (indoors): how far the hero sees in each direction (cm),
+      // direction i = angle 2*pi*i/LosRays in the xz plane, same convention as atan2(z,x)
+      static constexpr size_t LosRays = 128;
+      std::array<float,LosRays> los = {};
       };
 
     void reset();
@@ -152,6 +158,10 @@ class Camera final {
       float indoorHold  = 0;      // seconds left before 'indoor' may switch off
       float indoorBlend = 0;      // 0..1, smooth version of 'indoor'
       float seeThrough  = 0;      // 0..1, smooth "hero is hidden" factor
+      std::array<float,ArpgView::LosRays> los    = {}; // smoothed
+      std::array<float,ArpgView::LosRays> losDst = {}; // last measured
+      uint32_t losPhase = 0;
+      bool     losInit  = false;
       };
     Arpg                  arpg;
     ArpgView              arpgV;

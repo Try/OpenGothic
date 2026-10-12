@@ -243,18 +243,23 @@ void PlayerControl::onKeyReleased(KeyCodec::Action a, KeyCodec::Mapping mapping)
 auto PlayerControl::handleMovementAction(KeyCodec::ActionMapping actionMapping, bool pressed) -> void {
   auto[action, mapping] = actionMapping;
   auto mappingIndex = (mapping == KeyCodec::Mapping::Primary ? size_t(0) : size_t(1));
+  auto set = [pressed](AxisStatus& ax, std::array<bool, KeyCodec::NumMappings>& side, size_t id, float dir) {
+    side[id] = pressed;
+    if(pressed)
+      ax.lastPressed = dir;
+    };
   if (action == Action::Forward)
-    movement.forwardBackward.main[mappingIndex] = pressed;
+    set(movement.forwardBackward, movement.forwardBackward.main, mappingIndex, 1.f);
   else if (action == Action::Back)
-    movement.forwardBackward.reverse[mappingIndex] = pressed;
+    set(movement.forwardBackward, movement.forwardBackward.reverse, mappingIndex, -1.f);
   else if (action == Action::Right)
-    movement.strafeRightLeft.main[mappingIndex] = pressed;
+    set(movement.strafeRightLeft, movement.strafeRightLeft.main, mappingIndex, 1.f);
   else if (action == Action::Left)
-    movement.strafeRightLeft.reverse[mappingIndex] = pressed;
+    set(movement.strafeRightLeft, movement.strafeRightLeft.reverse, mappingIndex, -1.f);
   else if (action == Action::RotateR)
-    movement.turnRightLeft.main[mappingIndex] = pressed;
+    set(movement.turnRightLeft, movement.turnRightLeft.main, mappingIndex, 1.f);
   else if (action == Action::RotateL)
-    movement.turnRightLeft.reverse[mappingIndex] = pressed;
+    set(movement.turnRightLeft, movement.turnRightLeft.reverse, mappingIndex, -1.f);
   }
 
 bool PlayerControl::isPressed(KeyCodec::Action a) const {
@@ -1273,11 +1278,16 @@ Focus PlayerControl::arpgPick() {
     return d.x*d.x+d.z*d.z <= radius*radius;
     };
 
-  // 1. creature under the cursor (collision capsule, in front of any wall)
+  // 1. creature under the cursor (collision capsule, in front of any wall);
+  //    a dead one only if there is no loot lying around it (checked below)
+  Npc* corpse = nullptr;
   {
     auto hit = physic.rayNpc(from, to, pl);
-    if(hit.npcHit!=nullptr && hit.npcHit!=pl && inFog(hit.npcHit->position()) && hit.npcHit->position().y<=ceiling)
-      return Focus(*hit.npcHit);
+    if(hit.npcHit!=nullptr && hit.npcHit!=pl && inFog(hit.npcHit->position()) && hit.npcHit->position().y<=ceiling) {
+      if(!hit.npcHit->isDead())
+        return Focus(*hit.npcHit);
+      corpse = hit.npcHit;
+      }
   }
 
   // 2. items and usable objects near the cursor, only what the hero can see (same rules as the Z labels)
@@ -1312,6 +1322,9 @@ Focus PlayerControl::arpgPick() {
     if(c.mob!=nullptr && arpgCanSee(c.mob->displayPosition(), c.mob->position().y, c.mob))
       return Focus(*c.mob);
     }
+
+  if(corpse!=nullptr)
+    return Focus(*corpse);
 
   // 3. creature near the cursor (small or fast ones are hard to hit with a ray)
   {
