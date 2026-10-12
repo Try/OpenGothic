@@ -419,6 +419,7 @@ function Invoke-Gui {
   $progText = New-Object Windows.Forms.Label
   $progText.AutoSize = $true; $progText.ForeColor = $C.Muted; $progText.Anchor = 'Right'; $progText.Margin = Pad 0 0 0 0
   $progText.Text = ' '
+  $progRow.Visible = $false
   $progRow.Controls.Add($bar, 0, 0)
   $progRow.Controls.Add($progText, 1, 0)
   $grid.Controls.Add($progRow, 0, 5)
@@ -655,6 +656,8 @@ function Invoke-Gui {
           elseif ($St.Job.Kind -eq 'check') { $progText.Text = ' ' }
         }
       }
+      $showBar = [bool]($St.Job -and $St.Job.Kind -eq 'install')
+      if ($progRow.Visible -ne $showBar) { $progRow.Visible = $showBar }
       $job = $St.Job
       if ($job -and $job.Handle.IsCompleted) {
         try { [void]$job.Ps.EndInvoke($job.Handle) } catch { if (-not $Sync.Error) { $Sync.Error = $_.Exception.Message } }
