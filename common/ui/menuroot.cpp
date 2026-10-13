@@ -146,10 +146,14 @@ void MenuRoot::mouseDownEvent(MouseEvent& event) {
 #if defined(__MOBILE_PLATFORM__)
       if(touchId!=-1)
         return;
-      touchId = event.mouseID;
       touchStart = event.pos();
-      touchLast = touchStart;
       touchMoved = false;
+      if(touchStart.x>=w()*84/100 && touchStart.y<h()*23/100) {
+        popMenu();
+        return;
+        }
+      if(current->beginTouch(touchStart-current->pos()))
+        touchId = event.mouseID;
 #else
       current->onKeyboard(KeyCodec::ActionGeneric);
 #endif
@@ -165,27 +169,9 @@ void MenuRoot::mouseDragEvent(MouseEvent& event) {
     return;
 
   const int step = std::max(1, int(20.f*Gothic::interfaceScale(this)));
-  const auto delta = event.pos()-touchLast;
-  if(!touchMoved) {
-    if(std::max(std::abs(delta.x), std::abs(delta.y))<step)
-      return;
-    touchHorizontal = std::abs(delta.x)>std::abs(delta.y);
-    touchMoved = true;
-    if(!touchHorizontal) {
-      current->onKeyboard(delta.y<0 ? KeyCodec::Forward : KeyCodec::Back);
-      return;
-      }
-    }
-
-  if(!touchHorizontal || !current->canAdjustValue())
-    return;
-
-  const int steps = delta.x/step;
-  touchLast.x += steps*step;
-
-  for(int i=0; i<std::abs(steps) && touchId==event.mouseID; ++i) {
-    current->onKeyboard(steps<0 ? KeyCodec::Left : KeyCodec::Right);
-    }
+  const auto delta = event.pos()-touchStart;
+  touchMoved |= std::max(std::abs(delta.x),std::abs(delta.y))>=step;
+  current->dragTouch(event.pos()-current->pos());
   }
 
 void MenuRoot::mouseUpEvent(MouseEvent& event) {
@@ -196,17 +182,7 @@ void MenuRoot::mouseUpEvent(MouseEvent& event) {
   if(event.mouseID!=touchId)
     return;
   touchId = -1;
-  if(!touchMoved) {
-    if(touchStart.x>=w()*84/100 && touchStart.y<h()*23/100)
-      popMenu();
-    else
-      current->onKeyboard(KeyCodec::ActionGeneric);
-    } else if(touchHorizontal && !current->canAdjustValue()) {
-    if(event.x<touchStart.x)
-      popMenu();
-    else
-      current->onKeyboard(KeyCodec::ActionGeneric);
-    }
+  current->endTouch(!touchMoved);
   }
 #else
 void MenuRoot::mouseUpEvent(MouseEvent&) {

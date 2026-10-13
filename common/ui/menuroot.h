@@ -53,9 +53,7 @@ class MenuRoot : public Tempest::Widget {
     bool                                   showVersionHint = false;
 #if defined(__MOBILE_PLATFORM__)
     Tempest::Point                         touchStart;
-    Tempest::Point                         touchLast;
     int                                    touchId = -1;
     bool                                   touchMoved = false;
-    bool                                   touchHorizontal = false;
 #endif
   };

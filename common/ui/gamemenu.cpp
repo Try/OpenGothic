@@ -6,6 +6,7 @@
 #include <Tempest/Dialog>
 
 #include <algorithm>
+#include <cmath>
 
 #include "utils/string_frm.h"
 #include "world/objects/npc.h"
@@ -419,13 +420,8 @@ void GameMenu::drawItem(Painter& p, Item& hItem) {
   auto flags = item->flags;
   getText(hItem,textBuf);
 
-  const int32_t dimx = (item->dim_x!=-1) ? item->dim_x : 8192;
-  const int32_t dimy = (item->dim_y!=-1) ? item->dim_y : 750;
-
-  const int   x     = int(float(w()*item->pos_x)/scriptDiv);
-  const int   y     = int(float(h()*item->pos_y)/scriptDiv);
-  int         szX   = int(float(w()*dimx       )/scriptDiv);
-  int         szY   = int(float(h()*dimy       )/scriptDiv);
+  const auto rect = itemRect(hItem);
+  const int x = rect.x, y = rect.y, szX = rect.w, szY = rect.h;
 
   if(hItem.img && !hItem.img->isEmpty()) {
     p.setBrush(*hItem.img);
@@ -588,22 +584,103 @@ void GameMenu::resizeEvent(SizeEvent &) {
   onTick();
   }
 
-bool GameMenu::canAdjustValue() {
-  auto* selected = selectedItem();
-  auto* it = selected;
-  for(int i=0; i<zenkit::IMenu::item_count && it!=nullptr; ++i) {
-    if(it->handle==nullptr)
-      return false;
-    if((it->handle->type==zenkit::MenuItemType::SLIDER || it->handle->type==zenkit::MenuItemType::CHOICEBOX) &&
-       !it->handle->on_chg_set_option_section.empty() && !it->handle->on_chg_set_option.empty())
+Rect GameMenu::itemRect(const Item& it) const {
+  const auto& item = it.handle;
+  const int dimx = item->dim_x!=-1 ? item->dim_x : 8192;
+  const int dimy = item->dim_y!=-1 ? item->dim_y : 750;
+  return Rect(int(float(w()*item->pos_x)/scriptDiv),int(float(h()*item->pos_y)/scriptDiv),
+              int(float(w()*dimx)/scriptDiv),int(float(h()*dimy)/scriptDiv));
+  }
+
+bool GameMenu::isDraggable(const Item& it) {
+  const auto& item = *it.handle;
+  return item.type==zenkit::MenuItemType::SLIDER ||
+         (item.type==zenkit::MenuItemType::CHOICEBOX && !item.text[0].empty() && item.text[0].back()=='%');
+  }
+
+bool GameMenu::beginTouch(Point pos) {
+  touchSlider = nullptr;
+  for(uint32_t i=0; i<zenkit::IMenu::item_count; ++i) {
+    auto& selected = hItems[i];
+    if(!selected.visible || !isSelectable(selected.handle) || !isEnabled(selected.handle))
+      continue;
+    auto* it = &selected;
+    Item* hit = nullptr;
+    for(int n=0; n<zenkit::IMenu::item_count && it!=nullptr; ++n) {
+      auto rect = itemRect(*it);
+      if(it->handle->type!=zenkit::MenuItemType::SLIDER) {
+        const int fontHeight = getTextFont(*it).pixelSize();
+        rect.h = fontHeight;
+        }
+      if(it->visible && !isHidden(it->handle) && rect.contains(pos)) {
+        if(hit==nullptr)
+          hit = it;
+        if(isDraggable(*it)) {
+          hit = it;
+          break;
+          }
+        }
+      if(!(it->handle->flags & zenkit::MenuItemFlag::EFFECTS))
+        break;
+      it = selectedNextItem(it);
+      if(it==&selected)
+        break;
+      }
+    if(hit!=nullptr) {
+      setSelection(int(i));
+      updateSavThumb(selected);
+      if(isDraggable(*hit)) {
+        touchSlider = hit;
+        dragTouch(pos);
+        }
+      update();
       return true;
-    if(!(it->handle->flags & zenkit::MenuItemFlag::EFFECTS))
-      break;
-    it = selectedNextItem(it);
-    if(it==selected)
-      break;
+      }
     }
+
   return false;
+  }
+
+bool GameMenu::isPercentageRange(const Item& it) {
+  return it.handle->type==zenkit::MenuItemType::CHOICEBOX &&
+         it.handle->text[0]=="20%|40%|60%|80%|100%|120%|140%|160%|180%|200%|220%|240%|260%|280%|300%";
+  }
+
+void GameMenu::dragTouch(Point pos) {
+  if(touchSlider==nullptr)
+    return;
+  const bool choice = touchSlider->handle->type==zenkit::MenuItemType::CHOICEBOX;
+  if(!choice && slider==nullptr)
+    return;
+  const auto rect = itemRect(*touchSlider);
+  const int knob = choice ? 0 : int(float(slider->w())*float(rect.h/2)/float(slider->h()));
+  const auto& sec = touchSlider->handle->on_chg_set_option_section;
+  const auto& opt = touchSlider->handle->on_chg_set_option;
+  if(rect.w<=knob || sec.empty() || opt.empty())
+    return;
+  const float value = std::clamp(float(pos.x-rect.x-knob/2)/float(rect.w-knob),0.f,1.f);
+  if(choice) {
+    const int count = int(strEnumSize(touchSlider->handle->text[0]));
+    if(count==0)
+      return;
+    if(isPercentageRange(*touchSlider)) {
+      // Preserve the script's 20-percent index scale, including existing settings.
+      Gothic::settingsSetF(sec,opt,std::round(value*float((count-1)*2))/2.f);
+      } else {
+      touchSlider->value = int(std::round(value*float(count-1)));
+      Gothic::settingsSetI(sec,opt,touchSlider->value);
+      }
+    } else {
+    Gothic::settingsSetF(sec,opt,std::round(value*100.f)/100.f);
+    }
+  update();
+  }
+
+void GameMenu::endTouch(bool activate) {
+  const bool isSlider = touchSlider!=nullptr;
+  touchSlider = nullptr;
+  if(activate && !isSlider)
+    onKeyboard(KeyCodec::ActionGeneric);
   }
 
 void GameMenu::onKeyboard(KeyCodec::Action key) {
@@ -742,6 +819,15 @@ void GameMenu::getText(const Item& it, std::vector<char> &out) {
     }
 
   if(it.handle->type==zenkit::MenuItemType::CHOICEBOX) {
+#if defined(__MOBILE_PLATFORM__)
+    if(isPercentageRange(it)) {
+      const float value = Gothic::settingsGetF(it.handle->on_chg_set_option_section,it.handle->on_chg_set_option);
+      const auto text = std::to_string(20+int(std::round(std::clamp(value,0.f,14.f)*2.f))*10)+"%";
+      out.assign(text.begin(),text.end());
+      out.push_back('\0');
+      return;
+      }
+#endif
     strEnum(src,it.value,out);
     return;
     }
@@ -911,6 +997,14 @@ void GameMenu::execChgOption(Item &item, int slideDx) {
   if(sec.empty() || opt.empty())
     return;
 
+#if defined(__MOBILE_PLATFORM__)
+  if(isPercentageRange(item)) {
+    const float value = Gothic::settingsGetF(sec,opt);
+    Gothic::settingsSetF(sec,opt,std::clamp(value+float(slideDx==0 ? 1 : slideDx)*0.5f,0.f,14.f));
+    return;
+    }
+#endif
+
   if(item.handle->type==zenkit::MenuItemType::SLIDER && slideDx!=0) {
     updateItem(item);
     float v = Gothic::settingsGetF(sec, opt);
@@ -920,10 +1014,16 @@ void GameMenu::execChgOption(Item &item, int slideDx) {
   if(item.handle->type==zenkit::MenuItemType::CHOICEBOX) {
     updateItem(item);
     const int cnt = int(strEnumSize(item.handle->text[0]));
+#if defined(__MOBILE_PLATFORM__)
+    if(slideDx==0 && cnt>0)
+      item.value = (item.value+1)%cnt;
+    else
+      item.value += slideDx;
+#else
     if(slideDx==0 && cnt==2)
-      slideDx = 1; // QoL: on/off toggle
-
-    item.value += slideDx; // next value
+      slideDx = 1;
+    item.value += slideDx;
+#endif
     if(cnt>0)
       item.value = std::clamp(item.value,0,cnt-1);  else
       item.value = 0;
