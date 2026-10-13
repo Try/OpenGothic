@@ -836,6 +836,7 @@ void Renderer::drawFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const Worl
       cmd.setBinding(1, sky.fogLut3D, Sampler::bilinear(ClampMode::ClampToEdge));
       cmd.setBinding(2, zbuffer, Sampler::nearest()); // NOTE: wanna here depthFetch from gles2
       cmd.setBinding(3, scene.uboGlobal[SceneGlobals::V_Main]);
+      cmd.setBinding(9, gbufDiffuse, Sampler::nearest());
       cmd.setPipeline(shaders.fog);
       break;
       }
@@ -845,6 +846,7 @@ void Renderer::drawFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const Worl
       cmd.setBinding(2, zbuffer,        Sampler::nearest());
       cmd.setBinding(3, scene.uboGlobal[SceneGlobals::V_Main]);
       cmd.setBinding(4, sky.occlusionLut);
+      cmd.setBinding(9, gbufDiffuse, Sampler::nearest());
       cmd.setPipeline(shaders.fog3dHQ);
       break;
       }
@@ -855,6 +857,7 @@ void Renderer::drawFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const Worl
       cmd.setBinding(2, vsm.fogDbg,     Sampler::bilinear(ClampMode::ClampToEdge));
       cmd.setBinding(3, epipolar.epipoles);
       cmd.setBinding(4, sky.fogLut3DMs, Sampler::bilinear(ClampMode::ClampToEdge));
+      cmd.setBinding(9, gbufDiffuse);
       cmd.setPipeline(shaders.vsmFog);
       break;
       }

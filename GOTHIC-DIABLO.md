@@ -22,7 +22,7 @@ Fork [OpenGothic](https://github.com/Try/OpenGothic): Gothic II Noc Kruka jako i
 | W/S/A/D = góra/dół/lewo/prawo ekranu, postać obraca się w stronę ruchu | `PlayerControl::implMove` |
 | Widoczny, wolny kursor myszy; promień spod kursora liczony co klatkę | `MainWindow::updateArpgAim` |
 | Wnętrza: wycięcie wszystkiego powyżej głowy (sufity, dachy, piętra) w promieniu 30 m | `shader/materials/main.frag` — `arpgHidden` |
-| Ściany między kamerą a postacią: przezroczysty krąg (siatka pikseli), promień 0,275 wysokości ekranu | `shader/materials/main.frag` — `arpgHidden` |
+| Ściany między kamerą a postacią: przezroczysty krąg (w fazie 3 zmieniony — patrz niżej) | `shader/materials/main.frag` — `arpgHidden` |
 | Wnętrza: ogień/pochodnie (particle) nad głową też są wycinane | `shader/materials/main.frag` — `arpgHidden` |
 | Fog of war: świat ciemnieje do czerni dalej od postaci; promień z opcji gry „Zasięg widzenia” (20–300%, 100% = 15 m) | `shader/arpg.glsl`, `shader/sky/fog.frag`, `Camera::updateArpgView` |
 | Wykrywanie wnętrza: promień w górę z głowy postaci + sektor podłogi | `Camera::updateArpgView` |
@@ -56,3 +56,21 @@ Dachy i ściany dalej rzucają cienie (ukrywanie działa tylko w widoku kamery).
 
 Łuki i czary — w fazie walki.
 
+
+## Faza 3 — zasłanianie
+
+| Element | Gdzie |
+|---|---|
+| Czarne „przekroje”: wewnętrzna strona siatki świata (widoczna przez wycięcie i dziury) rysowana na czarno jak lita skała — zasłania niższe lokacje i dziury w siatce | `Shaders::materialPipeline` (krajobraz bez odrzucania tylnych ścian), `shader/materials/main.frag` — `ARPG_BACKFACE` |
+| Wnętrza: to, co leży głęboko pod stopami (3,5 m → 9 m), przechodzi w czerń — piwnice, dolina pod wieżą; płynne przejście przy wejściu/wyjściu | `shader/arpg.glsl` — `arpgFogOfWar`, `Camera::updateArpgView` |
+| Prześwit tylko wtedy, gdy coś zasłania postać (3 promienie kamera → głowa/klatka/kolana, z pominięciem wyciętego sufitu); otwiera się w 0,2 s, zamyka w 0,4 s | `Camera::updateArpgView` |
+| Prześwit: stały rozmiar w świecie (~2,3 m), czysty środek, miękka krawędź (szum gradientowy zamiast siatki 4×4), ściany ścięte do cokołu 50 cm | `shader/materials/main.frag` — `arpgHidden` |
+| Liście drzew (materiały z kanałem alfa) przed postacią zawsze prześwitują | `arpgHidden` |
+| Wnętrza: linia wzroku — 128 kierunków (promienie na wysokości kolan, głowy i pochylony w górę, ¼ kierunków na klatkę, wygładzane); to, czego postać nie widzi (za ścianami jaskini), w czerń | `Camera::updateArpgView`, `shader/arpg.glsl` — `arpgOutOfSight` |
+| Przekroje zostają czyste czarne także po mgle (bit 4 w alfie G-bufora, przebieg mgły czyta G-bufor) | `main.frag`, `shader/sky/fog.frag`, `fog_epipolar.frag`, `Renderer::drawFog` |
+| Postacie i potwory (siatki animowane) jaśniejsze o 40% w widoku ARPG | `main.frag` — `mainGBuffer` |
+| Minimapa (Tab): mapa świata z przedmiotu-mapy w skryptach (odczyt kodu bajtowego Doc_SetPage/Doc_SetLevel/Doc_SetLevelCoords), obrócona jak kamera, kółko myszy nad mapą = przybliżenie (20–100 m), nieodkryte pola 4 m ciemne, wrogowie czerwoni, strzałka postaci, „N”; ekwipunek pod I (Backspace dalej działa) | `MainWindow::paintArpgMinimap`, `GameScript::arpgWorldMaps` |
+
+### Poprawki sterowania (faza 3)
+- Oba kierunki wciśnięte (np. zgubione puszczenie S w menu) → wygrywa ostatnio wciśnięty; czyszczenie klawiszy przy otwarciu/zamknięciu menu i utracie fokusu okna
+- Łup przy zwłokach: przedmiot ma pierwszeństwo przed martwym potworem pod kursorem

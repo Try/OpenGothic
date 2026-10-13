@@ -220,6 +220,7 @@ void MainWindow::paintEvent(PaintEvent& event) {
         if(!arpgShowAll || focus.npc!=nullptr)
           paintArpgFocus(p,focus,vp);
         paintArpgCombo(p,vp);
+        paintArpgMinimap(p);
         } else {
         arpgLabels.clear();
         paintFocus(p,focus,vp);
@@ -521,6 +522,12 @@ void MainWindow::onSettings() {
   }
 
 void MainWindow::mouseWheelEvent(MouseEvent &event) {
+  if(arpgMinimap && arpgMapRect.w>0 && arpgMapRect.contains(event.pos()) && isArpgMouse()) {
+    // gothic-diablo: wheel over the minimap zooms the minimap (20..100 m across)
+    const float k = event.delta>0 ? 1.f/1.2f : 1.2f;
+    arpgMapHalf = std::clamp(arpgMapHalf*k, 1000.f, 5000.f);
+    return;
+    }
   if(auto camera = Gothic::inst().camera())
     camera->changeZoom(event.delta);
   }
@@ -584,6 +591,21 @@ void MainWindow::keyDownEvent(KeyEvent &event) {
   if(event.key==Event::K_Z && Camera::isArpgEnabled())
     arpgShowAll = true; // gothic-diablo: hold Z to show all items / usable objects in sight
 
+  if(Camera::isArpgEnabled() && Gothic::inst().player()!=nullptr) {
+    // gothic-diablo: Tab = minimap, I = inventory (Backspace keeps working too)
+    if(event.key==Event::K_Tab) {
+      arpgMinimap = !arpgMinimap;
+      arpgTabDown = true;
+      event.accept();
+      return;
+      }
+    if(event.key==Event::K_I) {
+      arpgIDown = true;
+      event.accept();
+      return;
+      }
+    }
+
   auto act     = keycodec.tr(event);
   auto mapping = keycodec.mapping(event);
   player.onKeyPressed(act,event.key,mapping);
@@ -628,6 +650,19 @@ void MainWindow::keyRepeatEvent(KeyEvent& event) {
 void MainWindow::keyUpEvent(KeyEvent &event) {
   if(event.key==Event::K_Z)
     arpgShowAll = false;
+  if(event.key==Event::K_Tab && arpgTabDown) {
+    arpgTabDown = false;
+    return;
+    }
+  if(event.key==Event::K_I && arpgIDown) {
+    arpgIDown = false;
+    if(!dialogs.isActive() && !inventory.isActive()) {
+      if(auto pl = Gothic::inst().player())
+        inventory.open(*pl);
+      clearInput();
+      }
+    return;
+    }
   if(uiKeyUp==&video){
     video.keyUpEvent(event);
     if(event.isAccepted())
@@ -691,8 +726,12 @@ void MainWindow::keyUpEvent(KeyEvent &event) {
   }
 
 void MainWindow::focusEvent(FocusEvent &event) {
-  if(!event.in)
+  if(!event.in) {
+    // gothic-diablo: key-ups are lost while the window is in the background
+    player.clearInput();
+    arpgLeftDown = arpgRightDown = arpgMidDown = arpgShowAll = false;
     return;
+    }
   dMouse = Point();
 
   if(SystemApi::isFullscreen(hwnd()) && !Camera::isArpgEnabled())
@@ -1223,6 +1262,13 @@ uint64_t MainWindow::tick() {
     ;//clearInput();
   if(document.isActive())
     clearInput();
+  {
+    // gothic-diablo: a menu takes the keyboard (loot, inventory, dialog): key-ups may never reach the player
+    const bool ui = dialogs.isActive() || inventory.isActive() || document.isActive();
+    if(ui!=uiWasActive)
+      player.clearInput();
+    uiWasActive = ui;
+  }
   tickMouse(dt);
   updateArpgAim();
   player.tickMove(dt);
@@ -1628,4 +1674,169 @@ void MainWindow::BenchmarkData::clear() {
   low1procent.clear();
   numFrames = 0;
   fpsSum = 0;
+  }
+
+void MainWindow::paintArpgMinimap(Painter& p) {
+  auto world = Gothic::inst().world();
+  auto pl    = Gothic::inst().player();
+  auto cam   = Gothic::inst().camera();
+  arpgMapRect = Rect();
+  if(!arpgMinimap || world==nullptr || pl==nullptr || cam==nullptr || dialogs.isActive() || inventory.isActive())
+    return;
+
+  // the world map of the current level (from the map items of the scripts)
+  if(arpgMapWorld!=world->name()) {
+    arpgMapWorld = std::string(world->name());
+    arpgMapValid = false;
+    for(auto& m:world->script().arpgWorldMaps()) {
+      if(m.level!=arpgMapWorld)
+        continue;
+      arpgMapTex    = m.texture;
+      arpgMapBounds = Rect(m.left, m.top, m.right-m.left, m.bottom-m.top);
+      arpgMapValid  = (m.right!=m.left && m.bottom!=m.top);
+      }
+    }
+  const Texture2d* tex = arpgMapValid ? Resources::loadTexture(arpgMapTex) : nullptr;
+
+  const Vec3  hero = pl->position();
+  const auto& view = cam->arpgView();
+
+  // explored cells: everything around the hero within the sight range
+  constexpr float cell = 400.f;
+  auto& explored = arpgExplored[arpgMapWorld];
+  auto  key      = [](int i, int j) { return (int64_t(i)<<32) ^ int64_t(uint32_t(j)); };
+  {
+    const float rr = std::min(view.fowRadius>0.f ? view.fowRadius : 1500.f, 2000.f);
+    const int   ci = int(std::floor(hero.x/cell)), cj = int(std::floor(hero.z/cell));
+    const int   n  = int(std::ceil(rr/cell));
+    for(int j=-n; j<=n; ++j)
+      for(int i=-n; i<=n; ++i) {
+        const float x = (float(ci+i)+0.5f)*cell - hero.x;
+        const float z = (float(cj+j)+0.5f)*cell - hero.z;
+        if(x*x+z*z<=rr*rr)
+          explored.insert(key(ci+i, cj+j));
+        }
+  }
+
+  const float scale = Gothic::interfaceScale(this);
+  const int   S     = int(220.f*scale);
+  const int   x0    = w() - S - int(12.f*scale);
+  const int   y0    = int(48.f*scale);
+  const float cx    = float(x0) + float(S)*0.5f;
+  const float cy    = float(y0) + float(S)*0.5f;
+  const float half  = arpgMapHalf;            // world cm from the center to the edge (wheel over the map)
+  arpgMapRect = Rect(x0, y0, S, S);
+  const float k     = float(S)/(2.f*half);    // pixels per cm
+
+  // screen up = where the camera looks, screen right = camera right (same as W/D)
+  const float yaw = cam->arpgYaw()*float(M_PI)/180.f;
+  const Vec2  f   = {std::cos(yaw),  std::sin(yaw)};
+  const Vec2  r   = {std::sin(yaw), -std::cos(yaw)};
+  auto toScreen = [&](float wx, float wz) {
+    const float dx = wx-hero.x, dz = wz-hero.z;
+    return Vec2(cx + k*(dx*r.x + dz*r.y), cy - k*(dx*f.x + dz*f.y));
+    };
+  auto toWorld = [&](float a, float b) { // a: along screen right, b: along screen up (cm)
+    return Vec2(hero.x + a*r.x + b*f.x, hero.z + a*r.y + b*f.y);
+    };
+
+  p.pushState();
+  p.setScissor(x0, y0, S, S);
+
+  p.setBrush(Brush(Color(0.06f,0.05f,0.04f,0.85f), Painter::Alpha));
+  p.drawRect(x0, y0, S, S);
+
+  if(tex!=nullptr) {
+    const auto& wb  = arpgMapBounds;
+    const float tw  = float(tex->w()), th = float(tex->h());
+    auto uv = [&](const Vec2& wp) {
+      return Vec2((wp.x-float(wb.x))/float(wb.w)*tw, (wp.y-float(wb.y))/float(wb.h)*th);
+      };
+    const Vec2 tl = uv(toWorld(-half,  half)), tr = uv(toWorld( half,  half));
+    const Vec2 br = uv(toWorld( half, -half)), bl = uv(toWorld(-half, -half));
+    const float X0 = float(x0), Y0 = float(y0), X1 = float(x0+S), Y1 = float(y0+S);
+    p.setBrush(Brush(*tex, Color(1.f,1.f,1.f,0.9f), Painter::Alpha, ClampMode::ClampToBorder));
+    p.drawTriangle(X0,Y0, tl.x,tl.y,  X1,Y0, tr.x,tr.y,  X1,Y1, br.x,br.y);
+    p.drawTriangle(X0,Y0, tl.x,tl.y,  X1,Y1, br.x,br.y,  X0,Y1, bl.x,bl.y);
+    }
+
+  // not explored yet: dark
+  {
+    p.setBrush(Brush(Color(0.f,0.f,0.f,0.8f), Painter::Alpha));
+    const float reach = half*1.42f;
+    const int   i0 = int(std::floor((hero.x-reach)/cell)), i1 = int(std::floor((hero.x+reach)/cell));
+    const int   j0 = int(std::floor((hero.z-reach)/cell)), j1 = int(std::floor((hero.z+reach)/cell));
+    for(int j=j0; j<=j1; ++j)
+      for(int i=i0; i<=i1; ++i) {
+        if(explored.find(key(i,j))!=explored.end())
+          continue;
+        const Vec2 a = toScreen(float(i)*cell,   float(j)*cell);
+        const Vec2 b = toScreen(float(i+1)*cell, float(j)*cell);
+        const Vec2 c = toScreen(float(i+1)*cell, float(j+1)*cell);
+        const Vec2 d = toScreen(float(i)*cell,   float(j+1)*cell);
+        p.drawTriangle(a.x,a.y,0,0, b.x,b.y,0,0, c.x,c.y,0,0);
+        p.drawTriangle(a.x,a.y,0,0, c.x,c.y,0,0, d.x,d.y,0,0);
+        }
+  }
+
+  // creatures in sight: enemies red, others light
+  {
+    const float sight = view.fowRadius>0.f ? view.fowRadius : 1500.f;
+    const int   dot   = std::max(3, int(4.f*scale));
+    for(uint32_t i=0; i<world->npcCount(); ++i) {
+      auto npc = world->npcById(i);
+      if(npc==nullptr || npc==pl || npc->isDead())
+        continue;
+      const auto  np = npc->position();
+      const float dx = np.x-hero.x, dz = np.z-hero.z;
+      if(dx*dx+dz*dz > sight*sight)
+        continue;
+      const Vec2 sp = toScreen(np.x, np.z);
+      if(player.arpgIsEnemy(*npc))
+        p.setBrush(Brush(Color(0.9f,0.15f,0.1f,1.f), Painter::Alpha)); else
+        p.setBrush(Brush(Color(0.85f,0.85f,0.7f,1.f), Painter::Alpha));
+      p.drawRect(int(sp.x)-dot/2, int(sp.y)-dot/2, dot, dot);
+      }
+  }
+
+  // the hero: arrow in the direction he faces
+  {
+    const float rot = pl->rotation()*float(M_PI)/180.f;
+    Vec2 hd = {std::cos(rot)*r.x + std::sin(rot)*r.y, -(std::cos(rot)*f.x + std::sin(rot)*f.y)};
+    const float l = std::sqrt(hd.x*hd.x+hd.y*hd.y);
+    if(l>0.f)
+      hd = hd/l;
+    const Vec2  pr  = {-hd.y, hd.x};
+    const float a   = 8.f*scale, b = 5.f*scale;
+    const Vec2  tip = Vec2(cx,cy) + hd*a;
+    const Vec2  b0  = Vec2(cx,cy) - hd*b + pr*b;
+    const Vec2  b1  = Vec2(cx,cy) - hd*b - pr*b;
+    p.setBrush(Brush(Color(1.f,0.8f,0.25f,1.f), Painter::Alpha));
+    p.drawTriangle(tip.x,tip.y,0,0, b0.x,b0.y,0,0, b1.x,b1.y,0,0);
+  }
+
+  // north
+  {
+    Vec2 nd = {r.y, -f.y};
+    const float l = std::sqrt(nd.x*nd.x+nd.y*nd.y);
+    if(l>0.f)
+      nd = nd/l;
+    auto&      fnt = Resources::font(scale);
+    const auto ts  = fnt.textSize("N");
+    const Vec2 np  = Vec2(cx,cy) + nd*(float(S)*0.5f - float(ts.h));
+    p.setBrush(Color(1.0));
+    fnt.drawText(p, int(np.x)-ts.w/2, int(np.y)+ts.h/2, "N");
+  }
+
+  // frame
+  {
+    const int bw = std::max(1, int(2.f*scale));
+    p.setBrush(Brush(Color(0.55f,0.45f,0.25f,0.9f), Painter::Alpha));
+    p.drawRect(x0,        y0,        S,  bw);
+    p.drawRect(x0,        y0+S-bw,   S,  bw);
+    p.drawRect(x0,        y0,        bw, S);
+    p.drawRect(x0+S-bw,   y0,        bw, S);
+  }
+
+  p.popState();
   }

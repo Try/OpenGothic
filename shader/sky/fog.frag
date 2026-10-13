@@ -34,6 +34,10 @@ layout(binding = 3, std140) uniform UboScene {
 
 #include "arpg.glsl"
 
+#if !defined(GL_COMPUTE_SHADER)
+layout(binding = 9) uniform sampler2D gbufDiffuse; // gothic-diablo: black cross-sections stay black
+#endif
+
 vec3 inverse(vec3 pos) {
   vec4 ret = scene.viewProjectInv*vec4(pos,1.0);
   return (ret.xyz/ret.w)/100.f;
@@ -204,7 +208,9 @@ void main_frag() {
   outColor = vec4(lum, 1.0-tr);
 
   // gothic-diablo: fog of war around the hero
-  const float outside = arpgFogOfWar(arpgWorldPos(inPos, dMax), isSky);
+  float outside = arpgFogOfWar(arpgWorldPos(inPos, dMax), isSky);
+  if(scene.arpgPlayer.w>0.0 && !isSky && arpgIsCap(texelFetch(gbufDiffuse, ivec2(gl_FragCoord.xy), 0).a))
+    outside = 1.0;
   outColor = vec4(outColor.rgb*(1.0-outside), mix(outColor.a, 1.0, outside));
   }
 #else

@@ -3421,3 +3421,131 @@ bool GameScript::doesNpcKnowInfo(const zenkit::INpc& npc, size_t infoInstance) c
   auto id = std::make_pair(vm.find_symbol_by_instance(npc)->index(),infoInstance);
   return dlgKnownInfos.find(id)!=dlgKnownInfos.end();
   }
+
+std::vector<GameScript::WorldMap> GameScript::arpgWorldMaps() {
+  struct Arg {
+    enum Kind : uint8_t { Unknown, Int, Str } kind = Unknown;
+    int32_t     i = 0;
+    std::string s;
+    };
+  std::vector<WorldMap> ret;
+  std::vector<Arg>      args;
+  std::string           level, texture;
+
+  auto fileName = [](std::string str) {
+    size_t bg = str.find_last_of("\\/");
+    if(bg!=std::string::npos)
+      str = str.substr(bg+1);
+    for(auto& c:str)
+      c = char(std::tolower(c));
+    return str;
+    };
+  auto lastStr = [&]() -> std::string {
+    for(size_t i=args.size(); i>0; --i)
+      if(args[i-1].kind==Arg::Str)
+        return args[i-1].s;
+    return "";
+    };
+
+  const uint32_t size = vm.size();
+  for(uint32_t pc=0; pc<size;) {
+    zenkit::DaedalusInstruction inst;
+    try {
+      inst = vm.instruction_at(pc);
+      }
+    catch(...) {
+      break;
+      }
+    if(inst.size==0)
+      break;
+    pc += inst.size;
+
+    switch(inst.op) {
+      case zenkit::DaedalusOpcode::PUSHI: {
+        Arg a; a.kind = Arg::Int; a.i = inst.immediate;
+        args.push_back(a);
+        break;
+        }
+      case zenkit::DaedalusOpcode::NEGATE: {
+        if(!args.empty() && args.back().kind==Arg::Int)
+          args.back().i = -args.back().i;
+        break;
+        }
+      case zenkit::DaedalusOpcode::PUSHV:
+      case zenkit::DaedalusOpcode::PUSHVI:
+      case zenkit::DaedalusOpcode::PUSHVV: {
+        Arg a;
+        auto sym = vm.find_symbol_by_index(inst.symbol);
+        if(sym!=nullptr && sym->is_const()) {
+          if(sym->type()==zenkit::DaedalusDataType::STRING) {
+            a.kind = Arg::Str;
+            a.s    = sym->get_string();
+            }
+          else if(sym->type()==zenkit::DaedalusDataType::INT) {
+            a.kind = Arg::Int;
+            a.i    = sym->get_int();
+            }
+          }
+        args.push_back(a);
+        break;
+        }
+      case zenkit::DaedalusOpcode::BE: {
+        auto sym = vm.find_symbol_by_index(inst.symbol);
+        if(sym!=nullptr) {
+          const auto& name = sym->name();
+          if(name=="DOC_SETPAGE") {
+            texture = lastStr();
+            }
+          else if(name=="DOC_SETLEVEL") {
+            level = fileName(lastStr());
+            }
+          else if(name=="DOC_SETLEVELCOORDS" && args.size()>=4) {
+            bool ok = true;
+            for(size_t i=args.size()-4; i<args.size(); ++i)
+              ok &= (args[i].kind==Arg::Int);
+            if(ok && !level.empty() && !texture.empty()) {
+              WorldMap m;
+              m.level   = level;
+              m.texture = texture;
+              m.left    = args[args.size()-4].i;
+              m.top     = args[args.size()-3].i;
+              m.right   = args[args.size()-2].i;
+              m.bottom  = args[args.size()-1].i;
+              ret.push_back(m);
+              }
+            }
+          }
+        args.clear();
+        break;
+        }
+      case zenkit::DaedalusOpcode::RSR:
+        level.clear();
+        texture.clear();
+        args.clear();
+        break;
+      default:
+        args.clear();
+        break;
+      }
+    }
+
+  // per level: the map covering the largest area (the whole world, not a city detail or a treasure map)
+  std::vector<WorldMap> best;
+  for(auto& m:ret) {
+    const int64_t area = std::abs(int64_t(m.right-m.left)*int64_t(m.bottom-m.top));
+    bool found = false;
+    for(auto& b:best) {
+      if(b.level!=m.level)
+        continue;
+      found = true;
+      const int64_t areaB = std::abs(int64_t(b.right-b.left)*int64_t(b.bottom-b.top));
+      if(area>areaB || (area==areaB && m.texture.size()<b.texture.size()))
+        b = m;
+      }
+    if(!found)
+      best.push_back(m);
+    }
+  for(auto& b:best)
+    Log::i("gothic-diablo: world map \"", b.texture, "\" for ", b.level, " (", b.left, ", ", b.top, ", ", b.right, ", ", b.bottom, ")");
+  return best;
+  }

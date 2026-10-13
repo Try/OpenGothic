@@ -4,6 +4,8 @@
 #include <Tempest/Matrix4x4>
 #include <Tempest/Point>
 
+#include <array>
+
 #include <zenkit/addon/daedalus.hh>
 
 class World;
@@ -56,6 +58,14 @@ class Camera final {
       float         fadeRadius = 0;    // see-through circle radius (NDC, vertical units)
       float         fowRadius  = 0;    // fog of war: world fades to black beyond this distance from the hero (cm)
       float         fowFade    = 0;    // fog of war: width of the fade (cm)
+      float         seeThrough = 0;    // 0..1: something hides the hero -> see-through circle (animated)
+      float         indoor     = 0;    // 0..1: indoors -> lower levels fade to black (animated)
+      float         lowerStart = 0;    // lower levels: start of the fade, cm below the feet
+      float         lowerEnd   = 0;    // lower levels: fully black, cm below the feet
+      // line of sight around the hero (indoors): how far the hero sees in each direction (cm),
+      // direction i = angle 2*pi*i/LosRays in the xz plane, same convention as atan2(z,x)
+      static constexpr size_t LosRays = 128;
+      std::array<float,LosRays> los = {};
       };
 
     void reset();
@@ -146,6 +156,12 @@ class Camera final {
       float rangeDest   = 1100.f;
       bool  indoor      = false;
       float indoorHold  = 0;      // seconds left before 'indoor' may switch off
+      float indoorBlend = 0;      // 0..1, smooth version of 'indoor'
+      float seeThrough  = 0;      // 0..1, smooth "hero is hidden" factor
+      std::array<float,ArpgView::LosRays> los    = {}; // smoothed
+      std::array<float,ArpgView::LosRays> losDst = {}; // last measured
+      uint32_t losPhase = 0;
+      bool     losInit  = false;
       };
     Arpg                  arpg;
     ArpgView              arpgV;

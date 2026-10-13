@@ -107,11 +107,16 @@ class PlayerControl final {
         std::array<bool, KeyCodec::NumMappings> reverse;
 
         /// Current axis value (scale from -1 to 1)
+        /// gothic-diablo: both directions held -> the one pressed last wins
+        /// (also covers a key-up that got lost while a menu had the keyboard)
         auto value() const -> float {
-          return
-              (this->anyMain() ? 1.f : 0.f)
-            + (this->anyReverse() ? -1.f : 0.f);
+          const bool m = this->anyMain(), r = this->anyReverse();
+          if(m && r)
+            return lastPressed;
+          return (m ? 1.f : 0.f) + (r ? -1.f : 0.f);
           }
+
+        float lastPressed = 0.f;
 
         /// True if only one of directions is active
         /// (e.g. false if none or both directions are active).
@@ -122,6 +127,7 @@ class PlayerControl final {
         void reset() {
           this->main.fill(false);
           this->reverse.fill(false);
+          lastPressed = 0.f;
           }
 
       private:

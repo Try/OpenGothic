@@ -1,5 +1,7 @@
 #include "camera.h"
 
+#include <limits>
+
 #include <Tempest/Application>
 #include <Tempest/Log>
 
@@ -1120,8 +1122,11 @@ void Camera::tickArpg(float dtF) {
 void Camera::updateArpgView(float dtF) {
   arpgV = ArpgView();
   if(!isArpgActive()) {
-    arpg.indoor     = false;
-    arpg.indoorHold = 0;
+    arpg.indoor      = false;
+    arpg.indoorHold  = 0;
+    arpg.indoorBlend = 0;
+    arpg.seeThrough  = 0;
+    arpg.losInit     = false;
     return;
     }
 
@@ -1162,7 +1167,95 @@ void Camera::updateArpgView(float dtF) {
   arpgV.center     = center;
   arpgV.cutHeight  = arpg.indoor ? 250.f : 0.f;
   arpgV.cutRadius  = 3000.f;
-  arpgV.fadeRadius = 0.275f;
+
+  // see-through circle: fixed size in the world (~2.3 m around the hero's chest), so it does not change with zoom
+  {
+    const float dist = std::max(100.f, (center-origin).length());
+    arpgV.fadeRadius = std::clamp(230.f/dist*std::fabs(proj.at(1,1)), 0.14f, 0.6f);
+  }
+
+  // ... and only while something actually hides the hero: rays camera -> head / chest / knees.
+  // The part of a ray above the cut-away ceiling is skipped (invisible roofs and upper floors).
+  {
+    auto&       physic  = *world->physic();
+    const float ceiling = arpgV.cutHeight>0.f ? feet.y+arpgV.cutHeight : std::numeric_limits<float>::max();
+    bool        hidden  = false;
+    for(float h:{170.f, 110.f, 50.f}) {
+      const Vec3 to   = feet + Vec3(0,h,0);
+      Vec3       from = origin;
+      if(from.y>ceiling && to.y<ceiling) {
+        const float t = (from.y-ceiling)/(from.y-to.y);
+        from = from + (to-from)*t;
+        }
+      const auto r = physic.ray(from, to);
+      if(r.hasCol && (r.v-to).quadLength() > 40.f*40.f) {
+        hidden = true;
+        break;
+        }
+      }
+    const float dst = hidden ? 1.f : 0.f;
+    if(dtF<0.f)
+      arpg.seeThrough = dst; else
+      arpg.seeThrough += std::clamp(dst-arpg.seeThrough, -2.5f*dtF, 5.f*dtF); // opens in 0.2 s, closes in 0.4 s
+    arpgV.seeThrough = arpg.seeThrough;
+  }
+
+  // indoors: what is far below the hero's feet (cellars, the valley under a tower) fades to black
+  {
+    const float dst = arpg.indoor ? 1.f : 0.f;
+    if(dtF<0.f)
+      arpg.indoorBlend = dst; else
+      arpg.indoorBlend += std::clamp(dst-arpg.indoorBlend, -2.f*dtF, 2.f*dtF);
+    arpgV.indoor     = arpg.indoorBlend;
+    arpgV.lowerStart = 350.f;
+    arpgV.lowerEnd   = 900.f;
+  }
+
+  // line of sight (indoors): rays from the hero at knee and head height (+ one tilted up), a quarter of
+  // the directions per frame; whatever the hero cannot see (behind cave walls) goes black in the fog pass
+  {
+    constexpr size_t N    = ArpgView::LosRays;
+    const float      maxR = (arpgV.fowRadius>0.f ? arpgV.fowRadius+arpgV.fowFade : 3000.f);
+    if(arpg.indoorBlend>0.f) {
+      auto& physic = *world->physic();
+      auto  measure = [&](size_t i) {
+        const float a   = 2.f*float(M_PI)*float(i)/float(N);
+        const Vec3  dir = {std::cos(a), 0.f, std::sin(a)};
+        float best = 0;
+        for(float h:{70.f, 160.f}) {
+          const Vec3 from = feet + Vec3(0,h,0);
+          const auto r    = physic.ray(from, from+dir*maxR);
+          const float d   = r.hasCol ? std::hypot(r.v.x-from.x, r.v.z-from.z) : maxR;
+          best = std::max(best, d);
+          }
+        {
+          // tilted up by 20 degrees: ramps and stairs going up stay visible
+          const Vec3 from = feet + Vec3(0,160.f,0);
+          const Vec3 up   = Vec3(dir.x*0.94f, 0.342f, dir.z*0.94f);
+          const auto r    = physic.ray(from, from+up*maxR);
+          const float d   = r.hasCol ? std::hypot(r.v.x-from.x, r.v.z-from.z) : maxR*0.94f;
+          best = std::max(best, d);
+        }
+        return std::min(best, maxR);
+        };
+      if(!arpg.losInit) {
+        for(size_t i=0; i<N; ++i)
+          arpg.losDst[i] = arpg.los[i] = measure(i);
+        arpg.losInit = true;
+        } else {
+        for(size_t i=arpg.losPhase%4; i<N; i+=4)
+          arpg.losDst[i] = measure(i);
+        arpg.losPhase++;
+        const float k = (dtF<0.f) ? 1.f : std::min(1.f, 10.f*dtF);
+        for(size_t i=0; i<N; ++i)
+          arpg.los[i] += (arpg.losDst[i]-arpg.los[i])*k;
+        }
+      } else {
+      arpg.losInit = false;
+      arpg.los.fill(maxR);
+      }
+    arpgV.los = arpg.los;
+  }
 
   // fog of war: radius from the game's "sight range" option (Video menu, 20%..300%, 100% = 15 m)
   {

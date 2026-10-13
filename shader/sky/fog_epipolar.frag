@@ -17,6 +17,7 @@ layout(binding = 1)         uniform texture2D   depth;
 layout(binding = 2)         uniform texture2D   rayData;
 layout(binding = 3, std430) readonly buffer Ep0 { Epipole   epipole[]; };
 layout(binding = 4)         uniform sampler3D   fogLut;
+layout(binding = 9)         uniform texture2D   gbufDiffuse; // gothic-diablo: black cross-sections stay black
 
 uint  NumSamples   = textureSize(rayData,0).x;
 uint  NumSlices    = textureSize(rayData,0).y;
@@ -94,7 +95,9 @@ void main() {
   outColor = vec4(lum, 1.0-tr);
 
   // gothic-diablo: fog of war around the hero
-  const float outside = arpgFogOfWar(arpgWorldPos(inPos, z), z>=1.0);
+  float outside = arpgFogOfWar(arpgWorldPos(inPos, z), z>=1.0);
+  if(scene.arpgPlayer.w>0.0 && z<1.0 && arpgIsCap(texelFetch(gbufDiffuse, fragCoord, 0).a))
+    outside = 1.0;
   outColor = vec4(outColor.rgb*(1.0-outside), mix(outColor.a, 1.0, outside));
   // outColor = vec4(dbgColor.rgb, 1);
   // outColor = vec4(inPos*0.5+0.5, 0, 1);

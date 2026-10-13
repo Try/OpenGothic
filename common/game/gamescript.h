@@ -76,6 +76,15 @@ class GameScript final {
     void         loadPerc(Serialize& fin);
 
     inline auto& getVm() { return vm; }
+
+    // gothic-diablo: world maps defined by the map items of the scripts (Doc_SetPage / Doc_SetLevel /
+    // Doc_SetLevelCoords), read from the bytecode without running it; used by the ARPG minimap
+    struct WorldMap {
+      std::string   level;    // lower case file name, e.g. "newworld.zen"
+      std::string   texture;  // e.g. "MAP_NEWWORLD.TGA"
+      int32_t       left = 0, top = 0, right = 0, bottom = 0;
+      };
+    std::vector<WorldMap> arpgWorldMaps();
     auto         questLog() const -> const QuestLog&;
 
     const World& world() const;
