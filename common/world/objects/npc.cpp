@@ -2011,10 +2011,13 @@ bool Npc::commitDamageArpg() {
   if(ws!=WeaponState::Fist && ws!=WeaponState::W1H && ws!=WeaponState::W2H)
     return false;
 
-  // gothic-diablo: the swing hits every enemy in a 120 degree arc in front of the hero (Gothic: one target)
+  // gothic-diablo: the swing hits every enemy in a 120 degree arc in front of the hero (Gothic: one target);
+  // a special attack (right mouse button): 180 degrees, more damage, knocks the enemies down
+  const bool special = arpgSpecialPending && arpgSpecialUntil>owner.tickCount();
+  arpgSpecialPending = false;
   const float rot = rotationRad();
   const Tempest::Vec2 fwd = {std::cos(rot), std::sin(rot)};
-  const float cosHalf = std::cos(60.f*float(M_PI)/180.f);
+  const float cosHalf = special ? 0.f : std::cos(60.f*float(M_PI)/180.f);
   auto inArc = [&](Npc& n) {
     const auto  d = n.position()-position();
     const float l = std::sqrt(d.x*d.x+d.z*d.z);
@@ -2037,9 +2040,20 @@ bool Npc::commitDamageArpg() {
       return;
     hit.push_back(&n);
     });
+  arpgHitSpecial = special;
   for(auto n:hit)
     n->takeDamage(*this,nullptr);
+  arpgHitSpecial = false;
   return true;
+  }
+
+void Npc::arpgHoldParade() {
+  visual.holdParade(owner.tickCount());
+  }
+
+void Npc::arpgStartSpecial() {
+  arpgSpecialPending = true;
+  arpgSpecialUntil   = owner.tickCount()+1500;
   }
 
 void Npc::commitDamage() {
@@ -2079,6 +2093,8 @@ void Npc::takeDamage(Npc &other, const Bullet* b) {
   if(!(isBlock || isJumpb) || b!=nullptr) {
     takeDamage(other,b,COLL_DOEVERYTHING,0,false);
     } else {
+    if(Camera::isArpgEnabled() && (other.isPlayer() || isPlayer()))
+      owner.arpgPopup(position()+Tempest::Vec3(0,180.f,0), 0, 2); // gothic-diablo: "blocked"
     if(invent.activeWeapon()!=nullptr)
       visual.emitBlockEffect(*this,other);
     }
@@ -2128,6 +2144,10 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
     }
 
   hitResult = DamageCalculator::damageValue(other,*this,b,isSpell,dmg,bMask);
+  // gothic-diablo: special attack of the hero: x1.5 damage
+  const bool arpgSpecialHit = (other.isPlayer() && other.arpgHitSpecial && b==nullptr && !isSpell);
+  if(arpgSpecialHit && hitResult.value>0)
+    hitResult.value = (hitResult.value*3)/2;
   if(!isSpell && !isDown() && hitResult.hasHit)
     owner.addWeaponHitEffect(other,b,*this).play();
 
@@ -2156,10 +2176,20 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
   if(hitResult.hasHit && (damageType & (1<<zenkit::DamageType::FLY))) {
     mvAlgo.accessDamFly(x-other.x, z-other.z, lastHitType);
     }
+  else if(hitResult.hasHit && arpgSpecialHit) {
+    mvAlgo.accessDamFly(x-other.x, z-other.z, lastHitType); // gothic-diablo: special attack knocks down
+    }
 
   if(hitResult.value>0) {
     currentOther = &other;
+    const int32_t hp0 = hnpc->attribute[ATR_HITPOINTS];
     changeAttribute(ATR_HITPOINTS,-hitResult.value,dontKill);
+    // gothic-diablo: floating numbers for the hero's fights
+    if(Camera::isArpgEnabled() && (other.isPlayer() || isPlayer())) {
+      const int32_t lost = hp0 - hnpc->attribute[ATR_HITPOINTS];
+      if(lost>0)
+        owner.arpgPopup(position()+Tempest::Vec3(0,180.f,0), lost, isPlayer() ? 1 : 0);
+      }
 
     if(bMask&(COLL_APPLYVICTIMSTATE|COLL_DOEVERYTHING)) {
       owner.sendPassivePerc(*this,other,*this,PERC_ASSESSOTHERSDAMAGE);

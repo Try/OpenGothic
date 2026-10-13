@@ -14,6 +14,12 @@
 
 using namespace Tempest;
 
+// gothic-diablo: event barrier of one layer, corrected for faster attacks / held parades
+static uint64_t shiftBarrier(uint64_t barrier, int64_t shift) {
+  const int64_t b = int64_t(barrier) - shift;
+  return b<0 ? 0 : uint64_t(b);
+  }
+
 Pose::Pose() {
   lay.reserve(4);
   }
@@ -568,17 +574,17 @@ bool Pose::hasLayerEvents(const Pose::Layer& l) {
 
 void Pose::processSfx(Npc &npc, uint64_t tickCount) {
   for(auto& i:lay)
-    i.seq->processSfx(lastUpdate-std::min(lastUpdate,i.warpSfx),i.sAnim,tickCount,&npc,nullptr);
+    i.seq->processSfx(shiftBarrier(lastUpdate,i.warpSfx),i.sAnim,tickCount,&npc,nullptr);
   }
 
 void Pose::processSfx(Interactive& mob, uint64_t tickCount) {
   for(auto& i:lay)
-    i.seq->processSfx(lastUpdate-std::min(lastUpdate,i.warpSfx),i.sAnim,tickCount,nullptr,&mob);
+    i.seq->processSfx(shiftBarrier(lastUpdate,i.warpSfx),i.sAnim,tickCount,nullptr,&mob);
   }
 
 void Pose::processPfx(MdlVisual& visual, World& world, uint64_t tickCount) {
   for(auto& i:lay)
-    i.seq->processPfx(lastUpdate-std::min(lastUpdate,i.warpSfx),i.sAnim,tickCount,visual,world);
+    i.seq->processPfx(shiftBarrier(lastUpdate,i.warpSfx),i.sAnim,tickCount,visual,world);
   }
 
 void Pose::warpAttack(uint64_t ms, uint64_t tickCount) {
@@ -588,8 +594,26 @@ void Pose::warpAttack(uint64_t ms, uint64_t tickCount) {
     if(!i.seq->isAttackAnim() || i.sAnim<ms || i.sAnim>tickCount)
       continue;
     i.sAnim   -= ms;
-    i.warpEv  += ms;
-    i.warpSfx += ms;
+    i.warpEv  += int64_t(ms);
+    i.warpSfx += int64_t(ms);
+    }
+  }
+
+void Pose::holdParade(uint64_t tickCount) {
+  for(auto& i:lay) {
+    if(i.bs!=BS_PARADE || i.seq==nullptr || i.seq->data==nullptr || i.sAnim>tickCount)
+      continue;
+    auto&    d     = *i.seq->data;
+    uint64_t tHold = 300;
+    if(d.defWindow.size()>=2 && d.defWindow[1]>d.defWindow[0]+20)
+      tHold = d.defWindow[1]-20; // inside the parry window
+    const uint64_t t = tickCount-i.sAnim;
+    if(t<=tHold)
+      continue;
+    const uint64_t dt = t-tHold;
+    i.sAnim   += dt;
+    i.warpEv  -= int64_t(dt);
+    i.warpSfx -= int64_t(dt);
     }
   }
 
@@ -600,7 +624,7 @@ bool Pose::processEvents(uint64_t &barrier, uint64_t now, Animation::EvCount &ev
     }
 
   for(auto& i:lay) {
-    i.seq->processEvents(barrier-std::min(barrier,i.warpEv),i.sAnim,now,ev);
+    i.seq->processEvents(shiftBarrier(barrier,i.warpEv),i.sAnim,now,ev);
     i.warpEv = 0;
     }
   barrier=now;

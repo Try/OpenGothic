@@ -79,12 +79,14 @@ Dachy i ściany dalej rzucają cienie (ukrywanie działa tylko w widoku kamery).
 
 | Element | Gdzie |
 |---|---|
-| Spacja = unik (krok w bok / odskok) | `PlayerControl::onKeyPressed` |
-| Środkowy przycisk z bronią białą / pięściami = blok (przytrzymanie: postać zwraca się do wroga i paruje raz za razem, przerywa też cios); w trybie ARPG da się parować także potwory; bez broni: przeciąganie = obrót kamery, klik = dobycie broni | `PlayerControl::implMove`, `MainWindow::mouseDownEvent`, `Npc::takeDamage` |
-| Broń chowa się sama po 6 s bez wrogów w promieniu 15 m (Spacja i środkowy przycisk są zajęte) | `PlayerControl::implMove` |
+| Spacja = unik (krok w bok / odskok), także w trakcie bloku — po uniku blok wraca, jeśli środkowy przycisk wciąż wciśnięty | `PlayerControl::onKeyPressed`, `arpgStartDodge` |
+| Lewy Shift = dobycie / schowanie broni (ostatnio używanej) | `PlayerControl::onKeyPressed` |
+| Środkowy przycisk z bronią białą / pięściami = blok trzymany: postać zwraca się do wroga, animacja parady zatrzymana w oknie obrony, puszczenie kończy blok; w trybie ARPG da się parować także potwory; bez broni: przeciąganie = obrót kamery, klik = dobycie broni | `implMove`, `Pose::holdParade`, `Npc::takeDamage` |
+| PPM = atak specjalny: zamach z boku, łuk 180°, obrażenia ×1,5, przewraca wrogów, odnowienie 5 s (niebieski pasek pod stopami); naciśnięty w trakcie ciosu czeka do 1 s | `implMove`, `Npc::commitDamageArpg`, `Npc::takeDamage` |
 | X = zmiana broni biała ↔ łuk; skradanie przeniesione z X na V (tylko w trybie ARPG) | `PlayerControl::arpgSwapWeapon` |
-| Shift + LPM = atak w miejscu w stronę kursora (przytrzymanie = ciągłe ciosy za kursorem); w trybie ARPG Shift nie przełącza chodu | `arpgMouseDown`, `arpgClickTick` (`Strike`) |
+| Ctrl + LPM: na postaci = atak na każdego, w puste miejsce = atak w miejscu w stronę kursora (przytrzymanie = ciągłe ciosy za kursorem) | `arpgMouseDown`, `arpgClickTick` (`Strike`) |
 | Przy każdym ciosie postać od razu zwraca się do celu (jak Diablo), w zasięgu obraca się szybciej | `PlayerControl::arpgSwing` |
 | Cios bronią białą trafia wszystkich wrogów w łuku 120° przed postacią (cel ataku zawsze, inni tylko wrodzy) | `Npc::commitDamageArpg` |
 | Ataki bohatera o 20% szybsze (animacje ataku przesuwane do przodu, zdarzenia trafienia i dźwięki nie giną) | `Npc::tick`, `Pose::warpAttack` |
+| Liczby obrażeń nad trafionymi (białe = zadane, czerwone = otrzymane, „Blok”), paski życia nad wrogami w walce | `World::arpgPopup`, `MainWindow::paintArpgCombat` |
 | Dojście do celu bez pętli: prosta linia ↔ waynet z histerezą (2 sprawdzenia z rzędu), pierwszy waypoint za plecami pomijany, ścieżka skracana do najdalszego widocznego punktu | `arpgNextPoint`, `arpgPlanPath`, `arpgPullPath` |

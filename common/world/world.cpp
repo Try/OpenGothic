@@ -281,6 +281,17 @@ MeshObjects::Mesh World::addDecalView(const zenkit::VisualDecal& decal) {
   return view()->addDecalView(decal);
   }
 
+void World::arpgPopup(const Tempest::Vec3& pos, int32_t value, uint8_t kind) {
+  if(arpgPopupList.size()>64)
+    arpgPopupList.erase(arpgPopupList.begin());
+  ArpgPopup p;
+  p.pos   = pos;
+  p.value = value;
+  p.kind  = kind;
+  p.time  = tickCount();
+  arpgPopupList.push_back(p);
+  }
+
 LightGroup::Light World::addLight(const zenkit::VLight& vob) {
   return view()->addLight(vob, tickCount());
   }

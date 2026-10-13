@@ -75,6 +75,7 @@ class MdlVisual final {
 
     const Pose&                    pose() const { return *skInst; }
     void                           warpAttack(uint64_t ms, uint64_t tickCount); // gothic-diablo: faster attacks
+    void                           holdParade(uint64_t tickCount);              // gothic-diablo: block held
     bool                           updateAnimation(Npc* npc, Interactive* mobsi, World& world, uint64_t dt, bool force);
     void                           processLayers  (World& world);
     bool                           processEvents(World& world, uint64_t &barrier, Animation::EvCount &ev);

@@ -93,6 +93,19 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
       toggleSneakMode();
       return;
       }
+    if(key==Tempest::KeyEvent::K_LShift) {
+      // left Shift = draw / put away the weapon (Space is the dodge now)
+      if(ws!=WeaponState::NoWeapon) {
+        wctrl[WeaponClose] = true;
+        } else {
+        if(wctrlLast>=WeaponAction::Weapon3 && pl->inventory().currentSpell(static_cast<uint8_t>(wctrlLast-3))==nullptr)
+          wctrlLast = WeaponAction::WeaponBow;
+        if(wctrlLast==WeaponAction::WeaponBow && pl->currentRangedWeapon()==nullptr)
+          wctrlLast = WeaponAction::WeaponMele;
+        wctrl[wctrlLast] = true;
+        }
+      return;
+      }
     }
 
   if(pl!=nullptr) {
@@ -210,10 +223,8 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
     }
 
   if(a==Action::Walk) {
-    if(arpgKeys) {
-      ctrl[a] = true; // gothic-diablo: Shift held = attack in place, no walk toggle
-      return;
-      }
+    if(arpgKeys)
+      return; // gothic-diablo: Shift does not toggle walking in the ARPG view
     toggleWalkMode();
     return;
     }
@@ -767,65 +778,60 @@ void PlayerControl::implMove(uint64_t dt) {
     arpgDodgeLock = 0;
     }
 
-  // gothic-diablo: block (middle mouse button held): face the enemy, parry again and again
+  // gothic-diablo: special attack (right mouse button): wide swing, 180 degrees, x1.5, knocks down; 5 s cooldown
+  if(arpg && arpgSpecialReq) {
+    arpgSpecialWait -= float(dt)/1000.f;
+    if(arpgSpecialWait<=0.f) {
+      arpgSpecialReq = false;
+      }
+    else if(ws==WeaponState::NoWeapon) {
+      wctrl[WeaponMele] = true; // draw the weapon first, the attack follows
+      }
+    else if(ws==WeaponState::Fist || ws==WeaponState::W1H || ws==WeaponState::W2H) {
+      if(w->tickCount()<arpgSpecialReady) {
+        arpgSpecialReq = false; // still cooling down
+        } else {
+        const float face = arpgFightFace(pl, rot);
+        if(pl.hasState(BS_PARADE))
+          pl.stopAnim("");
+        if(pl.isRotationAllowed()) {
+          rot = face;
+          pl.setDirection(rot);
+          }
+        const bool ok = (ws==WeaponState::Fist) ? pl.fistShoot()
+                                                : (pl.swingSwordL() || pl.swingSwordR());
+        if(ok) {
+          pl.arpgStartSpecial();
+          arpgSpecialReady = w->tickCount()+5000;
+          arpgSpecialReq   = false;
+          arpgClick        = ArpgClick();
+          return;
+          }
+        }
+      }
+    else {
+      arpgSpecialReq = false; // bows and spells: later in phase 4
+      }
+    }
+
+  // gothic-diablo: block (middle mouse button held): face the enemy and hold the parry until released
   if(arpg && arpgBlocking) {
     if(ws==WeaponState::Fist || ws==WeaponState::W1H || ws==WeaponState::W2H) {
       arpgClick = ArpgClick(); // blocking stops walking/attacking
-      // whom to face: the enemy under the cursor, the closest enemy close by, or the cursor
-      float face = rot;
-      bool  has  = false;
-      if(arpgHover.npc!=nullptr && arpgIsEnemy(*arpgHover.npc)) {
-        const auto d = arpgHover.npc->position()-pl.position();
-        face = std::atan2(d.z,d.x)*180.f/float(M_PI);
-        has  = true;
-        }
-      if(!has) {
-        float best = 400.f*400.f;
-        w->detectNpc(pl.position(), 400.f, [&](Npc& n) {
-          if(!arpgIsEnemy(n))
-            return;
-          const auto  d  = n.position()-pl.position();
-          const float d2 = d.x*d.x+d.z*d.z;
-          if(d2<best) {
-            best = d2;
-            face = std::atan2(d.z,d.x)*180.f/float(M_PI);
-            has  = true;
-            }
-          });
-        }
-      if(!has && arpgGroundValid) {
-        const auto d = arpgGround-pl.position();
-        if(d.x*d.x+d.z*d.z>100.f)
-          face = std::atan2(d.z,d.x)*180.f/float(M_PI);
-        }
+      const float face = arpgFightFace(pl, rot);
       if(pl.isRotationAllowed()) {
         const float turn = 1440.f*(float(dt)/1000.f);
         rot += std::clamp(std::remainder(face-rot, 360.f), -turn, turn);
         pl.setDirection(rot);
         }
-      if(ws==WeaponState::Fist)
-        pl.blockFist(); else
-        pl.blockSword();
-      arpgPeace = 0;
+      if(!pl.hasState(BS_PARADE)) {
+        if(ws==WeaponState::Fist)
+          pl.blockFist(); else
+          pl.blockSword();
+        }
+      pl.arpgHoldParade();
       return;
       }
-    }
-
-  // gothic-diablo: weapon drawn and no fight for a while: put it away (Space and the middle button are taken)
-  if(arpg && ws!=WeaponState::NoWeapon && ws!=WeaponState::Mage && !pl.isAttackAnim() &&
-     arpgClick.kind!=ArpgClick::Attack && arpgClick.kind!=ArpgClick::Strike) {
-    bool danger = false;
-    w->detectNpc(pl.position(), 1500.f, [&](Npc& n) {
-      if(!danger && &n!=&pl && !n.isDown() && n.isEnemy(pl))
-        danger = true;
-      });
-    arpgPeace = danger ? 0.f : arpgPeace + float(dt)/1000.f;
-    if(arpgPeace>6.f) {
-      wctrl[WeaponClose] = true;
-      arpgPeace = 0;
-      }
-    } else {
-    arpgPeace = 0;
     }
 
   int rotation = 0;
@@ -1446,11 +1452,9 @@ void PlayerControl::arpgMouseDown(const Focus& f) {
 
   arpgHover = f;
   const bool force = ctrl[KeyCodec::ActionGeneric]; // Ctrl + click: attack anyone
-  if(ctrl[KeyCodec::Walk]) {
-    // Shift + click: attack in place towards the cursor, whatever is under it
+  if(force && (f.npc==nullptr || f.npc->isDown())) {
+    // Ctrl + click on no one: attack in place towards the cursor
     arpgClick.kind = ArpgClick::Strike;
-    if(f.npc!=nullptr && !f.npc->isDown())
-      arpgClick.target = Focus(*f.npc);
     arpgClick.point = arpgGroundValid ? arpgGround : (pl->position() + Tempest::Vec3(std::cos(pl->rotationRad())*200.f, 0, std::sin(pl->rotationRad())*200.f));
     if(pl->weaponState()==WeaponState::NoWeapon)
       wctrl[WeaponMele] = true;
@@ -1875,6 +1879,8 @@ bool PlayerControl::arpgStartDodge(Npc& pl, float& rot) {
     o.err = std::fabs(std::remainder(o.face-face, 360.f));
   std::sort(std::begin(opt), std::end(opt), [](const Opt& a, const Opt& b){ return a.err<b.err; });
 
+  if(pl.hasState(BS_PARADE))
+    pl.stopAnim(""); // dodging out of a block: the held parry would not let the step start
   for(auto& o:opt) {
     auto sq = pl.setAnimAngGet(o.anim);
     if(sq==nullptr)
@@ -2045,4 +2051,47 @@ bool PlayerControl::arpgCanBlock() const {
     return false;
   const auto ws = pl->weaponState();
   return ws==WeaponState::Fist || ws==WeaponState::W1H || ws==WeaponState::W2H;
+  }
+
+float PlayerControl::arpgFightFace(Npc& pl, float def) {
+  // whom to face in a fight: the enemy under the cursor, the closest enemy close by, or the cursor
+  auto w = Gothic::inst().world();
+  if(arpgHover.npc!=nullptr && arpgIsEnemy(*arpgHover.npc)) {
+    const auto d = arpgHover.npc->position()-pl.position();
+    return std::atan2(d.z,d.x)*180.f/float(M_PI);
+    }
+  float face = def;
+  bool  has  = false;
+  if(w!=nullptr) {
+    float best = 400.f*400.f;
+    w->detectNpc(pl.position(), 400.f, [&](Npc& n) {
+      if(!arpgIsEnemy(n))
+        return;
+      const auto  d  = n.position()-pl.position();
+      const float d2 = d.x*d.x+d.z*d.z;
+      if(d2<best) {
+        best = d2;
+        face = std::atan2(d.z,d.x)*180.f/float(M_PI);
+        has  = true;
+        }
+      });
+    }
+  if(!has && arpgGroundValid) {
+    const auto d = arpgGround-pl.position();
+    if(d.x*d.x+d.z*d.z>100.f)
+      face = std::atan2(d.z,d.x)*180.f/float(M_PI);
+    }
+  return face;
+  }
+
+void PlayerControl::arpgSpecial() {
+  arpgSpecialReq  = true;
+  arpgSpecialWait = 1.f; // pressed during a swing: as soon as the swing allows
+  }
+
+float PlayerControl::arpgSpecialLeft() const {
+  auto w = Gothic::inst().world();
+  if(w==nullptr || w->tickCount()>=arpgSpecialReady)
+    return 0.f;
+  return float(arpgSpecialReady-w->tickCount())/5000.f;
   }

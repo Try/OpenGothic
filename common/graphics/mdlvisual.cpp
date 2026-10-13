@@ -818,6 +818,10 @@ void MdlVisual::warpAttack(uint64_t ms, uint64_t tickCount) {
   skInst->warpAttack(ms,tickCount);
   }
 
+void MdlVisual::holdParade(uint64_t tickCount) {
+  skInst->holdParade(tickCount);
+  }
+
 uint16_t MdlVisual::comboLength() const {
   return skInst->comboLength();
   }

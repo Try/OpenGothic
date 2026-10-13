@@ -219,6 +219,7 @@ void MainWindow::paintEvent(PaintEvent& event) {
           arpgLabels.clear();
         if(!arpgShowAll || focus.npc!=nullptr)
           paintArpgFocus(p,focus,vp);
+        paintArpgCombat(p,vp);
         paintArpgCombo(p,vp);
         paintArpgMinimap(p);
         } else {
@@ -352,9 +353,11 @@ void MainWindow::mouseDownEvent(MouseEvent &event) {
     return;
     }
   if(event.button==Event::ButtonRight && isArpgMouse()) {
-    // gothic-diablo: right button = dodge (side step / jump back)
+    // gothic-diablo: right button = special attack (dodge is on Space)
     arpgRightDown = true;
-    player.arpgDodge();
+    updateArpgAim();
+    player.tickFocus();
+    player.arpgSpecial();
     return;
     }
   if(event.button<sizeof(mouseP))
@@ -1851,4 +1854,96 @@ void MainWindow::paintArpgMinimap(Painter& p) {
   }
 
   p.popState();
+  }
+
+void MainWindow::paintArpgCombat(Painter& p, const Matrix4x4& vp) {
+  // gothic-diablo: life bars above enemies in a fight, floating damage numbers, special attack cooldown
+  auto world = Gothic::inst().world();
+  auto pl    = Gothic::inst().player();
+  auto cam   = Gothic::inst().camera();
+  if(world==nullptr || pl==nullptr || cam==nullptr || dialogs.isActive() || inventory.isActive())
+    return;
+  const float scale = Gothic::interfaceScale(this);
+  auto toScreen = [&](Vec3 pos, Point& out) {
+    float pw = 1.f;
+    vp.project(pos.x,pos.y,pos.z,pw);
+    if(pw<=0.f)
+      return false;
+    pos /= pw;
+    if(pos.x<-1.2f || pos.x>1.2f || pos.y<-1.2f || pos.y>1.2f)
+      return false;
+    out = Point(int((0.5f*pos.x+0.5f)*float(w())), int((0.5f*pos.y+0.5f)*float(h())));
+    return true;
+    };
+
+  // life bars
+  {
+    const auto& view  = cam->arpgView();
+    const float sight = view.fowRadius>0.f ? view.fowRadius : 1500.f;
+    const int   bw    = int(46.f*scale);
+    const int   bh    = std::max(3, int(5.f*scale));
+    const Vec3  hero  = pl->position();
+    world->detectNpc(hero, sight, [&](Npc& n) {
+      if(&n==pl || n.isDead() || !player.arpgIsEnemy(n))
+        return;
+      const int32_t hp  = n.attribute(ATR_HITPOINTS);
+      const int32_t hpM = std::max(1, n.attribute(ATR_HITPOINTSMAX));
+      if(hp>=hpM && n.target()!=pl)
+        return; // not in a fight yet
+      Point sp;
+      if(!toScreen(n.position()+Vec3(0,n.isDown() ? 60.f : 210.f,0), sp))
+        return;
+      const float v = std::clamp(float(hp)/float(hpM), 0.f, 1.f);
+      p.setBrush(Brush(Color(0.f,0.f,0.f,0.7f), Painter::Alpha));
+      p.drawRect(sp.x-bw/2-1, sp.y-1, bw+2, bh+2);
+      p.setBrush(Brush(Color(0.75f,0.08f,0.05f,0.95f), Painter::Alpha));
+      p.drawRect(sp.x-bw/2, sp.y, int(float(bw)*v), bh);
+      });
+  }
+
+  // floating numbers: rise and fade in about a second
+  {
+    auto&          list = world->arpgPopups();
+    const uint64_t now  = world->tickCount();
+    for(size_t i=0; i<list.size();) {
+      if(now>list[i].time+1100)
+        list.erase(list.begin()+long(i)); else
+        ++i;
+      }
+    for(auto& e:list) {
+      const float t = float(now-e.time)/1000.f;
+      Point sp;
+      if(!toScreen(e.pos+Vec3(0,70.f*t,0), sp))
+        continue;
+      const float a = std::clamp(1.f-(t-0.6f)/0.5f, 0.f, 1.f);
+      Resources::FontType type = Resources::FontType::Normal;
+      char txt[32] = {};
+      if(e.kind==2) {
+        type = Resources::FontType::Disabled;
+        std::snprintf(txt, sizeof(txt), "Blok");
+        } else {
+        type = (e.kind==1) ? Resources::FontType::Red : Resources::FontType::Normal;
+        std::snprintf(txt, sizeof(txt), "%d", int(e.value));
+        }
+      auto&      fnt = Resources::font(type, scale*(e.kind==1 ? 1.f : 1.15f));
+      const auto ts  = fnt.textSize(txt);
+      p.setBrush(Color(1.f,1.f,1.f,a));
+      fnt.drawText(p, sp.x-ts.w/2, sp.y, txt);
+      }
+  }
+
+  // special attack cooldown: thin bar under the hero's feet
+  {
+    const float left = player.arpgSpecialLeft();
+    if(left>0.f) {
+      Point sp;
+      if(toScreen(pl->position()-Vec3(0,20.f,0), sp)) {
+        const int bw = int(50.f*scale), bh = std::max(2, int(4.f*scale));
+        p.setBrush(Brush(Color(0.f,0.f,0.f,0.6f), Painter::Alpha));
+        p.drawRect(sp.x-bw/2-1, sp.y-1, bw+2, bh+2);
+        p.setBrush(Brush(Color(0.35f,0.6f,1.f,0.9f), Painter::Alpha));
+        p.drawRect(sp.x-bw/2, sp.y, int(float(bw)*(1.f-left)), bh);
+        }
+      }
+  }
   }

@@ -101,6 +101,16 @@ class World final {
     MeshObjects::Mesh    addStaticView(const ProtoMesh* visual, bool staticDraw);
     MeshObjects::Mesh    addStaticView(std::string_view visual);
     MeshObjects::Mesh    addDecalView (const zenkit::VisualDecal& decal);
+    // gothic-diablo: floating combat numbers (ARPG view)
+    struct ArpgPopup {
+      Tempest::Vec3 pos;
+      int32_t       value = 0;
+      uint8_t       kind  = 0;  // 0 = damage by the hero, 1 = damage to the hero, 2 = blocked
+      uint64_t      time  = 0;
+      };
+    void                 arpgPopup(const Tempest::Vec3& pos, int32_t value, uint8_t kind);
+    std::vector<ArpgPopup>& arpgPopups() { return arpgPopupList; }
+
     LightGroup::Light    addLight(const zenkit::VLight& vob);
     LightGroup::Light    addLight(std::string_view preset);
 
@@ -224,6 +234,7 @@ class World final {
     WorldSound                            wsound;
     WorldObjects                          wobj;
     std::unique_ptr<Npc>                  lvlInspector;
+    std::vector<ArpgPopup>                arpgPopupList;
 
     auto         roomAt(const zenkit::BspNode &node) -> std::string_view;
     auto         portalAt(std::string_view tag) -> BspSector*;

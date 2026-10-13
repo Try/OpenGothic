@@ -73,6 +73,7 @@ class MainWindow : public Tempest::Window {
     void paintArpgFocus (Tempest::Painter& p, const Focus& fc, const Tempest::Matrix4x4& vp);
     void paintArpgCombo (Tempest::Painter& p, const Tempest::Matrix4x4& vp);
     void paintArpgMinimap(Tempest::Painter& p);
+    void paintArpgCombat(Tempest::Painter& p, const Tempest::Matrix4x4& vp);
     bool arpgLabelRect  (const Focus& f, const Tempest::Matrix4x4& vp, Tempest::Rect& out) const;
     void drawArpgLabel  (Tempest::Painter& p, const Tempest::Rect& r, const Focus& f, bool hi);
     Focus arpgLabelAt   (const Tempest::Point& pos) const;

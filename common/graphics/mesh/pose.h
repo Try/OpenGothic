@@ -90,6 +90,8 @@ class Pose final {
 
     // gothic-diablo: play attack animations faster: moves them ahead by 'ms'
     void               warpAttack(uint64_t ms, uint64_t tickCount);
+    // gothic-diablo: keep a parade animation in its defence window (block held)
+    void               holdParade(uint64_t tickCount);
 
     float              translateY() const { return trY; }
     auto               rootNode() const -> const Tempest::Matrix4x4;
@@ -121,8 +123,8 @@ class Pose final {
       BodyState                  bs       = BS_NONE;
       // gothic-diablo: how far sAnim was moved back (faster attacks) since the last event / sfx pass,
       // so that no frame event (hit!) is skipped
-      mutable uint64_t           warpEv   = 0;
-      mutable uint64_t           warpSfx  = 0;
+      mutable int64_t            warpEv   = 0;
+      mutable int64_t            warpSfx  = 0;
       };
 
     struct ComboState {
