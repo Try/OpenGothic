@@ -67,8 +67,21 @@ class PlayerControl final {
     void  arpgDodge();                           // side step / jump back
     void  arpgSwapWeapon();                      // melee <-> bow
     void  arpgBlock(bool on);                    // middle mouse button held: parry
-    void  arpgSpecial();                         // right mouse button: special attack
+    void  arpgChargeStart();                     // right mouse button down: start charging the special attack
+    void  arpgChargeRelease();                   // right mouse button up: release it
     float arpgSpecialLeft() const;               // 0..1 of the cooldown left
+    // charged attack: -1 = not charging, otherwise seconds charged
+    float arpgChargeTime() const { return arpgCharge==ChargeHold ? arpgChargeT : -1.f; }
+    static constexpr float ChargeFull   = 2.0f;  // s to fully charge
+    static constexpr float ChargeWindow = 0.2f;  // s after that to release for the full hit
+    // slash effect of the charged attack
+    struct ArpgSlash {
+      uint64_t      time = 0;     // world tick of the release
+      Tempest::Vec3 pos  = {};
+      float         ang  = 0;     // hero facing, degrees
+      float         dir  = 1;     // sweep direction
+      };
+    const ArpgSlash& arpgSlash() const { return arpgSlashFx; }
     bool  arpgCanBlock() const;                  // a melee weapon (or fists) is drawn
     void  arpgVisibleObjects(std::vector<Focus>& out) const; // items and usable objects the hero can see
     float arpgCeiling() const;                   // indoors: everything above is cut away
@@ -245,9 +258,19 @@ class PlayerControl final {
     float          arpgFreeDistance(const Npc& pl, float ang) const;
 
     bool           arpgBlocking  = false; // middle mouse button held with a melee weapon
-    bool           arpgSpecialReq   = false;
-    float          arpgSpecialWait  = 0;
+    enum ArpgCharge : uint8_t {
+      ChargeNone,
+      ChargeWant,   // button down, waiting to start the swing (drawing the weapon, end of a swing)
+      ChargeHold,   // swing frozen in its wind-up, charging
+      };
+    ArpgCharge     arpgCharge       = ChargeNone;
+    bool           arpgChargeHeld   = false;
+    float          arpgChargeT      = 0;
+    float          arpgChargeWait   = 0;
+    float          arpgChargeSide   = 1;
     uint64_t       arpgSpecialReady = 0;  // world tick when the special attack can be used again
+    ArpgSlash      arpgSlashFx;
+    void           arpgChargeCancel(Npc& pl);
     float          arpgFightFace(Npc& pl, float def);
     bool           arpgDodgeReq  = false; // dodge requested, waiting for the hero to be able to do it
     float          arpgDodgeWait = 0;     // s, how long the request is kept

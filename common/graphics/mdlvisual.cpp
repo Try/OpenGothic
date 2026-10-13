@@ -822,6 +822,10 @@ void MdlVisual::holdParade(uint64_t tickCount) {
   skInst->holdParade(tickCount);
   }
 
+void MdlVisual::holdAttack(uint64_t tickCount) {
+  skInst->holdAttack(tickCount);
+  }
+
 uint16_t MdlVisual::comboLength() const {
   return skInst->comboLength();
   }

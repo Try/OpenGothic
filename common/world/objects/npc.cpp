@@ -2012,7 +2012,7 @@ bool Npc::commitDamageArpg() {
     return false;
 
   // gothic-diablo: the swing hits every enemy in a 120 degree arc in front of the hero (Gothic: one target);
-  // a special attack (right mouse button): 180 degrees, more damage, knocks the enemies down
+  // a charged special attack (right mouse button): 180 degrees, x3 damage, knocks the enemies down
   const bool special = arpgSpecialPending && arpgSpecialUntil>owner.tickCount();
   arpgSpecialPending = false;
   const float rot = rotationRad();
@@ -2051,9 +2051,14 @@ void Npc::arpgHoldParade() {
   visual.holdParade(owner.tickCount());
   }
 
-void Npc::arpgStartSpecial() {
+void Npc::arpgHoldAttack() {
+  visual.holdAttack(owner.tickCount());
+  }
+
+void Npc::arpgStartSpecial(float mul) {
   arpgSpecialPending = true;
   arpgSpecialUntil   = owner.tickCount()+1500;
+  arpgSpecialMul     = mul;
   }
 
 void Npc::commitDamage() {
@@ -2144,10 +2149,10 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
     }
 
   hitResult = DamageCalculator::damageValue(other,*this,b,isSpell,dmg,bMask);
-  // gothic-diablo: special attack of the hero: x1.5 damage
+  // gothic-diablo: charged special attack of the hero: more damage
   const bool arpgSpecialHit = (other.isPlayer() && other.arpgHitSpecial && b==nullptr && !isSpell);
   if(arpgSpecialHit && hitResult.value>0)
-    hitResult.value = (hitResult.value*3)/2;
+    hitResult.value = int32_t(float(hitResult.value)*other.arpgSpecialMul);
   if(!isSpell && !isDown() && hitResult.hasHit)
     owner.addWeaponHitEffect(other,b,*this).play();
 

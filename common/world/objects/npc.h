@@ -190,7 +190,8 @@ class Npc final {
     auto       lastMoveFail() const -> const MoveAlgo::MoveFail& { return mvAlgo.lastMoveFail(); } // gothic-diablo
     auto       comboTiming() const -> Pose::ComboTiming;                                        // gothic-diablo
     void       arpgHoldParade();         // gothic-diablo: block held
-    void       arpgStartSpecial();       // gothic-diablo: the next swing is a special attack
+    void       arpgHoldAttack();         // gothic-diablo: charged attack held in its wind-up
+    void       arpgStartSpecial(float mul); // gothic-diablo: the next swing is a special attack
     bool       isFallingDeep() const;
     bool       isSlide() const;
     bool       isInAir() const;
@@ -519,6 +520,7 @@ class Npc final {
     bool      arpgSpecialPending = false;
     uint64_t  arpgSpecialUntil   = 0;
     bool      arpgHitSpecial     = false; // set while the special swing deals damage
+    float     arpgSpecialMul     = 1.f;
     Npc*      updateNearestEnemy();
     Npc*      updateNearestBody();
     bool      checkHealth(bool onChange, bool forceKill);

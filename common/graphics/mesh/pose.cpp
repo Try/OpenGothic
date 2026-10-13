@@ -607,6 +607,33 @@ void Pose::holdParade(uint64_t tickCount) {
     uint64_t tHold = 300;
     if(d.defWindow.size()>=2 && d.defWindow[1]>d.defWindow[0]+20)
       tHold = d.defWindow[1]-20; // inside the parry window
+    i.heldTick = tickCount;
+    const uint64_t t = tickCount-i.sAnim;
+    if(t<=tHold)
+      continue;
+    const uint64_t dt = t-tHold;
+    i.sAnim   += dt;
+    i.warpEv  -= int64_t(dt);
+    i.warpSfx -= int64_t(dt);
+    }
+  }
+
+void Pose::holdAttack(uint64_t tickCount) {
+  for(auto& i:lay) {
+    if(i.seq==nullptr || i.seq->data==nullptr || !i.seq->isAttackAnim() || i.sAnim>tickCount)
+      continue;
+    // freeze before the hit: at ~40% of the time to the first "optimal frame" (hit) event
+    auto&    d     = *i.seq->data;
+    uint64_t tHold = 200;
+    for(auto& e:d.events) {
+      if(e.type!=zenkit::MdsEventType::OPTIMAL_FRAME || e.frames.empty() || d.fpsRate<=0.f)
+        continue;
+      const int32_t fr  = std::max<int32_t>(0, e.frames[0]-int32_t(d.firstFrame));
+      const uint64_t th = uint64_t(float(fr)*1000.f/d.fpsRate);
+      tHold = std::clamp<uint64_t>(th*2/5, 60, 400);
+      break;
+      }
+    i.heldTick = tickCount;
     const uint64_t t = tickCount-i.sAnim;
     if(t<=tHold)
       continue;
@@ -646,6 +673,8 @@ Tempest::Vec3 Pose::animMoveSpeed(uint64_t tickCount, uint64_t dt) const {
     auto& lx = lay[i];
     if(!lx.seq->data->hasMoveTr)
       continue;
+    if(lx.heldTick!=0 && lx.heldTick+100>=tickCount)
+      return Tempest::Vec3(); // gothic-diablo: frozen block / charge must not slide
     return lx.seq->speed(tickCount-lx.sAnim,dt);
     }
   return Tempest::Vec3();

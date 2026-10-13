@@ -92,6 +92,8 @@ class Pose final {
     void               warpAttack(uint64_t ms, uint64_t tickCount);
     // gothic-diablo: keep a parade animation in its defence window (block held)
     void               holdParade(uint64_t tickCount);
+    // gothic-diablo: keep an attack animation in its wind-up (charged attack)
+    void               holdAttack(uint64_t tickCount);
 
     float              translateY() const { return trY; }
     auto               rootNode() const -> const Tempest::Matrix4x4;
@@ -125,6 +127,7 @@ class Pose final {
       // so that no frame event (hit!) is skipped
       mutable int64_t            warpEv   = 0;
       mutable int64_t            warpSfx  = 0;
+      mutable uint64_t           heldTick = 0;     // frozen in this tick (block / charge): no root motion
       };
 
     struct ComboState {

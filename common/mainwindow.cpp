@@ -353,11 +353,11 @@ void MainWindow::mouseDownEvent(MouseEvent &event) {
     return;
     }
   if(event.button==Event::ButtonRight && isArpgMouse()) {
-    // gothic-diablo: right button = special attack (dodge is on Space)
+    // gothic-diablo: right button held = charge the special attack, release = strike (dodge is on Space)
     arpgRightDown = true;
     updateArpgAim();
     player.tickFocus();
-    player.arpgSpecial();
+    player.arpgChargeStart();
     return;
     }
   if(event.button<sizeof(mouseP))
@@ -375,6 +375,7 @@ void MainWindow::mouseUpEvent(MouseEvent &event) {
     }
   if(event.button==Event::ButtonRight && arpgRightDown) {
     arpgRightDown = false;
+    player.arpgChargeRelease();
     return;
     }
   if(event.button==Event::ButtonMid && arpgMidBlock) {
@@ -744,6 +745,7 @@ void MainWindow::focusEvent(FocusEvent &event) {
     // gothic-diablo: key-ups are lost while the window is in the background
     player.clearInput();
     player.arpgBlock(false);
+    player.arpgChargeRelease();
     arpgLeftDown = arpgRightDown = arpgMidDown = arpgShowAll = arpgMidBlock = false;
     return;
     }
@@ -896,6 +898,8 @@ void MainWindow::paintArpgCombo(Painter& p, const Matrix4x4& vp) {
   const auto ws = pl->weaponState();
   if(ws!=WeaponState::Fist && ws!=WeaponState::W1H && ws!=WeaponState::W2H)
     return;
+  if(player.arpgChargeTime()>=0.f)
+    return; // the charge bar is shown instead
   const auto ct = pl->comboTiming();
   if(!ct.attack || ct.last || ct.missed)
     return;
@@ -1929,6 +1933,65 @@ void MainWindow::paintArpgCombat(Painter& p, const Matrix4x4& vp) {
       const auto ts  = fnt.textSize(txt);
       p.setBrush(Color(1.f,1.f,1.f,a));
       fnt.drawText(p, sp.x-ts.w/2, sp.y, txt);
+      }
+  }
+
+  // charging the special attack: bar above the head, gold = release now, red = held too long
+  {
+    const float t = player.arpgChargeTime();
+    Point sp;
+    if(t>=0.f && toScreen(pl->position()+Vec3(0,230.f,0), sp)) {
+      const int   bw   = int(90.f*scale), bh = std::max(4, int(8.f*scale));
+      const float full = PlayerControl::ChargeFull, win = PlayerControl::ChargeWindow;
+      p.setBrush(Brush(Color(0.f,0.f,0.f,0.7f), Painter::Alpha));
+      p.drawRect(sp.x-bw/2-2, sp.y-2, bw+4, bh+4);
+      if(t<full) {
+        p.setBrush(Brush(Color(0.85f,0.85f,0.85f,0.85f), Painter::Alpha));
+        p.drawRect(sp.x-bw/2, sp.y, int(float(bw)*t/full), bh);
+        }
+      else if(t<=full+win) {
+        p.setBrush(Brush(Color(1.f,0.8f,0.2f,1.f), Painter::Alpha));
+        p.drawRect(sp.x-bw/2-2, sp.y-2, bw+4, bh+4);
+        }
+      else {
+        p.setBrush(Brush(Color(0.85f,0.15f,0.1f,0.9f), Painter::Alpha));
+        p.drawRect(sp.x-bw/2, sp.y, bw, bh);
+        }
+      }
+  }
+
+  // slash of the charged attack: a bright 180 degree crescent sweeping around the hero
+  {
+    const auto&    fx  = player.arpgSlash();
+    const uint64_t now = world->tickCount();
+    if(fx.time!=0 && now>=fx.time && now<fx.time+600) {
+      const float t     = float(now-fx.time)/1000.f;
+      const float sweep = std::clamp((t-0.06f)/0.18f, 0.f, 1.f);   // follows the swing
+      const float fade  = 1.f - std::clamp((t-0.25f)/0.35f, 0.f, 1.f);
+      if(sweep>0.f && fade>0.f) {
+        const int   N  = 24;
+        const float r0 = 90.f, r1 = 260.f, y = 110.f;
+        auto pt = [&](float a, float r, Point& out) {
+          const float rad = a*float(M_PI)/180.f;
+          return toScreen(fx.pos + Vec3(std::cos(rad)*r, y, std::sin(rad)*r), out);
+          };
+        p.setBrush(Brush(Color(1.f,0.85f,0.45f,1.f), Painter::Add));
+        for(int i=0; i<N; ++i) {
+          const float k0 = float(i)/float(N), k1 = float(i+1)/float(N);
+          if(k1>sweep)
+            break;
+          // the newest part of the sweep is brightest
+          const float a  = fade*(0.25f + 0.75f*std::clamp(1.f-(sweep-k1)*2.f, 0.f, 1.f));
+          const float a0 = fx.ang + fx.dir*(90.f - 180.f*k0);
+          const float a1 = fx.ang + fx.dir*(90.f - 180.f*k1);
+          Point p00, p01, p10, p11;
+          if(!pt(a0,r0,p00) || !pt(a0,r1,p01) || !pt(a1,r0,p10) || !pt(a1,r1,p11))
+            continue;
+          p.setBrush(Brush(Color(1.f*a, 0.82f*a, 0.4f*a, 1.f), Painter::Add));
+          p.drawTriangle(float(p00.x),float(p00.y),0,0, float(p01.x),float(p01.y),0,0, float(p11.x),float(p11.y),0,0);
+          p.drawTriangle(float(p00.x),float(p00.y),0,0, float(p11.x),float(p11.y),0,0, float(p10.x),float(p10.y),0,0);
+          }
+        }
       }
   }
 

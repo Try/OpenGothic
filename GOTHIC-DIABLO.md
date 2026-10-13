@@ -82,7 +82,8 @@ Dachy i ściany dalej rzucają cienie (ukrywanie działa tylko w widoku kamery).
 | Spacja = unik (krok w bok / odskok), także w trakcie bloku — po uniku blok wraca, jeśli środkowy przycisk wciąż wciśnięty | `PlayerControl::onKeyPressed`, `arpgStartDodge` |
 | Lewy Shift = dobycie / schowanie broni (ostatnio używanej) | `PlayerControl::onKeyPressed` |
 | Środkowy przycisk z bronią białą / pięściami = blok trzymany: postać zwraca się do wroga, animacja parady zatrzymana w oknie obrony, puszczenie kończy blok; w trybie ARPG da się parować także potwory; bez broni: przeciąganie = obrót kamery, klik = dobycie broni | `implMove`, `Pose::holdParade`, `Npc::takeDamage` |
-| PPM = atak specjalny: zamach z boku, łuk 180°, obrażenia ×1,5, przewraca wrogów, odnowienie 5 s (niebieski pasek pod stopami); naciśnięty w trakcie ciosu czeka do 1 s | `implMove`, `Npc::commitDamageArpg`, `Npc::takeDamage` |
+| PPM = atak ładowany: przytrzymanie — zamach z boku zatrzymany w zamachu, pasek nad głową ładuje się 2 s; puszczenie w ciągu 0,2 s po pełnym naładowaniu (złoty pasek) = jeden zamach 180° z obrażeniami ×3, przewraca wrogów, jasna smuga cięcia; puszczenie za wcześnie albo za późno = zwykły cios; odnowienie 5 s po udanym (niebieski pasek pod stopami); unik i blok przerywają ładowanie | `implMove`, `Pose::holdAttack`, `Npc::commitDamageArpg`, `MainWindow::paintArpgCombat` |
+| Zatrzymana parada / zamach nie przesuwają postaci (bez ruchu z animacji) | `Pose::animMoveSpeed` |
 | X = zmiana broni biała ↔ łuk; skradanie przeniesione z X na V (tylko w trybie ARPG) | `PlayerControl::arpgSwapWeapon` |
 | Ctrl + LPM: na postaci = atak na każdego, w puste miejsce = atak w miejscu w stronę kursora (przytrzymanie = ciągłe ciosy za kursorem) | `arpgMouseDown`, `arpgClickTick` (`Strike`) |
 | Przy każdym ciosie postać od razu zwraca się do celu (jak Diablo), w zasięgu obraca się szybciej | `PlayerControl::arpgSwing` |

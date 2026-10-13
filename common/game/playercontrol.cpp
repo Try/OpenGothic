@@ -778,19 +778,24 @@ void PlayerControl::implMove(uint64_t dt) {
     arpgDodgeLock = 0;
     }
 
-  // gothic-diablo: special attack (right mouse button): wide swing, 180 degrees, x1.5, knocks down; 5 s cooldown
-  if(arpg && arpgSpecialReq) {
-    arpgSpecialWait -= float(dt)/1000.f;
-    if(arpgSpecialWait<=0.f) {
-      arpgSpecialReq = false;
+  // gothic-diablo: charged attack (right mouse button held): the swing waits in its wind-up while charging;
+  // released within 0.2 s after a full 2 s charge = one 180 degree swing with x3 damage that knocks down; 5 s cooldown
+  if(arpg && arpgCharge!=ChargeNone) {
+    const float dtF = float(dt)/1000.f;
+    const bool  melee = (ws==WeaponState::Fist || ws==WeaponState::W1H || ws==WeaponState::W2H);
+    if(arpgBlocking || (!melee && ws!=WeaponState::NoWeapon)) {
+      arpgChargeCancel(pl);
       }
-    else if(ws==WeaponState::NoWeapon) {
-      wctrl[WeaponMele] = true; // draw the weapon first, the attack follows
-      }
-    else if(ws==WeaponState::Fist || ws==WeaponState::W1H || ws==WeaponState::W2H) {
-      if(w->tickCount()<arpgSpecialReady) {
-        arpgSpecialReq = false; // still cooling down
-        } else {
+    else if(arpgCharge==ChargeWant) {
+      arpgChargeWait -= dtF;
+      if(!arpgChargeHeld || arpgChargeWait<=0.f) {
+        arpgCharge = ChargeNone;
+        }
+      else if(ws==WeaponState::NoWeapon) {
+        wctrl[WeaponMele] = true; // draw the weapon first
+        arpgChargeWait    = std::max(arpgChargeWait, 0.6f);
+        }
+      else {
         const float face = arpgFightFace(pl, rot);
         if(pl.hasState(BS_PARADE))
           pl.stopAnim("");
@@ -798,19 +803,53 @@ void PlayerControl::implMove(uint64_t dt) {
           rot = face;
           pl.setDirection(rot);
           }
-        const bool ok = (ws==WeaponState::Fist) ? pl.fistShoot()
-                                                : (pl.swingSwordL() || pl.swingSwordR());
+        bool ok = false;
+        if(ws==WeaponState::Fist) {
+          ok = pl.fistShoot();
+          arpgChargeSide = 1;
+          }
+        else if(pl.swingSwordL()) {
+          ok = true;
+          arpgChargeSide = 1;
+          }
+        else if(pl.swingSwordR()) {
+          ok = true;
+          arpgChargeSide = -1;
+          }
         if(ok) {
-          pl.arpgStartSpecial();
-          arpgSpecialReady = w->tickCount()+5000;
-          arpgSpecialReq   = false;
-          arpgClick        = ArpgClick();
+          arpgCharge  = ChargeHold;
+          arpgChargeT = 0;
+          arpgClick   = ArpgClick();
+          pl.arpgHoldAttack();
           return;
           }
         }
       }
-    else {
-      arpgSpecialReq = false; // bows and spells: later in phase 4
+    else if(arpgCharge==ChargeHold) {
+      arpgChargeT += dtF;
+      arpgClick    = ArpgClick();
+      const float face = arpgFightFace(pl, rot);
+      if(pl.isRotationAllowed()) {
+        const float turn = 720.f*dtF;
+        rot += std::clamp(std::remainder(face-rot, 360.f), -turn, turn);
+        pl.setDirection(rot);
+        }
+      if(arpgChargeHeld && arpgChargeT<=ChargeFull+ChargeWindow) {
+        pl.arpgHoldAttack(); // keep charging, standing
+        return;
+        }
+      // released (or held too long): the swing goes on from the wind-up
+      const bool full = !arpgChargeHeld && arpgChargeT>=ChargeFull && arpgChargeT<=ChargeFull+ChargeWindow;
+      if(full) {
+        pl.arpgStartSpecial(3.f);
+        arpgSpecialReady  = w->tickCount()+5000;
+        arpgSlashFx.time  = w->tickCount();
+        arpgSlashFx.pos   = pl.position();
+        arpgSlashFx.ang   = rot;
+        arpgSlashFx.dir   = arpgChargeSide;
+        }
+      arpgCharge = ChargeNone;
+      return;
       }
     }
 
@@ -1879,6 +1918,8 @@ bool PlayerControl::arpgStartDodge(Npc& pl, float& rot) {
     o.err = std::fabs(std::remainder(o.face-face, 360.f));
   std::sort(std::begin(opt), std::end(opt), [](const Opt& a, const Opt& b){ return a.err<b.err; });
 
+  if(arpgCharge!=ChargeNone)
+    arpgChargeCancel(pl); // dodging out of a charge
   if(pl.hasState(BS_PARADE))
     pl.stopAnim(""); // dodging out of a block: the held parry would not let the step start
   for(auto& o:opt) {
@@ -2084,9 +2125,24 @@ float PlayerControl::arpgFightFace(Npc& pl, float def) {
   return face;
   }
 
-void PlayerControl::arpgSpecial() {
-  arpgSpecialReq  = true;
-  arpgSpecialWait = 1.f; // pressed during a swing: as soon as the swing allows
+void PlayerControl::arpgChargeStart() {
+  auto w = Gothic::inst().world();
+  if(w==nullptr || w->tickCount()<arpgSpecialReady)
+    return; // still cooling down
+  arpgCharge     = ChargeWant;
+  arpgChargeHeld = true;
+  arpgChargeWait = 1.f; // pressed during a swing: start as soon as the swing allows
+  arpgChargeT    = 0;
+  }
+
+void PlayerControl::arpgChargeRelease() {
+  arpgChargeHeld = false;
+  }
+
+void PlayerControl::arpgChargeCancel(Npc& pl) {
+  if(arpgCharge==ChargeHold)
+    pl.stopAnim(""); // drop the frozen wind-up
+  arpgCharge = ChargeNone;
   }
 
 float PlayerControl::arpgSpecialLeft() const {
