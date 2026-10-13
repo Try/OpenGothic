@@ -78,6 +78,7 @@ class AbstractTrigger : public Vob {
     const std::vector<Npc*>&     intersections() const;
 
     void                         implProcessEvent(const TriggerEvent& evt);
+    void                         emitTargetTriggerEvent() const;
 
   private:
     Cb                           callback;
