@@ -80,6 +80,7 @@ class PlayerControl final {
       Tempest::Vec3 pos  = {};
       float         ang  = 0;     // hero facing, degrees
       float         dir  = 1;     // sweep direction
+      uint8_t       kind = 0;     // 0 = melee crescent, 1 = arrow streak
       };
     const ArpgSlash& arpgSlash() const { return arpgSlashFx; }
     bool  arpgCanBlock() const;                  // a melee weapon (or fists) is drawn
@@ -261,16 +262,22 @@ class PlayerControl final {
     enum ArpgCharge : uint8_t {
       ChargeNone,
       ChargeWant,   // button down, waiting to start the swing (drawing the weapon, end of a swing)
-      ChargeHold,   // swing frozen in its wind-up, charging
+      ChargeHold,   // swing frozen in its wind-up / bow drawn, charging
+      ChargeFire,   // bow: released, waiting for the shot to go off
       };
     ArpgCharge     arpgCharge       = ChargeNone;
     bool           arpgChargeHeld   = false;
     float          arpgChargeT      = 0;
     float          arpgChargeWait   = 0;
     float          arpgChargeSide   = 1;
+    bool           arpgChargeFull   = false;
     uint64_t       arpgSpecialReady = 0;  // world tick when the special attack can be used again
     ArpgSlash      arpgSlashFx;
     void           arpgChargeCancel(Npc& pl);
+    bool           arpgShoot(Npc& pl, float& rot, bool allowRot, float faceAng, Npc* tg);
+    void           arpgDrawPreferred(Npc& pl);   // the last used weapon: bow (if any arrows) or melee
+    bool           arpgHasRanged(Npc& pl) const;
+    float          arpgShotRange() const;
     float          arpgFightFace(Npc& pl, float def);
     bool           arpgDodgeReq  = false; // dodge requested, waiting for the hero to be able to do it
     float          arpgDodgeWait = 0;     // s, how long the request is kept

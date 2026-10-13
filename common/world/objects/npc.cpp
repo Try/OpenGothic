@@ -4206,6 +4206,15 @@ bool Npc::shootBow(Interactive* focOverride) {
       b.setHitChance(float(hnpc->hitchance[TALENT_CROSSBOW])/100.f); else
       b.setHitChance(float(hnpc->hitchance[TALENT_BOW]     )/100.f);
     }
+  if(arpgShotMul>1.f) {
+    // gothic-diablo: charged shot of the hero: x3 damage and it does not miss
+    auto d = b.damage();
+    for(auto& v:d.val)
+      v = int32_t(float(v)*arpgShotMul);
+    b.setDamage(d);
+    b.setHitChance(1.f);
+    }
+  arpgShotMul = 1.f;
   return true;
   }
 

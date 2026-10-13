@@ -1964,7 +1964,30 @@ void MainWindow::paintArpgCombat(Painter& p, const Matrix4x4& vp) {
   {
     const auto&    fx  = player.arpgSlash();
     const uint64_t now = world->tickCount();
-    if(fx.time!=0 && now>=fx.time && now<fx.time+600) {
+    if(fx.kind==1 && fx.time!=0 && now>=fx.time && now<fx.time+450) {
+      // charged arrow: a bright streak along the shot
+      const float t    = float(now-fx.time)/1000.f;
+      const float fade = 1.f - std::clamp(t/0.45f, 0.f, 1.f);
+      const float rad  = fx.ang*float(M_PI)/180.f;
+      const Vec3  fw   = {std::cos(rad), 0.f, std::sin(rad)};
+      const Vec3  sd   = {-fw.z, 0.f, fw.x};
+      const Vec3  base = fx.pos + Vec3(0,140.f,0);
+      const int   N    = 12;
+      const float len  = std::min(2500.f, 600.f + 9000.f*t);
+      for(int i=0; i<N; ++i) {
+        const float k0 = float(i)/float(N), k1 = float(i+1)/float(N);
+        const float a  = fade*(1.f-k0)*0.9f;
+        const float w0 = 18.f*(1.f-k0)+4.f, w1 = 18.f*(1.f-k1)+4.f;
+        Point p00, p01, p10, p11;
+        if(!toScreen(base+fw*(len*k0)-sd*w0, p00) || !toScreen(base+fw*(len*k0)+sd*w0, p01) ||
+           !toScreen(base+fw*(len*k1)-sd*w1, p10) || !toScreen(base+fw*(len*k1)+sd*w1, p11))
+          continue;
+        p.setBrush(Brush(Color(1.f*a, 0.85f*a, 0.45f*a, 1.f), Painter::Add));
+        p.drawTriangle(float(p00.x),float(p00.y),0,0, float(p01.x),float(p01.y),0,0, float(p11.x),float(p11.y),0,0);
+        p.drawTriangle(float(p00.x),float(p00.y),0,0, float(p11.x),float(p11.y),0,0, float(p10.x),float(p10.y),0,0);
+        }
+      }
+    else if(fx.kind==0 && fx.time!=0 && now>=fx.time && now<fx.time+600) {
       const float t     = float(now-fx.time)/1000.f;
       const float sweep = std::clamp((t-0.06f)/0.18f, 0.f, 1.f);   // follows the swing
       const float fade  = 1.f - std::clamp((t-0.25f)/0.35f, 0.f, 1.f);

@@ -328,7 +328,10 @@ void PlayerControl::tickFocus() {
     currentFocus = arpgPick();
     arpgHover    = currentFocus;
     if(arpgClick.kind==ArpgClick::Attack && arpgClick.target.npc!=nullptr)
-      setTarget(arpgClick.target.npc); else
+      setTarget(arpgClick.target.npc);
+    else if(arpgClick.kind==ArpgClick::Strike)
+      setTarget(nullptr); // shooting at a point: straight ahead
+    else
       setTarget(currentFocus.npc);
     return;
     }
@@ -782,9 +785,69 @@ void PlayerControl::implMove(uint64_t dt) {
   // released within 0.2 s after a full 2 s charge = one 180 degree swing with x3 damage that knocks down; 5 s cooldown
   if(arpg && arpgCharge!=ChargeNone) {
     const float dtF = float(dt)/1000.f;
-    const bool  melee = (ws==WeaponState::Fist || ws==WeaponState::W1H || ws==WeaponState::W2H);
-    if(arpgBlocking || (!melee && ws!=WeaponState::NoWeapon)) {
+    const bool  melee  = (ws==WeaponState::Fist || ws==WeaponState::W1H || ws==WeaponState::W2H);
+    const bool  ranged = (ws==WeaponState::Bow || ws==WeaponState::CBow);
+    if(arpgBlocking || (!melee && !ranged && ws!=WeaponState::NoWeapon)) {
       arpgChargeCancel(pl);
+      }
+    else if(ranged) {
+      // bow / crossbow: draw (aim) while charging, the arrow goes off on release
+      const float face = arpgFightFace(pl, rot);
+      if(pl.isRotationAllowed()) {
+        rot = face;
+        pl.setDirection(rot);
+        }
+      arpgClick = ArpgClick();
+      if(!pl.hasAmmunition()) {
+        Gothic::inst().onPrint("Brak amunicji");
+        arpgCharge = ChargeNone;
+        }
+      else if(arpgCharge==ChargeWant) {
+        arpgChargeWait -= dtF;
+        const auto bs = pl.bodyStateMasked();
+        if(!arpgChargeHeld || arpgChargeWait<=0.f)
+          arpgCharge = ChargeNone;
+        else if(bs==BS_AIMNEAR || bs==BS_AIMFAR) {
+          arpgCharge  = ChargeHold;
+          arpgChargeT = 0;
+          }
+        pl.aimBow();
+        return;
+        }
+      else if(arpgCharge==ChargeHold) {
+        arpgChargeT += dtF;
+        pl.aimBow();
+        if(arpgChargeHeld && arpgChargeT<=ChargeFull+ChargeWindow)
+          return;
+        arpgChargeFull = !arpgChargeHeld && arpgChargeT>=ChargeFull && arpgChargeT<=ChargeFull+ChargeWindow;
+        arpgCharge     = ChargeFire;
+        arpgChargeWait = 0.6f;
+        }
+      if(arpgCharge==ChargeFire) {
+        arpgChargeWait -= dtF;
+        if(arpgChargeFull)
+          pl.arpgSetShotMul(3.f);
+        const bool shot = pl.shootBow();
+        pl.arpgSetShotMul(1.f);
+        if(shot) {
+          if(arpgChargeFull) {
+            arpgSpecialReady = w->tickCount()+5000;
+            arpgSlashFx.time = w->tickCount();
+            arpgSlashFx.pos  = pl.position();
+            arpgSlashFx.ang  = rot;
+            arpgSlashFx.dir  = 1;
+            arpgSlashFx.kind = 1;
+            }
+          arpgCharge = ChargeNone;
+          }
+        else if(arpgChargeWait<=0.f) {
+          arpgCharge = ChargeNone;
+          }
+        else {
+          pl.aimBow();
+          }
+        return;
+        }
       }
     else if(arpgCharge==ChargeWant) {
       arpgChargeWait -= dtF;
@@ -792,8 +855,8 @@ void PlayerControl::implMove(uint64_t dt) {
         arpgCharge = ChargeNone;
         }
       else if(ws==WeaponState::NoWeapon) {
-        wctrl[WeaponMele] = true; // draw the weapon first
-        arpgChargeWait    = std::max(arpgChargeWait, 0.6f);
+        arpgDrawPreferred(pl); // draw the weapon first
+        arpgChargeWait = std::max(arpgChargeWait, 0.6f);
         }
       else {
         const float face = arpgFightFace(pl, rot);
@@ -847,6 +910,7 @@ void PlayerControl::implMove(uint64_t dt) {
         arpgSlashFx.pos   = pl.position();
         arpgSlashFx.ang   = rot;
         arpgSlashFx.dir   = arpgChargeSide;
+        arpgSlashFx.kind  = 0;
         }
       arpgCharge = ChargeNone;
       return;
@@ -1496,7 +1560,7 @@ void PlayerControl::arpgMouseDown(const Focus& f) {
     arpgClick.kind = ArpgClick::Strike;
     arpgClick.point = arpgGroundValid ? arpgGround : (pl->position() + Tempest::Vec3(std::cos(pl->rotationRad())*200.f, 0, std::sin(pl->rotationRad())*200.f));
     if(pl->weaponState()==WeaponState::NoWeapon)
-      wctrl[WeaponMele] = true;
+      arpgDrawPreferred(*pl);
     arpgClick.stuckPos = pl->position();
     return;
     }
@@ -1523,7 +1587,7 @@ void PlayerControl::arpgMouseDown(const Focus& f) {
     }
 
   if(arpgClick.kind==ArpgClick::Attack && pl->weaponState()==WeaponState::NoWeapon)
-    wctrl[WeaponMele] = true; // draw the weapon while running to the enemy
+    arpgDrawPreferred(*pl); // draw the weapon while running to the enemy
   arpgClick.stuckPos = pl->position();
   }
 
@@ -1774,6 +1838,11 @@ PlayerControl::ArpgStep PlayerControl::arpgClickTick(Npc& pl, float& rot, int& r
       FightAlgo fa;
       inRange = fa.isInAttackRange(pl, *c.target.npc, w->script());
       }
+    else if(ws==WeaponState::Bow || ws==WeaponState::CBow) {
+      // bows: close enough and a free line of fire
+      const float rng = arpgShotRange();
+      inRange = dist2<=rng*rng && arpgLineClear(pos, dest);
+      }
     }
 
   if(!inRange) {
@@ -1848,11 +1917,18 @@ PlayerControl::ArpgStep PlayerControl::arpgClickTick(Npc& pl, float& rot, int& r
         break;
       const auto ws = pl.weaponState();
       if(ws==WeaponState::NoWeapon) {
-        wctrl[WeaponMele] = true;
+        arpgDrawPreferred(pl);
         return ArpgStop;
         }
+      if(ws==WeaponState::Bow || ws==WeaponState::CBow) {
+        if(tg.isDown())
+          break;
+        if(arpgShoot(pl, rot, allowRot, faceAng, &tg))
+          return ArpgStop;
+        break;
+        }
       if(ws!=WeaponState::Fist && ws!=WeaponState::W1H && ws!=WeaponState::W2H)
-        break; // bows and spells: next phase
+        break; // spells: later in phase 4
       if(tg.isDown()) {
         // unconscious human: finishing move, otherwise leave it
         if(c.swings==0 && !pl.isAttackAnim() && pl.canFinish(tg))
@@ -1866,11 +1942,16 @@ PlayerControl::ArpgStep PlayerControl::arpgClickTick(Npc& pl, float& rot, int& r
     case ArpgClick::Strike: {
       const auto ws = pl.weaponState();
       if(ws==WeaponState::NoWeapon) {
-        wctrl[WeaponMele] = true;
+        arpgDrawPreferred(pl);
         return ArpgStop;
         }
+      if(ws==WeaponState::Bow || ws==WeaponState::CBow) {
+        if(arpgShoot(pl, rot, allowRot, faceAng, nullptr))
+          return ArpgStop;
+        break;
+        }
       if(ws!=WeaponState::Fist && ws!=WeaponState::W1H && ws!=WeaponState::W2H)
-        break; // bows and spells: later in phase 4
+        break; // spells: later in phase 4
       if(arpgSwing(pl, rot, allowRot, faceAng, faceDa))
         return ArpgStop;
       break;
@@ -2140,9 +2221,59 @@ void PlayerControl::arpgChargeRelease() {
   }
 
 void PlayerControl::arpgChargeCancel(Npc& pl) {
-  if(arpgCharge==ChargeHold)
+  const auto ws = pl.weaponState();
+  if(arpgCharge==ChargeHold && ws!=WeaponState::Bow && ws!=WeaponState::CBow)
     pl.stopAnim(""); // drop the frozen wind-up
   arpgCharge = ChargeNone;
+  }
+
+bool PlayerControl::arpgShoot(Npc& pl, float& rot, bool allowRot, float faceAng, Npc* tg) {
+  // bows: aim at the target (or straight towards the cursor), shoot; held button = keep shooting.
+  // Returns false when the order is done.
+  auto& c = arpgClick;
+  if(!pl.hasAmmunition()) {
+    Gothic::inst().onPrint("Brak amunicji");
+    wctrl[WeaponMele] = true;
+    return false;
+    }
+  if(allowRot) {
+    rot = faceAng; // the aim follows the target
+    pl.setDirection(rot);
+    }
+  setTarget(tg);
+  const bool want = (c.held || c.swings==0);
+  if(want) {
+    const auto bs = pl.bodyStateMasked();
+    if((bs==BS_AIMNEAR || bs==BS_AIMFAR) && pl.shootBow())
+      c.swings++; else
+      pl.aimBow();
+    return true;
+    }
+  return pl.isAttackAnim();
+  }
+
+bool PlayerControl::arpgHasRanged(Npc& pl) const {
+  auto rgn = pl.currentRangedWeapon();
+  if(rgn==nullptr)
+    return false;
+  const int32_t munition = rgn->handle().munition;
+  return munition>=0 && pl.inventory().itemCount(size_t(munition))>0;
+  }
+
+void PlayerControl::arpgDrawPreferred(Npc& pl) {
+  if(wctrlLast==WeaponBow && arpgHasRanged(pl))
+    wctrl[WeaponBow]  = true; else
+    wctrl[WeaponMele] = true;
+  }
+
+float PlayerControl::arpgShotRange() const {
+  float r = 2500.f;
+  if(auto c = Gothic::inst().camera()) {
+    const auto& v = c->arpgView();
+    if(v.fowRadius>0.f)
+      r = std::min(r, v.fowRadius);
+    }
+  return r;
   }
 
 float PlayerControl::arpgSpecialLeft() const {
