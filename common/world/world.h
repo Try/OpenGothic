@@ -225,12 +225,6 @@ class World final {
     WorldObjects                          wobj;
     std::unique_ptr<Npc>                  lvlInspector;
 
-    // gothic-diablo: light around the hero in the ARPG view (like the light radius in Diablo);
-    // declared last: destroyed before the light group it lives in
-    LightGroup::Light                     arpgLight;
-    bool                                  arpgLightValid = false;
-    void         tickArpgLight();
-
     auto         roomAt(const zenkit::BspNode &node) -> std::string_view;
     auto         portalAt(std::string_view tag) -> BspSector*;
 

@@ -1,7 +1,5 @@
 #include "world.h"
 
-#include "camera.h"
-
 #include <functional>
 #include <future>
 #include <cctype>
@@ -384,33 +382,6 @@ void World::tick(uint64_t dt) {
   if(auto pl = player())
     wsound.tick(*pl);
   globFx->tick(dt);
-  tickArpgLight();
-  }
-
-void World::tickArpgLight() {
-  auto cam = Gothic::inst().camera();
-  auto pl  = player();
-  if(cam==nullptr || pl==nullptr || !cam->isArpgActive()) {
-    if(arpgLightValid)
-      arpgLight.setEnabled(false);
-    return;
-    }
-  if(!arpgLightValid) {
-    zenkit::VLight l;
-    l.range     = 1000.f;
-    l.color     = zenkit::Color{255, 214, 160, 255};
-    l.is_static = false;
-    l.on        = true;
-    arpgLight      = addLight(l);
-    arpgLightValid = true;
-    }
-  // stronger in caves and houses, subtle outside
-  const float indoor = cam->arpgView().indoor;
-  const float k      = 0.45f + 0.45f*indoor;
-  arpgLight.setEnabled(true);
-  arpgLight.setRange(800.f + 400.f*indoor);
-  arpgLight.setColor(Tempest::Vec3(1.f, 0.84f, 0.63f)*k);
-  arpgLight.setPosition(pl->position() + Tempest::Vec3(0, 230.f, 0));
   }
 
 uint64_t World::tickCount() const {

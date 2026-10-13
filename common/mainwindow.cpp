@@ -522,6 +522,12 @@ void MainWindow::onSettings() {
   }
 
 void MainWindow::mouseWheelEvent(MouseEvent &event) {
+  if(arpgMinimap && arpgMapRect.w>0 && arpgMapRect.contains(event.pos()) && isArpgMouse()) {
+    // gothic-diablo: wheel over the minimap zooms the minimap (20..100 m across)
+    const float k = event.delta>0 ? 1.f/1.2f : 1.2f;
+    arpgMapHalf = std::clamp(arpgMapHalf*k, 1000.f, 5000.f);
+    return;
+    }
   if(auto camera = Gothic::inst().camera())
     camera->changeZoom(event.delta);
   }
@@ -1674,6 +1680,7 @@ void MainWindow::paintArpgMinimap(Painter& p) {
   auto world = Gothic::inst().world();
   auto pl    = Gothic::inst().player();
   auto cam   = Gothic::inst().camera();
+  arpgMapRect = Rect();
   if(!arpgMinimap || world==nullptr || pl==nullptr || cam==nullptr || dialogs.isActive() || inventory.isActive())
     return;
 
@@ -1717,7 +1724,8 @@ void MainWindow::paintArpgMinimap(Painter& p) {
   const int   y0    = int(48.f*scale);
   const float cx    = float(x0) + float(S)*0.5f;
   const float cy    = float(y0) + float(S)*0.5f;
-  const float half  = 3500.f;                 // world cm from the center to the edge
+  const float half  = arpgMapHalf;            // world cm from the center to the edge (wheel over the map)
+  arpgMapRect = Rect(x0, y0, S, S);
   const float k     = float(S)/(2.f*half);    // pixels per cm
 
   // screen up = where the camera looks, screen right = camera right (same as W/D)

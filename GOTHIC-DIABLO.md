@@ -68,9 +68,8 @@ Dachy i ściany dalej rzucają cienie (ukrywanie działa tylko w widoku kamery).
 | Liście drzew (materiały z kanałem alfa) przed postacią zawsze prześwitują | `arpgHidden` |
 | Wnętrza: linia wzroku — 128 kierunków (promienie na wysokości kolan, głowy i pochylony w górę, ¼ kierunków na klatkę, wygładzane); to, czego postać nie widzi (za ścianami jaskini), w czerń | `Camera::updateArpgView`, `shader/arpg.glsl` — `arpgOutOfSight` |
 | Przekroje zostają czyste czarne także po mgle (bit 4 w alfie G-bufora, przebieg mgły czyta G-bufor) | `main.frag`, `shader/sky/fog.frag`, `fog_epipolar.frag`, `Renderer::drawFog` |
-| Światło wokół postaci (ciepłe, 8–12 m, mocniejsze we wnętrzach) | `World::tickArpgLight` |
 | Postacie i potwory (siatki animowane) jaśniejsze o 40% w widoku ARPG | `main.frag` — `mainGBuffer` |
-| Minimapa (Tab): mapa świata z przedmiotu-mapy w skryptach (odczyt kodu bajtowego Doc_SetPage/Doc_SetLevel/Doc_SetLevelCoords), obrócona jak kamera, nieodkryte pola 4 m ciemne, wrogowie czerwoni, strzałka postaci, „N”; ekwipunek pod I (Backspace dalej działa) | `MainWindow::paintArpgMinimap`, `GameScript::arpgWorldMaps` |
+| Minimapa (Tab): mapa świata z przedmiotu-mapy w skryptach (odczyt kodu bajtowego Doc_SetPage/Doc_SetLevel/Doc_SetLevelCoords), obrócona jak kamera, kółko myszy nad mapą = przybliżenie (20–100 m), nieodkryte pola 4 m ciemne, wrogowie czerwoni, strzałka postaci, „N”; ekwipunek pod I (Backspace dalej działa) | `MainWindow::paintArpgMinimap`, `GameScript::arpgWorldMaps` |
 
 ### Poprawki sterowania (faza 3)
 - Oba kierunki wciśnięte (np. zgubione puszczenie S w menu) → wygrywa ostatnio wciśnięty; czyszczenie klawiszy przy otwarciu/zamknięciu menu i utracie fokusu okna

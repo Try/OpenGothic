@@ -186,6 +186,8 @@ class MainWindow : public Tempest::Window {
     std::string               arpgMapTex;
     Tempest::Rect             arpgMapBounds;
     bool                      arpgMapValid    = false;
+    float                     arpgMapHalf     = 3500.f; // minimap: cm from the center to the edge (zoom)
+    Tempest::Rect             arpgMapRect;              // where the minimap was drawn last frame
     std::unordered_map<std::string, std::unordered_set<int64_t>> arpgExplored;
     struct ArpgLabel {
       Tempest::Rect           rect;
