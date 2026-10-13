@@ -101,7 +101,6 @@ class GameMenu : public Tempest::Widget {
 
     static bool                           isSelectable(const std::shared_ptr<zenkit::IMenuItem>& item);
     static bool                           isDraggable(const Item& item);
-    static bool                           isPercentageRange(const Item& item);
     static bool                           isHorSelectable(const std::shared_ptr<zenkit::IMenuItem>& item);
     static bool                           isEnabled(const std::shared_ptr<zenkit::IMenuItem>& item);
     static bool                           isHidden(const std::shared_ptr<zenkit::IMenuItem>& item);

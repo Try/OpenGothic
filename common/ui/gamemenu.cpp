@@ -6,7 +6,9 @@
 #include <Tempest/Dialog>
 
 #include <algorithm>
+#include <charconv>
 #include <cmath>
+#include <optional>
 
 #include "utils/string_frm.h"
 #include "world/objects/npc.h"
@@ -25,6 +27,44 @@
 using namespace Tempest;
 
 static const float scriptDiv=8192.0f;
+
+struct PercentageRange {
+  double min = 0, max = 0, step = 0;
+  };
+
+static std::optional<PercentageRange> percentageRange(std::string_view text) {
+  if(const auto prefix = text.find('#'); prefix!=std::string_view::npos)
+    text.remove_prefix(prefix+1);
+  PercentageRange range;
+  size_t count = 0;
+  while(!text.empty()) {
+    const auto separator = text.find('|');
+    const auto entry = text.substr(0,separator);
+    if(entry.empty() || entry.back()!='%')
+      return std::nullopt;
+    int value = 0;
+    const auto end = entry.data()+entry.size()-1;
+    const auto parsed = std::from_chars(entry.data(),end,value);
+    if(parsed.ec!=std::errc{} || parsed.ptr!=end)
+      return std::nullopt;
+    if(count==0)
+      range.min = value;
+    else if(count==1)
+      range.step = double(value)-range.min;
+    else if(double(value)-range.max!=range.step)
+      return std::nullopt;
+    range.max = value;
+    ++count;
+    if(separator==std::string_view::npos)
+      break;
+    text.remove_prefix(separator+1);
+    if(text.empty())
+      return std::nullopt;
+    }
+  if(count<2 || range.step<=0)
+    return std::nullopt;
+  return range;
+  }
 
 struct GameMenu::ListContentDialog : Dialog {
   ListContentDialog(Item& textView):textView(textView) {
@@ -641,11 +681,6 @@ bool GameMenu::beginTouch(Point pos) {
   return false;
   }
 
-bool GameMenu::isPercentageRange(const Item& it) {
-  return it.handle->type==zenkit::MenuItemType::CHOICEBOX &&
-         it.handle->text[0]=="20%|40%|60%|80%|100%|120%|140%|160%|180%|200%|220%|240%|260%|280%|300%";
-  }
-
 void GameMenu::dragTouch(Point pos) {
   if(touchSlider==nullptr)
     return;
@@ -663,9 +698,11 @@ void GameMenu::dragTouch(Point pos) {
     const int count = int(strEnumSize(touchSlider->handle->text[0]));
     if(count==0)
       return;
-    if(isPercentageRange(*touchSlider)) {
-      // Preserve the script's 20-percent index scale, including existing settings.
-      Gothic::settingsSetF(sec,opt,std::round(value*float((count-1)*2))/2.f);
+    if(const auto range = percentageRange(touchSlider->handle->text[0])) {
+      const double step = std::min(10.0,range->step);
+      const double percent = value==1.f ? range->max : std::clamp(range->min+std::round(value*(range->max-range->min)/step)*step,range->min,range->max);
+      // Keep stored values on the script's index scale.
+      Gothic::settingsSetF(sec,opt,float((percent-range->min)/range->step));
       } else {
       touchSlider->value = int(std::round(value*float(count-1)));
       Gothic::settingsSetI(sec,opt,touchSlider->value);
@@ -820,12 +857,14 @@ void GameMenu::getText(const Item& it, std::vector<char> &out) {
 
   if(it.handle->type==zenkit::MenuItemType::CHOICEBOX) {
 #if defined(__MOBILE_PLATFORM__)
-    if(isPercentageRange(it)) {
+    if(const auto range = percentageRange(src)) {
       const float value = Gothic::settingsGetF(it.handle->on_chg_set_option_section,it.handle->on_chg_set_option);
-      const auto text = std::to_string(20+int(std::round(std::clamp(value,0.f,14.f)*2.f))*10)+"%";
-      out.assign(text.begin(),text.end());
-      out.push_back('\0');
-      return;
+      if(value>=0 && value<=(range->max-range->min)/range->step) {
+        const auto text = std::to_string(std::llround(range->min+value*range->step))+"%";
+        out.assign(text.begin(),text.end());
+        out.push_back('\0');
+        return;
+        }
       }
 #endif
     strEnum(src,it.value,out);
@@ -998,10 +1037,14 @@ void GameMenu::execChgOption(Item &item, int slideDx) {
     return;
 
 #if defined(__MOBILE_PLATFORM__)
-  if(isPercentageRange(item)) {
-    const float value = Gothic::settingsGetF(sec,opt);
-    Gothic::settingsSetF(sec,opt,std::clamp(value+float(slideDx==0 ? 1 : slideDx)*0.5f,0.f,14.f));
-    return;
+  if(item.handle->type==zenkit::MenuItemType::CHOICEBOX) {
+    if(const auto range = percentageRange(item.handle->text[0])) {
+      const double value = Gothic::settingsGetF(sec,opt);
+      const double step = std::min(10.0,range->step)/range->step;
+      const double max = (range->max-range->min)/range->step;
+      Gothic::settingsSetF(sec,opt,float(std::clamp(value+double(slideDx==0 ? 1 : slideDx)*step,0.0,max)));
+      return;
+      }
     }
 #endif
 
