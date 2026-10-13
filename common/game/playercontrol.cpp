@@ -767,6 +767,67 @@ void PlayerControl::implMove(uint64_t dt) {
     arpgDodgeLock = 0;
     }
 
+  // gothic-diablo: block (middle mouse button held): face the enemy, parry again and again
+  if(arpg && arpgBlocking) {
+    if(ws==WeaponState::Fist || ws==WeaponState::W1H || ws==WeaponState::W2H) {
+      arpgClick = ArpgClick(); // blocking stops walking/attacking
+      // whom to face: the enemy under the cursor, the closest enemy close by, or the cursor
+      float face = rot;
+      bool  has  = false;
+      if(arpgHover.npc!=nullptr && arpgIsEnemy(*arpgHover.npc)) {
+        const auto d = arpgHover.npc->position()-pl.position();
+        face = std::atan2(d.z,d.x)*180.f/float(M_PI);
+        has  = true;
+        }
+      if(!has) {
+        float best = 400.f*400.f;
+        w->detectNpc(pl.position(), 400.f, [&](Npc& n) {
+          if(!arpgIsEnemy(n))
+            return;
+          const auto  d  = n.position()-pl.position();
+          const float d2 = d.x*d.x+d.z*d.z;
+          if(d2<best) {
+            best = d2;
+            face = std::atan2(d.z,d.x)*180.f/float(M_PI);
+            has  = true;
+            }
+          });
+        }
+      if(!has && arpgGroundValid) {
+        const auto d = arpgGround-pl.position();
+        if(d.x*d.x+d.z*d.z>100.f)
+          face = std::atan2(d.z,d.x)*180.f/float(M_PI);
+        }
+      if(pl.isRotationAllowed()) {
+        const float turn = 1440.f*(float(dt)/1000.f);
+        rot += std::clamp(std::remainder(face-rot, 360.f), -turn, turn);
+        pl.setDirection(rot);
+        }
+      if(ws==WeaponState::Fist)
+        pl.blockFist(); else
+        pl.blockSword();
+      arpgPeace = 0;
+      return;
+      }
+    }
+
+  // gothic-diablo: weapon drawn and no fight for a while: put it away (Space and the middle button are taken)
+  if(arpg && ws!=WeaponState::NoWeapon && ws!=WeaponState::Mage && !pl.isAttackAnim() &&
+     arpgClick.kind!=ArpgClick::Attack && arpgClick.kind!=ArpgClick::Strike) {
+    bool danger = false;
+    w->detectNpc(pl.position(), 1500.f, [&](Npc& n) {
+      if(!danger && &n!=&pl && !n.isDown() && n.isEnemy(pl))
+        danger = true;
+      });
+    arpgPeace = danger ? 0.f : arpgPeace + float(dt)/1000.f;
+    if(arpgPeace>6.f) {
+      wctrl[WeaponClose] = true;
+      arpgPeace = 0;
+      }
+    } else {
+    arpgPeace = 0;
+    }
+
   int rotation = 0;
   if(arpg) {
     // turn keys rotate the ARPG camera (PlayerControl::tickMove); mouse does not rotate the hero
@@ -1971,4 +2032,17 @@ void PlayerControl::arpgPullPath(const Tempest::Vec3& pos) {
       return;
       }
     }
+  }
+
+void PlayerControl::arpgBlock(bool on) {
+  arpgBlocking = on;
+  }
+
+bool PlayerControl::arpgCanBlock() const {
+  auto w  = Gothic::inst().world();
+  auto pl = w!=nullptr ? w->player() : nullptr;
+  if(pl==nullptr)
+    return false;
+  const auto ws = pl->weaponState();
+  return ws==WeaponState::Fist || ws==WeaponState::W1H || ws==WeaponState::W2H;
   }

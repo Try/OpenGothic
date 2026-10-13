@@ -79,7 +79,9 @@ Dachy i ściany dalej rzucają cienie (ukrywanie działa tylko w widoku kamery).
 
 | Element | Gdzie |
 |---|---|
-| Spacja = unik (krok w bok / odskok); klik środkowym przyciskiem dalej dobywa/chowa broń | `PlayerControl::onKeyPressed` |
+| Spacja = unik (krok w bok / odskok) | `PlayerControl::onKeyPressed` |
+| Środkowy przycisk z bronią białą / pięściami = blok (przytrzymanie: postać zwraca się do wroga i paruje raz za razem, przerywa też cios); w trybie ARPG da się parować także potwory; bez broni: przeciąganie = obrót kamery, klik = dobycie broni | `PlayerControl::implMove`, `MainWindow::mouseDownEvent`, `Npc::takeDamage` |
+| Broń chowa się sama po 6 s bez wrogów w promieniu 15 m (Spacja i środkowy przycisk są zajęte) | `PlayerControl::implMove` |
 | X = zmiana broni biała ↔ łuk; skradanie przeniesione z X na V (tylko w trybie ARPG) | `PlayerControl::arpgSwapWeapon` |
 | Shift + LPM = atak w miejscu w stronę kursora (przytrzymanie = ciągłe ciosy za kursorem); w trybie ARPG Shift nie przełącza chodu | `arpgMouseDown`, `arpgClickTick` (`Strike`) |
 | Przy każdym ciosie postać od razu zwraca się do celu (jak Diablo), w zasięgu obraca się szybciej | `PlayerControl::arpgSwing` |

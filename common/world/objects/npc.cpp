@@ -2061,7 +2061,13 @@ void Npc::takeDamage(Npc &other, const Bullet* b) {
   assert(b==nullptr || !b->isSpell());
   const auto& pose    = visual.pose();
   const bool  isJumpb = pose.isJumpBack(owner.tickCount()) && fghAlgo.isInJumpBackAngle(*this,other);
-  const bool  isBlock = (!other.isMonster() || other.inventory().activeWeapon()!=nullptr) &&
+  // gothic-diablo: in the ARPG view the hero can parry monsters too (Gothic: only armed opponents)
+  bool arpgParry = false;
+  if(isPlayer() && Camera::isArpgEnabled()) {
+    auto cam = Gothic::inst().camera();
+    arpgParry = (cam!=nullptr && cam->isArpgActive());
+    }
+  const bool  isBlock = (arpgParry || !other.isMonster() || other.inventory().activeWeapon()!=nullptr) &&
                          fghAlgo.isInFocusAngle(*this,other) &&
                          pose.isDefence(owner.tickCount());
 

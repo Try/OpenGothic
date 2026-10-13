@@ -337,6 +337,12 @@ void MainWindow::mouseDownEvent(MouseEvent &event) {
     player.arpgMouseDown();
     return;
     }
+  if(event.button==Event::ButtonMid && isArpgMouse() && player.arpgCanBlock()) {
+    // gothic-diablo: melee weapon in hand: middle button held = block
+    arpgMidBlock = true;
+    player.arpgBlock(true);
+    return;
+    }
   if(event.button==Event::ButtonMid && isArpgMouse()) {
     // gothic-diablo: middle button drag = rotate the camera; a plain click keeps its binding
     arpgMidDown     = true;
@@ -366,6 +372,11 @@ void MainWindow::mouseUpEvent(MouseEvent &event) {
     }
   if(event.button==Event::ButtonRight && arpgRightDown) {
     arpgRightDown = false;
+    return;
+    }
+  if(event.button==Event::ButtonMid && arpgMidBlock) {
+    arpgMidBlock = false;
+    player.arpgBlock(false);
     return;
     }
   if(event.button==Event::ButtonMid && arpgMidDown) {
@@ -729,7 +740,8 @@ void MainWindow::focusEvent(FocusEvent &event) {
   if(!event.in) {
     // gothic-diablo: key-ups are lost while the window is in the background
     player.clearInput();
-    arpgLeftDown = arpgRightDown = arpgMidDown = arpgShowAll = false;
+    player.arpgBlock(false);
+    arpgLeftDown = arpgRightDown = arpgMidDown = arpgShowAll = arpgMidBlock = false;
     return;
     }
   dMouse = Point();

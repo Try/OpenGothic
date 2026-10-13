@@ -66,6 +66,8 @@ class PlayerControl final {
     void  arpgMouseUp();
     void  arpgDodge();                           // side step / jump back
     void  arpgSwapWeapon();                      // melee <-> bow
+    void  arpgBlock(bool on);                    // middle mouse button held: parry
+    bool  arpgCanBlock() const;                  // a melee weapon (or fists) is drawn
     void  arpgVisibleObjects(std::vector<Focus>& out) const; // items and usable objects the hero can see
     float arpgCeiling() const;                   // indoors: everything above is cut away
     bool  arpgIsEnemy(const Npc& npc) const;     // would be attacked by a click
@@ -240,6 +242,8 @@ class PlayerControl final {
     bool           arpgFeelerClear(const Npc& pl, float ang, float len) const;
     float          arpgFreeDistance(const Npc& pl, float ang) const;
 
+    bool           arpgBlocking  = false; // middle mouse button held with a melee weapon
+    float          arpgPeace     = 0;     // s without a fight, weapon drawn: put away after a while
     bool           arpgDodgeReq  = false; // dodge requested, waiting for the hero to be able to do it
     float          arpgDodgeWait = 0;     // s, how long the request is kept
     float          arpgDodgeLock = 0;     // s, dodge animation in progress: no steering

@@ -174,6 +174,7 @@ class MainWindow : public Tempest::Window {
     bool                      arpgRightDown   = false;
     bool                      arpgMidDown     = false; // middle button: drag = rotate the camera, click = original binding
     bool                      arpgMidRotating = false;
+    bool                      arpgMidBlock    = false; // middle button held as a block
     Tempest::Point            arpgMidStart;
     Tempest::Point            arpgMidLast;
     bool                      arpgShowAll     = false; // Z held: labels of all items/usable objects in sight
