@@ -148,10 +148,6 @@ void MenuRoot::mouseDownEvent(MouseEvent& event) {
         return;
       touchStart = event.pos();
       touchMoved = false;
-      if(touchStart.x>=w()*84/100 && touchStart.y<h()*23/100) {
-        popMenu();
-        return;
-        }
       if(current->beginTouch(touchStart-current->pos()))
         touchId = event.mouseID;
 #else
