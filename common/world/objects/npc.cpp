@@ -2001,7 +2001,50 @@ bool Npc::setGoToLadder() {
   return false;
   }
 
+bool Npc::commitDamageArpg() {
+  if(!isPlayer() || !Camera::isArpgEnabled())
+    return false;
+  auto cam = Gothic::inst().camera();
+  if(cam==nullptr || !cam->isArpgActive())
+    return false;
+  const auto ws = weaponState();
+  if(ws!=WeaponState::Fist && ws!=WeaponState::W1H && ws!=WeaponState::W2H)
+    return false;
+
+  // gothic-diablo: the swing hits every enemy in a 120 degree arc in front of the hero (Gothic: one target)
+  const float rot = rotationRad();
+  const Tempest::Vec2 fwd = {std::cos(rot), std::sin(rot)};
+  const float cosHalf = std::cos(60.f*float(M_PI)/180.f);
+  auto inArc = [&](Npc& n) {
+    const auto  d = n.position()-position();
+    const float l = std::sqrt(d.x*d.x+d.z*d.z);
+    if(l<1.f)
+      return true;
+    return (d.x*fwd.x + d.z*fwd.y)/l >= cosHalf;
+    };
+
+  std::vector<Npc*> hit;
+  owner.detectNpc(position(), 600.f, [&](Npc& n) {
+    if(&n==this || n.isDown())
+      return;
+    const bool wanted = (&n==currentTarget) ||
+                        (n.isEnemy(*this) && !owner.script().isFriendlyFire(*this,n));
+    if(!wanted)
+      return;
+    if(!fghAlgo.isInAttackRange(*this,n,owner.script()))
+      return;
+    if(!inArc(n) && !(&n==currentTarget && fghAlgo.isInFocusAngle(*this,n)))
+      return;
+    hit.push_back(&n);
+    });
+  for(auto n:hit)
+    n->takeDamage(*this,nullptr);
+  return true;
+  }
+
 void Npc::commitDamage() {
+  if(commitDamageArpg())
+    return;
   if(currentTarget==nullptr)
     return;
   if(!fghAlgo.isInAttackRange(*this,*currentTarget,owner.script()))
@@ -2338,6 +2381,17 @@ void Npc::tick(uint64_t dt) {
     return;
 
   assert(go2.flag!=GoToHint::GT_Enemy && go2.flag!=GoToHint::GT_EnemyG);
+
+  // gothic-diablo: hero attacks 20% faster in the ARPG view
+  if(isPlayer() && Camera::isArpgEnabled() && isAttackAnim()) {
+    auto cam = Gothic::inst().camera();
+    if(cam!=nullptr && cam->isArpgActive()) {
+      arpgWarpAcc += float(dt)*0.2f;
+      const uint64_t ms = uint64_t(arpgWarpAcc);
+      arpgWarpAcc -= float(ms);
+      visual.warpAttack(ms, owner.tickCount());
+      }
+    }
 
   tickAnimationTags();
 

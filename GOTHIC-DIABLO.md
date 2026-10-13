@@ -74,3 +74,15 @@ Dachy i ściany dalej rzucają cienie (ukrywanie działa tylko w widoku kamery).
 ### Poprawki sterowania (faza 3)
 - Oba kierunki wciśnięte (np. zgubione puszczenie S w menu) → wygrywa ostatnio wciśnięty; czyszczenie klawiszy przy otwarciu/zamknięciu menu i utracie fokusu okna
 - Łup przy zwłokach: przedmiot ma pierwszeństwo przed martwym potworem pod kursorem
+
+## Faza 4 — walka hack&slash
+
+| Element | Gdzie |
+|---|---|
+| Spacja = unik (krok w bok / odskok); klik środkowym przyciskiem dalej dobywa/chowa broń | `PlayerControl::onKeyPressed` |
+| X = zmiana broni biała ↔ łuk; skradanie przeniesione z X na V (tylko w trybie ARPG) | `PlayerControl::arpgSwapWeapon` |
+| Shift + LPM = atak w miejscu w stronę kursora (przytrzymanie = ciągłe ciosy za kursorem); w trybie ARPG Shift nie przełącza chodu | `arpgMouseDown`, `arpgClickTick` (`Strike`) |
+| Przy każdym ciosie postać od razu zwraca się do celu (jak Diablo), w zasięgu obraca się szybciej | `PlayerControl::arpgSwing` |
+| Cios bronią białą trafia wszystkich wrogów w łuku 120° przed postacią (cel ataku zawsze, inni tylko wrodzy) | `Npc::commitDamageArpg` |
+| Ataki bohatera o 20% szybsze (animacje ataku przesuwane do przodu, zdarzenia trafienia i dźwięki nie giną) | `Npc::tick`, `Pose::warpAttack` |
+| Dojście do celu bez pętli: prosta linia ↔ waynet z histerezą (2 sprawdzenia z rzędu), pierwszy waypoint za plecami pomijany, ścieżka skracana do najdalszego widocznego punktu | `arpgNextPoint`, `arpgPlanPath`, `arpgPullPath` |

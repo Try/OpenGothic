@@ -65,6 +65,7 @@ class PlayerControl final {
     void  arpgMouseDown(const Focus& f);         // click on a label (show-all key held)
     void  arpgMouseUp();
     void  arpgDodge();                           // side step / jump back
+    void  arpgSwapWeapon();                      // melee <-> bow
     void  arpgVisibleObjects(std::vector<Focus>& out) const; // items and usable objects the hero can see
     float arpgCeiling() const;                   // indoors: everything above is cut away
     bool  arpgIsEnemy(const Npc& npc) const;     // would be attacked by a click
@@ -191,6 +192,7 @@ class PlayerControl final {
         Talk,
         Loot,
         Attack,
+        Strike,   // Shift + click: attack in place towards the cursor
         };
       Kind                       kind        = None;
       bool                       held        = false;  // left mouse button still down
@@ -207,6 +209,9 @@ class PlayerControl final {
       float                      detourAng   = 0;      // direction along the obstacle we bumped into
       float                      detourTime  = 0;
       uint64_t                   lastFail    = 0;      // last handled MoveAlgo::MoveFail::time
+      int                        clearCount  = 0;      // path planning: checks in a row with a clear straight line
+      int                        blockCount  = 0;      // path planning: checks in a row with a blocked straight line
+      Tempest::Vec3              pathDest    = {};     // destination the current path was planned for
       int                        swings      = 0;
       float                      actTimer    = 0;      // s, waiting in range for the action to succeed
       };
@@ -227,6 +232,9 @@ class PlayerControl final {
     Tempest::Vec3  arpgNextPoint(Npc& pl, const Tempest::Vec3& dest, uint64_t dt);
     bool           arpgLineClear(const Tempest::Vec3& from, const Tempest::Vec3& to) const;
     bool           arpgStartDodge(Npc& pl, float& rot);
+    void           arpgPlanPath(Npc& pl, const Tempest::Vec3& dest);
+    void           arpgPullPath(const Tempest::Vec3& pos);
+    bool           arpgSwing(Npc& pl, float& rot, bool allowRot, float faceAng, float faceDa);
     float          arpgSteer(Npc& pl, const Tempest::Vec3& next, uint64_t dt);
     bool           arpgCanSee(const Tempest::Vec3& p, float baseY, const Interactive* self) const;
     bool           arpgFeelerClear(const Npc& pl, float ang, float len) const;

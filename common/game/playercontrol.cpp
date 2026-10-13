@@ -77,6 +77,24 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
       }
     }
 
+  const bool arpgKeys = (pl!=nullptr && c!=nullptr && c->isArpgActive());
+  if(arpgKeys) {
+    // gothic-diablo: Space = dodge (the middle mouse button keeps drawing/sheathing the weapon),
+    // X = melee <-> bow, V = sneak (X was sneak in Gothic)
+    if(key==Tempest::KeyEvent::K_Space) {
+      arpgDodge();
+      return;
+      }
+    if(key==Tempest::KeyEvent::K_X) {
+      arpgSwapWeapon();
+      return;
+      }
+    if(key==Tempest::KeyEvent::K_V) {
+      toggleSneakMode();
+      return;
+      }
+    }
+
   if(pl!=nullptr) {
     if(a==Action::Weapon) {
       if(ws!=WeaponState::NoWeapon) //Currently a weapon is active
@@ -192,6 +210,10 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
     }
 
   if(a==Action::Walk) {
+    if(arpgKeys) {
+      ctrl[a] = true; // gothic-diablo: Shift held = attack in place, no walk toggle
+      return;
+      }
     toggleWalkMode();
     return;
     }
@@ -1363,6 +1385,17 @@ void PlayerControl::arpgMouseDown(const Focus& f) {
 
   arpgHover = f;
   const bool force = ctrl[KeyCodec::ActionGeneric]; // Ctrl + click: attack anyone
+  if(ctrl[KeyCodec::Walk]) {
+    // Shift + click: attack in place towards the cursor, whatever is under it
+    arpgClick.kind = ArpgClick::Strike;
+    if(f.npc!=nullptr && !f.npc->isDown())
+      arpgClick.target = Focus(*f.npc);
+    arpgClick.point = arpgGroundValid ? arpgGround : (pl->position() + Tempest::Vec3(std::cos(pl->rotationRad())*200.f, 0, std::sin(pl->rotationRad())*200.f));
+    if(pl->weaponState()==WeaponState::NoWeapon)
+      wctrl[WeaponMele] = true;
+    arpgClick.stuckPos = pl->position();
+    return;
+    }
   if(f.npc!=nullptr) {
     arpgClick.target = Focus(*f.npc);
     if(f.npc->isDown())
@@ -1408,18 +1441,31 @@ Tempest::Vec3 PlayerControl::arpgNextPoint(Npc& pl, const Tempest::Vec3& dest, u
   const auto  pos = pl.position();
   const float dtF = float(dt)/1000.f;
 
-  // re-plan twice a second: straight line if nothing is in the way, otherwise the waynet
+  // re-plan a few times a second, with hysteresis: a straight line while it is clear,
+  // the waynet only after the line was blocked twice in a row (or when stuck); back to straight
+  // when the line is clear twice in a row; the path is shortened to the farthest visible point
+  (void)w;
   c.repathTimer -= dtF;
   if(c.repathTimer<=0.f) {
-    c.repathTimer = 0.5f;
-    c.path.clear();
-    c.pathIdx = 0;
-    if(c.useWaynet || !arpgLineClear(pos,dest)) {
-      if(auto end = w->findWayPoint(dest)) {
-        WayPath way = w->wayTo(pl,*end);
-        while(auto wp = way.pop())
-          c.path.push_back(wp->position());
-        }
+    c.repathTimer = 0.4f;
+    const bool clear = arpgLineClear(pos,dest);
+    c.clearCount = clear ? c.clearCount+1 : 0;
+    c.blockCount = clear ? 0 : c.blockCount+1;
+    const auto  md       = dest-c.pathDest;
+    const bool  destMove = (md.x*md.x+md.z*md.z) > 200.f*200.f;
+    if(c.path.empty()) {
+      if(c.useWaynet || c.blockCount>=2)
+        arpgPlanPath(pl,dest);
+      }
+    else if(!c.useWaynet && c.clearCount>=2) {
+      c.path.clear();
+      c.pathIdx = 0;
+      }
+    else if(destMove) {
+      arpgPlanPath(pl,dest);
+      }
+    else {
+      arpgPullPath(pos);
       }
     }
 
@@ -1444,6 +1490,8 @@ Tempest::Vec3 PlayerControl::arpgNextPoint(Npc& pl, const Tempest::Vec3& dest, u
       if(c.stuckCount==2 && !c.useWaynet) {
         c.useWaynet   = true;
         c.repathTimer = 0;
+        c.path.clear();
+        c.pathIdx     = 0;
         }
       if(c.stuckCount>=4)
         c.kind = ArpgClick::None;
@@ -1557,7 +1605,12 @@ PlayerControl::ArpgStep PlayerControl::arpgClickTick(Npc& pl, float& rot, int& r
     return ArpgStop;
     }
 
-  if(c.kind!=ArpgClick::Ground) {
+  if(c.kind==ArpgClick::Strike) {
+    c.target = w->validateFocus(c.target);
+    if(c.target.npc!=nullptr && c.target.npc->isDown())
+      c.target = Focus();
+    }
+  else if(c.kind!=ArpgClick::Ground) {
     c.target = w->validateFocus(c.target);
     if(c.target.npc==nullptr && c.target.item==nullptr && c.target.interactive==nullptr) {
       c = ArpgClick();
@@ -1596,6 +1649,12 @@ PlayerControl::ArpgStep PlayerControl::arpgClickTick(Npc& pl, float& rot, int& r
     case ArpgClick::Attack:
       dest  = c.target.npc->position();
       reach = 150.f;
+      break;
+    case ArpgClick::Strike:
+      if(c.held && arpgGroundValid)
+        c.point = arpgGround; // holding the button: keep hitting towards the cursor
+      dest  = (c.target.npc!=nullptr && !c.held) ? c.target.npc->position() : c.point;
+      reach = 1e6f;           // never walks
       break;
     }
 
@@ -1638,13 +1697,16 @@ PlayerControl::ArpgStep PlayerControl::arpgClickTick(Npc& pl, float& rot, int& r
     return ArpgTurn;
     }
 
-  // in range: face the target
-  float faceDa = 0;
+  // in range: face the target (fast in a fight)
+  float faceDa  = 0;
+  float faceAng = rot;
   if(c.kind!=ArpgClick::Ground && dist2>1.f) {
-    const float ang = std::atan2(d.z, d.x)*180.f/float(M_PI);
-    faceDa = std::remainder(ang-rot, 360.f);
+    const bool  fight = (c.kind==ArpgClick::Attack || c.kind==ArpgClick::Strike);
+    const float turn  = fight ? step*1.6f : step;
+    faceAng = std::atan2(d.z, d.x)*180.f/float(M_PI);
+    faceDa  = std::remainder(faceAng-rot, 360.f);
     if(allowRot)
-      rot += std::clamp(faceDa, -step, step);
+      rot += std::clamp(faceDa, -turn, turn);
     }
 
   switch(c.kind) {
@@ -1693,26 +1755,21 @@ PlayerControl::ArpgStep PlayerControl::arpgClickTick(Npc& pl, float& rot, int& r
           pl.finishingMove();
         break;
         }
-      // single click: one attack; click during a swing: queued, chained at the right moment (combo);
-      // held button: keep attacking, every hit chained in its combo window
-      const bool want = (c.held || c.swings==0);
-      if(want && (std::fabs(faceDa)<45.f || pl.isAttackAnim())) {
-        bool go = true;
-        if(pl.isAttackAnim()) {
-          // never press too early (Gothic breaks the combo then): wait for the window or the end of the swing
-          const auto ct = pl.comboTiming();
-          go = ct.attack && ct.open && !ct.broken;
-          }
-        if(go) {
-          const bool ok = (ws==WeaponState::Fist) ? pl.fistShoot() : pl.swingSword();
-          if(ok)
-            c.swings++;
-          }
+      if(arpgSwing(pl, rot, allowRot, faceAng, faceDa))
+        return ArpgStop;
+      break; // order done
+      }
+    case ArpgClick::Strike: {
+      const auto ws = pl.weaponState();
+      if(ws==WeaponState::NoWeapon) {
+        wctrl[WeaponMele] = true;
         return ArpgStop;
         }
-      if(!want && !pl.isAttackAnim())
-        break; // order done
-      return ArpgStop;
+      if(ws!=WeaponState::Fist && ws!=WeaponState::W1H && ws!=WeaponState::W2H)
+        break; // bows and spells: later in phase 4
+      if(arpgSwing(pl, rot, allowRot, faceAng, faceDa))
+        return ArpgStop;
+      break;
       }
     }
   c = ArpgClick();
@@ -1826,4 +1883,92 @@ bool PlayerControl::arpgIsEnemy(const Npc& npc) const {
 
 bool PlayerControl::arpgAttackQueued() const {
   return arpgClick.kind==ArpgClick::Attack && (arpgClick.held || arpgClick.swings==0);
+  }
+
+bool PlayerControl::arpgSwing(Npc& pl, float& rot, bool allowRot, float faceAng, float faceDa) {
+  // single click: one attack; click during a swing: queued, chained at the right moment (combo);
+  // held button: keep attacking, every hit chained in its combo window.
+  // Returns false when the order is done.
+  auto&      c    = arpgClick;
+  const auto ws   = pl.weaponState();
+  const bool want = (c.held || c.swings==0);
+  if(want && (std::fabs(faceDa)<100.f || pl.isAttackAnim())) {
+    bool go = true;
+    if(pl.isAttackAnim()) {
+      // never press too early (Gothic breaks the combo then): wait for the window or the end of the swing
+      const auto ct = pl.comboTiming();
+      go = ct.attack && ct.open && !ct.broken;
+      }
+    if(go) {
+      // like Diablo: the hero snaps to the target when he swings
+      if(allowRot) {
+        rot = faceAng;
+        pl.setDirection(rot);
+        }
+      const bool ok = (ws==WeaponState::Fist) ? pl.fistShoot() : pl.swingSword();
+      if(ok)
+        c.swings++;
+      }
+    return true;
+    }
+  if(!want && !pl.isAttackAnim())
+    return false;
+  return true;
+  }
+
+void PlayerControl::arpgSwapWeapon() {
+  auto w  = Gothic::inst().world();
+  auto pl = w!=nullptr ? w->player() : nullptr;
+  if(pl==nullptr)
+    return;
+  const auto ws = pl->weaponState();
+  const bool hasBow = pl->currentRangedWeapon()!=nullptr;
+  if(ws==WeaponState::Bow || ws==WeaponState::CBow || ws==WeaponState::Mage) {
+    wctrl[WeaponMele] = true;
+    }
+  else if(ws==WeaponState::NoWeapon) {
+    if(wctrlLast==WeaponBow || !hasBow)
+      wctrl[WeaponMele] = true; else
+      wctrl[WeaponBow]  = true;
+    }
+  else if(hasBow) {
+    wctrl[WeaponBow] = true;
+    }
+  }
+
+void PlayerControl::arpgPlanPath(Npc& pl, const Tempest::Vec3& dest) {
+  auto  w   = Gothic::inst().world();
+  auto& c   = arpgClick;
+  const auto pos = pl.position();
+  c.path.clear();
+  c.pathIdx  = 0;
+  c.pathDest = dest;
+  if(auto end = w->findWayPoint(dest)) {
+    WayPath way = w->wayTo(pl,*end);
+    while(auto wp = way.pop())
+      c.path.push_back(wp->position());
+    }
+  if(c.path.empty())
+    return;
+  c.path.push_back(dest);
+  // the first waypoint is often behind the hero: skip it when the next one is closer
+  while(c.pathIdx+1<c.path.size()) {
+    const auto a = c.path[c.pathIdx]-pos, b = c.path[c.pathIdx+1]-pos, ab = c.path[c.pathIdx+1]-c.path[c.pathIdx];
+    const float da = a.x*a.x+a.z*a.z, db = b.x*b.x+b.z*b.z, dab = ab.x*ab.x+ab.z*ab.z;
+    if(db<dab || db<da)
+      ++c.pathIdx; else
+      break;
+    }
+  arpgPullPath(pos);
+  }
+
+void PlayerControl::arpgPullPath(const Tempest::Vec3& pos) {
+  // "string pulling": go straight to the farthest point of the path that can be seen
+  auto& c = arpgClick;
+  for(size_t k=c.path.size(); k>c.pathIdx+1; --k) {
+    if(arpgLineClear(pos, c.path[k-1])) {
+      c.pathIdx = k-1;
+      return;
+      }
+    }
   }

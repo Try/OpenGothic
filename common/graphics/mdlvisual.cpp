@@ -814,6 +814,10 @@ const Animation::Sequence* MdlVisual::continueCombo(Npc& npc, AnimationSolver::A
   return startAnimAndGet(npc,a,0,st,wlk);
   }
 
+void MdlVisual::warpAttack(uint64_t ms, uint64_t tickCount) {
+  skInst->warpAttack(ms,tickCount);
+  }
+
 uint16_t MdlVisual::comboLength() const {
   return skInst->comboLength();
   }

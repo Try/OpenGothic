@@ -512,6 +512,8 @@ class Npc final {
     void      tickRoutine();
     void      nextAiAction(AiQueue& queue, uint64_t dt);
     void      commitDamage();
+    bool      commitDamageArpg();       // gothic-diablo: hero's swing hits all enemies in front
+    float     arpgWarpAcc = 0;          // gothic-diablo: fractional ms of the faster hero attacks
     Npc*      updateNearestEnemy();
     Npc*      updateNearestBody();
     bool      checkHealth(bool onChange, bool forceKill);

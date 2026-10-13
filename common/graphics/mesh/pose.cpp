@@ -341,6 +341,8 @@ bool Pose::update(uint64_t tickCount, bool force) {
 
       needMkSkeleton |= updateFrame(*seq,i.bs,i.sBlend,lastUpdate,i.sAnim,tickCount);
       }
+    for(auto& i:lay)
+      i.warpSfx = 0;
     lastUpdate   = tickCount;
     needToUpdate = needMkSkeleton;
     }
@@ -566,17 +568,29 @@ bool Pose::hasLayerEvents(const Pose::Layer& l) {
 
 void Pose::processSfx(Npc &npc, uint64_t tickCount) {
   for(auto& i:lay)
-    i.seq->processSfx(lastUpdate,i.sAnim,tickCount,&npc,nullptr);
+    i.seq->processSfx(lastUpdate-std::min(lastUpdate,i.warpSfx),i.sAnim,tickCount,&npc,nullptr);
   }
 
 void Pose::processSfx(Interactive& mob, uint64_t tickCount) {
   for(auto& i:lay)
-    i.seq->processSfx(lastUpdate,i.sAnim,tickCount,nullptr,&mob);
+    i.seq->processSfx(lastUpdate-std::min(lastUpdate,i.warpSfx),i.sAnim,tickCount,nullptr,&mob);
   }
 
 void Pose::processPfx(MdlVisual& visual, World& world, uint64_t tickCount) {
   for(auto& i:lay)
-    i.seq->processPfx(lastUpdate,i.sAnim,tickCount,visual,world);
+    i.seq->processPfx(lastUpdate-std::min(lastUpdate,i.warpSfx),i.sAnim,tickCount,visual,world);
+  }
+
+void Pose::warpAttack(uint64_t ms, uint64_t tickCount) {
+  if(ms==0)
+    return;
+  for(auto& i:lay) {
+    if(!i.seq->isAttackAnim() || i.sAnim<ms || i.sAnim>tickCount)
+      continue;
+    i.sAnim   -= ms;
+    i.warpEv  += ms;
+    i.warpSfx += ms;
+    }
   }
 
 bool Pose::processEvents(uint64_t &barrier, uint64_t now, Animation::EvCount &ev) const {
@@ -585,8 +599,10 @@ bool Pose::processEvents(uint64_t &barrier, uint64_t now, Animation::EvCount &ev
     return false;
     }
 
-  for(auto& i:lay)
-    i.seq->processEvents(barrier,i.sAnim,now,ev);
+  for(auto& i:lay) {
+    i.seq->processEvents(barrier-std::min(barrier,i.warpEv),i.sAnim,now,ev);
+    i.warpEv = 0;
+    }
   barrier=now;
   return hasEvents>0;
   }
