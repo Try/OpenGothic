@@ -281,14 +281,14 @@ MeshObjects::Mesh World::addDecalView(const zenkit::VisualDecal& decal) {
   return view()->addDecalView(decal);
   }
 
-void World::arpgPopup(const Tempest::Vec3& pos, int32_t value, uint8_t kind) {
+void World::arpgPopup(const Tempest::Vec3& pos, int32_t value, uint8_t kind, uint64_t delay) {
   if(arpgPopupList.size()>64)
     arpgPopupList.erase(arpgPopupList.begin());
   ArpgPopup p;
   p.pos   = pos;
   p.value = value;
   p.kind  = kind;
-  p.time  = tickCount();
+  p.time  = tickCount()+delay;
   arpgPopupList.push_back(p);
   }
 
@@ -681,7 +681,8 @@ Bullet& World::shootSpell(const Item &itm, const Npc &npc, const Npc *target) {
   return b;
   }
 
-Bullet& World::shootBullet(const Item &itm, const Npc &npc, const Npc *target, const Interactive* inter) {
+Bullet& World::shootBullet(const Item &itm, const Npc &npc, const Npc *target, const Interactive* inter,
+                           float yawDeflect, float pitchDeflect) {
   Tempest::Vec3 dir = {1.f,0.f,0.f};
   auto          pos = npc.mapWeaponBone();
 
@@ -709,6 +710,17 @@ Bullet& World::shootBullet(const Item &itm, const Npc &npc, const Npc *target, c
     float a = npc.rotationRad();
     dir.x = std::cos(a);
     dir.z = std::sin(a);
+    }
+
+  if(yawDeflect!=0.f || pitchDeflect!=0.f) {
+    // gothic-diablo: a missed arrow flies past the target
+    const float a = yawDeflect*float(M_PI)/180.f;
+    const float c = std::cos(a), s = std::sin(a);
+    const float x = dir.x*c - dir.z*s;
+    const float z = dir.x*s + dir.z*c;
+    dir.x  = x;
+    dir.z  = z;
+    dir.y += std::sqrt(x*x+z*z)*std::tan(pitchDeflect*float(M_PI)/180.f);
     }
 
   auto& b = wobj.shootBullet(itm, pos, dir, 0, DynamicWorld::bulletSpeed);

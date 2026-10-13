@@ -93,6 +93,12 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
       toggleSneakMode();
       return;
       }
+    if(a==KeyCodec::ActionGeneric && key==Tempest::KeyEvent::K_LControl) {
+      // Ctrl is only a modifier for the mouse here (attack anyone / in place; with a bow: aim at the cursor),
+      // not Gothic's action key (it would aim the bow and shoot only on release)
+      ctrl[a] = true;
+      return;
+      }
     if(key==Tempest::KeyEvent::K_LShift) {
       // left Shift = draw / put away the weapon (Space is the dodge now)
       if(ws!=WeaponState::NoWeapon) {
@@ -688,10 +694,10 @@ void PlayerControl::implMove(uint64_t dt) {
   float rspeed    = (pl.weaponState()==WeaponState::NoWeapon ? 90.f : 180.f)*(float(dt)/1000.f);
   auto  ws        = pl.weaponState();
   auto  bs        = pl.bodyStateMasked();
-  bool  allowRot  = !ctrl[KeyCodec::ActionGeneric] && pl.isRotationAllowed();
   // gothic-diablo: isometric ARPG controls (screen-relative movement)
   auto  camera    = Gothic::inst().camera();
   bool  arpg      = (camera!=nullptr && camera->isArpgActive());
+  bool  allowRot  = (arpg || !ctrl[KeyCodec::ActionGeneric]) && pl.isRotationAllowed();
 
   Npc::Anim ani = Npc::Anim::Idle;
 
@@ -935,6 +941,32 @@ void PlayerControl::implMove(uint64_t dt) {
       pl.arpgHoldParade();
       return;
       }
+    }
+
+  // gothic-diablo: Ctrl held with a bow / crossbow: draw it and aim at the cursor; Ctrl + click shoots at once
+  if(arpg && ctrl[KeyCodec::ActionGeneric] && arpgClick.kind==ArpgClick::None &&
+     (ws==WeaponState::Bow || ws==WeaponState::CBow) && pl.hasAmmunition()) {
+    Tempest::Vec3 aim;
+    bool          hasAim = false;
+    if(arpgHover.npc!=nullptr && arpgHover.npc!=&pl && !arpgHover.npc->isDown()) {
+      aim    = arpgHover.npc->position();
+      hasAim = true;
+      }
+    else if(arpgGroundValid) {
+      aim    = arpgGround;
+      hasAim = true;
+      }
+    if(hasAim && pl.isRotationAllowed()) {
+      const auto d = aim-pl.position();
+      if(d.x*d.x+d.z*d.z>30.f*30.f) {
+        const float face = std::atan2(d.z, d.x)*180.f/float(M_PI);
+        const float turn = 720.f*(float(dt)/1000.f);
+        rot += std::clamp(std::remainder(face-rot, 360.f), -turn, turn);
+        pl.setDirection(rot);
+        }
+      }
+    pl.aimBow();
+    return;
     }
 
   int rotation = 0;

@@ -105,10 +105,10 @@ class World final {
     struct ArpgPopup {
       Tempest::Vec3 pos;
       int32_t       value = 0;
-      uint8_t       kind  = 0;  // 0 = damage by the hero, 1 = damage to the hero, 2 = blocked
+      uint8_t       kind  = 0;  // 0 = damage by the hero, 1 = damage to the hero, 2 = blocked, 3 = missed
       uint64_t      time  = 0;
       };
-    void                 arpgPopup(const Tempest::Vec3& pos, int32_t value, uint8_t kind);
+    void                 arpgPopup(const Tempest::Vec3& pos, int32_t value, uint8_t kind, uint64_t delay = 0);
     std::vector<ArpgPopup>& arpgPopups() { return arpgPopupList; }
 
     LightGroup::Light    addLight(const zenkit::VLight& vob);
@@ -180,7 +180,8 @@ class World final {
     void                 removeItem (Item& it);
     size_t               hasItems(std::string_view tag, size_t itemCls);
 
-    Bullet&              shootBullet(const Item &itmId, const Npc& npc, const Npc* target, const Interactive* inter);
+    Bullet&              shootBullet(const Item &itmId, const Npc& npc, const Npc* target, const Interactive* inter,
+                                     float yawDeflect = 0.f, float pitchDeflect = 0.f);
     Bullet&              shootSpell(const Item &itm, const Npc &npc, const Npc *target);
 
     void                 sendPassivePerc  (Npc& self, Npc& other, int32_t perc);

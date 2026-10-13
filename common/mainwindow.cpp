@@ -1915,6 +1915,8 @@ void MainWindow::paintArpgCombat(Painter& p, const Matrix4x4& vp) {
         ++i;
       }
     for(auto& e:list) {
+      if(now<e.time)
+        continue; // not there yet (a missed arrow on its way)
       const float t = float(now-e.time)/1000.f;
       Point sp;
       if(!toScreen(e.pos+Vec3(0,70.f*t,0), sp))
@@ -1925,6 +1927,10 @@ void MainWindow::paintArpgCombat(Painter& p, const Matrix4x4& vp) {
       if(e.kind==2) {
         type = Resources::FontType::Disabled;
         std::snprintf(txt, sizeof(txt), "Blok");
+        }
+      else if(e.kind==3) {
+        type = Resources::FontType::Disabled;
+        std::snprintf(txt, sizeof(txt), "Pudlo");
         } else {
         type = (e.kind==1) ? Resources::FontType::Red : Resources::FontType::Normal;
         std::snprintf(txt, sizeof(txt), "%d", int(e.value));
