@@ -5,12 +5,10 @@ Fork [OpenGothic](https://github.com/Try/OpenGothic): Gothic II Noc Kruka jako i
 
 ## Uruchomienie (Windows)
 
-1. Pobierz artefakt `opengothic_*_win_x64` z zakładki **Actions** (ostatni zielony build) i rozpakuj.
-2. Uruchom:
-   ```
-   Gothic2Notr.exe -g "F:\SteamLibrary\steamapps\common\Gothic II"
-   ```
-3. `-classic` wyłącza tryb ARPG (oryginalna kamera i sterowanie OpenGothic).
+- Launcher (buildy z CI, release `build-<N>`): [`launcher/README.md`](launcher/README.md).
+- Lokalny build (~1 min od commita do gry): [`dev/README.md`](dev/README.md).
+- Ręcznie: `Gothic2Notr.exe -g "F:\SteamLibrary\steamapps\common\Gothic II"`; `-classic` wyłącza tryb ARPG
+  (oryginalna kamera i sterowanie OpenGothic).
 
 ## Faza 1 — kamera ARPG
 
