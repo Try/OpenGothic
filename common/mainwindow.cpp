@@ -925,13 +925,19 @@ void MainWindow::paintArpgCombo(Painter& p, const Matrix4x4& vp) {
     return;
   pos /= pw;
 
-  const float scale = Gothic::interfaceScale(this);
-  const int   bw    = int(70.f*scale);
-  const int   bh    = std::max(3, int(6.f*scale));
-  const int   x     = int((0.5f*pos.x+0.5f)*float(w())) - bw/2;
-  const int   y     = int((0.5f*pos.y+0.5f)*float(h())) - bh/2;
+  const float scale  = Gothic::interfaceScale(this);
+  const bool  queued = player.arpgAttackQueued();
+  const int   bw     = int(90.f*scale);
+  const int   bh     = std::max(4, int(8.f*scale));
+  const int   x      = int((0.5f*pos.x+0.5f)*float(w())) - bw/2;
+  const int   y      = int((0.5f*pos.y+0.5f)*float(h())) - bh/2;
 
-  p.setBrush(Brush(Color(0.f,0.f,0.f,0.6f), Painter::Alpha));
+  // next hit already clicked (queued): white frame, it goes off by itself when the window opens
+  if(queued) {
+    p.setBrush(Brush(Color(1.f,1.f,1.f,0.85f), Painter::Alpha));
+    p.drawRect(x-3, y-3, bw+6, bh+6);
+    }
+  p.setBrush(Brush(Color(0.f,0.f,0.f,0.75f), Painter::Alpha));
   p.drawRect(x-1, y-1, bw+2, bh+2);
   if(ct.broken) {
     p.setBrush(Brush(Color(0.8f,0.15f,0.1f,0.85f), Painter::Alpha));
@@ -949,15 +955,13 @@ void MainWindow::paintArpgCombo(Painter& p, const Matrix4x4& vp) {
     p.drawRect(x+bw-2, y, 2, bh); // where the window opens
     }
 
-  // hits chained so far, and a dot when the next one is already queued
-  const int pip = std::max(3, int(5.f*scale));
-  for(int i=0; i<int(ct.len) && i<6; ++i) {
-    p.setBrush(Brush(Color(1.f,0.78f,0.2f,0.9f), Painter::Alpha));
-    p.drawRect(x + i*(pip+2), y+bh+3, pip, pip);
-    }
-  if(player.arpgAttackQueued()) {
-    p.setBrush(Brush(Color(1.f,1.f,1.f,0.9f), Painter::Alpha));
-    p.drawRect(x+bw+4, y+(bh-pip)/2, pip, pip);
+  // hits chained so far: one gold pip per hit under the bar
+  const int pip = std::max(4, int(7.f*scale));
+  for(int i=0; i<=int(ct.len) && i<6; ++i) {
+    p.setBrush(Brush(Color(0.f,0.f,0.f,0.75f), Painter::Alpha));
+    p.drawRect(x + i*(pip+3)-1, y+bh+4-1, pip+2, pip+2);
+    p.setBrush(Brush(Color(1.f,0.78f,0.2f,0.95f), Painter::Alpha));
+    p.drawRect(x + i*(pip+3), y+bh+4, pip, pip);
     }
   }
 
@@ -1949,6 +1953,10 @@ void MainWindow::paintArpgCombat(Painter& p, const Matrix4x4& vp) {
       else if(e.kind==3) {
         type = Resources::FontType::Disabled;
         std::snprintf(txt, sizeof(txt), "Chybiono");
+        }
+      else if(e.kind==4) {
+        type = Resources::FontType::Yellow;
+        std::snprintf(txt, sizeof(txt), "Unik");
         } else {
         type = (e.kind==1) ? Resources::FontType::Red : Resources::FontType::Normal;
         std::snprintf(txt, sizeof(txt), "%d", int(e.value));
@@ -2063,21 +2071,6 @@ void MainWindow::paintArpgCombat(Painter& p, const Matrix4x4& vp) {
           p.drawTriangle(float(p00.x),float(p00.y),0,0, float(p01.x),float(p01.y),0,0, float(p11.x),float(p11.y),0,0);
           p.drawTriangle(float(p00.x),float(p00.y),0,0, float(p11.x),float(p11.y),0,0, float(p10.x),float(p10.y),0,0);
           }
-        }
-      }
-  }
-
-  // special attack cooldown: thin bar under the hero's feet
-  {
-    const float left = player.arpgSpecialLeft();
-    if(left>0.f) {
-      Point sp;
-      if(toScreen(pl->position()-Vec3(0,20.f,0), sp)) {
-        const int bw = int(50.f*scale), bh = std::max(2, int(4.f*scale));
-        p.setBrush(Brush(Color(0.f,0.f,0.f,0.6f), Painter::Alpha));
-        p.drawRect(sp.x-bw/2-1, sp.y-1, bw+2, bh+2);
-        p.setBrush(Brush(Color(0.35f,0.6f,1.f,0.9f), Painter::Alpha));
-        p.drawRect(sp.x-bw/2, sp.y, int(float(bw)*(1.f-left)), bh);
         }
       }
   }
@@ -2283,11 +2276,29 @@ void MainWindow::paintArpgBarOverlay(Painter& p) {
     f.drawText(p, r.x+r.w-ts.w-std::max(2,r.w/16), r.y+r.h-std::max(2,r.h/16), cnt);
     }
 
-  auto pl = Gothic::inst().player();
+  auto pl    = Gothic::inst().player();
+  auto world = Gothic::inst().world();
   for(uint8_t k=0; k<8; ++k) {
-    const Rect r = arpgBarSlot(5+k);
+    const Rect  r   = arpgBarSlot(5+k);
+    const Item* itm = (pl!=nullptr) ? pl->inventory().currentSpell(k) : nullptr;
+    if(itm!=nullptr && world!=nullptr) {
+      const int32_t cost = world->script().arpgSpellCost(*itm);
+      const bool    poor = (cost>0 && pl->attribute(ATR_MANA)<cost);
+      if(poor) {
+        p.setBrush(Brush(Color(0.f,0.f,0.f,0.6f), Painter::Alpha));
+        p.drawRect(r.x, r.y, r.w, r.h);
+        }
+      if(cost>0) {
+        char txt[16] = {};
+        std::snprintf(txt, sizeof(txt), "%d", int(cost));
+        auto& f  = Resources::font(poor ? Resources::FontType::Red : Resources::FontType::Normal, scale*0.7f);
+        auto  ts = f.textSize(txt);
+        p.setBrush(Color(1.f));
+        f.drawText(p, r.x+r.w-ts.w-std::max(2,r.w/16), r.y+r.h-std::max(2,r.h/16), txt);
+        }
+      }
     char key[4] = {};
     std::snprintf(key, sizeof(key), "%d", (k+3)%10);
-    label(r, key, pl==nullptr || pl->inventory().currentSpell(k)==nullptr);
+    label(r, key, itm==nullptr);
     }
   }

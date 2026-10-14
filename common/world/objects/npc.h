@@ -195,6 +195,10 @@ class Npc final {
     void       arpgSetShotMul(float mul) { arpgShotMul = mul; } // gothic-diablo: the next arrow: damage x mul, always hits
     bool       arpgKnockBack(Npc& from, float speed);  // gothic-diablo: push away without damage
     bool       arpgUseItem(size_t cls);                // gothic-diablo: use an item like in the inventory
+    bool       arpgDrinkNow(size_t cls);               // gothic-diablo: potion at once, without the animation
+    void       arpgSetInvulnerable(uint64_t ms);       // gothic-diablo: dodge roll: no damage for 'ms'
+    bool       arpgIsInvulnerable() const;
+    bool       arpgHasOverlay(const Skeleton* sk) const { return visual.hasOverlay(sk); }
     bool       isFallingDeep() const;
     bool       isSlide() const;
     bool       isInAir() const;
@@ -526,6 +530,7 @@ class Npc final {
     float     arpgSpecialMul     = 1.f;
     float     arpgShotMul        = 1.f;
     uint64_t  arpgNoFallDamage   = 0;  // gothic-diablo: pushed by the hero: landing until this tick does no damage
+    uint64_t  arpgInvulnUntil    = 0;  // gothic-diablo: dodge roll of the hero: no damage until this tick
     Npc*      updateNearestEnemy();
     Npc*      updateNearestBody();
     bool      checkHealth(bool onChange, bool forceKill);

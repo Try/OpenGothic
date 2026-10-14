@@ -162,8 +162,10 @@ void SceneGlobals::setArpgView(bool enabled, const Tempest::Vec3& feet, const Te
                                float cutHeight, float cutRadius, float fadeRadius,
                                float fowRadius, float fowFade,
                                float seeThrough, float indoor, float lowerStart, float lowerEnd,
-                               const float* los128) {
-  static_assert(sizeof(UboGlobal)==1744, "UboGlobal must match SceneDesc in scene.glsl");
+                               const float* los128, const Tempest::Vec4* highlight2) {
+  static_assert(sizeof(UboGlobal)==1776, "UboGlobal must match SceneDesc in scene.glsl");
+  uboGlobalCpu.arpgHi[0] = (enabled && highlight2!=nullptr) ? highlight2[0] : Tempest::Vec4();
+  uboGlobalCpu.arpgHi[1] = (enabled && highlight2!=nullptr) ? highlight2[1] : Tempest::Vec4();
   if(!enabled) {
     uboGlobalCpu.arpgPlayer  = {};
     uboGlobalCpu.arpgCenter  = {};

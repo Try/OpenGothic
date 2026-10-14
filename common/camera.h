@@ -145,6 +145,9 @@ class Camera final {
     float              arpgYaw() const { return arpg.yaw; }
     void               arpgRotate(float deltaDeg);
     const ArpgView&    arpgView() const { return arpgV; }
+    // gothic-diablo: creatures that glow a little (enemy under the cursor, current target): xyz = center, w = radius
+    void               arpgSetHighlight(size_t i, const Tempest::Vec4& v) { if(i<arpgHi.size()) arpgHi[i] = v; }
+    const std::array<Tempest::Vec4,2>& arpgHighlight() const { return arpgHi; }
 
   private:
     struct Arpg {
@@ -165,6 +168,7 @@ class Camera final {
       };
     Arpg                  arpg;
     ArpgView              arpgV;
+    std::array<Tempest::Vec4,2> arpgHi = {};
 
     void                  tickArpg(float dtF);
     void                  updateArpgView(float dtF);

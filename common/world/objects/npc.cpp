@@ -2020,6 +2020,28 @@ bool Npc::arpgKnockBack(Npc& from, float speed) {
   return true;
   }
 
+bool Npc::arpgDrinkNow(size_t cls) {
+  // gothic-diablo: potion keys: the potion works at once (its script, like Gothic's DEF_DESTROY_ITEM at the end
+  // of the drinking animation), with the drinking sound, weapon stays in hand
+  auto it = invent.getItem(cls);
+  if(it==nullptr)
+    return false;
+  const auto onState = it->handle().on_state[0];
+  if(onState!=0)
+    owner.script().invokeItem(this,uint32_t(onState));
+  invent.delItem(cls,1,*this);
+  emitSoundEffect("DRINKBOTTLE",1000.f,true);
+  return true;
+  }
+
+void Npc::arpgSetInvulnerable(uint64_t ms) {
+  arpgInvulnUntil = owner.tickCount()+ms;
+  }
+
+bool Npc::arpgIsInvulnerable() const {
+  return arpgInvulnUntil>owner.tickCount();
+  }
+
 bool Npc::arpgUseItem(size_t cls) {
   // gothic-diablo: potion keys; same as using it in the inventory (Gothic animation)
   return invent.use(cls,*this,Item::NSLOT,false);
@@ -2100,6 +2122,11 @@ void Npc::commitDamage() {
 void Npc::takeDamage(Npc &other, const Bullet* b) {
   if(isDown())
     return;
+  if(arpgIsInvulnerable()) {
+    // gothic-diablo: dodge roll (i-frames like in Dark Souls)
+    owner.arpgPopup(position()+Tempest::Vec3(0,180.f,0), 0, 4);
+    return;
+    }
 
   assert(b==nullptr || !b->isSpell());
   const auto& pose    = visual.pose();
@@ -2132,6 +2159,10 @@ void Npc::takeDamage(Npc &other, const Bullet* b) {
 void Npc::takeDamage(Npc& other, const Bullet* b, const VisualFx* vfx, int32_t splId) {
   if(isDown())
     return;
+  if(arpgIsInvulnerable() && &other!=this) {
+    owner.arpgPopup(position()+Tempest::Vec3(0,180.f,0), 0, 4); // gothic-diablo: dodge roll
+    return;
+    }
 
   lastHitSpell = splId;
   lastHit      = &other;

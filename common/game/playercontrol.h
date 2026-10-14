@@ -299,6 +299,9 @@ class PlayerControl final {
     bool           arpgSpellCasting = false; // investing a spell while its key is held
     void           arpgSpellKey(uint8_t slot, bool pressed);
     bool           arpgCursorAim(const Npc& pl, Tempest::Vec3& out) const;
+    Npc*           arpgNextEnemy(Npc& pl, const Npc* except, float range) const;
+    int            arpgStartRoll(Npc& pl, float& rot);
+    float          arpgRollCd       = 0;  // s until the next dodge roll
     void           arpgPotion(uint8_t kind);
     const Item*    arpgPickPotion(const Npc& pl, uint8_t kind, int32_t& total) const;
     ArpgSlash      arpgSlashFx;

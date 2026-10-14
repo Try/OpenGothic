@@ -256,9 +256,26 @@ void mainGBuffer(vec4 t) {
   outDiffuse.a   = encodeHintBits();
   outNormal      = encodeNormal(shInp.normal);
 #if !defined(FLAT_NORMAL) && (MESH_TYPE!=T_PFX)
-  // gothic-diablo: creatures (animated meshes) a bit brighter, so they stand out from the ARPG camera
-  if(scene.arpgPlayer.w>0.0 && (bucket[bucketId].flags & BK_SKIN)!=0)
+  // gothic-diablo: creatures (animated meshes) a bit brighter, so they stand out from the ARPG camera;
+  // the enemy under the cursor and the current target glow a little (brighter + warm rim)
+  if(scene.arpgPlayer.w>0.0 && (bucket[bucketId].flags & BK_SKIN)!=0) {
     outDiffuse.rgb = min(outDiffuse.rgb*1.4, vec3(1.0));
+    if(scene.arpgHi[0].w>0.0 || scene.arpgHi[1].w>0.0) {
+      const vec2 ndc  = (gl_FragCoord.xy*scene.screenResInv)*2.0-vec2(1.0);
+      const vec3 wpos = arpgWorldPos(ndc, gl_FragCoord.z);
+      float hl = 0.0;
+      for(int i=0; i<2; ++i) {
+        const vec4 h = scene.arpgHi[i];
+        if(h.w>0.0)
+          hl = max(hl, 1.0-smoothstep(h.w*0.8, h.w, distance(wpos, h.xyz)));
+        }
+      if(hl>0.0) {
+        const vec3  v   = normalize(scene.camPos-wpos);
+        const float rim = pow(1.0-clamp(abs(dot(normalize(shInp.normal), v)), 0.0, 1.0), 2.0);
+        outDiffuse.rgb  = min(outDiffuse.rgb*(1.0+0.3*hl) + vec3(0.55,0.45,0.3)*(rim*hl), vec3(1.0));
+        }
+      }
+    }
 #endif
   // outNormal      = vec4(flatNormal()*0.5 + vec3(0.5), 1.0);
 #if DEBUG_DRAW
