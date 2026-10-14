@@ -818,6 +818,10 @@ void MdlVisual::warpAttack(uint64_t ms, uint64_t tickCount) {
   skInst->warpAttack(ms,tickCount);
   }
 
+bool MdlVisual::warpSeq(const Animation::Sequence* sq, uint64_t ms, uint64_t tickCount) {
+  return skInst->warpSeq(sq,ms,tickCount);
+  }
+
 void MdlVisual::holdParade(uint64_t tickCount) {
   skInst->holdParade(tickCount);
   }

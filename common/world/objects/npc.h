@@ -197,6 +197,7 @@ class Npc final {
     bool       arpgUseItem(size_t cls);                // gothic-diablo: use an item like in the inventory
     bool       arpgDrinkNow(size_t cls);               // gothic-diablo: potion at once, without the animation
     void       arpgSetInvulnerable(uint64_t ms);       // gothic-diablo: dodge roll: no damage for 'ms'
+    void       arpgPlayFaster(const Animation::Sequence* sq, float extra) { arpgFastSeq = sq; arpgFastMul = extra; arpgFastAcc = 0; }
     bool       arpgIsInvulnerable() const;
     bool       arpgHasOverlay(const Skeleton* sk) const { return visual.hasOverlay(sk); }
     bool       isFallingDeep() const;
@@ -524,6 +525,9 @@ class Npc final {
     void      commitDamage();
     bool      commitDamageArpg();       // gothic-diablo: hero's swing hits all enemies in front
     float     arpgWarpAcc = 0;          // gothic-diablo: fractional ms of the faster hero attacks
+    const Animation::Sequence* arpgFastSeq = nullptr; // gothic-diablo: animation played faster (dodge roll)
+    float     arpgFastMul = 0;          // extra speed (0.35 = 35% faster)
+    float     arpgFastAcc = 0;
     bool      arpgSpecialPending = false;
     uint64_t  arpgSpecialUntil   = 0;
     bool      arpgHitSpecial     = false; // set while the special swing deals damage

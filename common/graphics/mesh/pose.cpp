@@ -599,6 +599,22 @@ void Pose::warpAttack(uint64_t ms, uint64_t tickCount) {
     }
   }
 
+bool Pose::warpSeq(const Animation::Sequence* sq, uint64_t ms, uint64_t tickCount) {
+  // gothic-diablo: play one animation faster (dodge roll), same way as warpAttack
+  bool found = false;
+  for(auto& i:lay) {
+    if(i.seq!=sq)
+      continue;
+    found = true;
+    if(ms==0 || i.sAnim<ms || i.sAnim>tickCount)
+      continue;
+    i.sAnim   -= ms;
+    i.warpEv  += int64_t(ms);
+    i.warpSfx += int64_t(ms);
+    }
+  return found;
+  }
+
 void Pose::holdParade(uint64_t tickCount) {
   for(auto& i:lay) {
     if(i.bs!=BS_PARADE || i.seq==nullptr || i.seq->data==nullptr || i.sAnim>tickCount)

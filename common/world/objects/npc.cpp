@@ -2501,6 +2501,15 @@ void Npc::tick(uint64_t dt) {
       }
     }
 
+  // gothic-diablo: one animation played faster (hero's dodge roll)
+  if(arpgFastSeq!=nullptr) {
+    arpgFastAcc += float(dt)*arpgFastMul;
+    const uint64_t ms = uint64_t(arpgFastAcc);
+    arpgFastAcc -= float(ms);
+    if(!visual.warpSeq(arpgFastSeq, ms, owner.tickCount()))
+      arpgFastSeq = nullptr;
+    }
+
   tickAnimationTags();
 
   if(!visual.pose().hasAnim())

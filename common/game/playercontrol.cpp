@@ -2278,7 +2278,9 @@ int PlayerControl::arpgStartRoll(Npc& pl, float& rot) {
   auto sq = pl.playAnimByName("T_FALLDN_2_RUNL", BS_RUN);
   if(sq==nullptr)
     return 2; // busy (e.g. a swing that cannot be interrupted): try again
-  const float len = sq->totalTime()/1000.f;
+  static constexpr float RollSpeed = 1.4f; // faster than Gothic's landing roll
+  pl.arpgPlayFaster(sq, RollSpeed-1.f);
+  const float len = sq->totalTime()/1000.f/RollSpeed;
   pl.arpgSetInvulnerable(uint64_t(std::min(len,1.f)*650.f)); // the first ~2/3: the roll itself
   arpgDodgeReq  = false;
   arpgDodgeLock = std::clamp(len*0.85f, 0.4f, 1.f);         // the end blends into running

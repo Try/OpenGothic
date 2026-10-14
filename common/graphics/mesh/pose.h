@@ -90,6 +90,7 @@ class Pose final {
 
     // gothic-diablo: play attack animations faster: moves them ahead by 'ms'
     void               warpAttack(uint64_t ms, uint64_t tickCount);
+    bool               warpSeq(const Animation::Sequence* sq, uint64_t ms, uint64_t tickCount); // gothic-diablo: false = not playing
     // gothic-diablo: keep a parade animation in its defence window (block held)
     void               holdParade(uint64_t tickCount);
     // gothic-diablo: keep an attack animation in its wind-up (charged attack)
