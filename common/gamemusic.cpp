@@ -359,6 +359,15 @@ GameMusic::Tags GameMusic::mkTags(GameMusic::Tags daytime, GameMusic::Tags mode)
 
 void GameMusic::setEnabled(bool e) {
   impl->setEnabled(e);
+  // Diathic: the menu track follows (music off in the options, videos)
+  if(menuTrackOn && !e && !menuTrackPaused) {
+    menuTrack.pause();
+    menuTrackPaused = true;
+    }
+  else if(menuTrackOn && e && menuTrackPaused) {
+    menuTrack.play();
+    menuTrackPaused = false;
+    }
   }
 
 bool GameMusic::isEnabled() const {
@@ -405,9 +414,11 @@ void GameMusic::playMenuTrack() {
       return;
       }
     }
-  // the theme of the game stops, ours plays (stereo: not positioned in the world)
+  // the theme of the game stops, ours plays (stereo: not positioned in the world);
+  // the OpenGothic mixer keeps playing a theme it already started, so its output is muted while ours plays
   currentMusic.theme = zenkit::IMusicTheme{};
   impl->stopTheme();
+  sound.setVolume(0.f);
   menuTrackOn     = true;
   menuTrackPaused = !isEnabled();
   menuTrack.setVolume(Gothic::settingsGetF("SOUND","musicVolume"));
@@ -418,9 +429,11 @@ void GameMusic::playMenuTrack() {
 void GameMusic::stopMenuTrack() {
   if(!menuTrackOn)
     return;
-  menuTrackOn = false;
+  menuTrackOn     = false;
+  menuTrackPaused = false;
   menuTrack.pause();
   menuTrack = Tempest::SoundEffect(); // next time from the start
+  sound.setVolume(Gothic::settingsGetF("SOUND","musicVolume"));
   }
 
 void GameMusic::tick() {
@@ -453,16 +466,7 @@ void GameMusic::setupSettings() {
     }
 
   setEnabled(musicEnabled != 0);
-  sound.setVolume(musicVolume);
-  if(menuTrackOn) {
+  sound.setVolume(menuTrackOn ? 0.f : musicVolume);
+  if(menuTrackOn)
     menuTrack.setVolume(musicVolume);
-    if(musicEnabled==0 && !menuTrackPaused) {
-      menuTrack.pause();
-      menuTrackPaused = true;
-      }
-    else if(musicEnabled!=0 && menuTrackPaused) {
-      menuTrack.play();
-      menuTrackPaused = false;
-      }
-    }
   }
