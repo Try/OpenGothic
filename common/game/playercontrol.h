@@ -70,6 +70,20 @@ class PlayerControl final {
     void  arpgChargeStart();                     // right mouse button down: start charging the special attack
     void  arpgChargeRelease();                   // right mouse button up: release it
     float arpgSpecialLeft() const;               // 0..1 of the cooldown left
+    void  arpgPush();                            // middle mouse button with a bow: push the enemies in front away
+    bool  arpgCanPush() const;                   // a bow / crossbow is drawn
+    float arpgPushLeft() const;                  // 0..1 of the push cooldown left
+    static constexpr float SpecialCooldown = 5.f; // s
+    static constexpr float PushCooldown    = 5.f; // s
+    // skill bar: what the mouse buttons and the potion keys do now
+    struct ArpgBar {
+      const Item* weapon     = nullptr;  // left / right mouse button (nullptr = fists)
+      bool        ranged     = false;    // bow / crossbow: middle button pushes, otherwise it blocks
+      const Item* potion[2]  = {};       // what keys 1 / 2 drink now
+      int32_t     potions[2] = {};       // how many potions of that kind
+      bool        charging   = false;    // right mouse button held
+      };
+    ArpgBar arpgBar() const;
     // charged attack: -1 = not charging, otherwise seconds charged
     float arpgChargeTime() const { return arpgCharge==ChargeHold ? arpgChargeT : -1.f; }
     static constexpr float ChargeFull   = 2.0f;  // s to fully charge
@@ -80,7 +94,7 @@ class PlayerControl final {
       Tempest::Vec3 pos  = {};
       float         ang  = 0;     // hero facing, degrees
       float         dir  = 1;     // sweep direction
-      uint8_t       kind = 0;     // 0 = melee crescent, 1 = arrow streak
+      uint8_t       kind = 0;     // 0 = melee crescent, 1 = arrow streak, 2 = push wave
       };
     const ArpgSlash& arpgSlash() const { return arpgSlashFx; }
     bool  arpgCanBlock() const;                  // a melee weapon (or fists) is drawn
@@ -271,7 +285,15 @@ class PlayerControl final {
     float          arpgChargeWait   = 0;
     float          arpgChargeSide   = 1;
     bool           arpgChargeFull   = false;
-    uint64_t       arpgSpecialReady = 0;  // world tick when the special attack can be used again
+    float          arpgSpecialCd    = 0;  // s left of the special attack cooldown (not a world tick: survives loading)
+    float          arpgPushCd       = 0;  // s left of the bow push cooldown
+    bool           arpgPushReq      = false;
+    float          arpgPushWait     = 0;
+    uint8_t        arpgPotionReq    = 0;  // potion key pressed: 1 = health, 2 = mana
+    float          arpgPotionWait   = 0;  // s, how long the request is kept
+    uint8_t        arpgRedraw       = 0;  // WeaponAction to draw again after drinking (0 = none)
+    void           arpgPotion(uint8_t kind);
+    const Item*    arpgPickPotion(const Npc& pl, uint8_t kind, int32_t& total) const;
     ArpgSlash      arpgSlashFx;
     void           arpgChargeCancel(Npc& pl);
     bool           arpgShoot(Npc& pl, float& rot, bool allowRot, float faceAng, Npc* tg);

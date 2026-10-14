@@ -93,6 +93,11 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
       toggleSneakMode();
       return;
       }
+    if(key==Tempest::KeyEvent::K_1 || key==Tempest::KeyEvent::K_2) {
+      // 1 = health potion, 2 = mana potion (Gothic: melee weapon / bow; X swaps the weapons here)
+      arpgPotion(key==Tempest::KeyEvent::K_1 ? 1 : 2);
+      return;
+      }
     if(a==KeyCodec::ActionGeneric && key==Tempest::KeyEvent::K_LControl) {
       // Ctrl is only a modifier for the mouse here (attack anyone / in place; with a bow: aim at the cursor),
       // not Gothic's action key (it would aim the bow and shoot only on release)
@@ -636,6 +641,12 @@ bool PlayerControl::tickMove(uint64_t dt) {
   Npc*  pl     = w->player();
   auto  camera = Gothic::inst().camera();
 
+  // gothic-diablo: cooldowns count real playing time (a world tick would jump on loading a game)
+  arpgSpecialCd = std::max(0.f, arpgSpecialCd-dtF);
+  arpgPushCd    = std::max(0.f, arpgPushCd-dtF);
+  if(arpgSlashFx.time>w->tickCount()+1000)
+    arpgSlashFx = ArpgSlash(); // a game was loaded
+
   if(w->isCutsceneLock())
     clearInput();
 
@@ -717,6 +728,17 @@ void PlayerControl::implMove(uint64_t dt) {
     return;
     }
 
+  // gothic-diablo: drinking done: draw the weapon again
+  if(arpg && arpgRedraw!=0 && arpgPotionReq==0 && ws==WeaponState::NoWeapon && bs!=BS_ITEMINTERACT) {
+    if(pl.canSwitchWeapon()) {
+      wctrl[arpgRedraw] = true;
+      arpgRedraw        = 0;
+      }
+    }
+  else if(arpgRedraw!=0 && (!arpg || ws!=WeaponState::NoWeapon)) {
+    arpgRedraw = 0;
+    }
+
   if(pl.canSwitchWeapon()) {
     if(wctrl[WeaponClose]) {
       wctrl[WeaponClose] = !(pl.closeWeapon(false) || pl.isMonster());
@@ -787,6 +809,82 @@ void PlayerControl::implMove(uint64_t dt) {
     arpgDodgeLock = 0;
     }
 
+  // gothic-diablo: potion keys 1 / 2: weapon away at once, drink with Gothic's animation, weapon back
+  if(arpg && bs==BS_ITEMINTERACT) {
+    runAngleDest = 0;
+    return; // drinking
+    }
+  if(arpg && arpgPotionReq!=0) {
+    arpgPotionWait -= float(dt)/1000.f;
+    int32_t     total = 0;
+    const Item* itm   = arpgPickPotion(pl, arpgPotionReq, total);
+    if(itm==nullptr || arpgPotionWait<=0.f || casting || pl.isFalling() || pl.isInAir() || pl.isJump() ||
+       pl.isSwim() || pl.isDive() || pl.isInWater()) {
+      arpgPotionReq = 0;
+      }
+    else if(!pl.isAttackAnim()) {
+      arpgClick = ArpgClick();
+      if(arpgCharge!=ChargeNone)
+        arpgChargeCancel(pl);
+      if(ws!=WeaponState::NoWeapon) {
+        if(ws==WeaponState::Bow || ws==WeaponState::CBow)
+          arpgRedraw = WeaponBow;
+        else if(ws==WeaponState::Mage)
+          arpgRedraw = uint8_t(wctrlLast);
+        else
+          arpgRedraw = WeaponMele;
+        pl.stopAnim("");
+        pl.closeWeapon(true);
+        }
+      if(pl.weaponState()==WeaponState::NoWeapon && pl.arpgUseItem(itm->clsId()))
+        arpgPotionReq = 0;
+      runAngleDest = 0;
+      return;
+      }
+    }
+
+  // gothic-diablo: middle mouse button with a bow: push the enemies in front away, no damage, 5 s cooldown
+  if(arpg && arpgPushReq) {
+    arpgPushWait -= float(dt)/1000.f;
+    if(arpgPushWait<=0.f || arpgPushCd>0.f || (ws!=WeaponState::Bow && ws!=WeaponState::CBow)) {
+      arpgPushReq = false;
+      }
+    else {
+      arpgPushReq = false;
+      arpgClick   = ArpgClick();
+      if(arpgCharge!=ChargeNone)
+        arpgChargeCancel(pl);
+      const float face = arpgFightFace(pl, rot);
+      if(pl.isRotationAllowed()) {
+        rot = face;
+        pl.setDirection(rot);
+        }
+      const float rad = rot*float(M_PI)/180.f;
+      const float fx  = std::cos(rad), fz = std::sin(rad);
+      const auto  pos = pl.position();
+      w->detectNpc(pos, 400.f, [&](Npc& n) {
+        if(&n==&pl || n.isDown() || !arpgIsEnemy(n))
+          return;
+        const auto  d = n.position()-pos;
+        const float l = std::sqrt(d.x*d.x+d.z*d.z);
+        if(l>300.f)
+          return;
+        if(l>80.f && (d.x*fx+d.z*fz)/l<0.5f)
+          return; // 120 degrees in front
+        n.arpgKnockBack(pl, 0.5f); // about 2 m
+        });
+      pl.emitSoundEffect("WHOOSH", 1500.f, true);
+      arpgPushCd        = PushCooldown;
+      arpgSlashFx.time  = w->tickCount();
+      arpgSlashFx.pos   = pos;
+      arpgSlashFx.ang   = rot;
+      arpgSlashFx.dir   = 1;
+      arpgSlashFx.kind  = 2;
+      runAngleDest      = 0;
+      return;
+      }
+    }
+
   // gothic-diablo: charged attack (right mouse button held): the swing waits in its wind-up while charging;
   // released within 0.2 s after a full 2 s charge = one 180 degree swing with x3 damage that knocks down; 5 s cooldown
   if(arpg && arpgCharge!=ChargeNone) {
@@ -837,7 +935,7 @@ void PlayerControl::implMove(uint64_t dt) {
         pl.arpgSetShotMul(1.f);
         if(shot) {
           if(arpgChargeFull) {
-            arpgSpecialReady = w->tickCount()+5000;
+            arpgSpecialCd = SpecialCooldown;
             arpgSlashFx.time = w->tickCount();
             arpgSlashFx.pos  = pl.position();
             arpgSlashFx.ang  = rot;
@@ -911,7 +1009,7 @@ void PlayerControl::implMove(uint64_t dt) {
       const bool full = !arpgChargeHeld && arpgChargeT>=ChargeFull && arpgChargeT<=ChargeFull+ChargeWindow;
       if(full) {
         pl.arpgStartSpecial(3.f);
-        arpgSpecialReady  = w->tickCount()+5000;
+        arpgSpecialCd     = SpecialCooldown;
         arpgSlashFx.time  = w->tickCount();
         arpgSlashFx.pos   = pl.position();
         arpgSlashFx.ang   = rot;
@@ -2240,7 +2338,7 @@ float PlayerControl::arpgFightFace(Npc& pl, float def) {
 
 void PlayerControl::arpgChargeStart() {
   auto w = Gothic::inst().world();
-  if(w==nullptr || w->tickCount()<arpgSpecialReady)
+  if(w==nullptr || arpgSpecialCd>0.f)
     return; // still cooling down
   arpgCharge     = ChargeWant;
   arpgChargeHeld = true;
@@ -2309,8 +2407,127 @@ float PlayerControl::arpgShotRange() const {
   }
 
 float PlayerControl::arpgSpecialLeft() const {
+  return std::clamp(arpgSpecialCd/SpecialCooldown, 0.f, 1.f);
+  }
+
+float PlayerControl::arpgPushLeft() const {
+  return std::clamp(arpgPushCd/PushCooldown, 0.f, 1.f);
+  }
+
+void PlayerControl::arpgPush() {
+  if(arpgPushCd>0.f)
+    return;
+  arpgPushReq  = true;
+  arpgPushWait = 0.5f;
+  }
+
+bool PlayerControl::arpgCanPush() const {
+  auto w  = Gothic::inst().world();
+  auto pl = w!=nullptr ? w->player() : nullptr;
+  if(pl==nullptr)
+    return false;
+  const auto ws = pl->weaponState();
+  return ws==WeaponState::Bow || ws==WeaponState::CBow;
+  }
+
+// Gothic II: ItPo_Health_01..03, ItPo_Health_Addon_04, ItPo_Mana_..; Gothic: ItFo_Potion_Health_.., ItFo_Potion_Mana_..
+// ItPo_Perm_* raise the maximum: never drunk by the keys. 1 = health, 2 = mana, 0 = other
+static uint8_t arpgPotionKind(std::string_view n) {
+  auto has = [n](std::string_view s) {
+    if(s.size()>n.size())
+      return false;
+    for(size_t i=0; i+s.size()<=n.size(); ++i) {
+      size_t k = 0;
+      while(k<s.size() && std::toupper(uint8_t(n[i+k]))==uint8_t(s[k]))
+        ++k;
+      if(k==s.size())
+        return true;
+      }
+    return false;
+    };
+  if(has("PERM") || !(has("ITPO_") || has("ITFO_POTION")))
+    return 0;
+  if(has("HEALTH"))
+    return 1;
+  if(has("MANA"))
+    return 2;
+  return 0;
+  }
+
+const Item* PlayerControl::arpgPickPotion(const Npc& pl, uint8_t kind, int32_t& total) const {
+  // the smallest potion that is enough for what is missing, otherwise the biggest one
+  total = 0;
   auto w = Gothic::inst().world();
-  if(w==nullptr || w->tickCount()>=arpgSpecialReady)
-    return 0.f;
-  return float(arpgSpecialReady-w->tickCount())/5000.f;
+  if(w==nullptr)
+    return nullptr;
+  auto&         vm      = w->script().getVm();
+  const auto    cur     = (kind==1) ? ATR_HITPOINTS    : ATR_MANA;
+  const auto    max     = (kind==1) ? ATR_HITPOINTSMAX : ATR_MANAMAX;
+  const int32_t missing = std::max(0, pl.attribute(max)-pl.attribute(cur));
+  const Item*   best    = nullptr;
+  int32_t       bestAmt = 0;
+  bool          bestOk  = false;
+  for(auto it = pl.inventory().iterator(Inventory::T_Inventory); it.isValid(); ++it) {
+    const Item& item = *it;
+    if((ItmFlags(item.mainFlag()) & ITM_CAT_POTION)==0)
+      continue;
+    auto sym = vm.find_symbol_by_index(uint32_t(item.clsId()));
+    if(sym==nullptr || arpgPotionKind(sym->name())!=kind)
+      continue;
+    total += int32_t(it.count());
+    // Gothic II potions: TEXT[1]/COUNT[1] = how much it restores (COUNT[5] is the price)
+    int32_t amt = item.handle().count[1];
+    if(amt<=0) {
+      for(size_t i=0; i<5; ++i)
+        amt = std::max(amt, item.handle().count[i]);
+      }
+    if(amt<=0)
+      amt = 1<<20; // full healing and such
+    const bool ok = (amt>=missing);
+    if(best==nullptr || (ok && (!bestOk || amt<bestAmt)) || (!ok && !bestOk && amt>bestAmt)) {
+      best    = &item;
+      bestAmt = amt;
+      bestOk  = ok;
+      }
+    }
+  return best;
+  }
+
+void PlayerControl::arpgPotion(uint8_t kind) {
+  auto w  = Gothic::inst().world();
+  auto pl = w!=nullptr ? w->player() : nullptr;
+  if(pl==nullptr)
+    return;
+  int32_t total = 0;
+  if(arpgPickPotion(*pl, kind, total)==nullptr) {
+    Gothic::inst().onPrint(kind==1 ? "Brak mikstur zdrowia" : "Brak mikstur many");
+    return;
+    }
+  const auto cur = (kind==1) ? ATR_HITPOINTS    : ATR_MANA;
+  const auto max = (kind==1) ? ATR_HITPOINTSMAX : ATR_MANAMAX;
+  if(pl->attribute(cur)>=pl->attribute(max)) {
+    Gothic::inst().onPrint(kind==1 ? "Masz maksimum zdrowia" : "Masz maksimum many"); // no Polish letters: Gothic fonts
+    return;
+    }
+  arpgPotionReq  = kind;
+  arpgPotionWait = 1.5f;
+  }
+
+PlayerControl::ArpgBar PlayerControl::arpgBar() const {
+  ArpgBar b;
+  auto w  = Gothic::inst().world();
+  auto pl = w!=nullptr ? w->player() : nullptr;
+  if(pl==nullptr)
+    return b;
+  const auto ws = pl->weaponState();
+  if(ws==WeaponState::Bow || ws==WeaponState::CBow)
+    b.ranged = true;
+  else if(ws==WeaponState::NoWeapon || ws==WeaponState::Mage)
+    b.ranged = (wctrlLast==WeaponBow && arpgHasRanged(*pl));
+  if(ws!=WeaponState::Fist)
+    b.weapon = b.ranged ? pl->currentRangedWeapon() : pl->currentMeleeWeapon();
+  for(uint8_t k=0; k<2; ++k)
+    b.potion[k] = arpgPickPotion(*pl, uint8_t(k+1), b.potions[k]);
+  b.charging = (arpgCharge!=ChargeNone);
+  return b;
   }

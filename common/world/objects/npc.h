@@ -193,6 +193,8 @@ class Npc final {
     void       arpgHoldAttack();         // gothic-diablo: charged attack held in its wind-up
     void       arpgStartSpecial(float mul); // gothic-diablo: the next swing is a special attack
     void       arpgSetShotMul(float mul) { arpgShotMul = mul; } // gothic-diablo: the next arrow: damage x mul, always hits
+    bool       arpgKnockBack(Npc& from, float speed);  // gothic-diablo: push away without damage
+    bool       arpgUseItem(size_t cls);                // gothic-diablo: use an item like in the inventory
     bool       isFallingDeep() const;
     bool       isSlide() const;
     bool       isInAir() const;
@@ -523,6 +525,7 @@ class Npc final {
     bool      arpgHitSpecial     = false; // set while the special swing deals damage
     float     arpgSpecialMul     = 1.f;
     float     arpgShotMul        = 1.f;
+    uint64_t  arpgNoFallDamage   = 0;  // gothic-diablo: pushed by the hero: landing until this tick does no damage
     Npc*      updateNearestEnemy();
     Npc*      updateNearestBody();
     bool      checkHealth(bool onChange, bool forceKill);

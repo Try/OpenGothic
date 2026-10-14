@@ -52,10 +52,9 @@ class Bullet final : public DynamicWorld::BulletCallback {
     void     setCritChance(float v) { critCh=v; }
     float    hitChance() const { return hitCh; }
     void     setHitChance(float v) { hitCh=v; }
-    // gothic-diablo: hero's arrows in the ARPG view: hit or miss is decided when shot (-1 = Gothic rules,
-    // 0 = miss, 1 = hit) and the damage after armour is multiplied
-    int8_t   arpgHitRoll() const { return arpgRoll; }
-    void     setArpgHitRoll(int8_t v) { arpgRoll = v; }
+    // gothic-diablo: hero's arrows in the ARPG view: damage after armour multiplied; charged shot never misses
+    bool     arpgSure() const { return arpgNoMiss; }
+    void     setArpgSure(bool v) { arpgNoMiss = v; }
     float    arpgDamageMul() const { return arpgMul; }
     void     setArpgDamageMul(float v) { arpgMul = v; }
 
@@ -78,7 +77,7 @@ class Bullet final : public DynamicWorld::BulletCallback {
     DamageCalculator::Damage  dmg        = {};
     float                     hitCh      = 1.f;
     float                     critCh     = 0.f;
-    int8_t                    arpgRoll   = -1;
+    bool                      arpgNoMiss = false;
     float                     arpgMul    = 1.f;
 
     MeshObjects::Mesh         view;

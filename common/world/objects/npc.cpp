@@ -23,13 +23,8 @@ using namespace Tempest;
 
 static std::string_view humansTorchOverlay = "_TORCH.MDS";
 
-// gothic-diablo: hero's bow / crossbow in the ARPG view
-static constexpr float ArpgBowHitBase   = 0.25f;  // hit chance with 0% talent
-static constexpr float ArpgBowHitTop    = 0.90f;  // hit chance with 100% talent
-static constexpr float ArpgBowFullRange = 1000.f; // full chance up to 10 m ...
-static constexpr float ArpgBowFarRange  = 2500.f; // ... down by ArpgBowFarLoss at 25 m
-static constexpr float ArpgBowFarLoss   = 0.4f;
-static constexpr float ArpgBowDamage    = 0.5f;   // damage after armour (Gothic: x1)
+// gothic-diablo: hero's bow / crossbow in the ARPG view: damage after armour (Gothic: x1)
+static constexpr float ArpgBowDamage    = 0.5f;
 
 std::string_view Npc::Routine::wayPointName() const {
   return point!=nullptr ? point->name : fallbackName;
@@ -2009,6 +2004,27 @@ bool Npc::setGoToLadder() {
   return false;
   }
 
+bool Npc::arpgKnockBack(Npc& from, float speed) {
+  // gothic-diablo: push away without damage (bow + middle mouse button)
+  if(isDown() || isPlayer() || interactive()!=nullptr)
+    return false;
+  float a  = angleDir(from.x-x,from.z-z);
+  float da = a-angle;
+  const char hitType = (std::cos(da*M_PI/180.0)<0) ? 'A' : 'B';
+  if(!mvAlgo.accessDamFly(x-from.x, z-from.z, hitType, speed))
+    return false;
+  arpgNoFallDamage = owner.tickCount()+4000;
+  lastHit = &from;
+  setOther(&from);
+  perceptionProcess(from,this,0,PERC_ASSESSDAMAGE);
+  return true;
+  }
+
+bool Npc::arpgUseItem(size_t cls) {
+  // gothic-diablo: potion keys; same as using it in the inventory (Gothic animation)
+  return invent.use(cls,*this,Item::NSLOT,false);
+  }
+
 bool Npc::commitDamageArpg() {
   if(!isPlayer() || !Camera::isArpgEnabled())
     return false;
@@ -2157,6 +2173,8 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
     }
 
   hitResult = DamageCalculator::damageValue(other,*this,b,isSpell,dmg,bMask);
+  if(b!=nullptr && !isSpell && !hitResult.hasHit && other.isPlayer() && Camera::isArpgEnabled())
+    owner.arpgPopup(position()+Tempest::Vec3(0,180.f,0), 0, 3); // gothic-diablo: "miss"
   // gothic-diablo: charged special attack of the hero: more damage
   const bool arpgSpecialHit = (other.isPlayer() && other.arpgHitSpecial && b==nullptr && !isSpell);
   if(arpgSpecialHit && hitResult.value>0)
@@ -2225,6 +2243,13 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
   }
 
 void Npc::takeFallDamage(const Vec3& fallSpeed) {
+  if(arpgNoFallDamage>owner.tickCount()) {
+    // gothic-diablo: landing after the hero's push (bow + middle mouse button): no damage
+    arpgNoFallDamage = 0;
+    if(bodyStateMasked()==BS_FALL)
+      setAnim(Anim::Idle);
+    return;
+    }
   if(bodyStateMasked()==BS_FALL) {
     if(!isFallingDeep()) {
       // small fall
@@ -4199,49 +4224,14 @@ bool Npc::shootBow(Interactive* focOverride) {
   if(itm==nullptr)
     return false;
 
-  // gothic-diablo: hero's arrows in the ARPG view: hit or miss decided now from the bow talent,
-  // a miss flies visibly past the target; damage x0.5 (charged shot: always hits, x3)
+  // gothic-diablo: hero's arrows in the ARPG view: hit chance as in Gothic, damage x0.5 (charged shot: always hits, x3)
   bool arpgHero = false;
   if(isPlayer() && Camera::isArpgEnabled()) {
     auto cam = Gothic::inst().camera();
     arpgHero = (cam!=nullptr && cam->isArpgActive());
     }
-  int8_t arpgRoll  = -1;
-  float  arpgYaw   = 0, arpgPitch = 0;
-  float  arpgDist  = 0;
-  if(arpgHero) {
-    auto  rgn0 = currentRangedWeapon();
-    float tal  = 0;
-    if(Gothic::inst().version().game==1)
-      tal = float(hnpc->attribute[ATR_DEXTERITY])/100.f; else
-    if(rgn0!=nullptr && rgn0->isCrossbow())
-      tal = float(hnpc->hitchance[TALENT_CROSSBOW])/100.f; else
-      tal = float(hnpc->hitchance[TALENT_BOW])/100.f;
-    tal = std::clamp(tal, 0.f, 1.f);
-    if(currentTarget!=nullptr) {
-      auto d   = currentTarget->position()-position();
-      arpgDist = std::sqrt(d.x*d.x+d.z*d.z);
-      }
-    float chance = ArpgBowHitBase + (ArpgBowHitTop-ArpgBowHitBase)*tal;
-    if(arpgDist>ArpgBowFullRange)
-      chance *= 1.f - ArpgBowFarLoss*std::min((arpgDist-ArpgBowFullRange)/(ArpgBowFarRange-ArpgBowFullRange), 1.f);
-    if(arpgShotMul>1.f)
-      chance = 1.f;
-    const bool hit = float(owner.script().rand(1000))/1000.f < chance;
-    arpgRoll = hit ? 1 : 0;
-    if(!hit) {
-      const float side = owner.script().rand(2)==0 ? -1.f : 1.f;
-      if(currentTarget!=nullptr) {
-        const float lateral = 90.f + float(owner.script().rand(60)); // passes the target by about a metre
-        arpgYaw = side*std::atan2(lateral, std::max(arpgDist, 150.f))*180.f/float(M_PI);
-        } else {
-        arpgYaw = side*(4.f + float(owner.script().rand(5)));
-        }
-      arpgPitch = float(owner.script().rand(5)) - 1.f;
-      }
-    }
 
-  auto& b = owner.shootBullet(*itm,*this,currentTarget,focOverride,arpgYaw,arpgPitch);
+  auto& b = owner.shootBullet(*itm,*this,currentTarget,focOverride);
 
   invent.delItem(size_t(munition),1,*this);
   b.setOrigin(this);
@@ -4260,12 +4250,10 @@ bool Npc::shootBow(Interactive* focOverride) {
       b.setHitChance(float(hnpc->hitchance[TALENT_BOW]     )/100.f);
     }
   if(arpgHero) {
-    b.setArpgHitRoll(arpgRoll);
     b.setArpgDamageMul(ArpgBowDamage*std::max(arpgShotMul, 1.f));
-    if(arpgRoll==0 && currentTarget!=nullptr) {
-      const auto delay = uint64_t(arpgDist/DynamicWorld::bulletSpeed); // when the arrow gets there
-      owner.arpgPopup(currentTarget->position()+Tempest::Vec3(0,180.f,0), 0, 3, delay); // "miss"
-      }
+    if(arpgShotMul>1.f)
+      b.setHitChance(1.f); // with Bullet::arpgSure: no miss at any distance
+    b.setArpgSure(arpgShotMul>1.f);
     }
   arpgShotMul = 1.f;
   return true;

@@ -13,6 +13,7 @@
 
 class Camera;
 class InventoryMenu;
+class InventoryRenderer;
 class VideoWidget;
 
 class Renderer final {
@@ -26,7 +27,7 @@ class Renderer final {
 
     void draw(Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId,
               Tempest::VectorImage::Mesh& uiLayer, Tempest::VectorImage::Mesh& numOverlay,
-              InventoryMenu &inventory, VideoWidget& video);
+              InventoryMenu &inventory, VideoWidget& video, InventoryRenderer* hudItems = nullptr);
     void draw(Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId,
               WorldView& view, const Camera& camera);
 
