@@ -93,6 +93,11 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
       toggleSneakMode();
       return;
       }
+    if(a>=Action::WeaponMage3 && a<=Action::WeaponMage10) {
+      // 3-0: cast the spell of that slot at the cursor (Gothic: draw the rune, then cast with the action key)
+      arpgSpellKey(uint8_t(a-Action::WeaponMage3+3), true);
+      return;
+      }
     if(key==Tempest::KeyEvent::K_1 || key==Tempest::KeyEvent::K_2) {
       // 1 = health potion, 2 = mana potion (Gothic: melee weapon / bow; X swaps the weapons here)
       arpgPotion(key==Tempest::KeyEvent::K_1 ? 1 : 2);
@@ -259,6 +264,8 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
 
 void PlayerControl::onKeyReleased(KeyCodec::Action a, KeyCodec::Mapping mapping) {
   ctrl[a] = false;
+  if(a>=Action::WeaponMage3 && a<=Action::WeaponMage10)
+    arpgSpellKey(uint8_t(a-Action::WeaponMage3+3), false); // gothic-diablo: end investing
 
   handleMovementAction(KeyCodec::ActionMapping{a, mapping}, false);
 
@@ -829,6 +836,8 @@ void PlayerControl::implMove(uint64_t dt) {
       if(ws!=WeaponState::NoWeapon) {
         if(ws==WeaponState::Bow || ws==WeaponState::CBow)
           arpgRedraw = WeaponBow;
+        else if(ws==WeaponState::Mage && pl.inventory().currentSpellSlot()>=3 && pl.inventory().currentSpellSlot()<=10)
+          arpgRedraw = uint8_t(Weapon3 + (pl.inventory().currentSpellSlot()-3));
         else if(ws==WeaponState::Mage)
           arpgRedraw = uint8_t(wctrlLast);
         else
@@ -838,6 +847,89 @@ void PlayerControl::implMove(uint64_t dt) {
         }
       if(pl.weaponState()==WeaponState::NoWeapon && pl.arpgUseItem(itm->clsId()))
         arpgPotionReq = 0;
+      runAngleDest = 0;
+      return;
+      }
+    }
+
+  // gothic-diablo: spell keys 3-0: the rune / scroll of that slot comes out (weapon away at once, rune with Gothic's
+  // animation) and is cast towards the cursor (enemy under it = target); key held = invest (charged spells)
+  if(arpg && arpgSpellCasting) {
+    arpgClick = ArpgClick();
+    Tempest::Vec3 aim;
+    if(arpgCursorAim(pl, aim) && pl.isRotationAllowed()) {
+      const auto  d    = aim-pl.position();
+      const float face = std::atan2(d.z, d.x)*180.f/float(M_PI);
+      const float turn = 360.f*(float(dt)/1000.f);
+      if(d.x*d.x+d.z*d.z>30.f*30.f) {
+        rot += std::clamp(std::remainder(face-rot, 360.f), -turn, turn);
+        pl.setDirection(rot);
+        }
+      }
+    if(!arpgSpellHeld || ws!=WeaponState::Mage || bs!=BS_CASTING) {
+      arpgSpellCasting = false;
+      pl.endCastSpell(true);
+      }
+    runAngleDest = 0;
+    return;
+    }
+  if(arpg && arpgSpellSlot!=0) {
+    const float dtF = float(dt)/1000.f;
+    arpgSpellWait  -= dtF;
+    const Item* spl = pl.inventory().currentSpell(uint8_t(arpgSpellSlot-3));
+    if(spl==nullptr || arpgSpellWait<=0.f || pl.isFalling() || pl.isInAir() || pl.isJump() ||
+       pl.isSwim() || pl.isDive() || pl.isInWater()) {
+      arpgSpellSlot = 0;
+      }
+    else if(!pl.isAttackAnim()) {
+      arpgClick = ArpgClick();
+      if(arpgCharge!=ChargeNone)
+        arpgChargeCancel(pl);
+      if(ws!=WeaponState::Mage || pl.inventory().currentSpellSlot()!=arpgSpellSlot) {
+        if(ws!=WeaponState::NoWeapon && ws!=WeaponState::Mage) {
+          pl.stopAnim("");
+          pl.closeWeapon(true); // the weapon goes away at once
+          }
+        if(pl.weaponState()!=WeaponState::Mage || pl.inventory().currentSpellSlot()!=arpgSpellSlot) {
+          if(pl.canSwitchWeapon())
+            pl.drawMage(arpgSpellSlot); // rune / scroll in hand, Gothic's animation
+          }
+        arpgSpellTurn = 0;
+        runAngleDest  = 0;
+        return;
+        }
+      // rune in hand: face the cursor, then cast
+      Tempest::Vec3 aim;
+      float         da = 0;
+      if(arpgCursorAim(pl, aim) && pl.isRotationAllowed()) {
+        const auto  d    = aim-pl.position();
+        if(d.x*d.x+d.z*d.z>30.f*30.f) {
+          const float face = std::atan2(d.z, d.x)*180.f/float(M_PI);
+          const float turn = 900.f*dtF;
+          da   = std::remainder(face-rot, 360.f);
+          rot += std::clamp(da, -turn, turn);
+          pl.setDirection(rot);
+          da   = std::remainder(face-rot, 360.f);
+          }
+        }
+      arpgSpellTurn += dtF;
+      if(bs==BS_STAND && (std::fabs(da)<20.f || arpgSpellTurn>0.4f)) {
+        switch(pl.beginCastSpell()) {
+          case Npc::BC_Invest:
+            arpgSpellCasting = true; // released at once: ends next frame with the lowest level
+            arpgSpellSlot    = 0;
+            break;
+          case Npc::BC_Cast:
+            arpgSpellSlot = 0;
+            break;
+          case Npc::BC_NoMana:
+            Gothic::inst().onPrint("Brak many");
+            arpgSpellSlot = 0;
+            break;
+          case Npc::BC_No:
+            break; // not ready yet (rune still coming out)
+          }
+        }
       runAngleDest = 0;
       return;
       }
@@ -891,7 +983,8 @@ void PlayerControl::implMove(uint64_t dt) {
     const float dtF = float(dt)/1000.f;
     const bool  melee  = (ws==WeaponState::Fist || ws==WeaponState::W1H || ws==WeaponState::W2H);
     const bool  ranged = (ws==WeaponState::Bow || ws==WeaponState::CBow);
-    if(arpgBlocking || (!melee && !ranged && ws!=WeaponState::NoWeapon)) {
+    const bool  noWeapon = (ws==WeaponState::NoWeapon || ws==WeaponState::Mage); // a rune in hand: weapon first
+    if(arpgBlocking || (!melee && !ranged && !noWeapon)) {
       arpgChargeCancel(pl);
       }
     else if(ranged) {
@@ -958,9 +1051,9 @@ void PlayerControl::implMove(uint64_t dt) {
       if(!arpgChargeHeld || arpgChargeWait<=0.f) {
         arpgCharge = ChargeNone;
         }
-      else if(ws==WeaponState::NoWeapon) {
-        arpgDrawPreferred(pl); // draw the weapon first
-        arpgChargeWait = std::max(arpgChargeWait, 0.6f);
+      else if(noWeapon) {
+        arpgDrawPreferred(pl); // draw the weapon first (a rune goes back)
+        arpgChargeWait = std::max(arpgChargeWait, 0.8f);
         }
       else {
         const float face = arpgFightFace(pl, rot);
@@ -2057,8 +2150,12 @@ PlayerControl::ArpgStep PlayerControl::arpgClickTick(Npc& pl, float& rot, int& r
           return ArpgStop;
         break;
         }
+      if(ws==WeaponState::Mage) {
+        arpgDrawPreferred(pl); // rune in hand: the mouse fights with the weapon (spells are on 3-0)
+        return ArpgStop;
+        }
       if(ws!=WeaponState::Fist && ws!=WeaponState::W1H && ws!=WeaponState::W2H)
-        break; // spells: later in phase 4
+        break;
       if(tg.isDown()) {
         // unconscious human: finishing move, otherwise leave it
         if(c.swings==0 && !pl.isAttackAnim() && pl.canFinish(tg))
@@ -2080,8 +2177,12 @@ PlayerControl::ArpgStep PlayerControl::arpgClickTick(Npc& pl, float& rot, int& r
           return ArpgStop;
         break;
         }
+      if(ws==WeaponState::Mage) {
+        arpgDrawPreferred(pl);
+        return ArpgStop;
+        }
       if(ws!=WeaponState::Fist && ws!=WeaponState::W1H && ws!=WeaponState::W2H)
-        break; // spells: later in phase 4
+        break;
       if(arpgSwing(pl, rot, allowRot, faceAng, faceDa))
         return ArpgStop;
       break;
@@ -2388,6 +2489,39 @@ bool PlayerControl::arpgHasRanged(Npc& pl) const {
     return false;
   const int32_t munition = rgn->handle().munition;
   return munition>=0 && pl.inventory().itemCount(size_t(munition))>0;
+  }
+
+void PlayerControl::arpgSpellKey(uint8_t slot, bool pressed) {
+  auto w  = Gothic::inst().world();
+  auto pl = w!=nullptr ? w->player() : nullptr;
+  if(pl==nullptr)
+    return;
+  if(!pressed) {
+    if(arpgSpellSlot==slot || arpgSpellCasting)
+      arpgSpellHeld = false;
+    return;
+    }
+  if(pl->inventory().currentSpell(uint8_t(slot-3))==nullptr)
+    return; // empty slot (a rune is put there in the inventory: select it and press the key)
+  if(arpgSpellCasting)
+    return;
+  arpgSpellSlot = slot;
+  arpgSpellHeld = true;
+  arpgSpellWait = 2.f;
+  arpgSpellTurn = 0;
+  }
+
+bool PlayerControl::arpgCursorAim(const Npc& pl, Tempest::Vec3& out) const {
+  // the enemy (or anyone) under the cursor, otherwise the point on the ground
+  if(arpgHover.npc!=nullptr && arpgHover.npc!=&pl && !arpgHover.npc->isDead()) {
+    out = arpgHover.npc->position();
+    return true;
+    }
+  if(arpgGroundValid) {
+    out = arpgGround;
+    return true;
+    }
+  return false;
   }
 
 void PlayerControl::arpgDrawPreferred(Npc& pl) {

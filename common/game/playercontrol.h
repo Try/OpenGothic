@@ -292,6 +292,13 @@ class PlayerControl final {
     uint8_t        arpgPotionReq    = 0;  // potion key pressed: 1 = health, 2 = mana
     float          arpgPotionWait   = 0;  // s, how long the request is kept
     uint8_t        arpgRedraw       = 0;  // WeaponAction to draw again after drinking (0 = none)
+    uint8_t        arpgSpellSlot    = 0;  // spell key pressed: Gothic's rune/scroll slot 3..10 (0 = none)
+    bool           arpgSpellHeld    = false;
+    float          arpgSpellWait    = 0;  // s, how long the request is kept
+    float          arpgSpellTurn    = 0;  // s spent turning to the cursor before the cast
+    bool           arpgSpellCasting = false; // investing a spell while its key is held
+    void           arpgSpellKey(uint8_t slot, bool pressed);
+    bool           arpgCursorAim(const Npc& pl, Tempest::Vec3& out) const;
     void           arpgPotion(uint8_t kind);
     const Item*    arpgPickPotion(const Npc& pl, uint8_t kind, int32_t& total) const;
     ArpgSlash      arpgSlashFx;
