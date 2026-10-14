@@ -2143,34 +2143,42 @@ void MainWindow::paintArpgBar(Painter& p) {
     p.drawRect(int(cx-2.7f*u), int(cy-0.2f*u), int(0.9f*u), int(1.3f*u));    // thumb
     };
   auto drawShield = [&](const Rect& r) {
-    const float cx = float(r.x)+float(r.w)*0.5f, cy = float(r.y)+float(r.h)*0.46f, u = float(r.w)*0.30f;
-    static const float shape[] = {-1.f,-1.f, 1.f,-1.f, 1.f,0.15f, 0.55f,0.8f, 0.f,1.15f, -0.55f,0.8f, -1.f,0.15f};
-    p.setBrush(Brush(Color(0.78f,0.63f,0.3f,1.f), Painter::Alpha));
-    poly(cx, cy, shape, 7, u*1.14f);
-    p.setBrush(Brush(Color(0.36f,0.38f,0.42f,1.f), Painter::Alpha));
-    poly(cx, cy, shape, 7, u);
-    p.setBrush(Brush(Color(0.6f,0.15f,0.12f,1.f), Painter::Alpha));
-    p.drawRect(int(cx-u*0.14f), int(cy-u*0.95f), std::max(2,int(u*0.28f)), int(u*2.0f)); // stripe
+    // block: the shield with Khorinis' coat of arms (wall decoration in the city), cut out along its edge
+    auto t = Resources::loadTexture("OBJ_CITY_DECO_SHIELD_01.TGA");
+    if(t==nullptr) {
+      const float cx = float(r.x)+float(r.w)*0.5f, cy = float(r.y)+float(r.h)*0.46f, u = float(r.w)*0.30f;
+      static const float shape[] = {-1.f,-1.f, 1.f,-1.f, 1.f,0.15f, 0.55f,0.8f, 0.f,1.15f, -0.55f,0.8f, -1.f,0.15f};
+      p.setBrush(Brush(Color(0.36f,0.38f,0.42f,1.f), Painter::Alpha));
+      poly(cx, cy, shape, 7, u);
+      return;
+      }
+    // outline in texture space (256x256 texture: x 44..205, y 6..250)
+    static const float uv[][2] = {{44,6},{205,6},{205,150},{190,190},{125,250},{60,190},{44,150}};
+    const float u0 = 40.f, v0 = 4.f, uw = 169.f, vh = 248.f;          // the part that is drawn
+    const float hh = float(r.h)*0.86f, ww = hh*uw/vh;
+    const float x0 = float(r.x)+(float(r.w)-ww)*0.5f, y0 = float(r.y)+(float(r.h)-hh)*0.5f;
+    const float tw = float(t->w())/256.f, th = float(t->h())/256.f;
+    auto sx = [&](int i) { return x0 + (uv[i][0]-u0)/uw*ww; };
+    auto sy = [&](int i) { return y0 + (uv[i][1]-v0)/vh*hh; };
+    const float cu = 125.f, cv = 128.f;                                  // fan center
+    const float cx = x0 + (cu-u0)/uw*ww, cy = y0 + (cv-v0)/vh*hh;
+    p.setBrush(Brush(*t, Painter::Alpha, ClampMode::ClampToEdge));
+    for(int i=0; i<7; ++i) {
+      const int j = (i+1)%7;
+      p.drawTriangle(cx, cy, cu*tw, cv*th,
+                     sx(i), sy(i), uv[i][0]*tw, uv[i][1]*th,
+                     sx(j), sy(j), uv[j][0]*tw, uv[j][1]*th);
+      }
     };
   auto drawPush = [&](const Rect& r) {
-    // three waves rolling up and away from a dot
-    const float cx = float(r.x)+float(r.w)*0.5f, cy = float(r.y)+float(r.h)*0.78f;
-    for(int k=0; k<3; ++k) {
-      const float r1 = float(r.w)*(0.24f+0.15f*float(k)), r0 = r1-float(r.w)*0.07f;
-      const float a  = 1.f-0.25f*float(k);
-      p.setBrush(Brush(Color(0.7f*a,0.82f*a,1.f*a,1.f), Painter::Alpha));
-      const int N = 8;
-      for(int i=0; i<N; ++i) {
-        const float a0 = float(M_PI)*(1.25f+0.5f*float(i)/float(N)), a1 = float(M_PI)*(1.25f+0.5f*float(i+1)/float(N));
-        const float x00 = cx+std::cos(a0)*r0, y00 = cy+std::sin(a0)*r0, x01 = cx+std::cos(a0)*r1, y01 = cy+std::sin(a0)*r1;
-        const float x10 = cx+std::cos(a1)*r0, y10 = cy+std::sin(a1)*r0, x11 = cx+std::cos(a1)*r1, y11 = cy+std::sin(a1)*r1;
-        tri(x00,y00, x01,y01, x11,y11);
-        tri(x00,y00, x11,y11, x10,y10);
-        }
-      }
-    p.setBrush(Brush(Color(0.85f,0.85f,0.85f,1.f), Painter::Alpha));
-    const int d = std::max(3, r.w/9);
-    p.drawRect(int(cx)-d/2, int(cy)-d/2, d, d);
+    // push: the Wind Fist rune's symbol (its face in ITARRUNE1, cell 6 of the first row)
+    auto t = Resources::loadTexture("ITARRUNE1.TGA");
+    if(t==nullptr)
+      return;
+    const int pad = r.w/12;
+    p.setBrush(Brush(*t, Painter::Alpha, ClampMode::ClampToEdge));
+    p.drawRect(r.x+pad, r.y+pad, r.w-2*pad, r.h-2*pad,
+               float(t->w())*0.625f, 0.f, float(t->w())*0.75f, float(t->h())*0.125f);
     };
   auto drawGlow = [&](const Rect& r) {
     // "skill": red glow inside the slot, model drawn over it
@@ -2194,16 +2202,16 @@ void MainWindow::paintArpgBar(Painter& p) {
     arpgBarItems.drawItem(r.x+pad, r.y+pad, r.w-2*pad, r.h-2*pad, *itm);
     };
 
-  // LPM: the weapon in use with a red glow, PPM: the weapon (charged attack / shot), SPM: block or push
+  // LPM: the weapon in use, PPM: the weapon with a red glow (charged attack / shot = special skill), SPM: block or push
   {
     const Rect r = arpgBarSlot(0);
     drawSlot(r, arpgLeftDown);
-    drawGlow(r);
     if(bar.weapon!=nullptr) model(r, bar.weapon); else drawFist(r);
   }
   {
     const Rect r = arpgBarSlot(1);
     drawSlot(r, bar.charging);
+    drawGlow(r); // special skill
     if(bar.weapon!=nullptr) model(r, bar.weapon); else drawFist(r);
   }
   {
