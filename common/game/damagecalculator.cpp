@@ -1,5 +1,7 @@
 #include "damagecalculator.h"
 
+#include "game/arpgskills.h"
+
 #include "world/objects/npc.h"
 #include "world/objects/item.h"
 #include "world/world.h"
@@ -78,6 +80,8 @@ DamageCalculator::Val DamageCalculator::rangeDamage(Npc& nsrc, Npc& nother, cons
       hitCh = mix(chance, 0.f, (dist-refRange) / (maxRange-refRange));
     else
       hitCh = 0;
+    if(dist>=refRange && b.arpgFarAim()>0.f)
+      hitCh = std::min(1.f, hitCh+b.arpgFarAim()); // gothic-diablo: Celne oko
 
     noHit = (dist>float(MaxBowRange) || hitCh<=hitChance);
     if(b.arpgSure())
@@ -159,7 +163,9 @@ DamageCalculator::Val DamageCalculator::swordDamage(Npc& nsrc, Npc& nother) {
       if((dtype & (1<<i))==0)
         continue;
       int vd = std::max(str + src.damage[i] - other.protection[i],0);
-      if(src.hitchance[tal]<=critChance)
+      // gothic-diablo: Słaby punkt: a better chance of the full damage
+      const int crit = src.hitchance[tal] + (nsrc.arpgPerks()!=nullptr ? nsrc.arpgPerks()->critAdd : 0);
+      if(crit<=critChance)
         vd = (vd-1)/10;
       if(other.protection[i]>=0) { // Filter immune
         value += vd;

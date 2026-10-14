@@ -52,6 +52,10 @@ void Bullet::setDirection(const Tempest::Vec3& dir) {
   updateMatrix();
   }
 
+Tempest::Vec3 Bullet::arpgVelocity() const {
+  return obj!=nullptr ? obj->direction() : Tempest::Vec3();
+  }
+
 void Bullet::setTargetRange(float t) {
   obj->setTargetRange(t);
   }
@@ -141,6 +145,9 @@ void Bullet::onCollide(zenkit::MaterialGroup matId) {
 bool Bullet::onCollide(Npc& npc) {
   if(&npc==origin() || isFinished())
     return false;
+  for(auto i:arpgHits)
+    if(i==&npc)
+      return false; // gothic-diablo: already went through this one
 
   if(ow!=nullptr) {
     // no damage between ally npc's, only emit pfx effect
@@ -149,6 +156,17 @@ bool Bullet::onCollide(Npc& npc) {
       if(isSpell())
         npc.takeDamage(*ow,this,vfx.handle(),spellId()); else
         npc.takeDamage(*ow,this);
+      // gothic-diablo: Ciężki grot
+      if(!isSpell() && arpgHeavy>=2)
+        npc.arpgKnockDown(*ow);
+      else if(!isSpell() && arpgHeavy==1 && !npc.isDown())
+        npc.arpgKnockBack(*ow, 0.25f);
+      }
+    if(!isSpell() && arpgPierce>0 && !friendlyFire) {
+      // gothic-diablo: flies on through the enemy
+      arpgPierce--;
+      arpgHits.push_back(&npc);
+      return false;
       }
     }
   vfx.setKey(*wrld,SpellFxKey::Collide);

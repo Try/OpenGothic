@@ -105,7 +105,8 @@ class World final {
     struct ArpgPopup {
       Tempest::Vec3 pos;
       int32_t       value = 0;
-      uint8_t       kind  = 0;  // 0 = damage by the hero, 1 = damage to the hero, 2 = blocked, 3 = missed
+      uint8_t       kind  = 0;  // 0 = damage by the hero, 1 = damage to the hero, 2 = blocked, 3 = missed, 4 = dodged,
+                                // 5 = a skill of the trees went off (value: 1 Wir, 2 Fala uderzeniowa, 3 Grad strzał)
       uint64_t      time  = 0;
       };
     void                 arpgPopup(const Tempest::Vec3& pos, int32_t value, uint8_t kind, uint64_t delay = 0);

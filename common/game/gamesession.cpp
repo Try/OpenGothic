@@ -165,6 +165,9 @@ GameSession::GameSession(Serialize &fin) {
   if(auto hero = wrld->player())
     vm->setInstanceNPC("HERO",*hero);
 
+  if(fin.setEntry("game/arpg"))
+    arpgProg.load(fin); // gothic-diablo: older saves have none (no points spent yet)
+
   fin.setEntry("game/camera");
   cam->load(fin,wrld->player());
   Gothic::inst().setLoadingProgress(96);
@@ -223,6 +226,9 @@ void GameSession::save(Serialize &fout, std::string_view name, const Pixmap& scr
 
   fout.setEntry("game/daedalus");
   vm->saveVar(fout);
+
+  fout.setEntry("game/arpg");
+  arpgProg.save(fout);
   Gothic::inst().setLoadingProgress(80);
   }
 

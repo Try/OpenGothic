@@ -81,6 +81,7 @@ struct DynamicWorld::NpcBody : btRigidBody {
   float         gPadd    = 0.f;
   float         stepSz   = 0.f;
   bool          enable   = true;
+  bool          npcHit   = true;  // gothic-diablo: false = walks through other npcs (hero's roll)
   size_t        frozen   = size_t(-1);
   uint64_t      lastMove = 0;
 
@@ -350,6 +351,8 @@ struct DynamicWorld::NpcBodyList final {
       return false;
 
     const NpcBody& n = *pn;
+    if(!n.npcHit)
+      return false;
     if(hasCollision(n,frozen,normal,npc,colDepth,true))
       return true;
     return hasCollision(n,body,normal,npc,colDepth,false);
@@ -1177,6 +1180,11 @@ void DynamicWorld::NpcItem::setEnable(bool e) {
     return;
   obj->enable = e;
   owner->world->touchAabbs();
+  }
+
+void DynamicWorld::NpcItem::setNpcCollision(bool e) {
+  if(obj!=nullptr)
+    obj->npcHit = e;
   }
 
 void DynamicWorld::NpcItem::setUserPointer(void *p) {

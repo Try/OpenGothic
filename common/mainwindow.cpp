@@ -19,6 +19,7 @@
 #include "world/triggers/abstracttrigger.h"
 #include "world/objects/npc.h"
 #include "world/objects/interactive.h"
+#include "game/gamesession.h"
 #include "game/serialize.h"
 #include "game/globaleffects.h"
 #include "utils/gthfont.h"
@@ -1366,6 +1367,27 @@ uint64_t MainWindow::tick() {
   Gothic::inst().tick(dt);
   player.tickFocus();
 
+  if(Camera::isArpgEnabled()) {
+    // gothic-diablo: a level up gives a skill point (ArpgProgress counts them from the level)
+    auto pl = Gothic::inst().player();
+    if(pl!=arpgLevelHero) {
+      arpgLevelHero = pl;
+      arpgLevelSeen = pl!=nullptr ? pl->level() : 0;
+      }
+    else if(pl!=nullptr && pl->level()>arpgLevelSeen) {
+      arpgLevelSeen = pl->level();
+      Gothic::inst().onPrint(ArpgMenu::gtxt("Nowy punkt umiejętności - drzewka pod T"));
+      }
+    // the first time with Biegłość (a new game, a save from before it): the weapon percents learned so far become ranks
+    if(auto gs = Gothic::inst().gameSession(); gs!=nullptr && pl!=nullptr && !gs->arpgProgress().weaponsReady()) {
+      ArpgProgress::Hero h;
+      h.level = pl->level();
+      for(int t=1; t<=4; ++t)
+        h.pct[t] = pl->hitChance(Talent(t));
+      gs->arpgProgress().initWeapons(h);
+      }
+  }
+
   if(dialogs.isActive())
     ;//clearInput();
   if(document.isActive())
@@ -2063,6 +2085,15 @@ void MainWindow::paintArpgCombat(Painter& p, const Matrix4x4& vp) {
     out = Point(int((0.5f*pos.x+0.5f)*float(w())), int((0.5f*pos.y+0.5f)*float(h())));
     return true;
     };
+  // a quad of two triangles; the UI pipeline culls one winding (Tempest: CullMode::Back), so both are given
+  auto quad = [&](const Point& p00, const Point& p01, const Point& p10, const Point& p11) {
+    auto tri = [&](const Point& a, const Point& b, const Point& c) {
+      p.drawTriangle(float(a.x),float(a.y),0,0, float(b.x),float(b.y),0,0, float(c.x),float(c.y),0,0);
+      p.drawTriangle(float(a.x),float(a.y),0,0, float(c.x),float(c.y),0,0, float(b.x),float(b.y),0,0);
+      };
+    tri(p00, p01, p11);
+    tri(p00, p11, p10);
+    };
 
   // life bars
   {
@@ -2119,6 +2150,12 @@ void MainWindow::paintArpgCombat(Painter& p, const Matrix4x4& vp) {
       else if(e.kind==4) {
         type = Resources::FontType::Yellow;
         std::snprintf(txt, sizeof(txt), "Unik");
+        }
+      else if(e.kind==5) {
+        // a skill of the trees went off
+        type = Resources::FontType::Yellow;
+        const char* nm = (e.value==1) ? "Wir!" : (e.value==2) ? "Fala uderzeniowa!" : (e.value==3) ? "Grad strzał!" : "";
+        std::snprintf(txt, sizeof(txt), "%s", ArpgMenu::gtxt(nm).c_str());
         } else {
         type = (e.kind==1) ? Resources::FontType::Red : Resources::FontType::Normal;
         std::snprintf(txt, sizeof(txt), "%d", int(e.value));
@@ -2136,7 +2173,7 @@ void MainWindow::paintArpgCombat(Painter& p, const Matrix4x4& vp) {
     Point sp;
     if(t>=0.f && toScreen(pl->position()+Vec3(0,230.f,0), sp)) {
       const int   bw   = int(90.f*scale), bh = std::max(4, int(8.f*scale));
-      const float full = PlayerControl::ChargeFull, win = PlayerControl::ChargeWindow;
+      const float full = player.arpgChargeTimeFull(), win = player.arpgChargeTimeWindow();
       p.setBrush(Brush(Color(0.f,0.f,0.f,0.7f), Painter::Alpha));
       p.drawRect(sp.x-bw/2-2, sp.y-2, bw+4, bh+4);
       if(t<full) {
@@ -2177,8 +2214,7 @@ void MainWindow::paintArpgCombat(Painter& p, const Matrix4x4& vp) {
            !toScreen(base+fw*(len*k1)-sd*w1, p10) || !toScreen(base+fw*(len*k1)+sd*w1, p11))
           continue;
         p.setBrush(Brush(Color(1.f*a, 0.85f*a, 0.45f*a, 1.f), Painter::Add));
-        p.drawTriangle(float(p00.x),float(p00.y),0,0, float(p01.x),float(p01.y),0,0, float(p11.x),float(p11.y),0,0);
-        p.drawTriangle(float(p00.x),float(p00.y),0,0, float(p11.x),float(p11.y),0,0, float(p10.x),float(p10.y),0,0);
+        quad(p00, p01, p10, p11);
         }
       }
     else if(fx.kind==2 && fx.time!=0 && now>=fx.time && now<fx.time+400) {
@@ -2202,8 +2238,7 @@ void MainWindow::paintArpgCombat(Painter& p, const Matrix4x4& vp) {
         const float edge = 1.f - std::abs(float(i)+0.5f-float(N)/2.f)/(float(N)/2.f); // brighter in the middle
         const float a    = fade*(0.35f+0.65f*edge)*0.8f;
         p.setBrush(Brush(Color(0.75f*a, 0.85f*a, 1.f*a, 1.f), Painter::Add));
-        p.drawTriangle(float(p00.x),float(p00.y),0,0, float(p01.x),float(p01.y),0,0, float(p11.x),float(p11.y),0,0);
-        p.drawTriangle(float(p00.x),float(p00.y),0,0, float(p11.x),float(p11.y),0,0, float(p10.x),float(p10.y),0,0);
+        quad(p00, p01, p10, p11);
         }
       }
     else if(fx.kind==0 && fx.time!=0 && now>=fx.time && now<fx.time+600) {
@@ -2230,8 +2265,44 @@ void MainWindow::paintArpgCombat(Painter& p, const Matrix4x4& vp) {
           if(!pt(a0,r0,p00) || !pt(a0,r1,p01) || !pt(a1,r0,p10) || !pt(a1,r1,p11))
             continue;
           p.setBrush(Brush(Color(1.f*a, 0.82f*a, 0.4f*a, 1.f), Painter::Add));
-          p.drawTriangle(float(p00.x),float(p00.y),0,0, float(p01.x),float(p01.y),0,0, float(p11.x),float(p11.y),0,0);
-          p.drawTriangle(float(p00.x),float(p00.y),0,0, float(p11.x),float(p11.y),0,0, float(p10.x),float(p10.y),0,0);
+          quad(p00, p01, p10, p11);
+          }
+        }
+      }
+  }
+
+  // the skill trees: Wir (a ring all around the hero), Fala uderzeniowa (a wave running ahead of the charged swing)
+  {
+    const auto&    fx  = pl->arpgFx();
+    const uint64_t now = world->tickCount();
+    const uint64_t len = (fx.kind==3) ? 450 : 700;
+    if((fx.kind==3 || fx.kind==4) && fx.time!=0 && now>=fx.time && now<fx.time+len) {
+      const float k    = float(now-fx.time)/float(len);
+      const float fade = 1.f-k*k;
+      // the ring of Wir ends where its hit ends (fx.reach); the wave runs out to its reach
+      const float r1   = (fx.kind==3) ? 60.f+(fx.reach-60.f)*std::sqrt(k) : 80.f+fx.reach*std::sqrt(k);
+      const float r0   = std::max(30.f, r1-(fx.kind==3 ? 70.f : 160.f));
+      const int   N    = (fx.kind==3) ? 32 : 16;
+      for(int i=0; i<N; ++i) {
+        const float a0 = fx.ang - fx.arc*0.5f + fx.arc*float(i)/float(N);
+        const float a1 = fx.ang - fx.arc*0.5f + fx.arc*float(i+1)/float(N);
+        auto pt = [&](float ang, float r, Point& out) {
+          const float rad = ang*float(M_PI)/180.f;
+          return toScreen(fx.pos + Vec3(std::cos(rad)*r, 80.f, std::sin(rad)*r), out);
+          };
+        Point p00, p01, p10, p11;
+        if(!pt(a0,r0,p00) || !pt(a0,r1,p01) || !pt(a1,r0,p10) || !pt(a1,r1,p11))
+          continue;
+        // brighter in the middle of the wave
+        const float edge = (fx.kind==3) ? 1.f : 1.f-std::abs(float(i)+0.5f-float(N)/2.f)/(float(N)/2.f);
+        const float a    = fade*(fx.kind==3 ? 0.8f : (0.45f+0.55f*edge));
+        if(fx.kind==3)
+          p.setBrush(Brush(Color(1.f*a, 0.82f*a, 0.4f*a, 1.f), Painter::Add)); else
+          p.setBrush(Brush(Color(0.6f*a, 0.8f*a, 1.f*a, 1.f), Painter::Add));
+        quad(p00, p01, p10, p11);
+        if(fx.kind==4) {
+          // twice: the wave shines over the ground
+          quad(p00, p01, p10, p11);
           }
         }
       }
@@ -2418,7 +2489,7 @@ void MainWindow::paintArpgBarOverlay(Painter& p) {
     };
 
   const Rect rL = arpgBarSlot(0), rR = arpgBarSlot(1), rM = arpgBarSlot(2);
-  cooldown(rR, player.arpgSpecialLeft(), PlayerControl::SpecialCooldown);
+  cooldown(rR, player.arpgSpecialLeft(), player.arpgSpecialCooldown());
   if(bar.ranged)
     cooldown(rM, player.arpgPushLeft(), PlayerControl::PushCooldown);
   label(rL, "LPM", false);
@@ -2463,6 +2534,18 @@ void MainWindow::paintArpgBarOverlay(Painter& p) {
     std::snprintf(key, sizeof(key), "%d", (k+3)%10);
     label(r, key, itm==nullptr);
     }
+
+  // skill points to spend: a gold line over the bar
+  if(auto gs = Gothic::inst().gameSession(); gs!=nullptr && pl!=nullptr) {
+    const int32_t pts = gs->arpgProgress().freePoints(pl->level());
+    if(pts>0) {
+      char txt[96] = {};
+      std::snprintf(txt, sizeof(txt), "Punkty umiejętności do wydania: %d  (T)", int(pts));
+      GthFont f = Resources::font(Resources::FontType::Hi, scale*0.8f);
+      f.setColor(Color(1.f, 0.82f, 0.42f, 1.f)); // gold
+      f.drawText(p, rL.x, rL.y-int(8.f*scale), ArpgMenu::gtxt(txt));
+      }
+  }
   }
 
 void MainWindow::onArpgSpeech(Npc& npc, std::string_view text, uint64_t ms, bool scripted) {

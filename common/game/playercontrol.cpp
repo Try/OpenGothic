@@ -13,6 +13,28 @@
 #include "ui/dialogmenu.h"
 #include "ui/inventorymenu.h"
 #include "gothic.h"
+#include "game/gamesession.h"
+#include "game/arpgskills.h"
+
+// gothic-diablo: what the hero's skill trees give (defaults without a game)
+static const ArpgPerks& heroPerks() {
+  static const ArpgPerks none;
+  if(auto gs = Gothic::inst().gameSession())
+    return gs->arpgProgress().perks();
+  return none;
+  }
+
+float PlayerControl::arpgChargeTimeFull() const {
+  return heroPerks().chargeTime;
+  }
+
+float PlayerControl::arpgChargeTimeWindow() const {
+  return heroPerks().chargeWindow;
+  }
+
+float PlayerControl::arpgSpecialCooldown() const {
+  return std::max(0.5f, heroPerks().chargeCd);
+  }
 
 PlayerControl::PlayerControl(DialogMenu& dlg, InventoryMenu &inv)
   :dlg(dlg),inv(inv) {
@@ -672,6 +694,13 @@ bool PlayerControl::tickMove(uint64_t dt) {
   arpgSpecialCd = std::max(0.f, arpgSpecialCd-dtF);
   arpgPushCd    = std::max(0.f, arpgPushCd-dtF);
   arpgRollCd    = std::max(0.f, arpgRollCd-dtF);
+  if(!arpgSecondRoll) {
+    arpgSecondT -= dtF;
+    if(arpgSecondT<=0.f)
+      arpgSecondRoll = true; // Drugi oddech: ready again
+    }
+  if(pl!=nullptr && pl->arpgTakeSpecialKill() && heroPerks().battleRush)
+    arpgSpecialCd = 0; // Pęd bitewny: a kill with the charged attack
   if(arpgSlashFx.time>w->tickCount()+1000)
     arpgSlashFx = ArpgSlash(); // a game was loaded
 
@@ -820,10 +849,24 @@ void PlayerControl::implMove(uint64_t dt) {
   if(arpg) {
     const float dtF = float(dt)/1000.f;
     if(arpgDodgeLock>0.f) {
+      const auto& pk = heroPerks();
       arpgDodgeLock -= dtF;
       runAngleDest   = 0;
+      if(arpgRollTotal>0.f)
+        arpgTickRoll(pl, dtF);
+      const float done = arpgRollTotal>0.f ? 1.f-arpgDodgeLock/arpgRollTotal : 1.f;
+      // Drugi oddech: Space again in the second half of a roll = the next roll at once (then 3 s to get it back)
+      if(arpgDodgeReq && pk.secondWind && arpgSecondRoll && done>0.5f && arpgStartRoll(pl, rot)==1)
+        return;
+      // Cios z przewrotu: a click during the roll: the hit comes at the end of it, not after it blends into running
+      if(pk.rollStrike && done>0.65f && (arpgClick.kind==ArpgClick::Attack || arpgClick.kind==ArpgClick::Strike))
+        arpgDodgeLock = 0.f;
+      if(arpgDodgeLock<=0.f)
+        arpgEndRoll(pl);
       return;
       }
+    if(arpgRollTotal>0.f)
+      arpgEndRoll(pl);
     if(arpgDodgeReq) {
       arpgDodgeWait -= dtF;
       if(arpgDodgeWait<=0.f || casting || pl.isFalling() || pl.isInAir() || pl.isJump() ||
@@ -1019,21 +1062,28 @@ void PlayerControl::implMove(uint64_t dt) {
       else if(arpgCharge==ChargeHold) {
         arpgChargeT += dtF;
         pl.aimBow();
-        if(arpgChargeHeld && arpgChargeT<=ChargeFull+ChargeWindow)
+        const float full = arpgChargeTimeFull(), win = arpgChargeTimeWindow();
+        if(arpgChargeHeld && arpgChargeT<=full+win)
           return;
-        arpgChargeFull = !arpgChargeHeld && arpgChargeT>=ChargeFull && arpgChargeT<=ChargeFull+ChargeWindow;
+        arpgChargeFull = !arpgChargeHeld && arpgChargeT>=full && arpgChargeT<=full+win;
+        arpgChargeLate = !arpgChargeFull && arpgChargeT>full+win && heroPerks().sureHand; // Pewna ręka
         arpgCharge     = ChargeFire;
         arpgChargeWait = 0.6f;
         }
       if(arpgCharge==ChargeFire) {
         arpgChargeWait -= dtF;
         if(arpgChargeFull)
-          pl.arpgSetShotMul(3.f);
+          pl.arpgSetShotMul(heroPerks().chargeMul); // Miażdżący cios
+        else if(arpgChargeLate)
+          pl.arpgSetShotMul(2.f);
         const bool shot = pl.shootBow();
         pl.arpgSetShotMul(1.f);
         if(shot) {
+          if(arpgChargeLate)
+            arpgSpecialCd = arpgSpecialCooldown();
+          arpgChargeLate = false;
           if(arpgChargeFull) {
-            arpgSpecialCd = SpecialCooldown;
+            arpgSpecialCd = arpgSpecialCooldown();
             arpgSlashFx.time = w->tickCount();
             arpgSlashFx.pos  = pl.position();
             arpgSlashFx.ang  = rot;
@@ -1099,15 +1149,20 @@ void PlayerControl::implMove(uint64_t dt) {
         rot += std::clamp(std::remainder(face-rot, 360.f), -turn, turn);
         pl.setDirection(rot);
         }
-      if(arpgChargeHeld && arpgChargeT<=ChargeFull+ChargeWindow) {
+      const float tFull = arpgChargeTimeFull(), tWin = arpgChargeTimeWindow();
+      if(arpgChargeHeld && arpgChargeT<=tFull+tWin) {
         pl.arpgHoldAttack(); // keep charging, standing
         return;
         }
       // released (or held too long): the swing goes on from the wind-up
-      const bool full = !arpgChargeHeld && arpgChargeT>=ChargeFull && arpgChargeT<=ChargeFull+ChargeWindow;
+      const bool full = !arpgChargeHeld && arpgChargeT>=tFull && arpgChargeT<=tFull+tWin;
+      if(!full && arpgChargeT>tFull+tWin && heroPerks().sureHand) {
+        pl.arpgStartSpecial(2.f, false); // Pewna ręka: late = x2, does not throw down
+        arpgSpecialCd = arpgSpecialCooldown();
+        }
       if(full) {
-        pl.arpgStartSpecial(3.f);
-        arpgSpecialCd     = SpecialCooldown;
+        pl.arpgStartSpecial(heroPerks().chargeMul); // Miażdżący cios
+        arpgSpecialCd     = arpgSpecialCooldown();
         arpgSlashFx.time  = w->tickCount();
         arpgSlashFx.pos   = pl.position();
         arpgSlashFx.ang   = rot;
@@ -2133,7 +2188,7 @@ PlayerControl::ArpgStep PlayerControl::arpgClickTick(Npc& pl, float& rot, int& r
     const float turn  = fight ? step*1.6f : step;
     faceAng = std::atan2(d.z, d.x)*180.f/float(M_PI);
     faceDa  = std::remainder(faceAng-rot, 360.f);
-    if(allowRot)
+    if(allowRot && !pl.arpgSpinning()) // Wir: the turn round is not stopped
       rot += std::clamp(faceDa, -turn, turn);
     }
 
@@ -2251,7 +2306,9 @@ int PlayerControl::arpgStartRoll(Npc& pl, float& rot) {
   auto sk = Resources::loadSkeleton(overlay);
   if(sk==nullptr)
     return 0;
-  if(arpgRollCd>0.f)
+  const auto& pk     = heroPerks();
+  const bool  chain  = (arpgDodgeLock>0.f); // Drugi oddech: a roll right out of the last one
+  if(arpgRollCd>0.f && !chain)
     return 2;
 
   // direction: to the cursor, keyboard (W/S/A/D) wins when held
@@ -2276,19 +2333,81 @@ int PlayerControl::arpgStartRoll(Npc& pl, float& rot) {
   pl.setAnimRotate(0);
   rot = dir;
   pl.setDirection(rot);
+  if(chain)
+    pl.stopAnim("T_FALLDN_2_RUNL"); // the same animation would just go on
   auto sq = pl.playAnimByName("T_FALLDN_2_RUNL", BS_RUN);
   if(sq==nullptr)
     return 2; // busy (e.g. a swing that cannot be interrupted): try again
   static constexpr float RollSpeed = 1.4f; // faster than Gothic's landing roll
   pl.arpgPlayFaster(sq, RollSpeed-1.f);
   const float len = sq->totalTime()/1000.f/RollSpeed;
-  pl.arpgSetInvulnerable(uint64_t(std::min(len,1.f)*650.f)); // the first ~2/3: the roll itself
+  // the first ~2/3: the roll itself; Zwinność: longer
+  pl.arpgSetInvulnerable(uint64_t(std::min(len,1.f)*650.f + pk.rollInvuln*1000.f));
   arpgDodgeReq  = false;
   arpgDodgeLock = std::clamp(len*0.85f, 0.4f, 1.f);         // the end blends into running
-  arpgRollCd    = arpgDodgeLock + 0.25f;
+  arpgRollCd    = std::max(0.1f, arpgDodgeLock + 0.25f - pk.rollCdCut); // Lekki krok
   arpgClick     = ArpgClick();
   runAngleDest  = 0;
+  if(chain) {
+    arpgSecondRoll = false;
+    arpgSecondT    = 3.f;
+    }
+
+  // the skill tree Fikołek during the roll (PlayerControl::arpgTickRoll)
+  const float rad = rot*float(M_PI)/180.f;
+  arpgRollTotal = arpgDodgeLock;
+  arpgRollDir   = Tempest::Vec3(std::cos(rad), 0, std::sin(rad));
+  arpgRollExtra = 160.f*pk.rollDist;                        // Dalszy przewrót: the roll is ~1.6 m
+  arpgRollTripped.clear();
+  if(pk.rollThrough && !arpgRollNoNpc) {
+    pl.arpgNpcCollision(false);                             // Przez szereg
+    arpgRollNoNpc = true;
+    }
+  if(auto w = Gothic::inst().world())
+    pl.arpgRollDone(w->tickCount()+uint64_t(arpgDodgeLock*1000.f)); // Kontratak, Wyczucie strzał count from its end
   return 1;
+  }
+
+void PlayerControl::arpgTickRoll(Npc& pl, float dtF) {
+  const auto& pk = heroPerks();
+  auto        w  = Gothic::inst().world();
+  if(w==nullptr)
+    return;
+  // Dalszy przewrót: further than the animation
+  if(arpgRollExtra>0.f && arpgRollTotal>0.f)
+    pl.tryMove(arpgRollDir*(arpgRollExtra*dtF/arpgRollTotal));
+  // Piasek w oczy: the enemies passed miss; Podcięcie: the ones in the way fall
+  if(pk.sandEyes>0.f || pk.trip) {
+    const auto pos = pl.position();
+    w->detectNpc(pos, 220.f, [&](Npc& n) {
+      if(&n==&pl || n.isDown() || !arpgIsEnemy(n))
+        return;
+      const auto  d  = n.position()-pos;
+      const float l2 = d.x*d.x+d.z*d.z;
+      if(pk.sandEyes>0.f && l2<170.f*170.f)
+        n.arpgBlind(uint64_t(pk.sandEyes*1000.f));
+      if(pk.trip && l2<120.f*120.f && d.x*arpgRollDir.x+d.z*arpgRollDir.z>-20.f &&
+         std::find(arpgRollTripped.begin(), arpgRollTripped.end(), &n)==arpgRollTripped.end()) {
+        arpgRollTripped.push_back(&n);
+        n.arpgKnockDown(pl);
+        }
+      });
+    }
+  }
+
+void PlayerControl::arpgEndRoll(Npc& pl) {
+  const auto& pk = heroPerks();
+  if(arpgRollNoNpc) {
+    pl.arpgNpcCollision(true);
+    arpgRollNoNpc = false;
+    }
+  if(pk.shadow)
+    pl.arpgSetShadow(1000); // Cień
+  // clicks made during the roll: Cios z przewrotu turns them into a hit right after it; without it they are dropped
+  if(!pk.rollStrike && (arpgClick.kind==ArpgClick::Attack || arpgClick.kind==ArpgClick::Strike))
+    arpgClick = ArpgClick();
+  arpgRollTripped.clear();
+  arpgRollTotal = 0;
   }
 
 bool PlayerControl::arpgStartDodge(Npc& pl, float& rot) {
@@ -2678,7 +2797,7 @@ float PlayerControl::arpgShotRange() const {
   }
 
 float PlayerControl::arpgSpecialLeft() const {
-  return std::clamp(arpgSpecialCd/SpecialCooldown, 0.f, 1.f);
+  return std::clamp(arpgSpecialCd/arpgSpecialCooldown(), 0.f, 1.f);
   }
 
 float PlayerControl::arpgPushLeft() const {

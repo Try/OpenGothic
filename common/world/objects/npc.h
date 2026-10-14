@@ -21,6 +21,7 @@
 
 class Interactive;
 class WayPoint;
+struct ArpgPerks;
 
 class Npc final {
   public:
@@ -195,7 +196,27 @@ class Npc final {
     auto       comboTiming() const -> Pose::ComboTiming;                                        // gothic-diablo
     void       arpgHoldParade();         // gothic-diablo: block held
     void       arpgHoldAttack();         // gothic-diablo: charged attack held in its wind-up
-    void       arpgStartSpecial(float mul); // gothic-diablo: the next swing is a special attack
+    void       arpgStartSpecial(float mul, bool knock = true); // gothic-diablo: the next swing: x mul (knock: throws down)
+    const ArpgPerks* arpgPerks() const;    // gothic-diablo: what the hero's skill trees give (ARPG view; others: nullptr)
+    bool       arpgKnockDown(Npc& from);   // gothic-diablo: thrown to the ground (special attack, roll trip, heavy arrow)
+    bool       arpgIsKnockedDown() const;
+    void       arpgBlind(uint64_t ms);     // gothic-diablo: its attacks miss for 'ms' (sand in the eyes)
+    void       arpgRollDone(uint64_t endTick) { arpgRollEnd = endTick; } // gothic-diablo: hero's roll ends then
+    void       arpgSetShadow(uint64_t ms); // gothic-diablo: unseen for 'ms' (enemies lose him)
+    bool       arpgInShadow() const;
+    bool       arpgSpinning() const;       // gothic-diablo: Wir: the hero turns round with the last hit
+    bool       arpgTakeSpecialKill() { const bool r = arpgSpecialKill; arpgSpecialKill = false; return r; }
+    void       arpgNpcCollision(bool on);  // gothic-diablo: hero's roll through enemies
+    // gothic-diablo: a ring / wave of a swing to draw (Wir, the shock wave of the charged attack)
+    struct ArpgFx {
+      uint64_t      time  = 0;
+      Tempest::Vec3 pos   = {};
+      float         ang   = 0;
+      float         arc   = 0;
+      float         reach = 0;
+      uint8_t       kind  = 0;  // 3 = whirl, 4 = shock wave
+      };
+    const ArpgFx& arpgFx() const { return arpgFxLast; }
     bool       arpgInReach(const Npc& tg, float mul) const; // gothic-diablo: in reach of a swing (flat, height tolerant)
     void       arpgSetShotMul(float mul) { arpgShotMul = mul; } // gothic-diablo: the next arrow: damage x mul, always hits
     bool       arpgKnockBack(Npc& from, float speed);  // gothic-diablo: push away without damage
@@ -540,6 +561,30 @@ class Npc final {
     float     arpgShotMul        = 1.f;
     uint64_t  arpgNoFallDamage   = 0;  // gothic-diablo: pushed by the hero: landing until this tick does no damage
     uint64_t  arpgInvulnUntil    = 0;  // gothic-diablo: dodge roll of the hero: no damage until this tick
+    // gothic-diablo: skill trees (Npc::arpgPerks)
+    bool      arpgSpecialKnock   = true;  // the special swing throws down (not: a late release with Pewna ręka)
+    bool      arpgHitWave        = false; // the shock wave of the charged attack deals damage
+    uint16_t  arpgHitIndex       = 0;     // hit of the combo series being dealt
+    uint64_t  arpgDownUntil      = 0;     // thrown to the ground by the hero: until this tick
+    uint64_t  arpgBlindUntil     = 0;     // sand in the eyes: attacks miss
+    uint64_t  arpgHardSkinUntil  = 0;     // hero: Twarda skóra after a hit taken
+    uint64_t  arpgRollEnd        = 0;     // hero: end of the last roll
+    uint64_t  arpgShadowUntil    = 0;     // hero: Cień
+    uint64_t  arpgSpinUntil      = 0;     // hero: Wir, turning round
+    bool      arpgShadowOn       = false;
+    bool      arpgSpecialKill    = false; // hero: the charged attack killed someone (Pęd bitewny)
+    struct ArpgDot {
+      float    dps   = 0;
+      uint64_t until = 0;
+      uint64_t next  = 0;
+      Npc*     from  = nullptr;
+      };
+    ArpgDot   arpgBleed, arpgBurn;     // bleeding (Głębokie rany), fire (Gniew Innosa)
+    const VisualFx* arpgBurnFx = nullptr;
+    ArpgFx    arpgFxLast;
+    void      arpgDot(ArpgDot& d, float dps, uint64_t ms, Npc& from);
+    void      arpgTickDots();
+    void      arpgTickShadow();
     Npc*      updateNearestEnemy();
     Npc*      updateNearestBody();
     bool      checkHealth(bool onChange, bool forceKill);

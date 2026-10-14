@@ -3,6 +3,7 @@
 #include <Tempest/Log>
 #include <Tempest/SoundEffect>
 
+#include <algorithm>
 #include <cctype>
 
 #include "game/compatibility/directmemory.h"
@@ -17,6 +18,9 @@
 #include "utils/fileutil.h"
 #include "commandline.h"
 #include "gothic.h"
+#include "camera.h"
+#include "game/gamesession.h"
+#include "ui/arpgmenu.h"
 
 using namespace Tempest;
 
@@ -921,6 +925,21 @@ std::vector<GameScript::DlgChoice> GameScript::dialogChoices(std::shared_ptr<zen
       ch.sort     = info.nr;
       choice.emplace_back(std::move(ch));
       }
+    if(important==0 && !choice.empty() && Camera::isArpgEnabled()) {
+      // gothic-diablo: the Character Helper ("insert ch" in Marvin mode): tests of skill points and Biegłość
+      auto sym = vm.find_symbol_by_index(hnpc->symbol_index());
+      if(sym!=nullptr && sym->name()=="CH") {
+        DlgChoice ch;
+        ch.title    = ArpgMenu::gtxt("ARPG: testy rozwoju postaci");
+        ch.scriptFn = uint32_t(-(10*100000));
+        ch.handle   = choice.front().handle;
+        ch.sort     = 998;
+        // the menu of tests lives in the choices of that info: nothing of it left from the last time
+        auto& cs = ch.handle->choices;
+        cs.erase(std::remove_if(cs.begin(), cs.end(), [](const zenkit::IInfoChoice& c) { return c.function<0; }), cs.end());
+        choice.emplace_back(std::move(ch));
+        }
+      }
     if(!choice.empty()){
       sort(choice);
       return choice;
@@ -957,6 +976,11 @@ std::vector<GameScript::DlgChoice> GameScript::updateDialog(const GameScript::Dl
 void GameScript::exec(const GameScript::DlgChoice &dlg, Npc& player, Npc& npc) {
   ScopeVar self (*vm.global_self(), npc.handlePtr());
   ScopeVar other(*vm.global_other(), player.handlePtr());
+
+  if(int32_t(dlg.scriptFn)<0) {
+    arpgExec(dlg, player, npc); // gothic-diablo: one of our choices (no script function behind it)
+    return;
+    }
 
   zenkit::IInfo& info = *dlg.handle;
 
@@ -1128,6 +1152,11 @@ void GameScript::invokeItem(Npc *npc, ScriptFn fn) {
     return;
 
   ScopeVar self(*vm.global_self(), npc->handlePtr());
+  if(Camera::isArpgEnabled() && npc->isPlayer()) {
+    // gothic-diablo: stone tablets of weapons give skill points for Biegłość instead of percents
+    arpgUseItem(*npc, functionSymbol->name(), [&]() { vm.call_function<void>(functionSymbol); });
+    return;
+    }
   vm.call_function<void>(functionSymbol);
   }
 
@@ -3396,6 +3425,8 @@ void GameScript::info_addchoice(int infoInstance, std::string_view text, int fun
   auto info = findInfo(uint32_t(infoInstance));
   if(info==nullptr)
     return;
+  if(Camera::isArpgEnabled() && arpgChoice(*info, func))
+    return; // gothic-diablo: a weapon lesson: replaced by "unlock up to N%"
   zenkit::IInfoChoice choice {};
   choice.text     = text;
   choice.function = func;
@@ -3455,6 +3486,321 @@ void GameScript::setNpcInfoKnown(const zenkit::INpc& npc, const zenkit::IInfo& i
 bool GameScript::doesNpcKnowInfo(const zenkit::INpc& npc, size_t infoInstance) const {
   auto id = std::make_pair(vm.find_symbol_by_instance(npc)->index(),infoInstance);
   return dlgKnownInfos.find(id)!=dlgKnownInfos.end();
+  }
+
+// ---------------------------------------------------------------------------------------------------------------
+// gothic-diablo: teachers, stone tablets, the Character Helper
+
+namespace {
+enum ArpgAct : int32_t {
+  A_Convert   = 1,  // 5 learning points -> 1 skill point (every teacher)
+  A_Unlock    = 2,  // Biegłość of a weapon up to the teacher's maximum (learning points)
+  A_Reset     = 3,  // all trees back to zero (gold)
+  A_ChMenu    = 10, // Character Helper: the menu of tests
+  A_ChPoints  = 11,
+  A_ChUnlock  = 12,
+  A_ChReset   = 13,
+  A_ChTablets = 14,
+  A_ChBack    = 15,
+  };
+
+int32_t arpgMarker(ArpgAct a, int talent = 0, int max = 0) {
+  return -(int32_t(a)*100000 + int32_t(talent)*1000 + int32_t(max));
+  }
+
+int32_t arpgUnlockCost(int32_t from, int32_t to) {
+  return std::max(1, (to-from+1)/2); // 5 learning points for every 10%
+  }
+
+constexpr int32_t ArpgConvertLp = 5;
+
+int32_t arpgResetCost(const Npc& pl) {
+  return 100*std::max(1, int(pl.level()));
+  }
+}
+
+void GameScript::arpgRaiseFightTalent(Npc& npc, int talent, int32_t delta) {
+  if(delta==0)
+    return;
+  auto fn = vm.find_symbol_by_name("B_RAISEFIGHTTALENT");
+  if(fn==nullptr)
+    return;
+  vm.call_function<void>(fn, npc.handlePtr(), int32_t(talent), delta);
+  }
+
+void GameScript::arpgScanTeachers() {
+  // which choice functions teach: calls of B_Teach* (and for weapons the constant arguments of B_TeachFightTalentPercent:
+  // talent, percent, the teacher's maximum)
+  if(arpgTeachScanned)
+    return;
+  arpgTeachScanned = true;
+
+  std::vector<std::pair<uint32_t,uint32_t>> fns; // address -> symbol (functions; instances / prototypes only end them)
+  for(auto& sym:vm.symbols()) {
+    const auto tp = sym.type();
+    if(tp==zenkit::DaedalusDataType::FUNCTION && sym.is_const() && !sym.is_external())
+      fns.emplace_back(sym.address(), sym.index());
+    else if((tp==zenkit::DaedalusDataType::INSTANCE || tp==zenkit::DaedalusDataType::PROTOTYPE) && sym.address()>0)
+      fns.emplace_back(sym.address(), uint32_t(-1));
+    }
+  std::sort(fns.begin(), fns.end());
+  auto lesson = vm.find_symbol_by_name("B_TEACHFIGHTTALENTPERCENT");
+
+  std::vector<std::pair<bool,int32_t>> ints; // known constant?, value
+  const uint32_t size = vm.size();
+  size_t         cur  = 0;
+  for(uint32_t pc=0; pc<size;) {
+    while(cur+1<fns.size() && fns[cur+1].first<=pc) {
+      ++cur;
+      ints.clear();
+      }
+    zenkit::DaedalusInstruction inst;
+    try {
+      inst = vm.instruction_at(pc);
+      }
+    catch(...) {
+      break;
+      }
+    if(inst.size==0)
+      break;
+    pc += inst.size;
+    if(fns.empty() || pc<=fns[cur].first)
+      continue;
+
+    switch(inst.op) {
+      case zenkit::DaedalusOpcode::PUSHI:
+        ints.emplace_back(true, inst.immediate);
+        break;
+      case zenkit::DaedalusOpcode::PUSHV:
+      case zenkit::DaedalusOpcode::PUSHVI:
+      case zenkit::DaedalusOpcode::PUSHVV: {
+        auto sym = vm.find_symbol_by_index(inst.symbol);
+        if(sym!=nullptr && sym->is_const() && sym->type()==zenkit::DaedalusDataType::INT && sym->count()==1)
+          ints.emplace_back(true, sym->get_int()); else
+          ints.emplace_back(false, 0);
+        break;
+        }
+      case zenkit::DaedalusOpcode::BL: {
+        auto tgt = vm.find_symbol_by_address(inst.address);
+        if(fns[cur].second==uint32_t(-1)) {
+          ints.clear();
+          break;
+          }
+        if(tgt!=nullptr && tgt->name().rfind("B_TEACH",0)==0)
+          arpgTeachFns.insert(int32_t(fns[cur].second));
+        if(tgt!=nullptr && tgt==lesson && ints.size()>=3) {
+          auto& t = ints[ints.size()-3];
+          auto& p = ints[ints.size()-2];
+          auto& m = ints[ints.size()-1];
+          if(t.first && p.first && m.first && t.second>=1 && t.second<=4) {
+            ArpgLesson l;
+            l.talent  = t.second;
+            l.percent = p.second;
+            l.max     = m.second;
+            arpgLessons[int32_t(fns[cur].second)] = l;
+            }
+          }
+        ints.clear();
+        break;
+        }
+      case zenkit::DaedalusOpcode::BE:
+        ints.clear();
+        break;
+      default:
+        break;
+      }
+    }
+  Tempest::Log::i("gothic-diablo: ", arpgTeachFns.size(), " teaching choices, ", arpgLessons.size(), " weapon lessons");
+  }
+
+void GameScript::arpgAddMarker(zenkit::IInfo& info, int32_t marker, std::string_view utf8) {
+  for(auto& c:info.choices)
+    if(c.function==marker)
+      return;
+  zenkit::IInfoChoice c {};
+  c.text     = ArpgMenu::gtxt(utf8);
+  c.function = marker;
+  info.add_choice(c);
+  }
+
+bool GameScript::arpgChoice(zenkit::IInfo& info, int func) {
+  arpgScanTeachers();
+  auto       les   = arpgLessons.find(func);
+  const bool teach = les!=arpgLessons.end() || arpgTeachFns.count(func)>0;
+  if(!teach)
+    return false;
+
+  auto&      pr = owner.arpgProgress();
+  const auto pl = owner.player();
+  // added at the front: under the teacher's own lessons, over "back"
+  arpgAddMarker(info, arpgMarker(A_Convert), "Zamień 5 punktów nauki na punkt umiejętności");
+  if(pl!=nullptr && pr.spentTotal()>0) {
+    char buf[128] = {};
+    std::snprintf(buf, sizeof(buf), "Zmień drzewka umiejętności (%d złota)", int(arpgResetCost(*pl)));
+    arpgAddMarker(info, arpgMarker(A_Reset), buf);
+    }
+  if(les==arpgLessons.end())
+    return false; // other lessons (strength, mana, magic...) stay as in Gothic
+
+  const auto& l   = les->second;
+  const int   cap = pr.cap(l.talent);
+  if(cap<l.max) {
+    char buf[160] = {};
+    std::snprintf(buf, sizeof(buf), "Biegłość - %s: nauka do %d%% (%d punktów nauki)",
+                  ArpgSkills::weaponName(l.talent), int(l.max), int(arpgUnlockCost(cap, l.max)));
+    arpgAddMarker(info, arpgMarker(A_Unlock, l.talent, l.max), buf);
+    }
+  return true; // Gothic's "+1 / +5": the percents are bought in the tree now
+  }
+
+void GameScript::arpgExec(const DlgChoice& dlg, Npc& player, Npc& /*npc*/) {
+  const int32_t v      = -int32_t(dlg.scriptFn);
+  const auto    act    = ArpgAct(v/100000);
+  const int     talent = (v/1000)%100;
+  const int     max    = v%1000;
+  auto&         pr     = owner.arpgProgress();
+  auto&         hp     = player.handle();
+  zenkit::IInfo* info  = dlg.handle;
+
+  auto say = [](std::string_view utf8) {
+    Gothic::inst().onPrint(ArpgMenu::gtxt(utf8));
+    };
+  auto erase = [&]() {
+    if(info==nullptr)
+      return;
+    for(size_t i=0; i<info->choices.size(); ) {
+      if(info->choices[i].function==int32_t(dlg.scriptFn))
+        info->choices.erase(info->choices.begin()+int(i)); else
+        ++i;
+      }
+    };
+  auto resetTrees = [&]() {
+    int32_t back[5] = {};
+    pr.resetRanks(back);
+    for(int t=1; t<=4; ++t)
+      arpgRaiseFightTalent(player, t, -back[t]);
+    };
+  char buf[160] = {};
+
+  switch(act) {
+    case A_Convert: {
+      if(hp.lp<ArpgConvertLp) {
+        say("Za mało punktów nauki (potrzeba 5)");
+        break;
+        }
+      hp.lp     -= ArpgConvertLp;
+      pr.bought += 1;
+      std::snprintf(buf, sizeof(buf), "Punkt umiejętności +1 (drzewka pod T), zostało punktów nauki: %d", int(hp.lp));
+      say(buf);
+      break;
+      }
+    case A_Unlock: {
+      const int32_t cap = pr.cap(talent);
+      if(cap>=max) {
+        erase();
+        break;
+        }
+      const int32_t cost = arpgUnlockCost(cap, max);
+      if(hp.lp<cost) {
+        std::snprintf(buf, sizeof(buf), "Za mało punktów nauki (potrzeba %d)", int(cost));
+        say(buf);
+        break;
+        }
+      hp.lp -= cost;
+      pr.setCap(talent, max);
+      erase();
+      std::snprintf(buf, sizeof(buf), "Biegłość - %s: możesz uczyć się do %d%% (drzewko pod T)", ArpgSkills::weaponName(talent), max);
+      say(buf);
+      break;
+      }
+    case A_Reset: {
+      const int32_t cost = arpgResetCost(player);
+      const size_t  gold = itMi_Gold!=nullptr ? itMi_Gold->index() : size_t(-1);
+      if(gold==size_t(-1) || player.inventory().itemCount(gold)<size_t(cost)) {
+        std::snprintf(buf, sizeof(buf), "Za mało złota (potrzeba %d)", int(cost));
+        say(buf);
+        break;
+        }
+      player.delItem(gold, uint32_t(cost));
+      resetTrees();
+      erase();
+      say("Drzewka umiejętności wyczyszczone: punkty do wydania od nowa (T)");
+      break;
+      }
+    case A_ChMenu: {
+      if(info==nullptr)
+        break;
+      info->choices.clear();
+      arpgAddMarker(*info, arpgMarker(A_ChBack),    "Wróć");
+      arpgAddMarker(*info, arpgMarker(A_ChTablets), "Daj kamienne tablice walki (po jednej, czytanie: język budowniczych)");
+      arpgAddMarker(*info, arpgMarker(A_ChReset),   "Wyczyść drzewka za darmo");
+      arpgAddMarker(*info, arpgMarker(A_ChUnlock),  "Biegłość: nauka do 100% we wszystkich broniach");
+      arpgAddMarker(*info, arpgMarker(A_ChPoints),  "+10 punktów umiejętności");
+      break;
+      }
+    case A_ChPoints:
+      pr.bought += 10;
+      say("+10 punktów umiejętności (drzewka pod T)");
+      break;
+    case A_ChUnlock:
+      for(int t=1; t<=4; ++t)
+        pr.setCap(t, 100);
+      say("Biegłość: wszystkie bronie do 100%");
+      break;
+    case A_ChReset:
+      resetTrees();
+      say("Drzewka umiejętności wyczyszczone");
+      break;
+    case A_ChTablets: {
+      static const char* names[] = {
+        "ITWR_ONEHSTONEPLATE1_ADDON",   "ITWR_ONEHSTONEPLATE2_ADDON",   "ITWR_ONEHSTONEPLATE3_ADDON",
+        "ITWR_TWOHSTONEPLATE1_ADDON",   "ITWR_TWOHSTONEPLATE2_ADDON",   "ITWR_TWOHSTONEPLATE3_ADDON",
+        "ITWR_BOWSTONEPLATE1_ADDON",    "ITWR_BOWSTONEPLATE2_ADDON",    "ITWR_BOWSTONEPLATE3_ADDON",
+        "ITWR_CRSBOWSTONEPLATE1_ADDON", "ITWR_CRSBOWSTONEPLATE2_ADDON", "ITWR_CRSBOWSTONEPLATE3_ADDON",
+        };
+      for(auto n:names) {
+        const size_t id = findSymbolIndex(n);
+        if(id!=size_t(-1))
+          player.addItem(id, 1);
+        }
+      say("12 kamiennych tablic walki w plecaku");
+      break;
+      }
+    case A_ChBack:
+      if(info!=nullptr)
+        info->choices.clear();
+      break;
+    }
+  }
+
+void GameScript::arpgUseItem(Npc& npc, std::string_view fn, const std::function<void()>& call) {
+  // USE_ONEHSTONEPLATE1 .. USE_CRSBOWSTONEPLATE3: Gothic raises the percent (B_RaiseFightTalent) - taken back,
+  // the tablet gives skill points (as many as its level) for the weapon's branch of Biegłość
+  int talent = 0;
+  if(fn.rfind("USE_CRSBOWSTONEPLATE",0)==0)
+    talent = 4;
+  else if(fn.rfind("USE_BOWSTONEPLATE",0)==0)
+    talent = 3;
+  else if(fn.rfind("USE_TWOHSTONEPLATE",0)==0)
+    talent = 2;
+  else if(fn.rfind("USE_ONEHSTONEPLATE",0)==0)
+    talent = 1;
+  const size_t wt = ArpgSkills::weaponsTree();
+  if(talent==0 || wt==size_t(-1) || fn.empty()) {
+    call();
+    return;
+    }
+  const int32_t level  = std::clamp(int(fn.back()-'0'), 1, 3);
+  const int32_t before = npc.hitChance(Talent(talent));
+  call();
+  const int32_t delta  = npc.hitChance(Talent(talent))-before;
+  if(delta<=0)
+    return; // not read (the language of the builders is needed)
+  arpgRaiseFightTalent(npc, talent, -delta);
+  owner.arpgProgress().found[ArpgSkills::branchKey(wt, talent-1)] += level;
+  char buf[160] = {};
+  std::snprintf(buf, sizeof(buf), "Kamienna tablica: +%d do Biegłości (%s), drzewko pod T", int(level), ArpgSkills::weaponName(talent));
+  Gothic::inst().onPrint(ArpgMenu::gtxt(buf));
   }
 
 std::vector<GameScript::WorldMap> GameScript::arpgWorldMaps() {

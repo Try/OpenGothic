@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <vector>
 
 #include "physics/dynamicworld.h"
 
@@ -57,6 +58,14 @@ class Bullet final : public DynamicWorld::BulletCallback {
     void     setArpgSure(bool v) { arpgNoMiss = v; }
     float    arpgDamageMul() const { return arpgMul; }
     void     setArpgDamageMul(float v) { arpgMul = v; }
+    // gothic-diablo: skill trees: flies through 'n' enemies (Przebicie, Strzała przeszywająca), pushes back / throws
+    // down (Ciężki grot: 1 / 2), better aim beyond 15 m (Celne oko)
+    void     setArpgPierce(int n) { arpgPierce = n; }
+    int      arpgPierceLeft() const { return arpgPierce; }
+    void     setArpgHeavy (int h) { arpgHeavy  = h; }
+    float    arpgFarAim() const { return arpgAim; }
+    Tempest::Vec3 arpgVelocity() const;    // gothic-diablo: for the arrows of a volley
+    void     setArpgFarAim(float v) { arpgAim = v; }
 
     bool     isFinished() const;
     float    pathLength() const;
@@ -79,6 +88,10 @@ class Bullet final : public DynamicWorld::BulletCallback {
     float                     critCh     = 0.f;
     bool                      arpgNoMiss = false;
     float                     arpgMul    = 1.f;
+    int                       arpgPierce = 0;
+    int                       arpgHeavy  = 0;
+    float                     arpgAim    = 0;
+    std::vector<const Npc*>   arpgHits;
 
     MeshObjects::Mesh         view;
     Effect                    vfx;

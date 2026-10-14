@@ -4,6 +4,8 @@
 #include <zenkit/addon/daedalus.hh>
 #include <zenkit/CutsceneLibrary.hh>
 
+#include <functional>
+#include <map>
 #include <memory>
 #include <set>
 #include <random>
@@ -166,6 +168,8 @@ class GameScript final {
 
     std::string_view spellCastAnim(Npc& npc, Item&  fn);
     int32_t          arpgSpellCost(const Item& it);   // gothic-diablo: mana of one cast (or of one invest step), -1 = unknown
+    // gothic-diablo: Gothic's weapon percent changed the Gothic way (B_RaiseFightTalent: hit chance, real talent, moves)
+    void             arpgRaiseFightTalent(Npc& npc, int talent, int32_t delta);
     std::string_view messageFromSvm(std::string_view id,int voice) const;
     std::string_view messageByName (std::string_view id) const;
     uint32_t         messageTime   (std::string_view id) const;
@@ -235,6 +239,7 @@ class GameScript final {
     bool aiOutput   (Npc &from, std::string_view name, bool overlay);
     bool aiOutputSvm(Npc &from, std::string_view name, bool overlay);
     bool arpgSvmOut = false; // gothic-diablo: the line being said is an SVM (a remark), not a scripted dialog line
+
 
     bool searchScheme(std::string_view sc, std::string_view listName);
 
@@ -448,6 +453,20 @@ class GameScript final {
     void perc_setrange       (int perc, int dist);
 
     void info_addchoice      (int infoInstance, std::string_view text, int func);
+
+    // gothic-diablo: teachers and skill points. Weapon lessons (functions calling B_TeachFightTalentPercent) become
+    // "unlock up to N%"; every teacher (a choice calling some B_Teach*) also turns learning points into skill points
+    // and resets the trees for gold; the Character Helper (CH) gets a menu of tests. Our choices have negative ids.
+    struct ArpgLesson { int32_t talent = 0, percent = 0, max = 0; };
+    std::map<int32_t,ArpgLesson> arpgLessons;
+    std::set<int32_t>            arpgTeachFns;
+    bool                         arpgTeachScanned = false;
+    void arpgScanTeachers();
+    bool arpgChoice  (zenkit::IInfo& info, int func);       // true: the script's choice is replaced
+    void arpgAddMarker(zenkit::IInfo& info, int32_t marker, std::string_view utf8);
+    void arpgExec    (const DlgChoice& dlg, Npc& player, Npc& npc);
+    void arpgUseItem (Npc& npc, std::string_view fn, const std::function<void()>& call);
+
     void info_clearchoices   (int infoInstance);
     bool infomanager_hasfinished();
 

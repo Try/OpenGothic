@@ -204,6 +204,8 @@ class MainWindow : public Tempest::Window {
     Tempest::Point            arpgMidLast;
     bool                      arpgShowAll     = false; // Z held: labels of all items/usable objects in sight
     bool                      uiWasActive     = false;
+    const Npc*                arpgLevelHero   = nullptr; // gothic-diablo: the hero whose level is watched
+    int32_t                   arpgLevelSeen   = 0;       // ... and his level last frame (a level up = a skill point)
     // gothic-diablo: minimap (Tab), map texture from the world map item of the scripts, explored 4 m cells
     bool                      arpgMinimap     = false;
     bool                      arpgTabDown     = false;

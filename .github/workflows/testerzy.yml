@@ -1,0 +1,116 @@
+name: Wydanie dla testerów
+
+# Ręcznie: Actions → „Wydanie dla testerów” → Run workflow.
+# 1. Kopiuje wybrany build (wydanie build-N z CI) do wydania tester-N – tylko te pobiera launcher testerów
+#    (launcher.json z "Channel": "tester").
+# 2. Odświeża stałą paczkę launchera dla testerów:
+#    https://github.com/<repo>/releases/download/testerzy/GothicDiablo-testerzy.zip
+# Wydania tester-N nie są usuwane przez sprzątanie buildów w build.yml (tam tylko build-*); tu zostaje 10.
+on:
+  workflow_dispatch:
+    inputs:
+      build:
+        description: 'Numer buildu, np. 3670 (puste = najnowszy build z master)'
+        required: false
+        default: ''
+      notatki:
+        description: 'Wiadomość dla testerów – pokazuje się w launcherze (opcjonalnie)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+concurrency:
+  group: testerzy
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    runs-on: ubuntu-24.04
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      BUILD: ${{ inputs.build }}
+      NOTATKI: ${{ inputs.notatki }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Wybór buildu
+        id: pick
+        run: |
+          N="${BUILD//[^0-9]/}"
+          if [ -z "$N" ]; then
+            N=$(gh api "repos/$GH_REPO/releases?per_page=100" \
+                  --jq '.[] | select(.prerelease | not) | .tag_name' \
+                | sed -n 's/^build-\([0-9]\+\)$/\1/p' | sort -n -r | head -n1)
+          fi
+          if [ -z "$N" ] || ! gh api "repos/$GH_REPO/releases/tags/build-$N" --jq .id >/dev/null 2>&1; then
+            echo "::error::Nie ma wydania build-$N (CI trzyma 15 ostatnich buildów)"
+            exit 1
+          fi
+          echo "n=$N" >> "$GITHUB_OUTPUT"
+          echo "Build: $N"
+
+      - name: Wydanie tester-N
+        env:
+          N: ${{ steps.pick.outputs.n }}
+        run: |
+          gh api "repos/$GH_REPO/releases/tags/build-$N" --jq .body > build-body.md
+          SHA=$(gh api "repos/$GH_REPO/releases/tags/build-$N" --jq .target_commitish)
+          {
+            grep -E '^(branch|commit|pr):' build-body.md || true
+            echo "build: $N"
+            echo
+            if [ -n "$NOTATKI" ]; then
+              printf '%s\n\n' "$NOTATKI"
+              echo '---'
+              echo
+            fi
+            { grep -v -E '^(branch|commit|pr):' build-body.md || true; } | sed '/./,$!d'
+          } > notes.md
+          cat notes.md
+
+          if gh api "repos/$GH_REPO/releases/tags/tester-$N" --jq .id >/dev/null 2>&1; then
+            echo "tester-$N już jest"
+            if [ -n "$NOTATKI" ]; then gh release edit "tester-$N" --notes-file notes.md; fi
+          else
+            gh release download "build-$N" -p 'gothic-diablo-win64.zip' -D pkg
+            gh release create "tester-$N" pkg/gothic-diablo-win64.zip --target "$SHA" \
+              --title "Wersja testowa #$N" --notes-file notes.md --latest=false
+          fi
+
+      - name: Usunięcie starych wydań testowych (zostaje 10)
+        run: |
+          gh api "repos/$GH_REPO/releases?per_page=100" --jq '.[].tag_name' > tags.txt
+          { grep -E '^tester-[0-9]+$' tags.txt || true; } | sort -t- -k2 -n -r | tail -n +11 \
+            | xargs -r -n1 gh release delete --cleanup-tag -y
+
+      - name: Paczka launchera dla testerów
+        env:
+          N: ${{ steps.pick.outputs.n }}
+        run: |
+          D="pak/Gothic Diablo"
+          mkdir -p "$D"
+          cp launcher/launcher.ps1 "$D/"
+          sed 's/\r*$/\r/' "launcher/Gothic Diablo.bat" > "$D/Gothic Diablo.bat"
+          sed 's/\r*$/\r/' launcher/testerzy/CZYTAJ.txt  > "$D/CZYTAJ.txt"
+          printf '{\r\n  "Channel": "tester"\r\n}\r\n' > "$D/launcher.json"
+          (cd pak && zip -q -r -X ../GothicDiablo-testerzy.zip "Gothic Diablo")
+          unzip -l GothicDiablo-testerzy.zip
+
+          { cat launcher/testerzy/wydanie.md; echo; echo "Aktualna wersja testowa: **#$N**"; } > opis.md
+          if gh api "repos/$GH_REPO/releases/tags/testerzy" --jq .id >/dev/null 2>&1; then
+            gh release edit testerzy --notes-file opis.md
+          else
+            gh release create testerzy --target "$GITHUB_SHA" --latest=false \
+              --title 'Gothic Diablo – dla testerów' --notes-file opis.md
+          fi
+          gh release upload testerzy GothicDiablo-testerzy.zip --clobber
+
+          URL="https://github.com/$GH_REPO/releases/download/testerzy/GothicDiablo-testerzy.zip"
+          {
+            echo "### Wersja testowa #$N"
+            echo
+            echo "Link dla testerów (stały): $URL"
+          } >> "$GITHUB_STEP_SUMMARY"

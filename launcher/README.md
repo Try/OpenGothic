@@ -18,6 +18,11 @@ Co robi `launcher.ps1`:
 3. usuwa starsze wersje (zostawia 2),
 4. uruchamia `Gothic2Notr.exe -g "<Gothic II>"`.
 
+Folder Gothic II launcher szuka sam: Steam (wszystkie biblioteki z `libraryfolders.vdf`, gra 39510), GOG,
+wpisy instalatorów w rejestrze, typowe ścieżki na każdym dysku. Musi być `System\Gothic2.exe`
+i `Data\Worlds_Addon.vdf` (Noc Kruka). Gdy nic nie znajdzie, okno launchera prosi o wskazanie folderu;
+zmiana później: link **Folder Gothic II**. Wybór zapisuje się w `launcher.json` obok launchera.
+
 Bez internetu uruchamia to, co jest na dysku.
 
 Opcje (dopisać w `.bat` albo podać w wierszu poleceń):
@@ -31,6 +36,19 @@ Opcje (dopisać w `.bat` albo podać w wierszu poleceń):
 | `-Offline` | bez sprawdzania aktualizacji |
 | `-NoStart` | tylko aktualizacja |
 | `-Keep 3` | ile wersji trzymać |
-| `-GothicPath "D:\Gothic II"` | inna ścieżka do gry (domyślnie Steam na F:) |
+| `-GothicPath "D:\Gothic II"` | folder gry bez szukania |
+| `-Channel tester` | tylko wersje testowe (`tester-<N>`); to samo daje `"Channel": "tester"` w `launcher.json` |
 
 Pozostałe parametry trafiają do `Gothic2Notr.exe`, np. `uruchom_arpg.bat -window`.
+
+## Wersje dla testerów
+
+Testerzy dostają stały link do paczki launchera:
+`https://github.com/wr0b3l/gothic-diablo/releases/download/testerzy/GothicDiablo-testerzy.zip`
+(`Gothic Diablo.bat`, `launcher.ps1`, `launcher.json` z kanałem `tester`, `CZYTAJ.txt` z instrukcją).
+Ich launcher pobiera tylko wydania `tester-<N>` – nie każdy build.
+
+Udostępnienie buildu testerom: GitHub → **Actions** → **Wydanie dla testerów** → **Run workflow**
+(numer buildu – puste = najnowszy z `master`; opcjonalnie wiadomość dla testerów, widoczna w launcherze).
+Workflow kopiuje paczkę `build-<N>` do wydania `tester-<N>` (zostaje 10 ostatnich) i odświeża paczkę launchera.
+Teksty: `testerzy/CZYTAJ.txt` (w paczce), `testerzy/wydanie.md` (strona wydania `testerzy`).

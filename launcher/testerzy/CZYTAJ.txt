@@ -1,0 +1,71 @@
+GOTHIC DIABLO – wersja testowa
+==============================
+
+Gothic II: Noc Kruka jako izometryczna gra akcji (w stylu Diablo / Path of Exile)
+na silniku OpenGothic. Fabuła, postacie, przedmioty i mapy są z oryginalnej gry.
+
+
+CZEGO POTRZEBUJESZ
+------------------
+- Windows 10 lub 11 (64-bitowy).
+- Kartę graficzną z obsługą Vulkan (praktycznie każda z ostatnich lat)
+  i aktualne sterowniki karty.
+- Zainstalowany Gothic II Gold Edition (z dodatkiem Noc Kruka):
+  Steam, GOG albo wydanie pudełkowe. Zalecana polska wersja gry.
+
+Twoja instalacja Gothic II nie jest zmieniana – gra tylko czyta z niej dane.
+Zapisy, ustawienia i logi są osobno, w folderze "gra\dane" obok launchera.
+
+
+INSTALACJA
+----------
+1. Rozpakuj archiwum do dowolnego folderu, np. C:\Gry
+   (powstanie folder "Gothic Diablo"). Nie uruchamiaj prosto z archiwum.
+2. Uruchom "Gothic Diablo.bat".
+   Jeśli Windows pokaże "System Windows ochronił ten komputer":
+   kliknij "Więcej informacji", potem "Uruchom mimo to".
+3. Launcher sam szuka Gothic II (Steam, GOG, rejestr Windows).
+   Jeśli go nie znajdzie, poprosi o wskazanie folderu gry – tego,
+   w którym są podfoldery System i Data. Folder można zmienić później
+   linkiem "Folder Gothic II" w oknie launchera.
+4. Launcher pobiera grę (około 130 MB) i włącza przycisk "Graj (ARPG)".
+
+Przy pierwszym uruchomieniu powstaje skrót "Gothic Diablo.lnk" –
+można go przypiąć do paska zadań albo skopiować na pulpit.
+
+
+AKTUALIZACJE
+------------
+Przy każdym uruchomieniu launcher sprawdza, czy jest nowa wersja testowa,
+i sam ją pobiera. Na liście "Wersja" można wrócić do poprzedniej
+(gdy w nowej jest błąd, który przeszkadza w grze).
+"Graj klasycznie" uruchamia zwykłego Gothica (bez trybu ARPG).
+
+
+STEROWANIE (TRYB ARPG)
+----------------------
+Lewy przycisk myszy     chodzenie, rozmowa, podnoszenie, otwieranie, atak
+                        (przytrzymanie = kolejne ciosy)
+Ctrl + lewy przycisk    atak w miejscu w stronę kursora / na dowolną postać
+Prawy przycisk          atak ładowany: przytrzymaj, puść, gdy pasek jest złoty
+Środkowy przycisk       blok (z łukiem: odepchnięcie)
+Spacja                  fikołek (przewrót)
+Lewy Shift              dobycie / schowanie broni
+X                       broń biała <-> łuk lub kusza
+V                       skradanie
+1 / 2                   mikstura zdrowia / many
+3 – 0                   runy i zwoje (przypisanie w ekwipunku: najedź i naciśnij klawisz)
+I / C / T               ekwipunek / postać / drzewka umiejętności
+Tab                     mapa
+Q / E                   obrót kamery
+Esc                     menu gry (zapis, wczytanie, ustawienia)
+
+
+ZGŁASZANIE BŁĘDÓW
+-----------------
+Wyślij osobie, od której masz tę paczkę:
+- co się stało i co robiłeś tuż przed tym (gdzie, z kim, jaką bronią),
+- numer wersji (widać go w launcherze, np. "Wersja testowa #3670"),
+- plik log.txt (i crash.log, jeśli jest) z folderu gra\dane
+  – w launcherze link "Zapisy i logi",
+- jeśli możesz: zrzut ekranu i plik zapisu (save_slot_*.sav z tego samego folderu).

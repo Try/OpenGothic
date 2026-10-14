@@ -9,6 +9,8 @@
 #include <utility>
 #include <vector>
 
+#include "game/arpgskills.h"
+
 class Npc;
 class Item;
 class World;
@@ -115,6 +117,12 @@ class ArpgMenu final {
     void   paintDrag(Tempest::Painter& p, const Fonts& f, InventoryRenderer& items, Npc& pl);
     std::string_view dragHint(const Hit* target, const Item& it) const;
 
+    // skill trees: the ranks when the book was opened (a point can be taken back during the same visit only),
+    // nodes that cannot take a point yet (dimmed over their models)
+    ArpgProgress::Ranks       undoBase;
+    bool                      undoSet = false;
+    std::vector<Tempest::Rect> lockedNodes;
+
     // models of the game's items as icons of the skill nodes (made once, dropped on close or with a new world)
     const World*                                         iconWorld = nullptr;
     std::vector<std::pair<std::string,std::unique_ptr<Item>>> icons;
@@ -130,7 +138,7 @@ class ArpgMenu final {
     void   drawHint  (Tempest::Painter& p, int w, int h, const Fonts& f) const;
     void   paintEquip(Tempest::Painter& p, const Fonts& f, const Tempest::Rect& left, const Tempest::Rect& right, InventoryRenderer& items, Npc& pl);
     void   paintStats(Tempest::Painter& p, const Fonts& f, const Tempest::Rect& left, const Tempest::Rect& right, Npc& pl);
-    void   paintTrees(Tempest::Painter& p, const Fonts& f, const Tempest::Rect& left, const Tempest::Rect& right, InventoryRenderer& items);
+    void   paintTrees(Tempest::Painter& p, const Fonts& f, const Tempest::Rect& left, const Tempest::Rect& right, InventoryRenderer& items, Npc& pl);
     void   paintInfo (Tempest::Painter& p, const Fonts& f, const Tempest::Rect& r, InventoryRenderer& items, const Item* it,
                       std::string_view extra = {}, std::string_view help = {}) const;
     void   paintTrade(Tempest::Painter& p, const Fonts& f, const Tempest::Rect& left, const Tempest::Rect& right, InventoryRenderer& items, Npc& pl);

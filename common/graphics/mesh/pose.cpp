@@ -599,6 +599,18 @@ void Pose::warpAttack(uint64_t ms, uint64_t tickCount) {
     }
   }
 
+void Pose::warpNamed(std::string_view part, uint64_t ms, uint64_t tickCount) {
+  if(ms==0)
+    return;
+  for(auto& i:lay) {
+    if(i.seq==nullptr || i.seq->name.find(part)==std::string::npos || i.sAnim<ms || i.sAnim>tickCount)
+      continue;
+    i.sAnim   -= ms;
+    i.warpEv  += int64_t(ms);
+    i.warpSfx += int64_t(ms);
+    }
+  }
+
 bool Pose::warpSeq(const Animation::Sequence* sq, uint64_t ms, uint64_t tickCount) {
   // gothic-diablo: play one animation faster (dodge roll), same way as warpAttack
   bool found = false;
@@ -851,7 +863,9 @@ const Animation::Sequence* Pose::continueCombo(const AnimationSolver &solver, co
     return nullptr;
     }
 
-  if(!(d.defWindow[id+0]<t && t<=d.defWindow[id+1])) {
+  // gothic-diablo: Wyczucie chwili: the window lasts longer
+  const uint64_t wEnd = d.defWindow[id+0] + uint64_t(float(d.defWindow[id+1]-d.defWindow[id+0])*comboWindowMul);
+  if(!(d.defWindow[id+0]<t && t<=wEnd)) {
     if(prev->seq->name==sq->name && sq->data->defHitEnd.size()>0)
       combo.setBreak();
     return nullptr;
@@ -887,6 +901,7 @@ Pose::ComboTiming Pose::comboTiming(uint64_t tickCount) const {
     r.attack = true;
     r.broken = combo.isBreak();
     r.len    = combo.len();
+    r.hits   = uint16_t(d.defHitEnd.size());
 
     const size_t id = size_t(combo.len())*2;
     if(id+1>=d.defWindow.size()) {
@@ -897,7 +912,7 @@ Pose::ComboTiming Pose::comboTiming(uint64_t tickCount) const {
     const int64_t t  = int64_t(tickCount) - int64_t(i.sAnim);
     const int64_t t0 = (combo.len()>0 && size_t(combo.len()-1)<d.defHitEnd.size()) ? int64_t(d.defHitEnd[combo.len()-1]) : 0;
     const int64_t w0 = int64_t(d.defWindow[id+0]);
-    const int64_t w1 = int64_t(d.defWindow[id+1]);
+    const int64_t w1 = w0 + int64_t(float(int64_t(d.defWindow[id+1])-w0)*comboWindowMul);
     if(t<=w0) {
       r.progress = (w0>t0) ? std::clamp(float(t-t0)/float(w0-t0), 0.f, 1.f) : 1.f;
       }

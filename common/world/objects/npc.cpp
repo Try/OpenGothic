@@ -16,6 +16,8 @@
 #include "utils/fileext.h"
 #include "utils/dbgpainter.h"
 #include "camera.h"
+#include "game/gamesession.h"
+#include "game/arpgskills.h"
 #include "gothic.h"
 #include "resources.h"
 
@@ -2062,6 +2064,8 @@ bool Npc::arpgUseItem(size_t cls) {
   return invent.use(cls,*this,Item::NSLOT,false);
   }
 
+static constexpr float ArpgWhirlRadius = 300.f; // gothic-diablo: Wir, cm (also the ring drawn)
+
 bool Npc::commitDamageArpg() {
   if(!isPlayer() || !Camera::isArpgEnabled())
     return false;
@@ -2072,40 +2076,93 @@ bool Npc::commitDamageArpg() {
   if(ws!=WeaponState::Fist && ws!=WeaponState::W1H && ws!=WeaponState::W2H)
     return false;
 
-  // gothic-diablo: the swing hits every enemy in a 120 degree arc in front of the hero (Gothic: one target);
-  // a charged special attack (right mouse button): 180 degrees, x3 damage, knocks the enemies down
-  const bool special = arpgSpecialPending && arpgSpecialUntil>owner.tickCount();
+  // gothic-diablo: the swing hits every enemy in an arc in front of the hero (Gothic: one target; 120 degrees,
+  // Szeroki łuk up to 180); a charged special attack (right mouse button): 180 degrees, x3 damage, knocks the enemies
+  // down; with Wir the last hit of a series hits all around; with Fala uderzeniowa the special swing also sends a wave
+  const auto* pk      = arpgPerks();
+  const bool  special = arpgSpecialPending && arpgSpecialUntil>owner.tickCount();
   arpgSpecialPending = false;
-  const float rot = rotationRad();
+  const auto  ct      = visual.pose().comboTiming(owner.tickCount());
+  // the last hit of the series: by the number of hits (Gothic's master and 2H combos have a window after it too)
+  const bool  lastHit = ct.attack && ct.hits>1 && ct.len+1>=ct.hits;
+  const bool  whirl   = !special && pk!=nullptr && pk->whirl && lastHit;
+  const float arcDeg  = special ? 180.f : (whirl ? 360.f : (pk!=nullptr ? pk->arc : 120.f));
+  const float rot     = rotationRad();
   const Tempest::Vec2 fwd = {std::cos(rot), std::sin(rot)};
-  const float cosHalf = special ? 0.f : std::cos(60.f*float(M_PI)/180.f);
-  auto inArc = [&](Npc& n) {
+  const float cosHalf = std::cos(arcDeg*0.5f*float(M_PI)/180.f);
+  auto inArc = [&](Npc& n, float ch) {
     const auto  d = n.position()-position();
     const float l = std::sqrt(d.x*d.x+d.z*d.z);
     if(l<1.f)
       return true;
-    return (d.x*fwd.x + d.z*fwd.y)/l >= cosHalf;
+    return (d.x*fwd.x + d.z*fwd.y)/l >= ch;
+    };
+  auto wanted = [&](Npc& n) {
+    if(&n==this || n.isDown())
+      return false;
+    return (&n==currentTarget) || (n.isEnemy(*this) && !owner.script().isFriendlyFire(*this,n));
     };
 
-  std::vector<Npc*> hit;
-  owner.detectNpc(position(), 600.f, [&](Npc& n) {
-    if(&n==this || n.isDown())
+  std::vector<Npc*> hit, wave;
+  const float waveR = (special && pk!=nullptr) ? pk->waveRange : 0.f;
+  owner.detectNpc(position(), std::max(600.f, waveR+100.f), [&](Npc& n) {
+    if(!wanted(n))
       return;
-    const bool wanted = (&n==currentTarget) ||
-                        (n.isEnemy(*this) && !owner.script().isFriendlyFire(*this,n));
-    if(!wanted)
+    if(whirl) {
+      // Wir: everyone inside the ring (ArpgWhirlRadius, the same as the drawn ring), up and down like a swing
+      const auto d = n.position()-position();
+      if(d.x*d.x+d.z*d.z <= ArpgWhirlRadius*ArpgWhirlRadius && std::abs(d.y)<200.f)
+        hit.push_back(&n);
       return;
-    if(!arpgInReach(n, special ? 1.2f : 1.f))
+      }
+    if(arpgInReach(n, special ? 1.2f : 1.f) &&
+       (inArc(n, cosHalf) || (&n==currentTarget && fghAlgo.isInFocusAngle(*this,n)))) {
+      hit.push_back(&n);
       return;
-    if(!inArc(n) && !(&n==currentTarget && fghAlgo.isInFocusAngle(*this,n)))
-      return;
-    hit.push_back(&n);
+      }
+    if(waveR>0.f && inArc(n, std::cos(20.f*float(M_PI)/180.f))) {
+      // the wave: a narrow cone straight ahead
+      const auto d = n.position()-position();
+      if(d.x*d.x+d.z*d.z <= waveR*waveR && std::abs(d.y)<250.f)
+        wave.push_back(&n);
+      }
     });
   arpgHitSpecial = special;
+  arpgHitIndex   = ct.len;
   for(auto n:hit)
     n->takeDamage(*this,nullptr);
+  arpgHitWave = true;
+  for(auto n:wave)
+    n->takeDamage(*this,nullptr);
+  arpgHitWave    = false;
   arpgHitSpecial = false;
+
+  if(whirl) {
+    arpgFxLast.time  = owner.tickCount();
+    arpgFxLast.pos   = position();
+    arpgFxLast.ang   = angle;
+    arpgFxLast.arc   = 360.f;
+    arpgFxLast.reach = ArpgWhirlRadius;
+    arpgFxLast.kind  = 3;
+    arpgSpinUntil    = owner.tickCount()+300; // the hero turns round once with the swing
+    owner.arpgPopup(position()+Tempest::Vec3(0,230.f,0), 1, 5);
+    Tempest::Log::i("gothic-diablo: Wir, hit ", int(ct.len+1), "/", int(ct.hits), ", ", hit.size(), " enemies");
+    }
+  else if(waveR>0.f) {
+    arpgFxLast.time  = owner.tickCount();
+    arpgFxLast.pos   = position();
+    arpgFxLast.ang   = angle;
+    arpgFxLast.arc   = 50.f;
+    arpgFxLast.reach = waveR;
+    arpgFxLast.kind  = 4;
+    owner.arpgPopup(position()+Tempest::Vec3(0,230.f,0), 2, 5);
+    Tempest::Log::i("gothic-diablo: Fala uderzeniowa ", int(waveR), " cm, ", wave.size(), " enemies");
+    }
   return true;
+  }
+
+bool Npc::arpgSpinning() const {
+  return arpgSpinUntil>owner.tickCount();
   }
 
 void Npc::arpgHoldParade() {
@@ -2125,10 +2182,123 @@ bool Npc::arpgInReach(const Npc& tg, float mul) const {
   return d.x*d.x + d.z*d.z + dy*dy <= pd*pd;
   }
 
-void Npc::arpgStartSpecial(float mul) {
+void Npc::arpgStartSpecial(float mul, bool knock) {
   arpgSpecialPending = true;
   arpgSpecialUntil   = owner.tickCount()+1500;
   arpgSpecialMul     = mul;
+  arpgSpecialKnock   = knock;
+  }
+
+const ArpgPerks* Npc::arpgPerks() const {
+  if(!isPlayer() || !Camera::isArpgEnabled())
+    return nullptr;
+  return &owner.gameSession().arpgProgress().perks();
+  }
+
+bool Npc::arpgKnockDown(Npc& from) {
+  // gothic-diablo: thrown to the ground (Gothic's flight of a heavy hit); Wstrząs keeps them out of the fight longer
+  if(isDown() || isPlayer() || interactive()!=nullptr)
+    return false;
+  float a  = angleDir(from.x-x,from.z-z);
+  float da = a-angle;
+  const char hitType = (std::cos(da*M_PI/180.0)<0) ? 'A' : 'B';
+  if(!mvAlgo.accessDamFly(x-from.x, z-from.z, hitType))
+    return false;
+  const auto*    pk    = from.arpgPerks();
+  const uint64_t extra = pk!=nullptr ? uint64_t(pk->getUpDelay*1000.f) : 0;
+  arpgDownUntil    = owner.tickCount()+2000+extra;
+  arpgNoFallDamage = owner.tickCount()+4000;
+  if(extra>0)
+    implFaiWait(2000+extra);
+  return true;
+  }
+
+bool Npc::arpgIsKnockedDown() const {
+  return arpgDownUntil>owner.tickCount();
+  }
+
+void Npc::arpgBlind(uint64_t ms) {
+  arpgBlindUntil = std::max(arpgBlindUntil, owner.tickCount()+ms);
+  }
+
+void Npc::arpgSetShadow(uint64_t ms) {
+  arpgShadowUntil = owner.tickCount()+ms;
+  if(!arpgShadowOn) {
+    arpgShadowOn  = true;
+    hnpc->flags   = zenkit::NpcFlag(int(hnpc->flags) | int(zenkit::NpcFlag::GHOST)); // drawn like a ghost
+    }
+  // the enemies lose him
+  owner.detectNpc(position(), 3000.f, [&](Npc& n) {
+    if(&n!=this && n.target()==this)
+      n.setTarget(nullptr);
+    });
+  }
+
+bool Npc::arpgInShadow() const {
+  return arpgShadowOn && arpgShadowUntil>owner.tickCount();
+  }
+
+void Npc::arpgTickShadow() {
+  if(!arpgShadowOn) {
+    // a game saved during Cień: the hero is no ghost in Gothic
+    if(isPlayer() && (int(hnpc->flags) & int(zenkit::NpcFlag::GHOST))!=0)
+      hnpc->flags = zenkit::NpcFlag(int(hnpc->flags) & ~int(zenkit::NpcFlag::GHOST));
+    return;
+    }
+  if(arpgShadowUntil>owner.tickCount())
+    return;
+  arpgShadowOn = false;
+  hnpc->flags  = zenkit::NpcFlag(int(hnpc->flags) & ~int(zenkit::NpcFlag::GHOST));
+  }
+
+void Npc::arpgNpcCollision(bool on) {
+  physic.setNpcCollision(on);
+  }
+
+void Npc::arpgDot(ArpgDot& d, float dps, uint64_t ms, Npc& from) {
+  const uint64_t now = owner.tickCount();
+  if(d.until<=now)
+    d.next = now+1000;
+  d.dps   = std::max(d.until>now ? d.dps : 0.f, dps); // the stronger one, longer
+  d.until = now+ms;
+  d.from  = &from;
+  }
+
+void Npc::arpgTickDots() {
+  const uint64_t now = owner.tickCount();
+  for(ArpgDot* d:{&arpgBleed, &arpgBurn}) {
+    if(d->until==0)
+      continue;
+    if(isDead() || d->from==nullptr) {
+      d->until = 0;
+      continue;
+      }
+    while(d->next<=now && d->next<=d->until) {
+      d->next += 1000;
+      const int32_t v = std::max<int32_t>(1, int32_t(std::lround(d->dps)));
+      if(isDown())
+        break;
+      const int32_t hp0 = hnpc->attribute[ATR_HITPOINTS];
+      lastHit      = d->from;
+      currentOther = d->from;
+      changeAttribute(ATR_HITPOINTS, -v, true);
+      const int32_t lost = hp0-hnpc->attribute[ATR_HITPOINTS];
+      if(lost>0)
+        owner.arpgPopup(position()+Tempest::Vec3(0,180.f,0), lost, 0);
+      if(isDead())
+        owner.sendPassivePerc(*this,*d->from,*this,PERC_ASSESSMURDER);
+      else if(isUnconscious())
+        owner.sendPassivePerc(*this,*d->from,*this,PERC_ASSESSDEFEAT);
+      }
+    if(d->until<=now) {
+      d->until = 0;
+      d->dps   = 0;
+      if(d==&arpgBurn && arpgBurnFx!=nullptr) {
+        visual.stopEffect(*arpgBurnFx);
+        arpgBurnFx = nullptr;
+        }
+      }
+    }
   }
 
 void Npc::commitDamage() {
@@ -2151,6 +2321,19 @@ void Npc::takeDamage(Npc &other, const Bullet* b) {
     owner.arpgPopup(position()+Tempest::Vec3(0,180.f,0), 0, 4);
     return;
     }
+  if(auto pk = arpgPerks()) {
+    // gothic-diablo: the hero's skill trees: sand in the eyes of the attacker, arrows dodged right after a roll
+    const uint64_t now = owner.tickCount();
+    if(b==nullptr && other.arpgBlindUntil>now) {
+      owner.arpgPopup(position()+Tempest::Vec3(0,180.f,0), 0, 3);
+      return;
+      }
+    if(b!=nullptr && pk->arrowDodge>0.f && arpgRollEnd>0 && now<arpgRollEnd+1000 &&
+       float(owner.script().rand(100))<pk->arrowDodge*100.f) {
+      owner.arpgPopup(position()+Tempest::Vec3(0,180.f,0), 0, 4);
+      return;
+      }
+    }
 
   assert(b==nullptr || !b->isSpell());
   const auto& pose    = visual.pose();
@@ -2161,9 +2344,12 @@ void Npc::takeDamage(Npc &other, const Bullet* b) {
     auto cam = Gothic::inst().camera();
     arpgParry = (cam!=nullptr && cam->isArpgActive());
     }
+  // gothic-diablo: Łamacz gardy: the hero's charged attack goes through a block
+  const auto* hk         = other.arpgPerks();
+  const bool  guardBreak = hk!=nullptr && hk->guardBreak && other.arpgHitSpecial && b==nullptr;
   const bool  isBlock = (arpgParry || !other.isMonster() || other.inventory().activeWeapon()!=nullptr) &&
                          fghAlgo.isInFocusAngle(*this,other) &&
-                         pose.isDefence(owner.tickCount());
+                         pose.isDefence(owner.tickCount()) && !guardBreak;
 
   lastHit = &other;
   if(!isPlayer())
@@ -2230,10 +2416,36 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
   hitResult = DamageCalculator::damageValue(other,*this,b,isSpell,dmg,bMask);
   if(b!=nullptr && !isSpell && !hitResult.hasHit && other.isPlayer() && Camera::isArpgEnabled())
     owner.arpgPopup(position()+Tempest::Vec3(0,180.f,0), 0, 3); // gothic-diablo: "miss"
-  // gothic-diablo: charged special attack of the hero: more damage
-  const bool arpgSpecialHit = (other.isPlayer() && other.arpgHitSpecial && b==nullptr && !isSpell);
-  if(arpgSpecialHit && hitResult.value>0)
-    hitResult.value = int32_t(float(hitResult.value)*other.arpgSpecialMul);
+  // gothic-diablo: charged special attack of the hero: more damage; the hero's skill trees
+  const bool       arpgSpecialHit = (other.isPlayer() && other.arpgHitSpecial && b==nullptr && !isSpell);
+  const ArpgPerks* hk             = isSpell ? nullptr : other.arpgPerks();
+  const uint64_t   now            = owner.tickCount();
+  if(hitResult.value>0 && (arpgSpecialHit || hk!=nullptr)) {
+    float mul = 1.f;
+    if(arpgSpecialHit) {
+      mul = other.arpgSpecialMul*(other.arpgHitWave ? 0.5f : 1.f); // the shock wave: half
+      }
+    else if(hk!=nullptr && b==nullptr) {
+      mul += hk->meleeDmg;                                         // Ostra klinga
+      if(hk->fourthHit && other.arpgHitIndex>=3)
+        mul *= 1.5f;                                               // Czwarty cios
+      }
+    if(hk!=nullptr && b==nullptr) {
+      if(other.arpgRollEnd>0 && now<other.arpgRollEnd+2000)
+        mul += hk->counter;                                        // Kontratak
+      if(arpgIsKnockedDown())
+        mul += hk->vsDown;                                         // Dobicie
+      }
+    hitResult.value = std::max<int32_t>(1, int32_t(std::lround(float(hitResult.value)*mul)));
+    }
+  if(hitResult.value>0 && isPlayer() && !isSpell) {
+    // gothic-diablo: Twarda skóra: some protection for a moment after a hit taken
+    if(auto pk = arpgPerks(); pk!=nullptr && pk->hardSkin>0) {
+      if(arpgHardSkinUntil>now)
+        hitResult.value = std::max<int32_t>(0, hitResult.value-pk->hardSkin);
+      arpgHardSkinUntil = now+3000;
+      }
+    }
   // gothic-diablo: hero's arrows in the ARPG view (normal shot x0.5, charged shot x1.5)
   if(b!=nullptr && !isSpell && hitResult.value>0 && b->arpgDamageMul()!=1.f)
     hitResult.value = std::max<int32_t>(1, int32_t(std::lround(float(hitResult.value)*b->arpgDamageMul())));
@@ -2265,8 +2477,14 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
   if(hitResult.hasHit && (damageType & (1<<zenkit::DamageType::FLY))) {
     mvAlgo.accessDamFly(x-other.x, z-other.z, lastHitType);
     }
-  else if(hitResult.hasHit && arpgSpecialHit) {
-    mvAlgo.accessDamFly(x-other.x, z-other.z, lastHitType); // gothic-diablo: special attack knocks down
+  else if(hitResult.hasHit && arpgSpecialHit && other.arpgSpecialKnock && !other.arpgHitWave) {
+    arpgKnockDown(other); // gothic-diablo: special attack knocks down
+    }
+  else if(hitResult.hasHit && hk!=nullptr && b==nullptr && !arpgSpecialHit && hk->knockback>0.f && isMonster()) {
+    // gothic-diablo: Odrzut: small creatures are pushed back (0.25 of a push speed = about 1 m)
+    const auto bb = bounds();
+    if(bb.bbox[1].y-bb.bbox[0].y<140.f)
+      arpgKnockBack(other, 0.25f*hk->knockback);
     }
 
   if(hitResult.value>0) {
@@ -2278,6 +2496,26 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
       const int32_t lost = hp0 - hnpc->attribute[ATR_HITPOINTS];
       if(lost>0)
         owner.arpgPopup(position()+Tempest::Vec3(0,180.f,0), lost, isPlayer() ? 1 : 0);
+      if(lost>0 && hk!=nullptr) {
+        // gothic-diablo: the hero's skill trees after a hit
+        if(hk->leech>0.f && !other.isDead())
+          other.changeAttribute(ATR_HITPOINTS, std::max<int32_t>(1, int32_t(std::lround(float(lost)*hk->leech))), false);
+        if(hk->bleed>0.f && b==nullptr && !isDown())
+          arpgDot(arpgBleed, float(lost)*hk->bleed, 3000, other);      // Głębokie rany
+        if(hk->innosWrath && arpgSpecialHit && !isDown()) {
+          arpgDot(arpgBurn, std::max(4.f, float(lost)*0.1f), 4000, other); // Gniew Innosa
+          if(arpgBurnFx==nullptr) {
+            if(auto vfx = Gothic::inst().loadVisualFx("VOB_MAGICBURN")) {
+              Effect e(*vfx, owner, *this, SpellFxKey::Count);
+              e.setActive(true);
+              visual.startEffect(owner, std::move(e), 0, true);
+              arpgBurnFx = vfx;
+              }
+            }
+          }
+        if(arpgSpecialHit && isDown())
+          other.arpgSpecialKill = true;                                 // Pęd bitewny
+        }
       }
 
     if(bMask&(COLL_APPLYVICTIMSTATE|COLL_DOEVERYTHING)) {
@@ -2298,6 +2536,8 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
   }
 
 void Npc::takeFallDamage(const Vec3& fallSpeed) {
+  if(auto pk = arpgPerks(); pk!=nullptr && pk->acrobat)
+    arpgNoFallDamage = owner.tickCount()+1; // gothic-diablo: Akrobata: the hero rolls out of a fall
   if(arpgNoFallDamage>owner.tickCount()) {
     // gothic-diablo: landing after the hero's push (bow + middle mouse button): no damage
     arpgNoFallDamage = 0;
@@ -2514,15 +2754,37 @@ void Npc::tick(uint64_t dt) {
 
   assert(go2.flag!=GoToHint::GT_Enemy && go2.flag!=GoToHint::GT_EnemyG);
 
-  // gothic-diablo: hero attacks 20% faster in the ARPG view
-  if(isPlayer() && Camera::isArpgEnabled() && isAttackAnim()) {
-    auto cam = Gothic::inst().camera();
-    if(cam!=nullptr && cam->isArpgActive()) {
-      arpgWarpAcc += float(dt)*0.2f;
-      const uint64_t ms = uint64_t(arpgWarpAcc);
-      arpgWarpAcc -= float(ms);
-      visual.warpAttack(ms, owner.tickCount());
+  // gothic-diablo: hero attacks 20% faster in the ARPG view (Płynne ruchy more); Szybki naciąg: bow / crossbow
+  if(isPlayer() && Camera::isArpgEnabled()) {
+    auto        cam = Gothic::inst().camera();
+    const auto* pk  = arpgPerks();
+    if(cam!=nullptr && cam->isArpgActive() && pk!=nullptr) {
+      visual.setArpgComboWindow(1.f+pk->comboWindow);
+      const auto ws = weaponState();
+      if(isAttackAnim()) {
+        arpgWarpAcc += float(dt)*(0.2f+pk->atkSpeed);
+        const uint64_t ms = uint64_t(arpgWarpAcc);
+        arpgWarpAcc -= float(ms);
+        visual.warpAttack(ms, owner.tickCount());
+        }
+      else if((ws==WeaponState::Bow || ws==WeaponState::CBow) && pk->shotSpeed>0.f) {
+        arpgWarpAcc += float(dt)*pk->shotSpeed;
+        const uint64_t ms = uint64_t(arpgWarpAcc);
+        arpgWarpAcc -= float(ms);
+        visual.warpNamed("BOW", ms, owner.tickCount());
+        }
+      } else {
+      visual.setArpgComboWindow(1.f);
       }
+    arpgTickShadow();
+    }
+  if(arpgBleed.until!=0 || arpgBurn.until!=0)
+    arpgTickDots();
+  if(arpgSpinUntil!=0) {
+    // Wir: one turn in 0.3 s
+    if(arpgSpinUntil>owner.tickCount())
+      setDirection(angle+float(dt)*1.2f); else
+      arpgSpinUntil = 0;
     }
 
   // gothic-diablo: one animation played faster (hero's dodge roll)
@@ -4318,6 +4580,34 @@ bool Npc::shootBow(Interactive* focOverride) {
     if(arpgShotMul>1.f)
       b.setHitChance(1.f); // with Bullet::arpgSure: no miss at any distance
     b.setArpgSure(arpgShotMul>1.f);
+    // the skill trees: Przebicie, Celne oko (every arrow); Strzała przeszywająca, Ciężki grot, Grad strzał (charged)
+    if(auto pk = arpgPerks()) {
+      const bool charged = arpgShotMul>1.f;
+      b.setArpgPierce(pk->pierce + (charged && pk->piercingShot ? 99 : 0));
+      b.setArpgFarAim(pk->farAim);
+      b.setArpgHeavy(charged ? pk->heavyHead : 0);
+      // the item of the arrows is gone when the last one was shot
+      const Item* arrows = invent.getItem(size_t(munition));
+      if(charged && pk->volley>0 && arrows!=nullptr) {
+        const Vec3 v = b.arpgVelocity();
+        for(int i=0; i<pk->volley; ++i) {
+          // a fan: 8 degrees between the arrows, to both sides
+          const float a  = 8.f*float((i/2)+1)*((i%2)==0 ? 1.f : -1.f)*float(M_PI)/180.f;
+          const Vec3  vi = Vec3(v.x*std::cos(a)-v.z*std::sin(a), v.y, v.x*std::sin(a)+v.z*std::cos(a));
+          auto& bi = owner.shootBullet(*arrows,*this,nullptr,nullptr);
+          bi.setDirection(vi);
+          bi.setOrigin(this);
+          bi.setDamage(b.damage());
+          bi.setHitChance(1.f);
+          bi.setArpgSure(true);
+          bi.setArpgDamageMul(b.arpgDamageMul());
+          bi.setArpgPierce(b.arpgPierceLeft());
+          bi.setArpgHeavy(charged ? pk->heavyHead : 0);
+          }
+        owner.arpgPopup(position()+Tempest::Vec3(0,230.f,0), 3, 5);
+        Tempest::Log::i("gothic-diablo: Grad strzał, +", pk->volley, " arrows");
+        }
+      }
     }
   arpgShotMul = 1.f;
   return true;
@@ -4897,6 +5187,8 @@ bool Npc::canRayHitPoint(const Tempest::Vec3 self, const Tempest::Vec3 pos, floa
   }
 
 SensesBit Npc::canSenseNpc(const Npc &oth, bool freeLos, float extRange) const {
+  if(oth.arpgInShadow() && &oth!=this)
+    return SensesBit::SENSE_NONE; // gothic-diablo: Cień
   // NOTE1: https://github.com/Try/OpenGothic/pull/589#issuecomment-2045897394
   // NOTE2: interacting with chest(lockpicking) or some MOBSI should not produce 'noise'
   // NOTE3: seem npc can't hear player in general case, and hearing relevant only for sendImmediatePerc cases

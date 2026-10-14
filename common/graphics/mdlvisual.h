@@ -76,6 +76,8 @@ class MdlVisual final {
     const Pose&                    pose() const { return *skInst; }
     void                           warpAttack(uint64_t ms, uint64_t tickCount); // gothic-diablo: faster attacks
     bool                           warpSeq(const Animation::Sequence* sq, uint64_t ms, uint64_t tickCount);
+    void                           warpNamed(std::string_view part, uint64_t ms, uint64_t tickCount); // gothic-diablo
+    void                           setArpgComboWindow(float mul);                                     // gothic-diablo
     void                           holdParade(uint64_t tickCount);              // gothic-diablo: block held
     void                           holdAttack(uint64_t tickCount);              // gothic-diablo: charged attack
     bool                           updateAnimation(Npc* npc, Interactive* mobsi, World& world, uint64_t dt, bool force);

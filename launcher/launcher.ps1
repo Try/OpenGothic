@@ -10,6 +10,11 @@
   Bez parametrów otwiera okno launchera ("Gothic Diablo.lnk" / "Gothic Diablo.bat").
   -Console: bez okna, od razu aktualizacja + gra (uruchom_arpg.bat / uruchom_klasycznie.bat).
 
+  Folder Gothic II launcher szuka sam (Steam, GOG, rejestr, typowe ścieżki); gdy nie znajdzie,
+  prosi o wskazanie. Wybrany folder i kanał zapisuje w launcher.json obok siebie.
+  Kanał "tester" (paczka dla testerów: launcher.json z "Channel": "tester") bierze tylko
+  wydania "tester-N", które autor wybiera ręcznie (workflow "Wydanie dla testerów").
+
   Opcje:
     -Classic          tryb klasyczny (bez ARPG) – tylko z -Console
     -Offline          bez sprawdzania aktualizacji
@@ -17,7 +22,8 @@
     -Build <N>        konkretny build, np. -Build 3631 (cofnięcie wersji)
     -Keep <N>         ile wersji trzymać na dysku
     -NoStart          tylko aktualizacja, bez uruchamiania gry
-    -GothicPath ...   folder Gothic II
+    -GothicPath ...   folder Gothic II (bez szukania)
+    -Channel <kanał>  build (wszystkie buildy, domyślnie) albo tester
     pozostałe parametry trafiają do Gothic2Notr.exe
 #>
 [CmdletBinding()]
@@ -29,7 +35,8 @@ param(
   [int]$Build = 0,
   [ValidateRange(1, 50)][int]$Keep = 2,
   [switch]$NoStart,
-  [string]$GothicPath = 'F:\SteamLibrary\steamapps\common\Gothic II',
+  [string]$GothicPath = '',
+  [ValidateSet('', 'build', 'tester')][string]$Channel = '',
   [string]$Repo = 'wr0b3l/gothic-diablo',
   [Parameter(ValueFromRemainingArguments = $true)][string[]]$GameArgs
 )
@@ -37,6 +44,29 @@ param(
 $ErrorActionPreference = 'Stop'
 $ProgressPreference    = 'SilentlyContinue'
 [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+
+# launcher.json obok launchera: { "GothicPath": "...", "Channel": "tester" }
+$ConfigFile = Join-Path $PSScriptRoot 'launcher.json'
+
+function Read-Config {
+  $h = @{}
+  if (Test-Path -LiteralPath $ConfigFile) {
+    try {
+      $o = Get-Content -LiteralPath $ConfigFile -Raw -Encoding UTF8 | ConvertFrom-Json
+      foreach ($p in $o.PSObject.Properties) { $h[$p.Name] = $p.Value }
+    } catch { }
+  }
+  $h
+}
+
+function Save-Config([hashtable]$Values) {
+  $h = Read-Config
+  foreach ($k in $Values.Keys) { $h[$k] = $Values[$k] }
+  try { [pscustomobject]$h | ConvertTo-Json | Set-Content -LiteralPath $ConfigFile -Encoding UTF8 } catch { }
+}
+
+$Config = Read-Config
+if (-not $Channel) { $Channel = if ([string]$Config.Channel -eq 'tester') { 'tester' } else { 'build' } }
 
 $Cfg = @{
   Root       = $PSScriptRoot
@@ -46,6 +76,7 @@ $Cfg = @{
   UserAgent  = 'gothic-diablo-launcher'
   Repo       = $Repo
   GothicPath = $GothicPath
+  Channel    = $Channel
   Keep       = $Keep
   GameArgs   = @($GameArgs | Where-Object { $_ })
 }
@@ -64,7 +95,7 @@ $Core = {
   function Test-GameRunning { [bool](Get-Process -Name 'Gothic2Notr' -ErrorAction SilentlyContinue) }
 
   function Get-NotesText([string]$Notes) {
-    $lines = $Notes -split "`r?`n" | Where-Object { $_ -notmatch '^(branch|commit|pr|Co-Authored-By|Claude-Session|Signed-off-by):' }
+    $lines = $Notes -split "`r?`n" | Where-Object { $_ -notmatch '^(branch|commit|pr|build|Co-Authored-By|Claude-Session|Signed-off-by):' }
     ($lines -join "`n").Trim()
   }
 
@@ -91,12 +122,15 @@ $Core = {
     @($list | Sort-Object Number -Descending)
   }
 
+  # kanał build: wydania "build-N" (każdy build CI), kanał tester: "tester-N" (wybrane buildy).
+  # Tag = folder w gra\wersje: zawsze "build-N" – tester-N to ta sama paczka co build-N.
   function Get-RemoteBuilds {
-    $uri = "https://api.github.com/repos/$($Cfg.Repo)/releases?per_page=50"
+    $prefix = if ($Cfg.Channel -eq 'tester') { 'tester' } else { 'build' }
+    $uri = "https://api.github.com/repos/$($Cfg.Repo)/releases?per_page=100"
     $headers = @{ 'User-Agent' = $Cfg.UserAgent; 'Accept' = 'application/vnd.github+json' }
     $releases = Invoke-RestMethod -Uri $uri -Headers $headers -TimeoutSec 20
     $list = foreach ($r in $releases) {
-      if ($r.tag_name -notmatch '^build-(\d+)$') { continue }
+      if ($r.tag_name -notmatch "^$prefix-(\d+)$") { continue }
       $n = [int]$Matches[1]
       $asset = @($r.assets | Where-Object { $_.name -like '*win64.zip' })[0]
       if (-not $asset) { continue }
@@ -104,7 +138,7 @@ $Core = {
       if ([string]$r.body -match '(?m)^branch:\s*(\S+)') { $br = $Matches[1] }
       [pscustomobject]@{
         Number = $n
-        Tag    = [string]$r.tag_name
+        Tag    = "build-$n"
         Branch = $br
         Title  = [string]$r.name
         Notes  = [string]$r.body
@@ -241,8 +275,8 @@ $Core = {
   }
 
   function Start-Game($Run, [bool]$ClassicMode) {
-    if (-not (Test-Path (Join-Path $Cfg.GothicPath 'Data'))) {
-      throw "Nie znaleziono Gothic II w '$($Cfg.GothicPath)'. Popraw -GothicPath w launcher.ps1."
+    if (-not $Cfg.GothicPath -or -not (Test-Path -LiteralPath (Join-Path $Cfg.GothicPath 'Data'))) {
+      throw 'Nie znaleziono Gothic II. Uruchom „Gothic Diablo.bat” i wskaż folder gry albo podaj -GothicPath.'
     }
     New-Item -ItemType Directory -Force -Path $Cfg.DataDir | Out-Null
     $argList = @('-g', "`"$($Cfg.GothicPath)`"")
@@ -252,6 +286,121 @@ $Core = {
   }
 }
 . $Core
+
+# =============================================================================
+# Folder Gothic II
+# =============================================================================
+# 'ok': Gothic II z Nocą Kruka, 'noaddon': Gothic II bez Nocy Kruka, '': to nie Gothic II
+function Test-GothicDir([string]$Path) {
+  if (-not $Path) { return '' }
+  try {
+    if (-not (Test-Path -LiteralPath (Join-Path $Path 'System\Gothic2.exe'))) { return '' }
+    if (-not (Test-Path -LiteralPath (Join-Path $Path 'Data\Worlds_Addon.vdf'))) { return 'noaddon' }
+    'ok'
+  } catch { '' }
+}
+
+function Get-GothicCandidates {
+  $out = New-Object System.Collections.Generic.List[string]
+
+  # Steam: wszystkie biblioteki z libraryfolders.vdf, gra 39510 (Gothic II: Gold Edition)
+  $steamRoots = @()
+  foreach ($k in 'HKCU:\Software\Valve\Steam', 'HKLM:\SOFTWARE\WOW6432Node\Valve\Steam', 'HKLM:\SOFTWARE\Valve\Steam') {
+    $p = Get-ItemProperty -Path $k -ErrorAction SilentlyContinue
+    if (-not $p) { continue }
+    foreach ($v in $p.SteamPath, $p.InstallPath) { if ($v) { $steamRoots += ([string]$v -replace '/', '\').TrimEnd('\') } }
+  }
+  $libs = @()
+  foreach ($root in @($steamRoots | Select-Object -Unique)) {
+    $libs += $root
+    $vdf = Join-Path $root 'steamapps\libraryfolders.vdf'
+    if (-not (Test-Path -LiteralPath $vdf)) { continue }
+    try {
+      foreach ($m in [regex]::Matches((Get-Content -LiteralPath $vdf -Raw), '"(?:path|\d+)"\s+"([^"]*:\\\\[^"]*)"')) {
+        $libs += ($m.Groups[1].Value -replace '\\\\', '\').TrimEnd('\')
+      }
+    } catch { }
+  }
+  foreach ($lib in @($libs | Select-Object -Unique)) {
+    $dir = 'Gothic II'
+    $acf = Join-Path $lib 'steamapps\appmanifest_39510.acf'
+    try {
+      if ((Test-Path -LiteralPath $acf) -and ((Get-Content -LiteralPath $acf -Raw) -match '"installdir"\s+"([^"]+)"')) { $dir = $Matches[1] }
+    } catch { }
+    $out.Add((Join-Path $lib "steamapps\common\$dir"))
+  }
+
+  # GOG i instalatory (pudełko, GOG, Steam) – wpisy w rejestrze
+  foreach ($k in 'HKLM:\SOFTWARE\WOW6432Node\GOG.com\Games\*', 'HKLM:\SOFTWARE\GOG.com\Games\*') {
+    foreach ($g in @(Get-ItemProperty -Path $k -ErrorAction SilentlyContinue)) {
+      if ([string]$g.gameName -match 'Gothic\s*(2|II)\b' -and $g.path) { $out.Add([string]$g.path) }
+    }
+  }
+  foreach ($k in 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*',
+                 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*',
+                 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*') {
+    foreach ($u in @(Get-ItemProperty -Path $k -ErrorAction SilentlyContinue)) {
+      if ([string]$u.DisplayName -match 'Gothic\s*(2|II)\b' -and $u.InstallLocation) { $out.Add(([string]$u.InstallLocation).Trim('"')) }
+    }
+  }
+
+  # typowe miejsca na każdym dysku
+  $rel = 'Program Files (x86)\Steam\steamapps\common\Gothic II', 'Program Files\Steam\steamapps\common\Gothic II',
+         'SteamLibrary\steamapps\common\Gothic II', 'Steam\steamapps\common\Gothic II',
+         'GOG Games\Gothic 2 Gold', 'GOG Games\Gothic II Gold', 'Program Files (x86)\GOG Galaxy\Games\Gothic 2 Gold',
+         'Program Files (x86)\JoWooD\Gothic II', 'Program Files (x86)\Gothic II', 'Program Files\Gothic II',
+         'Games\Gothic II', 'Gry\Gothic II', 'Gothic II', 'Gothic 2', 'Gothic II Gold', 'Gothic 2 Gold'
+  foreach ($d in [IO.DriveInfo]::GetDrives()) {
+    try { if ($d.DriveType -ne 'Fixed' -or -not $d.IsReady) { continue } } catch { continue }
+    foreach ($r in $rel) { $out.Add((Join-Path $d.RootDirectory.FullName $r)) }
+  }
+  $out
+}
+
+function Find-Gothic {
+  foreach ($c in @(Get-GothicCandidates | ForEach-Object { $_.TrimEnd('\') } | Select-Object -Unique)) {
+    if ((Test-GothicDir $c) -eq 'ok') { return $c }
+  }
+  ''
+}
+
+# folder podany ręcznie (-GothicPath) > zapisany w launcher.json > znaleziony (i zapisany)
+function Resolve-GothicPath {
+  if ($GothicPath) { return $GothicPath }
+  $saved = [string]$Config.GothicPath
+  if ((Test-GothicDir $saved) -eq 'ok') { return $saved }
+  $found = Find-Gothic
+  if ($found) { Save-Config @{ GothicPath = $found } }
+  $found
+}
+
+# okno wyboru folderu; zwraca folder z Gothic II (zapisany w launcher.json) albo '' (anulowane)
+function Select-GothicFolder([string]$Why, $Owner) {
+  Add-Type -AssemblyName System.Windows.Forms
+  if (-not $Owner) { $Owner = New-Object Windows.Forms.Form -Property @{ TopMost = $true } }
+  $dlg = New-Object Windows.Forms.FolderBrowserDialog
+  $dlg.Description = $Why
+  $dlg.ShowNewFolderButton = $false
+  if ($Cfg.GothicPath -and (Test-Path -LiteralPath $Cfg.GothicPath)) { $dlg.SelectedPath = $Cfg.GothicPath }
+  while ($true) {
+    if ($dlg.ShowDialog($Owner) -ne [Windows.Forms.DialogResult]::OK) { return '' }
+    $p = $dlg.SelectedPath.TrimEnd('\')
+    # wskazany podfolder System / Data – bierzemy folder gry
+    if ((Split-Path $p -Leaf) -in 'System', 'Data') {
+      $up = Split-Path $p -Parent
+      if ((Test-GothicDir $up) -ne '') { $p = $up }
+    }
+    $t = Test-GothicDir $p
+    if ($t -eq 'ok') { Save-Config @{ GothicPath = $p }; return $p }
+    $msg = if ($t -eq 'noaddon') {
+      "W folderze`n$p`njest Gothic II bez dodatku Noc Kruka.`n`nPotrzebny jest Gothic II Gold (z Nocą Kruka)."
+    } else {
+      "W folderze`n$p`nnie ma Gothic II (brak System\Gothic2.exe).`n`nWskaż folder gry – ten, w którym są podfoldery System i Data."
+    }
+    [void][Windows.Forms.MessageBox]::Show($Owner, $msg, 'Gothic Diablo', 'OK', 'Warning')
+    $dlg.SelectedPath = $p
+  }
+}
 
 # =============================================================================
 # Tryb konsolowy
@@ -327,6 +476,10 @@ function Invoke-Gui {
     [void][GothicDiablo.Native]::SetProcessDPIAware()
   } catch { }
   [Windows.Forms.Application]::EnableVisualStyles()
+  $pickWhy = 'Wskaż folder gry Gothic II Gold (z Nocą Kruka) – ten, w którym są podfoldery System i Data.'
+  if (-not $Cfg.GothicPath) {
+    $Cfg.GothicPath = Select-GothicFolder ("Nie znalazłem Gothic II na tym komputerze.`n" + $pickWhy) $null
+  }
   New-LauncherShortcut
 
   $Sync = [hashtable]::Synchronized(@{ Status = ''; Level = 'info'; Phase = ''; Done = 0L; Total = 0L; Speed = 0.0; Error = $null; Result = $null })
@@ -347,7 +500,7 @@ function Invoke-Gui {
 
   # --- kontrolki ---
   $form = New-Object Windows.Forms.Form
-  $form.Text = 'Gothic Diablo'
+  $form.Text = if ($Cfg.Channel -eq 'tester') { 'Gothic Diablo – wersja testowa' } else { 'Gothic Diablo' }
   $form.AutoScaleDimensions = New-Object Drawing.SizeF(96, 96)
   $form.AutoScaleMode = 'Dpi'
   $form.ClientSize  = New-Object Drawing.Size(580, 450)
@@ -439,9 +592,13 @@ function Invoke-Gui {
     $l
   }
   $linkData = New-Link 'Zapisy i logi'
+  $linkGame = New-Link 'Folder Gothic II'
   $linkPage = New-Link 'Strona buildu'
   $links.Controls.Add($linkData)
+  $links.Controls.Add($linkGame)
   $links.Controls.Add($linkPage)
+  $tips = New-Object Windows.Forms.ToolTip
+  $tips.SetToolTip($linkGame, $(if ($Cfg.GothicPath) { $Cfg.GothicPath } else { 'nie wskazano' }))
 
   function New-Button([string]$Text, [bool]$Primary) {
     $b = New-Object Windows.Forms.Button
@@ -506,7 +663,7 @@ function Invoke-Gui {
     $combo.Items.Clear()
     for ($i = 0; $i -lt $items.Count; $i++) {
       $it = $items[$i]
-      $name = if ($it.Branch) { "#$($it.Number)  ·  $($it.Branch)" } else { "#$($it.Number)" }
+      $name = if ($it.Branch -and $Cfg.Channel -ne 'tester') { "#$($it.Number)  ·  $($it.Branch)" } else { "#$($it.Number)" }
       $flags = @()
       if ($i -eq 0) { $flags += 'najnowsza' }
       $flags += $(if ($it.Installed) { 'na dysku' } else { 'do pobrania' })
@@ -525,8 +682,8 @@ function Invoke-Gui {
   function Show-Selected {
     $it = Get-Selected
     if (-not $it) { $notes.Text = ''; $linkPage.Visible = $false; return }
-    $head = "Build #$($it.Number)"
-    if ($it.Branch) { $head += "  ·  gałąź $($it.Branch)" }
+    $head = if ($Cfg.Channel -eq 'tester') { "Wersja testowa #$($it.Number)" } else { "Build #$($it.Number)" }
+    if ($it.Branch -and $Cfg.Channel -ne 'tester') { $head += "  ·  gałąź $($it.Branch)" }
     if ($it.Notes -match '(?m)^commit:\s*(\S+)') { $head += "  ·  commit $($Matches[1])" }
     $body = Get-NotesText $it.Notes
     if (-not $body) { $body = '(brak opisu)' }
@@ -568,6 +725,11 @@ function Invoke-Gui {
       return
     }
     if (Test-GameRunning) { Log 'Gra już działa.' 'warn'; return }
+    if (-not $GothicPath -and (Test-GothicDir $Cfg.GothicPath) -ne 'ok') {
+      $p = Select-GothicFolder $pickWhy $form
+      if (-not $p) { Log 'Bez folderu Gothic II gra nie ruszy – kliknij „Folder Gothic II”.' 'warn'; return }
+      Set-GamePath $p
+    }
     try {
       $run = Get-Installed | Where-Object { $_.Tag -eq $it.Tag } | Select-Object -First 1
       Move-OldBuild
@@ -619,6 +781,12 @@ function Invoke-Gui {
     Update-Buttons
   }
 
+  function Set-GamePath([string]$Path) {
+    $Cfg.GothicPath = $Path
+    $tips.SetToolTip($linkGame, $Path)
+    Log "Gothic II: $Path" 'ok'
+  }
+
   # --- zdarzenia ---
   $combo.Add_SelectedIndexChanged({ try { Show-Selected } catch { } })
   $btnPlay.Add_Click({ Invoke-Play $false })
@@ -628,6 +796,10 @@ function Invoke-Gui {
     Start-Process explorer.exe -ArgumentList "`"$($Cfg.DataDir)`""
   })
   $linkPage.Add_LinkClicked({ $it = Get-Selected; if ($it -and $it.Page) { Start-Process $it.Page } })
+  $linkGame.Add_LinkClicked({
+    $p = Select-GothicFolder $pickWhy $form
+    if ($p) { Set-GamePath $p }
+  })
 
   $timer = New-Object Windows.Forms.Timer
   $timer.Interval = 150
@@ -691,6 +863,7 @@ function Invoke-Gui {
 
 # =============================================================================
 try {
+  $Cfg.GothicPath = Resolve-GothicPath
   if ($Console -or $NoStart) {
     Invoke-Console
   } else {

@@ -87,8 +87,12 @@ class PlayerControl final {
     ArpgBar arpgBar() const;
     // charged attack: -1 = not charging, otherwise seconds charged
     float arpgChargeTime() const { return arpgCharge==ChargeHold ? arpgChargeT : -1.f; }
-    static constexpr float ChargeFull   = 2.0f;  // s to fully charge
+    static constexpr float ChargeFull   = 2.0f;  // s to fully charge (without the skill tree)
     static constexpr float ChargeWindow = 0.2f;  // s after that to release for the full hit
+    // gothic-diablo: the same with the skill trees (Skupienie, Szersze okno, Opanowanie)
+    float arpgChargeTimeFull() const;
+    float arpgChargeTimeWindow() const;
+    float arpgSpecialCooldown() const;
     // slash effect of the charged attack
     struct ArpgSlash {
       uint64_t      time = 0;     // world tick of the release
@@ -288,6 +292,7 @@ class PlayerControl final {
     float          arpgChargeWait   = 0;
     float          arpgChargeSide   = 1;
     bool           arpgChargeFull   = false;
+    bool           arpgChargeLate   = false; // released late, with Pewna ręka: x2
     float          arpgSpecialCd    = 0;  // s left of the special attack cooldown (not a world tick: survives loading)
     float          arpgPushCd       = 0;  // s left of the bow push cooldown
     bool           arpgPushReq      = false;
@@ -317,6 +322,16 @@ class PlayerControl final {
     bool           arpgDodgeReq  = false; // dodge requested, waiting for the hero to be able to do it
     float          arpgDodgeWait = 0;     // s, how long the request is kept
     float          arpgDodgeLock = 0;     // s, dodge animation in progress: no steering
+    // gothic-diablo: the roll with the skill tree Fikołek
+    float          arpgRollTotal  = 0;     // s, the lock of this roll
+    Tempest::Vec3  arpgRollDir    = {};    // where it goes (flat, normalized)
+    float          arpgRollExtra  = 0;     // cm more than the animation (Dalszy przewrót)
+    bool           arpgRollNoNpc  = false; // through enemies (Przez szereg): collision with npcs off
+    bool           arpgSecondRoll = true;  // Drugi oddech: a roll right out of the last one is ready
+    float          arpgSecondT    = 0;     // s until it is ready again
+    std::vector<const Npc*> arpgRollTripped; // Podcięcie: thrown down by this roll
+    void           arpgTickRoll(Npc& pl, float dtF);
+    void           arpgEndRoll(Npc& pl);
 
     DialogMenu&    dlg;
     InventoryMenu& inv;

@@ -818,6 +818,14 @@ void MdlVisual::warpAttack(uint64_t ms, uint64_t tickCount) {
   skInst->warpAttack(ms,tickCount);
   }
 
+void MdlVisual::warpNamed(std::string_view part, uint64_t ms, uint64_t tickCount) {
+  skInst->warpNamed(part,ms,tickCount);
+  }
+
+void MdlVisual::setArpgComboWindow(float mul) {
+  skInst->setArpgComboWindow(mul);
+  }
+
 bool MdlVisual::warpSeq(const Animation::Sequence* sq, uint64_t ms, uint64_t tickCount) {
   return skInst->warpSeq(sq,ms,tickCount);
   }

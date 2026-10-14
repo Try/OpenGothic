@@ -5,6 +5,7 @@
 #include <memory>
 
 #include "game/gamescript.h"
+#include "game/arpgskills.h"
 #include "camera.h"
 #include "gametime.h"
 
@@ -46,6 +47,9 @@ class GameSession final {
     GameScript*  script() const { return vm.get(); }
 
     Camera&      camera()       { return     *cam; }
+    // gothic-diablo: skill points and skill trees of the hero (saved with the game, survive a change of the world)
+    ArpgProgress&       arpgProgress()       { return arpgProg; }
+    const ArpgProgress& arpgProgress() const { return arpgProg; }
 
     auto         loadSound(const Tempest::Sound& raw) -> Tempest::SoundEffect;
     auto         loadSound(const SoundFx&        fx, bool& looped)  -> Tempest::SoundEffect;
@@ -102,6 +106,7 @@ class GameSession final {
     gtime                          wrldTime;
 
     std::vector<WorldStateStorage> visitedWorlds;
+    ArpgProgress                   arpgProg;
 
     ChWorld                        chWorld;
     bool                           exitSessionFlg=false;

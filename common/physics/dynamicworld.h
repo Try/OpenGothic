@@ -102,6 +102,7 @@ class DynamicWorld final {
         void  debugDraw(DbgPainter& p) const;
 
         void  setEnable(bool e);
+        void  setNpcCollision(bool e); // gothic-diablo: false = through other npcs
         void  setUserPointer(void* p);
 
         auto  center()  const -> Tempest::Vec3;
