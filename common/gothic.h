@@ -42,17 +42,13 @@ class Gothic final {
       };
 
     struct Options {
-      GiMethod doGi              = GiMethod::None;
-      uint32_t aaPreset          = 0;
-
       bool     hideFocus         = false;
       float    cameraFov         = 67.5f;
       int      fpsLimit          = 0;
       float    interfaceScale    = 1;
       int      inventoryCellSize = 70;
 
-      Tempest::Size newChapterSize = {800, 600};
-
+      Tempest::Size newChapterSize    = {800, 600};
       Tempest::Size saveGameImageSize = {0, 0};
 
       bool     showHealthBar     = true;

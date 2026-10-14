@@ -72,13 +72,6 @@ std::unique_ptr<Tempest::AbstractGraphicsApi> mkApi(const CommandLine& g) {
   }
 
 int main(int argc,const char** argv) {
-#if defined(__IOS__)
-  {
-    auto appdir = InstallDetect::applicationSupportDirectory();
-    std::filesystem::current_path(appdir);
-  }
-#endif
-
   try {
     static Tempest::WFile logFile("log.txt");
     Tempest::Log::setOutputCallback([](Tempest::Log::Mode mode, const char* text) {
@@ -142,9 +135,11 @@ int main(int argc,const char** argv) {
   Resources            resources{device};
   DataWorker           dataWorker;
 
+#if 0
   Gothic               gothic;
   GameMusic            music;
   gothic.setupGlobalScripts(); //TODO: move to PIE or remove
+#endif
 
   Tempest::Application app;
   app.setStyle(new UiStyle());

@@ -9,8 +9,16 @@ using namespace Tempest;
 
 ProjectTree::ProjectTree() {
   setSizePolicy(Preferred,Preferred);
-
-  auto& list = addWidget(new Shelf());
   setLayout(Vertical);
-  list.onItemSelected.bind(&onFile,&Signal<void(const ProjectItem&)>::operator());
+
+  shelf = &addWidget(new Shelf());
+  shelf->onItemSelected.bind(&onFile,&Signal<void(const ProjectItem&)>::operator());
+  }
+
+void ProjectTree::clear() {
+  shelf->clear();
+  }
+
+void ProjectTree::invalidate() {
+  shelf->invalidate();
   }

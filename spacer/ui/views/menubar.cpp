@@ -77,7 +77,7 @@ void MenuBar::onFileMenu() {
   auto sid = EditorSettings::inst().shortcut(EditorSettings::S_Save);
 
   Menu::Declarator decl;
-  decl.item(Icon(), "Open project", oid.toString(), this, &MenuBar::onOpenProj);
+  decl.item(Icon(), "Import project", oid.toString(), this, &MenuBar::onOpenProj);
   decl.item(Icon(), "New item",     nid.toString(), this, &MenuBar::onNewItem);
   decl.item(Icon(), "Save",         sid.toString(), this, &MenuBar::onSave);
 

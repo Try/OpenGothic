@@ -9,6 +9,9 @@ class Shelf : public Tempest::Widget {
   public:
     Shelf();
 
+    void clear();
+    void invalidate();
+
     Tempest::Signal<void(const ProjectItem&)> onItemSelected;
 
   private:

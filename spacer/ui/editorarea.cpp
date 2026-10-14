@@ -1,11 +1,13 @@
 #include "editorarea.h"
 
 #include <Tempest/Painter>
+#include <Tempest/Widget>
 #include <Tempest/Button>
 #include <Tempest/Label>
 #include <Tempest/Log>
 
-#include "project/projectmgr.h"
+//#include "project/projectmgr.h"
+#include "project/projectitem.h"
 
 #include "ui/editors/baseeditor.h"
 #include "ui/editors/worldeditor.h"
@@ -13,7 +15,6 @@
 #include "ui/views/menubar.h"
 #include "ui/dialogs/questionbox.h"
 #include "ui/rootview.h"
-
 #include "ui/resizablearea.h"
 #include "ui/tabs.h"
 
@@ -492,6 +493,8 @@ void EditorArea::openApp() {
     return;
     }
     */
+  tabs->invalidate();
+  projTree->invalidate();
   }
 
 void EditorArea::closeAll() {
@@ -499,6 +502,8 @@ void EditorArea::closeAll() {
   editor.clear();
   for(auto i:e)
     delete i;
+  tabs->invalidate();
+  projTree->clear();
   }
 
 std::string_view EditorArea::editorTitle(size_t i) const {

@@ -17,6 +17,7 @@ class DataWorker {
 
     static DataWorker& inst();
     static void        load(const ProjectItem& it);
+    static void        unloadAll();
     static bool        needUpdate();
 
   private:
@@ -24,6 +25,7 @@ class DataWorker {
     void pushItem(const ProjectItem& it);
     bool popItem(ProjectItem& out);
     void commit(ProjectItem& out, std::function<void ()> func);
+    void implUnloadAll();
 
     auto createPreview(ProjectItem& itm, const MeshObjects::Mesh& mesh, const Tempest::Vec3* bbox) -> std::shared_ptr<Tempest::Texture2d>;
 

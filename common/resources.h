@@ -84,6 +84,7 @@ class Resources final {
     static const char*               renderer();
     static void                      mountWork(const std::filesystem::path& path);
     static void                      loadVdfs(const std::vector<std::u16string> &modvdfs, bool modFilter);
+    static void                      unloadAll();
 
     static const Tempest::Sampler&   shadowSampler();
 

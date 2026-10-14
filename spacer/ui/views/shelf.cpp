@@ -141,12 +141,20 @@ struct Shelf::Central : Widget {
       index();
       }
 
+    void clear() {
+      for(auto i:items)
+        delete i;
+      items.clear();
+      }
+
     void refreshProject() {
       owner.subdir.clear();
       refreshFileTree();
       }
 
     void refreshFileTree() {
+      // if(!ProjectMgr::inst().hasVisibleProject())
+      //   return;
       while(owner.subdir.size()>0) {
         auto& it = owner.subdir.back();
         if(Resources::vdfsIndex().resolve(it.path())==nullptr) {
@@ -195,16 +203,9 @@ struct Shelf::Central : Widget {
           }
       }
 
-    void clear() {
-      for(auto i:items)
-        delete i;
-      items.clear();
-      }
-
     ProjectItem currentFolder() const {
-      if(owner.subdir.size()<=1)
+      if(owner.subdir.size()==0)
         return ProjectMgr::inst().vdf(0);
-      auto&  pro = ProjectMgr::inst();
       return owner.subdir.back();
       }
 
@@ -218,7 +219,7 @@ struct Shelf::Central : Widget {
       lockLayout = true;
       clear();
 
-      auto&  pro = ProjectMgr::inst();
+      auto& pro = ProjectMgr::inst();
       if(proj<ProjectMgr::inst().vdfCount()) {
         if(!owner.showByType)
           indexFolder(); else
@@ -355,8 +356,6 @@ struct Shelf::PathDelegate : Tempest::ListDelegate {
   };
 
 Shelf::Shelf() {
-  subdir.push_back(ProjectMgr::inst().vdf(0));
-
   category    = &addWidget(new ListView());
   auto& right =  addWidget(new Widget());
 
@@ -389,7 +388,27 @@ Shelf::Shelf() {
   right.setLayout(Vertical);
   setLayout(Horizontal);
 
+  invalidate();
+  }
+
+void Shelf::clear() {
+  subdir.clear();
+  subdir.push_back(ProjectItem());
   setCategory(0);
+  // cen->clear();
+  cen->refreshFileTree();
+  path->invalidateView();
+  doLayout();
+  }
+
+void Shelf::invalidate() {
+  subdir.clear();
+  subdir.push_back(ProjectMgr::inst().vdf(0));
+  setCategory(0);
+
+  cen->refreshFileTree();
+  path->invalidateView();
+  doLayout();
   }
 
 void Shelf::onItem(Widget*, const ProjectItem& itm) {

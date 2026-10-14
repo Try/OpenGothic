@@ -1,12 +1,17 @@
 #include "projectmgr.h"
 
+#include "workers/dataworker.h"
 #include "projectitem.h"
+#include "gothic.h"
 #include "resources.h"
+#include <cassert>
 
 static ProjectMgr* instance = nullptr;
 
 ProjectMgr::ProjectMgr() {
   instance = this;
+  gothic   = std::make_shared<Gothic>();
+  gothic->setupGlobalScripts();
   rootItem = mkIndex(Resources::vdfsIndex().root(), size_t(-1), "");
   }
 
@@ -16,6 +21,25 @@ ProjectMgr::~ProjectMgr() {
 
 ProjectMgr& ProjectMgr::inst() {
   return *instance;
+  }
+
+bool ProjectMgr::hasVisibleProject() const {
+  return gothic!=nullptr;
+  }
+
+void ProjectMgr::unloadAll() {
+  DataWorker::unloadAll();
+  Resources::unloadAll();
+  rootItem.reset();
+  gothic.reset();
+  }
+
+bool ProjectMgr::addProject(const std::filesystem::path& proj) {
+  assert(gothic==nullptr);
+  gothic   = std::make_shared<Gothic>();
+  gothic->setupGlobalScripts();
+  rootItem = mkIndex(Resources::vdfsIndex().root(), size_t(-1), "");
+  return true;
   }
 
 std::shared_ptr<ProjectItem::Data> ProjectMgr::mkIndex(const zenkit::VfsNode& node, size_t depth, const std::string& prefix) {

@@ -178,6 +178,25 @@ void Resources::loadVdfs(const std::vector<std::u16string>& modvdfs, bool modFil
   // f.write(v.data(),v.size());
   }
 
+void Resources::unloadAll() {
+  device().waitIdle();
+
+  std::lock_guard<std::recursive_mutex> g(inst->sync);
+  inst->gothicAssets = zenkit::Vfs();
+  inst->texCache.clear();
+  inst->pixCache.clear();
+  inst->aniMeshCache.clear();
+  inst->decalMeshCache.clear();
+  inst->skeletonCache.clear();
+  inst->animCache.clear();
+  inst->bindCache.clear();
+  inst->emiMeshCache.clear();
+  inst->zenCache.clear();
+
+  std::lock_guard<std::recursive_mutex> gf(inst->syncFont);
+  inst->gothicFnt.clear();
+  }
+
 Resources::~Resources() {
   DmLoader_release(dmLoader);
   inst=nullptr;

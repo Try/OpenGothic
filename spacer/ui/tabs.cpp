@@ -16,7 +16,7 @@ class Tabs::Tab : public Button {
     static const int closeBtnSize = 16;
     static const int extraSize    = closeBtnSize+8+8+8;
 
-    Tab(Tabs& e,size_t id):tabs(e),id(id){
+    Tab(Tabs& e, size_t id):tabs(e),id(id){
       close = &addWidget(UiHelper::toolBtn(Assets::inst().ic.close));
       close->onClick.bind(this,&Tab::onClose);
       setFont(Assets::inst().fntSmall);
