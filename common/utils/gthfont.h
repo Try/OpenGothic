@@ -16,6 +16,7 @@ class GthFont final {
 
     int  pixelSize() const;
     void setScale(float s);
+    void setColor(const Tempest::Color& c) { color = c; } // gothic-diablo: tinted copies (ink on the book pages)
 
     void drawText(Tempest::Painter& p, int x, int y, int w, int h, std::string_view txt, Tempest::AlignFlag align, int firstLine=0) const;
     void drawText(Tempest::Painter& p, int x, int y, std::string_view txt) const;

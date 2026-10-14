@@ -109,6 +109,9 @@ class Inventory final {
     Item*  currentSpell(uint8_t s) { return numslot[s]; }
     const Item*  currentSpell(uint8_t s) const { return numslot[s]; }
     Item*  findByFlags(ItmFlags f, uint32_t num) const;
+    // gothic-diablo: what the hero wears (ARPG equipment window):
+    // 0 melee, 1 ranged, 2 armor, 3 amulet, 4 left ring, 5 right ring, 6 belt
+    const Item*  equippedIn(uint8_t slot) const;
 
     uint8_t currentSpellSlot() const;
     bool    hasStateItem() const;

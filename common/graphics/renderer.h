@@ -93,6 +93,7 @@ class Renderer final {
     void drawLights       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& view);
     void drawSky          (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& view);
     void drawAmbient      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& view);
+    void drawArpgDof      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview, const Camera& camera);
     void drawTonemapping  (Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
     void drawCMAA2        (Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
     void drawReflections  (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);

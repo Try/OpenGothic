@@ -79,6 +79,7 @@ void Shaders::compileShaders() noexcept {
   copyBuf   = computeShader("copy.comp.sprv");
   copyImg   = computeShader("copy_img.comp.sprv");
   copy      = postEffect("copy");
+  arpgDof   = postEffect("arpg_dof");
 
   patch     = computeShader("patch.comp.sprv");
 

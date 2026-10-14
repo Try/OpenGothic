@@ -176,6 +176,10 @@ class Npc final {
     bool       setAnimItem(std::string_view scheme, int state);
     void       stopAnim(std::string_view ani);
     void       startFaceAnim(std::string_view anim, float intensity, uint64_t duration);
+    // gothic-diablo: cinematic dialogs: the head follows the one we talk with (nullptr: straight ahead again);
+    // a nod of the listener (only standing, hands free)
+    void       arpgLookAtHead(const Npc* who, uint64_t dt);
+    bool       arpgNod();
     bool       stopItemStateAnim();
     bool       hasAnim(std::string_view scheme) const;
     bool       hasAnim(Anim a) const;
@@ -192,6 +196,7 @@ class Npc final {
     void       arpgHoldParade();         // gothic-diablo: block held
     void       arpgHoldAttack();         // gothic-diablo: charged attack held in its wind-up
     void       arpgStartSpecial(float mul); // gothic-diablo: the next swing is a special attack
+    bool       arpgInReach(const Npc& tg, float mul) const; // gothic-diablo: in reach of a swing (flat, height tolerant)
     void       arpgSetShotMul(float mul) { arpgShotMul = mul; } // gothic-diablo: the next arrow: damage x mul, always hits
     bool       arpgKnockBack(Npc& from, float speed);  // gothic-diablo: push away without damage
     bool       arpgUseItem(size_t cls);                // gothic-diablo: use an item like in the inventory

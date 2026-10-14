@@ -34,6 +34,9 @@ class LightGroup final {
 
         uint64_t effectPrefferedTime() const;
 
+        // gothic-diablo: forget the light without touching its group (the world that owned it is gone)
+        void     release() { owner = nullptr; id = 0; }
+
       private:
         Light(LightGroup& l, size_t id):owner(&l), id(id) {}
         LightGroup* owner = nullptr;

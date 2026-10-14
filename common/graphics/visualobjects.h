@@ -97,6 +97,8 @@ class VisualObjects final {
       uint64_t timeStart = 0;
       uint64_t timeUntil = 0;
       float    intensity = 0;
+      uint32_t fadeIn    = 0; // gothic-diablo: ms, intensity rises from 0 (a blink)
+      uint32_t fadeOut   = 0; // gothic-diablo: ms before timeUntil, intensity falls to 0
       };
 
     struct Object {

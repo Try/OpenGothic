@@ -259,6 +259,8 @@ class DynamicWorld final {
     RayCamResult   cameraRay    (const Tempest::Vec3& from, const Tempest::Vec3& to) const;
 
     RayLandResult  ray          (const Tempest::Vec3& from, const Tempest::Vec3& to) const;
+    // gothic-diablo: also hits the inner side of surfaces (normal n points away from 'from': 'from' is inside the rock)
+    RayLandResult  rayBothSides (const Tempest::Vec3& from, const Tempest::Vec3& to) const;
     RayLandResult  sweep        (const Tempest::Vec3& from, const Tempest::Vec3& to, float R) const;
     RayQueryResult rayNpc       (const Tempest::Vec3& from, const Tempest::Vec3& to, const Npc* except) const;
     float          soundOclusion(const Tempest::Vec3& from, const Tempest::Vec3& to) const;
@@ -300,6 +302,7 @@ class DynamicWorld final {
 
     void           moveBullet(BulletBody& b, const Tempest::Vec3& dir, uint64_t dt);
     RayWaterResult implWaterRay(const Tempest::Vec3& from, const Tempest::Vec3& to, float stepHeight) const;
+    RayLandResult  implRay     (const Tempest::Vec3& from, const Tempest::Vec3& to, bool frontOnly) const;
     bool           hasCollision(const NpcItem &it, CollisionTest& out);
 
     std::unique_ptr<CollisionWorld>    world;

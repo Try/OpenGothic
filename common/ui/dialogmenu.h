@@ -28,6 +28,13 @@ class DialogMenu : public Tempest::Widget {
     bool isMobsiDialog() const;
     void dialogCamera(Camera& camera);
 
+    // gothic-diablo: cinematic dialogs in the ARPG mode: a talk between two is filmed by the camera's director
+    // (letterbox, subtitles and the answers in the lower bar, nothing else over the picture)
+    bool                 isArpgCinema() const;
+    ArpgDialogCam::Input arpgDialogInput() const;
+    // a third one speaks in a cinematic talk (his line comes outside the dialog): subtitles, the camera goes to him
+    bool                 arpgThirdLine(Npc& npc, std::string_view text, uint64_t ms);
+
     void openPipe(Npc &player, Npc& npc, AiOuputPipe*& out);
     bool isNpcInDialog(const Npc* npc) const;
 
@@ -46,6 +53,7 @@ class DialogMenu : public Tempest::Widget {
     void paintChoice(Tempest::PaintEvent& e);
 
     void mouseDownEvent (Tempest::MouseEvent& event) override;
+    void mouseMoveEvent (Tempest::MouseEvent& event) override;
     void mouseWheelEvent(Tempest::MouseEvent& event) override;
 
     void onSelect();
@@ -118,6 +126,11 @@ class DialogMenu : public Tempest::Widget {
     void startTrade();
     void skipPhrase();
 
+    // gothic-diablo: cinematic look (ARPG mode)
+    void paintArpg(Tempest::Painter& p);
+    void paintScreenMessages(Tempest::Painter& p);
+    bool arpgChoiceReady() const;
+
     InventoryMenu&                      trade;
     Pipe                                pipe;
 
@@ -146,4 +159,28 @@ class DialogMenu : public Tempest::Widget {
     bool                                showSubtitles       = true;
     bool                                showSubtitlesPlayer = true;
     uint64_t                            choiceAnimTime      = 0;
+
+    uint32_t                            lineId              = 0; // gothic-diablo: counts the lines (cuts of the camera)
+
+    // gothic-diablo: acting in cinematic dialogs: looks, nods of the listener, moods, blinking
+    struct Acting {
+      bool     on        = false;
+      uint64_t t         = 0;    // ms in the talk
+      uint32_t line      = 0;
+      Npc*     nodWho    = nullptr;
+      uint64_t nodAt     = 0;
+      uint64_t lastNodPl = 0, lastNodOther = 0;
+      uint64_t blinkPl   = 0, blinkOther   = 0;
+      uint64_t moodAt    = 0;
+      const char* mood   = nullptr;
+      };
+    Acting                              acting;
+    void tickActing(uint64_t dt);
+    void stopActing();
+    float                               barsK               = 0; // gothic-diablo: 0..1 letterbox
+    std::vector<Tempest::Rect>          choiceRects;             // gothic-diablo: the answers on the screen (mouse)
+    Npc*                                third     = nullptr;     // gothic-diablo: a third one who speaks in the talk
+    std::string                         thirdTxt;
+    uint64_t                            thirdTime = 0;
+    uint64_t                            thirdLeft = 0;
   };

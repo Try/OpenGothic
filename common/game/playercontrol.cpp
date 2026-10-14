@@ -1356,6 +1356,7 @@ void PlayerControl::implMove(uint64_t dt) {
       // left mouse button: walk / interact / attack
       switch(arpgClickTick(pl, rot, rotation, pl.isRotationAllowed(), dt)) {
         case ArpgStop: ani = Npc::Anim::Idle; rotation = 0; break;
+        case ArpgAttack: ani = Npc::Anim::NoAnim; rotation = 0; break;
         case ArpgTurn: ani = Npc::Anim::Idle; break;
         case ArpgMove: ani = Npc::Anim::Move; break;
         }
@@ -2089,8 +2090,8 @@ PlayerControl::ArpgStep PlayerControl::arpgClickTick(Npc& pl, float& rot, int& r
   if(c.kind==ArpgClick::Attack) {
     const auto ws = pl.weaponState();
     if(ws==WeaponState::Fist || ws==WeaponState::W1H || ws==WeaponState::W2H) {
-      FightAlgo fa;
-      inRange = fa.isInAttackRange(pl, *c.target.npc, w->script());
+      // a bit closer than the reach of the hit (Npc::commitDamageArpg): the swing lands even if the enemy steps back
+      inRange = pl.arpgInReach(*c.target.npc, 0.9f);
       }
     else if(ws==WeaponState::Bow || ws==WeaponState::CBow) {
       // bows: close enough and a free line of fire
@@ -2207,7 +2208,7 @@ PlayerControl::ArpgStep PlayerControl::arpgClickTick(Npc& pl, float& rot, int& r
         break;
         }
       if(arpgSwing(pl, rot, allowRot, faceAng, faceDa))
-        return ArpgStop;
+        return pl.isAttackAnim() ? ArpgAttack : ArpgStop;
       break; // order done
       }
     case ArpgClick::Strike: {
@@ -2228,7 +2229,7 @@ PlayerControl::ArpgStep PlayerControl::arpgClickTick(Npc& pl, float& rot, int& r
       if(ws!=WeaponState::Fist && ws!=WeaponState::W1H && ws!=WeaponState::W2H)
         break;
       if(arpgSwing(pl, rot, allowRot, faceAng, faceDa))
-        return ArpgStop;
+        return pl.isAttackAnim() ? ArpgAttack : ArpgStop;
       break;
       }
     }
@@ -2409,6 +2410,13 @@ bool PlayerControl::arpgSwing(Npc& pl, float& rot, bool allowRot, float faceAng,
   // Returns false when the order is done.
   auto&      c    = arpgClick;
   const auto ws   = pl.weaponState();
+  if(c.swingCheck) {
+    // a swing that did not really start (cut in the same frame, e.g. by stopping from a run) does not count:
+    // a single click would end with no hit at all
+    c.swingCheck = false;
+    if(!pl.isAttackAnim() && c.swings>0)
+      c.swings--;
+    }
   const bool want = (c.held || c.swings==0);
   if(want && (std::fabs(faceDa)<100.f || pl.isAttackAnim())) {
     bool go = true;
@@ -2424,8 +2432,10 @@ bool PlayerControl::arpgSwing(Npc& pl, float& rot, bool allowRot, float faceAng,
         pl.setDirection(rot);
         }
       const bool ok = (ws==WeaponState::Fist) ? pl.fistShoot() : pl.swingSword();
-      if(ok)
+      if(ok) {
         c.swings++;
+        c.swingCheck = true;
+        }
       }
     return true;
     }
@@ -2673,6 +2683,22 @@ float PlayerControl::arpgSpecialLeft() const {
 
 float PlayerControl::arpgPushLeft() const {
   return std::clamp(arpgPushCd/PushCooldown, 0.f, 1.f);
+  }
+
+void PlayerControl::arpgStop() {
+  arpgClick      = ArpgClick();
+  arpgDodgeReq   = false;
+  arpgPotionReq  = 0;
+  arpgSpellSlot  = 0;
+  arpgPushReq    = false;
+  arpgBlocking   = false;
+  arpgChargeHeld = false;
+  if(arpgCharge!=ChargeNone) {
+    auto w = Gothic::inst().world();
+    if(auto pl = (w!=nullptr ? w->player() : nullptr))
+      arpgChargeCancel(*pl);
+    arpgCharge = ChargeNone;
+    }
   }
 
 void PlayerControl::arpgPush() {

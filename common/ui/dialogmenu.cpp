@@ -4,10 +4,14 @@
 #include <Tempest/Log>
 #include <algorithm>
 #include <cassert>
+#include <cctype>
+#include <cstdlib>
+#include <map>
 
 #include "utils/gthfont.h"
 #include "utils/string_frm.h"
 #include "world/objects/npc.h"
+#include "world/world.h"
 #include "gothic.h"
 #include "inventorymenu.h"
 #include "resources.h"
@@ -43,7 +47,8 @@ DialogMenu::DialogMenu(InventoryMenu &trade)
   tex     = Resources::loadTexture("DLG_CHOICE.TGA");
   ambient = Resources::loadTexture("DLG_AMBIENT.TGA");
 
-  setCursorShape(CursorShape::Hidden);
+  // gothic-diablo: the ARPG mode keeps the mouse cursor (answers are picked with it)
+  setCursorShape(Camera::isArpgEnabled() ? CursorShape::Arrow : CursorShape::Hidden);
   setFocusPolicy(NoFocus);
 
   Gothic::inst().onSettingsChanged.bind(this,&DialogMenu::setupSettings);
@@ -74,6 +79,25 @@ void DialogMenu::tick(uint64_t dt) {
 
   if(remPrint>0 || choiceAnimTime>0 || current.time>0 || pscreen.size()>0)
     update();
+
+  if(thirdLeft>0) {
+    thirdLeft = (thirdLeft>dt) ? thirdLeft-dt : 0;
+    if(thirdLeft==0 && third!=nullptr) {
+      third->arpgLookAtHead(nullptr, 0);
+      third = nullptr;
+      }
+    update();
+    }
+  tickActing(dt);
+  {
+    // gothic-diablo: the letterbox comes in and goes out in 0.3 s
+    const float dst = (isArpgCinema() && trade.isOpen()==InventoryMenu::State::Closed) ? 1.f : 0.f; // not over the trade
+    const float stp = float(dt)/300.f;
+    if(barsK!=dst) {
+      barsK = std::clamp(dst, barsK-stp, barsK+stp);
+      update();
+      }
+  }
 
   if(remPrint<dt) {
     for(size_t i=1;i<MAX_PRINT;++i)
@@ -227,6 +251,7 @@ bool DialogMenu::aiOutput(Npc &npc, std::string_view msg) {
       pl->stopDlgAnim();
     }
 
+  lineId++;
   current.txt     = Gothic::inst().messageByName(msg);
   current.msgTime = Gothic::inst().messageTime(msg);
   current.time    = current.msgTime + (dlgAnimation ? ANIM_TIME*2 : 0);
@@ -349,6 +374,9 @@ void DialogMenu::onDoneText() {
   }
 
 void DialogMenu::close() {
+  stopActing();
+  third     = nullptr;
+  thirdLeft = 0;
   auto prevPl  = pl;
   auto prevNpc = other;
 
@@ -426,6 +454,12 @@ void DialogMenu::paintEvent(Tempest::PaintEvent &e) {
   const int      dw = std::min(w(),int(600*scale));
   const int      dh = int(100*scale);
 
+  if(Camera::isArpgEnabled()) {
+    paintArpg(p);
+    paintScreenMessages(p);
+    return;
+    }
+
   if(current.time>0 && trade.isOpen()==InventoryMenu::State::Closed && haveToShowSubtitles(curentIsPl)) {
     if(ambient!=nullptr) {
       int dlgW = dw;
@@ -452,7 +486,10 @@ void DialogMenu::paintEvent(Tempest::PaintEvent &e) {
     }
 
   paintChoice(e);
+  paintScreenMessages(p);
+  }
 
+void DialogMenu::paintScreenMessages(Painter& p) {
   for(size_t i=0;i<pscreen.size();++i){
     auto& sc   = pscreen[i];
     auto  fnt  = *sc.font;
@@ -528,7 +565,7 @@ void DialogMenu::paintChoice(PaintEvent &e) {
   }
 
 bool DialogMenu::isChoiceMenuActive() const {
-  return choice.size()!=0 && current.time==0 && !haveToWaitOutput() && trade.isOpen()==InventoryMenu::State::Closed;
+  return choice.size()!=0 && current.time==0 && thirdLeft==0 && !haveToWaitOutput() && trade.isOpen()==InventoryMenu::State::Closed;
   }
 
 void DialogMenu::onSelect() {
@@ -548,12 +585,41 @@ void DialogMenu::mouseDownEvent(MouseEvent &event) {
     return;
     }
 
+  if(Camera::isArpgEnabled()) {
+    // gothic-diablo: left button: the answer under the cursor, or the next line; right button: the next line
+    if(event.button==MouseEvent::ButtonLeft && arpgChoiceReady()) {
+      for(size_t i=0; i<choiceRects.size() && i<choice.size(); ++i)
+        if(choiceRects[i].contains(event.pos())) {
+          dlgSel = i;
+          onSelect();
+          return;
+          }
+      return;
+      }
+    if(event.button==MouseEvent::ButtonLeft || event.button==MouseEvent::ButtonRight)
+      skipPhrase();
+    return;
+    }
+
   if(event.button==MouseEvent::ButtonLeft) {
     onSelect();
     }
   if(event.button==MouseEvent::ButtonRight) {
     skipPhrase();
     }
+  }
+
+void DialogMenu::mouseMoveEvent(MouseEvent& e) {
+  // gothic-diablo: the answer under the cursor is the chosen one
+  if(Camera::isArpgEnabled() && arpgChoiceReady()) {
+    for(size_t i=0; i<choiceRects.size() && i<choice.size(); ++i)
+      if(choiceRects[i].contains(e.pos()) && dlgSel!=i) {
+        dlgSel = i;
+        update();
+        break;
+        }
+    }
+  e.ignore();
   }
 
 void DialogMenu::mouseWheelEvent(MouseEvent &e) {
@@ -580,6 +646,28 @@ void DialogMenu::keyDownEvent(KeyEvent &e) {
     onSelect();
     return;
     }
+  if(Camera::isArpgEnabled()) {
+    // gothic-diablo: 1-9 and 0 pick the answer with that number, Space = the next line
+    if(e.key>=Event::K_1 && e.key<=Event::K_9) {
+      const size_t id = size_t(e.key-Event::K_1);
+      if(isChoiceMenuActive() && id<choice.size()) {
+        dlgSel = id;
+        onSelect();
+        }
+      return;
+      }
+    if(e.key==Event::K_0) {
+      if(isChoiceMenuActive() && choice.size()>=10) {
+        dlgSel = 9;
+        onSelect();
+        }
+      return;
+      }
+    if(e.key==Event::K_Space) {
+      skipPhrase();
+      return;
+      }
+    }
   if(e.key==Event::K_W || e.key==Event::K_S || e.key==Event::K_Up || e.key==Event::K_Down || e.key==Event::K_ESCAPE){
     if(e.key==Event::K_W || e.key==Event::K_Up){
       dlgSel--;
@@ -604,3 +692,277 @@ void DialogMenu::keyUpEvent(KeyEvent &event) {
     }
   }
 
+// ---------------------------------------------------------------------------------------------------------------
+// gothic-diablo: cinematic dialogs (ARPG mode)
+
+bool DialogMenu::isArpgCinema() const {
+  return Camera::isArpgEnabled() && state!=State::Idle && pl!=nullptr && other!=nullptr && pl!=other;
+  }
+
+ArpgDialogCam::Input DialogMenu::arpgDialogInput() const {
+  ArpgDialogCam::Input in;
+  in.pl       = pl;
+  in.other    = other;
+  in.speaker  = current.time>0 ? (curentIsPl ? pl : other) : nullptr;
+  in.line     = lineId;
+  in.lineLen  = float(current.msgTime)/1000.f;
+  in.third    = (thirdLeft>0) ? third : nullptr;
+  if(current.time==0 && thirdLeft>0) {
+    in.speaker = third;
+    in.lineLen = float(thirdTime)/1000.f;
+    }
+  in.choosing = isChoiceMenuActive();
+  return in;
+  }
+
+bool DialogMenu::arpgChoiceReady() const {
+  // the list is fully out (a click meant to skip a line does not pick an answer)
+  return isChoiceMenuActive() && (!dlgAnimation || choiceAnimTime>=ANIM_TIME);
+  }
+
+// a copy of a game font in another colour (cached)
+static const GthFont& tintedFont(const GthFont& base, int id, const Color& c) {
+  static std::map<std::pair<const GthFont*,int>,GthFont> cache;
+  const auto key = std::make_pair(&base, id);
+  auto it = cache.find(key);
+  if(it==cache.end()) {
+    GthFont f = base;
+    f.setColor(c);
+    it = cache.emplace(key, std::move(f)).first;
+    }
+  return it->second;
+  }
+
+// what kind of answer: trade and teaching get a note
+static const char* choiceTag(const GameScript::DlgChoice& c) {
+  if(c.isTrade)
+    return "(handel)";
+  // the titles are in the game's code page: an ASCII search is enough ("Czego mo\xbfesz mnie nauczy\xe6?")
+  std::string low;
+  low.reserve(c.title.size());
+  for(char ch:c.title)
+    low.push_back(char(std::tolower(uint8_t(ch))));
+  if(low.find("naucz")!=std::string::npos || low.find("nauk")!=std::string::npos)
+    return "(nauka)";
+  return nullptr;
+  }
+
+void DialogMenu::paintArpg(Painter& p) {
+  const float k   = std::max(0.5f, float(h())/1080.f);
+  const int   bar = std::max(int(float(h())*0.09f), (h()-int(float(w())/2.35f))/2); // 2.35:1 picture
+  const float bk  = barsK*barsK*(3.f-2.f*barsK);
+  const int   pad = int(16*k);
+
+  auto& fText  = Resources::font("font_old_10_white.tga", Resources::FontType::Hi,       1.40f*k);
+  auto& fBase  = Resources::font("font_old_10_white.tga", Resources::FontType::Normal,   1.40f*k);
+  auto& fName  = tintedFont(fBase, 0, Color(1.f, 0.80f, 0.42f, 1.f));
+  auto& fOpt   = Resources::font("font_old_10_white.tga", Resources::FontType::Hi,       1.30f*k);
+  auto& fOptB  = Resources::font("font_old_10_white.tga", Resources::FontType::Normal,   1.30f*k);
+  auto& fOptHi = tintedFont(fOptB, 0, Color(1.f, 0.80f, 0.42f, 1.f));
+  auto& fOptD  = Resources::font("font_old_10_white.tga", Resources::FontType::Disabled, 1.30f*k);
+  auto& fSmall = Resources::font("font_old_10_white.tga", Resources::FontType::Disabled, 1.00f*k);
+
+  auto fill = [&](int x, int y, int ww, int hh, const Color& c) {
+    if(ww<=0 || hh<=0)
+      return;
+    p.setBrush(Brush(c, Painter::Alpha));
+    p.drawRect(x, y, ww, hh);
+    };
+
+  // the answers: the lower bar grows to fit them
+  const bool listOn = isChoiceMenuActive();
+  const int  listW  = std::min(int(float(w())*0.56f), int(1050*k));
+  const int  listX  = (w()-listW)/2;
+  int        listH  = 0;
+  if(choice.size()>0) {
+    listH = 2*pad;
+    for(auto& c:choice)
+      listH += std::max(1, int(fOpt.lineCount(listW, c.title)))*fOpt.pixelSize()+int(10*k);
+    }
+  const float ak   = dlgAnimation ? float(choiceAnimTime)/float(ANIM_TIME) : (listOn ? 1.f : 0.f);
+  const int   barH = int(float(bar)*bk);
+  int         lowH = barH;
+  if(choice.size()>0 && (listOn || choiceAnimTime>0))
+    lowH = std::max(lowH, int(float(listH)*ak));
+
+  // the subtitle (not while choosing): name of the one who speaks, the line under it
+  std::string_view name;
+  int subH = 0, textW = std::min(int(float(w())*0.62f), int(1150*k));
+  const bool thirdOn = current.time==0 && thirdLeft>0 && third!=nullptr;
+  const std::string& subTxt = thirdOn ? thirdTxt : current.txt;
+  const bool subOn = (current.time>0 || thirdOn) && !listOn && trade.isOpen()==InventoryMenu::State::Closed &&
+                     haveToShowSubtitles(curentIsPl && !thirdOn);
+  if(subOn) {
+    if(thirdOn)
+      name = third->displayName(); else
+      name = curentIsPl ? std::string_view("Bezimienny") : (other!=nullptr ? std::string_view(other->displayName()) : std::string_view());
+    const int lines = std::max(1, int(fText.lineCount(textW, subTxt)));
+    subH = 2*pad + (name.empty() ? 0 : fName.pixelSize()+int(6*k)) + lines*fText.pixelSize();
+    lowH = std::max(lowH, int(float(subH)*std::max(bk, 0.f)));
+    }
+
+  // the bars (a soft edge where the lower one is higher than the letterbox)
+  fill(0, 0, w(), barH, Color(0.f, 0.f, 0.f, 1.f));
+  if(lowH>0) {
+    if(lowH>barH+2) {
+      const int fade = int(50*k);
+      for(int i=0; i<fade; i+=2)
+        fill(0, h()-lowH-fade+i, w(), 2, Color(0.f, 0.f, 0.f, float(i)/float(fade)));
+      }
+    fill(0, h()-lowH, w(), lowH, Color(0.f, 0.f, 0.f, 1.f));
+    }
+
+  if(subOn) {
+    int y = h()-lowH+(lowH-subH)/2+pad;
+    if(!name.empty()) {
+      const auto sz = fName.textSize(name);
+      fName.drawText(p, (w()-sz.w)/2, y+fName.pixelSize(), name);
+      y += fName.pixelSize()+int(6*k);
+      }
+    fText.drawText(p, (w()-textW)/2, y+fText.pixelSize(), textW, 0, subTxt, AlignHCenter);
+    const auto hint = std::string_view("LPM / Spacja - dalej");
+    fSmall.drawText(p, w()-fSmall.textSize(hint).w-int(30*k), h()-int(14*k), hint);
+    }
+
+  choiceRects.clear();
+  if(listOn && ak>=1.f) {
+    int y = h()-lowH+pad;
+    for(size_t i=0; i<choice.size(); ++i) {
+      auto&       c     = choice[i];
+      const char* tag   = choiceTag(c);
+      const bool  dim   = c.known && tag==nullptr && c.sort!=999; // asked before (the end and services stay bright)
+      const bool  sel   = (i==dlgSel);
+      auto&       f     = sel ? fOptHi : (dim ? fOptD : fOpt);
+      const int   lines = std::max(1, int(f.lineCount(listW, c.title)));
+      const int   rh    = lines*f.pixelSize()+int(10*k);
+
+      char num[8] = {};
+      std::snprintf(num, sizeof(num), "%d", int((i+1)%10));
+      fSmall.drawText(p, listX-int(40*k), y+int(3*k)+fSmall.pixelSize(), num);
+      if(sel)
+        fill(listX-int(14*k), y+int(4*k), std::max(2, int(4*k)), f.pixelSize()-int(6*k), Color(1.f, 0.80f, 0.42f, 1.f));
+      f.drawText(p, listX, y+f.pixelSize(), listW, 0, c.title, AlignLeft);
+      if(tag!=nullptr && lines==1)
+        fSmall.drawText(p, listX+f.textSize(c.title).w+int(16*k), y+int(3*k)+fSmall.pixelSize(), tag);
+      choiceRects.emplace_back(listX-int(50*k), y-int(4*k), listW+int(60*k), rh);
+      y += rh;
+      }
+    const std::string_view hint = "1-9 / mysz - wyb\xf3r"; // the game's code page
+    fSmall.drawText(p, w()-fSmall.textSize(hint).w-int(30*k), h()-int(14*k), hint);
+    }
+  }
+
+// ---------------------------------------------------------------------------------------------------------------
+// gothic-diablo: acting in cinematic dialogs
+
+static uint64_t rnd(uint64_t from, uint64_t to) {
+  return from + uint64_t(std::rand())%(to-from+1);
+  }
+
+void DialogMenu::tickActing(uint64_t dt) {
+  if(!isArpgCinema() || state!=State::Active) {
+    if(acting.on)
+      stopActing();
+    return;
+    }
+  if(!acting.on) {
+    acting         = Acting();
+    acting.on      = true;
+    acting.blinkPl    = rnd(800, 2500);
+    acting.blinkOther = rnd(400, 2000);
+    }
+  acting.t += dt;
+  const uint64_t t = acting.t;
+
+  // looks: both keep their eyes on each other (on the third one while he speaks)
+  if(third!=nullptr && thirdLeft>0 && current.time==0) {
+    pl   ->arpgLookAtHead(third, dt);
+    other->arpgLookAtHead(third, dt);
+    third->arpgLookAtHead(pl,    dt);
+    } else {
+    pl   ->arpgLookAtHead(other, dt);
+    other->arpgLookAtHead(pl,    dt);
+    }
+
+  // blinking: every 2.5 - 5.5 s (close-ups show the faces)
+  if(t>=acting.blinkPl) {
+    pl->startFaceAnim("R_EYESBLINK", 1.f, uint64_t(-2)); // one blink
+    acting.blinkPl = t+rnd(2500, 5500);
+    }
+  if(t>=acting.blinkOther) {
+    other->startFaceAnim("R_EYESBLINK", 1.f, uint64_t(-2));
+    acting.blinkOther = t+rnd(2500, 5500);
+    }
+
+  // the mood of the other one, from his attitude to the hero (kept fresh while the talk goes on)
+  if(t>=acting.moodAt) {
+    const char* mood = nullptr; // neutral: the face as it is
+    switch(other->world().script().personAttitude(*other, *pl)) {
+      case ATT_FRIENDLY: mood = "S_FRIENDLY"; break;
+      case ATT_ANGRY:    mood = "S_ANGRY";    break;
+      case ATT_HOSTILE:  mood = "S_HOSTILE";  break;
+      default:           mood = nullptr;      break;
+      }
+    if(acting.mood!=nullptr && acting.mood!=mood)
+      other->startFaceAnim(acting.mood, 1.f, 0);   // stops the old one
+    if(mood!=nullptr)
+      other->startFaceAnim(mood, 0.45f, 4000);     // a hint of it, not a mask
+    acting.mood   = mood;
+    acting.moodAt = t+2000;
+    }
+
+  // the listener nods now and then: in the middle of a longer line, not more often than every 6 s
+  if(current.time>0 && lineId!=acting.line) {
+    acting.line   = lineId;
+    acting.nodWho = nullptr;
+    Npc* listener = curentIsPl ? other : pl;
+    const uint64_t last = (listener==pl) ? acting.lastNodPl : acting.lastNodOther;
+    if(current.msgTime>=3500 && t>last+6000 && (std::rand()%3)!=0) {
+      acting.nodWho = listener;
+      acting.nodAt  = t + current.msgTime*uint64_t(rnd(40, 65))/100u;
+      }
+    }
+  if(acting.nodWho!=nullptr && t>=acting.nodAt) {
+    if(current.time>0 && acting.nodWho->arpgNod()) {
+      if(acting.nodWho==pl)
+        acting.lastNodPl = t; else
+        acting.lastNodOther = t;
+      }
+    acting.nodWho = nullptr;
+    }
+  }
+
+void DialogMenu::stopActing() {
+  if(!acting.on)
+    return;
+  acting.on = false;
+  // straight ahead and a calm face again
+  if(pl!=nullptr) {
+    pl->arpgLookAtHead(nullptr, 0);
+    }
+  if(third!=nullptr)
+    third->arpgLookAtHead(nullptr, 0);
+  if(other!=nullptr && other!=pl) {
+    other->arpgLookAtHead(nullptr, 0);
+    if(acting.mood!=nullptr)
+      other->startFaceAnim(acting.mood, 1.f, 0);
+    }
+  acting.mood = nullptr;
+  }
+
+bool DialogMenu::arpgThirdLine(Npc& npc, std::string_view text, uint64_t ms) {
+  // a third one near the two (Lord Hagen's hall, a guard who cuts in): his line becomes part of the film
+  if(!isArpgCinema() || &npc==pl || &npc==other || text.empty())
+    return false;
+  if(npc.qDistTo(*pl)>1500.f*1500.f)
+    return false;
+  if(third!=nullptr && third!=&npc)
+    third->arpgLookAtHead(nullptr, 0);
+  third     = &npc;
+  thirdTxt  = std::string(text);
+  thirdTime = ms;
+  thirdLeft = ms+(dlgAnimation ? ANIM_TIME : 0);
+  lineId++;
+  update();
+  return true;
+  }

@@ -53,6 +53,15 @@ class InventoryMenu : public Tempest::Widget {
     void  draw(Tempest::Encoder<Tempest::CommandBuffer>& cmd);
     void  paintNumOverlay(Tempest::PaintEvent& e);
 
+    // gothic-diablo: in the ARPG mode trade, chests and looting are shown by the ARPG book (ArpgMenu, P_Trade);
+    // this menu keeps the state (the dialog waits for it) and does the moves
+    bool                    isArpgBook() const;
+    Npc*                    arpgOther() const { return trader; }
+    Interactive*            arpgChest() const { return chest;  }
+    const Inventory*        arpgOtherInventory() const;
+    Inventory::IteratorType arpgOtherIter() const;
+    void                    arpgMove(bool fromOther, size_t cls, size_t count);
+
     void  keyDownEvent  (Tempest::KeyEvent&   e) override;
     void  keyRepeatEvent(Tempest::KeyEvent&   e) override;
     void  keyUpEvent    (Tempest::KeyEvent&   e) override;

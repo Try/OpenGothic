@@ -304,6 +304,12 @@ void InventoryMenu::keyDownEvent(KeyEvent &e) {
     e.ignore();
     return;
     }
+  if(isArpgBook()) {
+    // gothic-diablo: the book is used with the mouse; Esc / I / the inventory key close it, the rest is swallowed
+    if(e.key==KeyEvent::K_ESCAPE || keycodec.tr(e)==KeyCodec::Inventory || e.key==KeyEvent::K_I)
+      close();
+    return;
+    }
 
   processMove(e);
 
@@ -359,7 +365,7 @@ void InventoryMenu::keyUpEvent(KeyEvent&) {
   }
 
 void InventoryMenu::mouseDownEvent(MouseEvent &e) {
-  if(player==nullptr || state==State::Closed) {
+  if(player==nullptr || state==State::Closed || isArpgBook()) {
     e.ignore();
     return;
     }
@@ -375,13 +381,15 @@ void InventoryMenu::mouseDownEvent(MouseEvent &e) {
   adjustScroll();
   }
 
-void InventoryMenu::mouseUpEvent(MouseEvent&) {
+void InventoryMenu::mouseUpEvent(MouseEvent& e) {
   takeTimer.stop();
   takeCount=0;
+  if(isArpgBook())
+    e.ignore();
   }
 
 void InventoryMenu::mouseWheelEvent(MouseEvent &e) {
-  if(state==State::Closed) {
+  if(state==State::Closed || isArpgBook()) {
     e.ignore();
     return;
     }
@@ -411,13 +419,15 @@ void InventoryMenu::paintEvent(PaintEvent &e) {
   if(player==nullptr || state==State::Closed)
     return;
   renderer.reset();
+  if(isArpgBook())
+    return; // gothic-diablo: drawn by the ARPG book
 
   Painter p(e);
   drawAll(p,*player,DrawPass::Back);
   }
 
 void InventoryMenu::paintNumOverlay(PaintEvent& e) {
-  if(player==nullptr || state==State::Closed)
+  if(player==nullptr || state==State::Closed || isArpgBook())
     return;
 
   Painter p(e);
@@ -757,4 +767,48 @@ void InventoryMenu::drawInfo(Painter &p) {
 
 void InventoryMenu::draw(Tempest::Encoder<CommandBuffer>& cmd) {
   renderer.draw(cmd);
+  }
+
+// ---------------------------------------------------------------------------------------------------------------
+// gothic-diablo: the ARPG book shows trade, chests and looting
+
+bool InventoryMenu::isArpgBook() const {
+  return Camera::isArpgEnabled() && player!=nullptr &&
+         (state==State::Trade || state==State::Chest || state==State::Ransack);
+  }
+
+const Inventory* InventoryMenu::arpgOtherInventory() const {
+  if(state==State::Chest)
+    return chest!=nullptr ? &chest->inventory() : nullptr;
+  if(state==State::Trade || state==State::Ransack)
+    return trader!=nullptr ? &trader->inventory() : nullptr;
+  return nullptr;
+  }
+
+Inventory::IteratorType InventoryMenu::arpgOtherIter() const {
+  if(state==State::Trade)
+    return Inventory::T_Trade;
+  if(state==State::Ransack)
+    return Inventory::T_Ransack;
+  return Inventory::T_Inventory;
+  }
+
+void InventoryMenu::arpgMove(bool fromOther, size_t cls, size_t count) {
+  // the same moves as Gothic's own menu (onTakeStuff)
+  if(player==nullptr || count==0)
+    return;
+  if(state==State::Chest && chest!=nullptr) {
+    if(fromOther)
+      player->addItem (cls,*chest,count); else
+      player->moveItem(cls,*chest,count);
+    }
+  else if(state==State::Trade && trader!=nullptr) {
+    if(fromOther)
+      player->buyItem (cls,*trader,count); else
+      player->sellItem(cls,*trader,count);
+    }
+  else if(state==State::Ransack && trader!=nullptr) {
+    if(fromOther)
+      player->addItem(cls,*trader,count);
+    }
   }

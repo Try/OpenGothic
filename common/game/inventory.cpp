@@ -668,6 +668,19 @@ void Inventory::switchActiveSpell(int32_t spell, Npc& owner) {
       }
   }
 
+const Item* Inventory::equippedIn(uint8_t slot) const {
+  switch(slot) {
+    case 0: return melee;
+    case 1: return range;
+    case 2: return armor;
+    case 3: return amulet;
+    case 4: return ringL;
+    case 5: return ringR;
+    case 6: return belt;
+    }
+  return nullptr;
+  }
+
 uint8_t Inventory::currentSpellSlot() const {
   for(uint8_t i=0;i<8;++i){
     if(active==&numslot[i])

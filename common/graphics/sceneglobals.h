@@ -38,7 +38,7 @@ class SceneGlobals final {
     void setArpgView(bool enabled, const Tempest::Vec3& feet, const Tempest::Vec3& center,
                      float cutHeight, float cutRadius, float fadeRadius,
                      float fowRadius, float fowFade,
-                     float seeThrough, float indoor, float lowerStart, float lowerEnd,
+                     float seeThrough, float indoor, float lowerStart, float lowerEnd, float nearCut,
                      const float* los128, const Tempest::Vec4* highlight2 = nullptr);
 
     void setTime(uint64_t time);

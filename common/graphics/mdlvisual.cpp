@@ -971,7 +971,7 @@ void MdlVisual::startMMAnim(Npc&, std::string_view anim, std::string_view bone) 
   }
 
 void MdlVisual::startFaceAnim(Npc& npc, std::string_view anim, float intensity, uint64_t duration) {
-  if(duration!=uint64_t(-1) && duration!=0)
+  if(duration!=uint64_t(-1) && duration!=uint64_t(-2) && duration!=0) // gothic-diablo: -2 = one cycle
     duration += npc.world().tickCount();
   head.view.startMMAnim(anim,intensity,duration);
   }

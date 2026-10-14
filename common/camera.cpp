@@ -150,6 +150,7 @@ void Camera::setViewport(uint32_t w, uint32_t h) {
   vpWidth   = w;
   vpHeight  = h;
   depthNear = 0;
+  fovNow    = fov;
   }
 
 float Camera::zNear() const {
@@ -708,6 +709,25 @@ void Camera::tick(uint64_t dt) {
 
   const float dtF = float(dt)/1000.f;
 
+  if(camMod!=Dialog) {
+    // gothic-diablo: the camera goes back up from the last shot; the next talk starts with the way down again
+    if(arpgDlg.cutDone && isArpgActive()) {
+      arpgDlg.exitOn   = true;
+      arpgDlg.exitT    = 0;
+      arpgDlg.exitFrom = origin;
+      arpgDlg.exitLook = arpgDlg.look;
+      }
+    arpgDlg.t        = 0;
+    arpgDlg.cutDone  = false;
+    arpgDlg.keepView = false;
+    }
+  if(!isArpgActive())
+    arpgDlg.exitOn = false;
+  {
+    const float dst = isArpgDialogShot() ? 1.f : 0.f;
+    arpgDlg.dof += std::clamp(dst-arpgDlg.dof, -4.f*dtF, 3.f*dtF);
+  }
+
   {
     const auto& def = cameraDef();
     state.range = def.min_range + (def.max_range-def.min_range)*userRange;
@@ -751,7 +771,23 @@ void Camera::tick(uint64_t dt) {
       }
     }
 
+  if(camMarvinMod==M_Normal && camMod!=FirstPerson && isArpgEnabled())
+    tickArpgBook(dtF);
   updateArpgView(dtF);
+  arpgDlg.on = false;
+
+  {
+    // gothic-diablo: the dialog shots are filmed with a narrower lens (and the way back up widens it again)
+    float fov = isArpgDialogShot() ? 50.f : Gothic::options().cameraFov;
+    if(arpgDlg.exitOn) {
+      const float s = std::clamp(arpgDlg.exitT/0.8f, 0.f, 1.f);
+      fov = 50.f + (fov-50.f)*(s*s*(3.f-2.f*s));
+      }
+    if(fov!=fovNow && vpWidth>0 && vpHeight>0) {
+      proj.perspective(fov, float(vpWidth)/float(vpHeight), zNear(), zFar());
+      fovNow = fov;
+      }
+  }
 
   if(auto w = Gothic::inst().world()) {
     Vec3 sh;
@@ -799,6 +835,10 @@ void Camera::tickFirstPerson(float /*dtF*/) {
 void Camera::tickThirdPerson(float dtF) {
   if(isArpgActive()) {
     tickArpg(dtF);
+    return;
+    }
+  if(camMod==Dialog && isArpgEnabled() && camMarvinMod==M_Normal) {
+    tickArpgDialog(dtF);
     return;
     }
 
@@ -1086,6 +1126,19 @@ void Camera::arpgRotate(float deltaDeg) {
   arpg.yawDest += deltaDeg;
   }
 
+void Camera::setArpgPortrait(bool on) {
+  if(arpg.portraitOn==on)
+    return;
+  arpg.portraitOn = on;
+  if(on) {
+    arpg.yawSaved = arpg.yawDest;
+    if(auto pl = Gothic::inst().player())
+      arpg.yawDest = pl->rotation()+180.f; // in front of the hero, looking at his face
+    } else {
+    arpg.yawDest = arpg.yawSaved;
+    }
+  }
+
 void Camera::tickArpg(float dtF) {
   if(!arpg.init) {
     const auto pl = Gothic::inst().player();
@@ -1103,10 +1156,29 @@ void Camera::tickArpg(float dtF) {
     arpg.range += (arpg.rangeDest-arpg.range)*std::min(1.f, 6.f*dtF);
     }
 
-  const Vec3 spin = Vec3(arpg.elevation, arpg.yaw, 0);
+  // portrait (equipment / character window): low and close, in front of the hero
+  {
+    const float dst = arpg.portraitOn ? 1.f : 0.f;
+    if(dtF<0.f)
+      arpg.portrait = dst; else
+      arpg.portrait += std::clamp(dst-arpg.portrait, -2.5f*dtF, 2.5f*dtF);
+  }
+  const float pk    = arpg.portrait*arpg.portrait*(3.f-2.f*arpg.portrait); // smoothstep
+  const float elev  = arpg.elevation + (8.f-arpg.elevation)*pk;
+  const float range = arpg.range     + (290.f-arpg.range)*pk;
+
+  const Vec3 spin = Vec3(elev, arpg.yaw, 0);
   state.spin      = spin;
   inter.rotOffset = Vec3(0);
   inter.target    = followTarget(inter.target, state.target, dtF);
+
+  Vec3 target = inter.target;
+  if(pk>0.f) {
+    if(auto pl = Gothic::inst().player()) {
+      const Vec3 body = pl->position()+Vec3(0,100.f,0); // the whole hero in the picture
+      target = target + (body-target)*pk;
+      }
+    }
 
   // direction from target to camera, same math as in tickThirdPerson
   auto rot = mkRotation(spin);
@@ -1115,13 +1187,188 @@ void Camera::tickArpg(float dtF) {
   rot.project(dir);
 
   // no collision: geometry between camera and player is hidden in shaders instead
-  origin = inter.target + dir*arpg.range;
-  angles = calcLookAtAngles(origin, inter.target, Vec3(0), spin);
+  origin      = target + dir*range;
+  angles      = calcLookAtAngles(origin, target, Vec3(0), spin);
+  arpgLookNow = target;
+
+  // after a talk: from the last shot back up to this view
+  if(arpgDlg.exitOn) {
+    if(dtF>0.f)
+      arpgDlg.exitT += dtF;
+    const float s = std::clamp(arpgDlg.exitT/0.8f, 0.f, 1.f);
+    const float e = s*s*(3.f-2.f*s);
+    const Vec3  o = arpgDlg.exitFrom + (origin-arpgDlg.exitFrom)*e;
+    const Vec3  l = arpgDlg.exitLook + (target-arpgDlg.exitLook)*e;
+    origin      = o;
+    angles      = calcLookAtAngles(origin, l, Vec3(0), spin);
+    arpgLookNow = l;
+    if(s>=1.f)
+      arpgDlg.exitOn = false;
+    }
+  }
+
+void Camera::tickArpgDialog(float dtF) {
+  auto        world = Gothic::inst().world();
+  const auto& in    = arpgDlg.in;
+  const bool  talk  = arpgDlg.on && world!=nullptr && in.pl!=nullptr && in.other!=nullptr && in.pl!=in.other;
+  if(!talk) {
+    // workbench menus and the like (the hero alone): the ARPG view stays
+    arpgDlg.keepView = true;
+    tickArpg(dtF);
+    return;
+    }
+
+  if(arpgDlg.t==0.f)
+    arpgDlg.viewFrom = origin;
+  if(dtF>0.f)
+    arpgDlg.t += dtF;
+
+  static constexpr float ZoomTime = 0.45f;
+  if(!arpgDlg.cutDone && arpgDlg.t<ZoomTime) {
+    // the ARPG camera comes down towards the two heads ...
+    arpgDlg.keepView = true;
+    tickArpg(dtF);
+    const float s    = std::clamp(arpgDlg.t/ZoomTime, 0.f, 1.f);
+    const float k    = s*s*(3.f-2.f*s);
+    const Vec3  mid  = (in.pl->mapHeadBone()+in.other->mapHeadBone())*0.5f;
+    const Vec3  look = inter.target + (mid-inter.target)*k;
+    origin      = origin + (mid-origin)*(0.55f*k);
+    angles      = calcLookAtAngles(origin, look, Vec3(0), state.spin);
+    arpgLookNow = look;
+    return;
+    }
+
+  // ... and cuts to the shots of the director; the cut hides that the hero is put in his place
+  if(!arpgDlg.cutDone) {
+    arpgDlg.cutDone = true;
+    arpgDlg.exitOn  = false;
+    arpgDir.reset();
+    arpgPlaceHero(in);
+    }
+  arpgDlg.keepView = false;
+  ArpgDialogCam::Input din = in;
+  din.viewFrom = arpgDlg.viewFrom;
+  const auto shot = arpgDir.tick(std::max(0.f, dtF), din, *world);
+  origin        = shot.origin;
+  arpgDlg.look  = shot.target;
+  arpgDlg.focus = shot.focus;
+  angles        = calcLookAtAngles(origin, shot.target, Vec3(0), state.spin);
+  arpgLookNow   = shot.target;
+  }
+
+void Camera::tickArpgBook(float dtF) {
+  // trade / chest / looting: the other one (or the thing) in the gap between the two pages of the book;
+  // the camera stands at the hero's side of him, turned away from the line between them so far, that the hero
+  // is behind a page: a trader from the front and low (like the hero's own portrait), a chest or a body from above
+  auto&      b     = arpgBook;
+  const auto pl    = Gothic::inst().player();
+  const auto world = Gothic::inst().world();
+  const bool on    = b.in.on && pl!=nullptr && world!=nullptr;
+  if(on && b.k<=0.f)
+    b.side = 0; // a new book: the side is picked again
+  const float dst = on ? 1.f : 0.f;
+  if(dtF<0.f)
+    b.k = dst; else
+    b.k += std::clamp(dst-b.k, -2.5f*dtF, 2.5f*dtF);
+  if(b.k<=0.f)
+    return;
+
+  if(on) {
+    const Vec3 look = b.in.subject;
+    Vec3 a = pl->position()-look;
+    a.y = 0;
+    if(a.length()<1.f) {
+      a   = origin-look;
+      a.y = 0;
+      }
+    a = (a.length()<1.f) ? Vec3(1,0,0) : a/a.length();
+
+    const float turn  = (b.in.standing ? 42.f : 65.f)*float(M_PI)/180.f;
+    const float elev  = (b.in.standing ?  8.f : 32.f)*float(M_PI)/180.f;
+    const float range =  b.in.standing ? 290.f : 240.f;
+    auto dirFor = [&](float sd) {
+      const float c = std::cos(sd*turn), sn = std::sin(sd*turn);
+      const Vec3  d = Vec3(a.x*c - a.z*sn, 0, a.x*sn + a.z*c);
+      return Vec3(d.x*std::cos(elev), std::sin(elev), d.z*std::cos(elev));
+      };
+    auto& physic = *world->physic();
+    auto  room   = [&](const Vec3& dir) {
+      // from the subject outwards: walls behind the camera pull it in
+      const auto r = physic.ray(look, look+dir*range);
+      if(!r.hasCol)
+        return range;
+      return std::max(60.f, (r.v-look).length()-20.f);
+      };
+    if(b.side==0.f) {
+      // the side with more room; about the same: the side the camera already is on (smaller jump)
+      const float rp = room(dirFor( 1.f));
+      const float rm = room(dirFor(-1.f));
+      if(std::abs(rp-rm)>30.f) {
+        b.side = (rp>rm) ? 1.f : -1.f;
+        } else {
+        const Vec3 cur = origin-look;
+        b.side = (a.x*cur.z - a.z*cur.x >= 0.f) ? 1.f : -1.f;
+        }
+      }
+    const Vec3  dir = dirFor(b.side);
+    const float len = room(dir);
+    b.origin = look + dir*len;
+    b.look   = look;
+    b.focus  = len;
+    }
+
+  const float e = b.k*b.k*(3.f-2.f*b.k);
+  origin = origin + (b.origin-origin)*e;
+  const Vec3 l = arpgLookNow + (b.look-arpgLookNow)*e;
+  angles = calcLookAtAngles(origin, l, Vec3(0), state.spin);
+  if(isArpgDialogShot()) {
+    // trade from a dialog: the face light and the depth of field follow
+    arpgDlg.look  = l;
+    arpgDlg.focus = arpgDlg.focus + (b.focus-arpgDlg.focus)*e;
+    }
+  }
+
+void Camera::arpgPlaceHero(const ArpgDialogCam::Input& in) {
+  // the hero turns to the one he talks with and stands at the distance of a talk (1.3 - 1.7 m)
+  auto hero = Gothic::inst().player();
+  if(hero==nullptr || hero!=in.pl || in.other==nullptr || hero==in.other)
+    return;
+  if(hero->interactive()!=nullptr || hero->bodyStateMasked()!=BS_STAND)
+    return;
+  Vec3 d = in.other->position()-hero->position();
+  d.y = 0;
+  const float l = d.length();
+  if(l<1.f)
+    return;
+  const Vec3  dir  = d/l;
+  const float want = std::clamp(l, 130.f, 170.f);
+  if(std::abs(l-want)>5.f) {
+    const Vec3 dp = dir*(l-want);
+    if(!hero->tryMove(dp))
+      hero->tryMove(dp*0.5f);
+    }
+  hero->setDirection(in.other->position()-hero->position());
+  }
+
+bool Camera::arpgDialogLight(Vec3& pos, float& range) const {
+  if(!isArpgDialogShot())
+    return false;
+  // a little above the camera and in front of it, towards the face
+  const Vec3 view = arpgDlg.look-origin;
+  const float l   = view.length();
+  if(l<1.f)
+    return false;
+  pos   = origin + Vec3(0, 45.f, 0) + view*(std::min(40.f, l*0.3f)/l);
+  range = l+180.f;
+  return true;
   }
 
 void Camera::updateArpgView(float dtF) {
   arpgV = ArpgView();
-  if(!isArpgActive()) {
+  const bool dlgView = (camMod==Dialog && isArpgEnabled() && camMarvinMod==M_Normal && arpgDlg.keepView);
+  if(!isArpgActive() && !dlgView) {
+    arpg.insideHold  = 0;
+    arpg.nearCut     = 0;
     arpg.indoor      = false;
     arpg.indoorHold  = 0;
     arpg.indoorBlend = 0;
@@ -1192,12 +1439,47 @@ void Camera::updateArpgView(float dtF) {
         hidden = true;
         break;
         }
+      // and the other way (hero -> camera): the camera inside the rock or behind a wall facing the hero
+      // (rays only see the outer side of surfaces)
+      const auto b = physic.ray(to, from);
+      if(b.hasCol && (b.v-to).quadLength() > 40.f*40.f) {
+        hidden = true;
+        break;
+        }
       }
     const float dst = hidden ? 1.f : 0.f;
     if(dtF<0.f)
       arpg.seeThrough = dst; else
       arpg.seeThrough += std::clamp(dst-arpg.seeThrough, -2.5f*dtF, 5.f*dtF); // opens in 0.2 s, closes in 0.4 s
     arpgV.seeThrough = arpg.seeThrough;
+  }
+
+  // outdoors, the camera inside the rock (behind a ravine wall, in a mountain): the inner side of the world mesh is drawn
+  // black (main.frag) and would fill the screen: between the camera and the hero it is not drawn.
+  // Indoors the camera is always above the rock of the ceiling: the cut-away takes care of that.
+  {
+    auto& physic = *world->physic();
+    bool  inside = false;
+    if(arpgV.cutHeight<=0.f) {
+      for(float h:{170.f, 90.f}) {
+        const Vec3 to  = feet + Vec3(0,h,0);
+        const auto r   = physic.rayBothSides(origin, to);
+        // the first surface on the way is seen from its inner side (its normal points away from the camera)
+        if(r.hasCol && Vec3::dotProduct(r.n, to-origin)>0.f) {
+          inside = true;
+          break;
+          }
+        }
+      }
+    if(inside)
+      arpg.insideHold = 0.4f;
+    else if(dtF>0.f)
+      arpg.insideHold = std::max(0.f, arpg.insideHold-dtF);
+    else
+      arpg.insideHold = 0;
+    const float dist = (center-origin).length();
+    arpg.nearCut  = (arpg.insideHold>0.f) ? std::max(0.f, dist-60.f) : 0.f;
+    arpgV.nearCut = arpg.nearCut;
   }
 
   // indoors: what is far below the hero's feet (cellars, the valley under a tower) fades to black

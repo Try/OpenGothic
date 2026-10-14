@@ -558,7 +558,8 @@ void Renderer::draw(Attachment& result, Encoder<CommandBuffer>& cmd, uint8_t fId
   cmd.setDebugMarker("UI");
   uiLayer.draw(cmd);
 
-  if(inventory.isOpen()!=InventoryMenu::State::Closed) {
+  // gothic-diablo: trade / chest / looting in the ARPG book: InventoryMenu draws nothing, the book's models are in hudItems
+  if(inventory.isOpen()!=InventoryMenu::State::Closed && !(hudItems!=nullptr && inventory.isArpgBook())) {
     auto& zb = (zbufferUi.isEmpty() ? zbuffer : zbufferUi);
     cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}},{zb, 1.f, Tempest::Preserve});
     cmd.setDebugMarker("Inventory");
@@ -733,6 +734,8 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
     drawFog(cmd, wview);
     }
 
+  drawArpgDof(cmd, wview, camera);
+
   if(settings.aaEnabled) {
     cmd.setDebugMarker("CMAA2 & Tonemapping");
     drawCMAA2(result, cmd, wview);
@@ -745,6 +748,40 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
   //drawHashDbg(result, cmd, wview);
 
   wview.postFrameupdate();
+  }
+
+void Renderer::drawArpgDof(Encoder<CommandBuffer>& cmd, const WorldView& wview, const Camera& camera) {
+  // gothic-diablo: depth of field of the cinematic dialog shots
+  const auto dof = camera.arpgDof();
+  if(dof.strength<=0.01f || dof.focus<=0.f)
+    return;
+
+  struct Push {
+    float focus    = 0;
+    float range    = 0;
+    float maxCoc   = 0;
+    float strength = 0;
+    } push;
+  push.focus    = dof.focus;
+  push.range    = 35.f + dof.focus*0.15f;
+  push.maxCoc   = 9.f*float(sceneLinear.h())/1080.f;
+  push.strength = dof.strength;
+
+  // a copy of the picture (sceneOpaque is free after the water and the translucent objects) ...
+  cmd.setDebugMarker("ARPG depth of field");
+  cmd.setFramebuffer({{sceneOpaque, Tempest::Discard, Tempest::Preserve}});
+  cmd.setBinding(0, sceneLinear, Sampler::nearest());
+  cmd.setPipeline(shaders.copy);
+  cmd.draw(nullptr, 0, 3);
+
+  // ... blurred by depth back into it
+  cmd.setFramebuffer({{sceneLinear, Tempest::Discard, Tempest::Preserve}});
+  cmd.setBinding(0, wview.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+  cmd.setBinding(1, sceneOpaque, Sampler::bilinear(ClampMode::ClampToEdge));
+  cmd.setBinding(2, zbuffer,     Sampler::nearest());
+  cmd.setPushData(push);
+  cmd.setPipeline(shaders.arpgDof);
+  cmd.draw(nullptr, 0, 3);
   }
 
 void Renderer::drawTonemapping(Attachment& result, Encoder<CommandBuffer>& cmd, const WorldView& wview) {

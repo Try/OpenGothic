@@ -71,6 +71,7 @@ class PlayerControl final {
     void  arpgChargeRelease();                   // right mouse button up: release it
     float arpgSpecialLeft() const;               // 0..1 of the cooldown left
     void  arpgPush();                            // middle mouse button with a bow: push the enemies in front away
+    void  arpgStop();                            // a window opened: drop every mouse order / charge / request
     bool  arpgCanPush() const;                   // a bow / crossbow is drawn
     float arpgPushLeft() const;                  // 0..1 of the push cooldown left
     static constexpr float SpecialCooldown = 5.f; // s
@@ -245,12 +246,14 @@ class PlayerControl final {
       int                        blockCount  = 0;      // path planning: checks in a row with a blocked straight line
       Tempest::Vec3              pathDest    = {};     // destination the current path was planned for
       int                        swings      = 0;
+      bool                       swingCheck  = false;  // a swing was started: does its animation really play?
       float                      actTimer    = 0;      // s, waiting in range for the action to succeed
       };
     enum ArpgStep : uint8_t {
       ArpgStop,
       ArpgTurn,
       ArpgMove,
+      ArpgAttack, // a swing plays: no other animation over it (a swing from a run goes on as Gothic's run attack)
       };
 
     ArpgCursor     arpgCursor;

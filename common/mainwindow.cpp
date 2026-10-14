@@ -18,6 +18,7 @@
 #include "utils/string_frm.h"
 #include "world/triggers/abstracttrigger.h"
 #include "world/objects/npc.h"
+#include "world/objects/interactive.h"
 #include "game/serialize.h"
 #include "game/globaleffects.h"
 #include "utils/gthfont.h"
@@ -37,6 +38,7 @@ MainWindow::MainWindow(Device& device)
     mobileUi(player),
 #endif
     player(dialogs,inventory) {
+  arpgMenu.setInventoryMenu(&inventory); // gothic-diablo: trade / chests / looting in the ARPG book
   Gothic::inst().onSettingsChanged.bind(this,&MainWindow::onSettings);
   onSettings();
 
@@ -70,6 +72,7 @@ MainWindow::MainWindow(Device& device)
   Gothic::inst().onSessionExit .bind(this,&MainWindow::onSessionExit);
 
   Gothic::inst().onVideo       .bind(this,&MainWindow::onVideo);
+  Gothic::inst().onArpgSpeech  .bind(this,&MainWindow::onArpgSpeech);
 
   Gothic::inst().onBenchmarkFinished.bind(this,&MainWindow::onBenchmarkFinished);
 
@@ -127,6 +130,7 @@ MainWindow::~MainWindow() {
   takeWidget(&mobileUi);
 #endif
   removeAllWidgets();
+  dropArpgDialogLight(); // gothic-diablo: before its world goes
   // unload
   Gothic::inst().setGame(std::unique_ptr<GameSession>());
   }
@@ -213,7 +217,13 @@ void MainWindow::paintEvent(PaintEvent& event) {
       drawMsg(p);
 
       auto focus = world->validateFocus(player.focus());
-      if(isArpgMouse()) {
+      if(arpgMenu.isOpen()) {
+        // gothic-diablo: equipment / character window; the hero stands in the middle (camera in front of him)
+        arpgLabels.clear();
+        if(auto pl = Gothic::inst().player())
+          arpgMenu.paint(p, w(), h(), Gothic::interfaceScale(this), arpgBarItems, *pl);
+        }
+      else if(isArpgMouse()) {
         // gothic-diablo: labels like in Diablo; Z = labels of everything in sight
         if(arpgShowAll)
           paintArpgLabels(p,vp,focus); else
@@ -221,16 +231,18 @@ void MainWindow::paintEvent(PaintEvent& event) {
         if(!arpgShowAll || focus.npc!=nullptr)
           paintArpgFocus(p,focus,vp);
         paintArpgCombat(p,vp);
+        paintArpgRemarks(p,vp);
         paintArpgCombo(p,vp);
         paintArpgMinimap(p);
         paintArpgBar(p);
         } else {
         arpgLabels.clear();
-        paintFocus(p,focus,vp);
+        if(!dialogs.isArpgCinema())
+          paintFocus(p,focus,vp); // gothic-diablo: nothing over the film of a dialog
         }
 
       if(auto pl = Gothic::inst().player()){
-        if (!Gothic::inst().isDesktop()) {
+        if (!Gothic::inst().isDesktop() && !arpgMenu.isOpen() && !dialogs.isArpgCinema()) {
           auto& opt = Gothic::options();
           float hp  = float(pl->attribute(ATR_HITPOINTS))/float(pl->attribute(ATR_HITPOINTSMAX));
           float mp  = float(pl->attribute(ATR_MANA))     /float(pl->attribute(ATR_MANAMAX));
@@ -319,6 +331,12 @@ void MainWindow::resizeEvent(SizeEvent&) {
   }
 
 void MainWindow::mouseDownEvent(MouseEvent &event) {
+  if(arpgMenu.isOpen()) {
+    // gothic-diablo: the ARPG window takes the mouse
+    if(auto pl = Gothic::inst().player())
+      arpgMenu.mouseDown(event.pos(), event.button==Event::ButtonRight, (event.modifier & Event::M_Shift)!=0, *pl);
+    return;
+    }
   if(event.button==Event::ButtonLeft && isArpgMouse()) {
     // gothic-diablo: left button = move / interact / attack under the cursor
     arpgCursor      = event.pos();
@@ -378,6 +396,13 @@ void MainWindow::mouseDownEvent(MouseEvent &event) {
   }
 
 void MainWindow::mouseUpEvent(MouseEvent &event) {
+  if(arpgMenu.isOpen()) {
+    // gothic-diablo: end of a click or of dragging an item in the ARPG window
+    if(auto pl = Gothic::inst().player())
+      arpgMenu.mouseUp(event.pos(), event.button==Event::ButtonRight, *pl);
+    }
+  if(arpgMenu.isOpen() && !arpgLeftDown && !arpgRightDown && !arpgMidDown && !arpgMidBlock && !arpgMidPush)
+    return;
   if(event.button==Event::ButtonLeft && arpgLeftDown) {
     arpgLeftDown = false;
     player.arpgMouseUp();
@@ -426,6 +451,7 @@ void MainWindow::mouseDragEvent(MouseEvent &event) {
         }
       arpgMidLast = event.pos();
       }
+    arpgMenu.mouseMove(event.pos());
     arpgCursor      = event.pos();
     arpgCursorValid = true;
     return;
@@ -445,6 +471,7 @@ void MainWindow::mouseMoveEvent(MouseEvent &event) {
 void MainWindow::processMouse(MouseEvent& event, bool enable) {
   if(Camera::isArpgEnabled()) {
     // gothic-diablo: free, visible cursor; the hero turns towards it
+    arpgMenu.mouseMove(event.pos());
     arpgCursor      = event.pos();
     arpgCursorValid = true;
     return;
@@ -538,7 +565,7 @@ bool MainWindow::isArpgMouse() const {
   auto camera = Gothic::inst().camera();
   return Camera::isArpgEnabled() && camera!=nullptr && camera->isArpgActive() &&
          Gothic::inst().player()!=nullptr &&
-         !dialogs.isActive() && !inventory.isActive() && !document.isActive();
+         !dialogs.isActive() && !inventory.isActive() && !document.isActive() && !arpgMenu.isOpen();
   }
 
 void MainWindow::onSettings() {
@@ -551,6 +578,10 @@ void MainWindow::onSettings() {
   }
 
 void MainWindow::mouseWheelEvent(MouseEvent &event) {
+  if(arpgMenu.isOpen()) {
+    arpgMenu.mouseWheel(event.delta); // backpack rows
+    return;
+    }
   if(arpgMinimap && arpgMapRect.w>0 && arpgMapRect.contains(event.pos()) && isArpgMouse()) {
     // gothic-diablo: wheel over the minimap zooms the minimap (20..100 m across)
     const float k = event.delta>0 ? 1.f/1.2f : 1.2f;
@@ -620,8 +651,33 @@ void MainWindow::keyDownEvent(KeyEvent &event) {
   if(event.key==Event::K_Z && Camera::isArpgEnabled())
     arpgShowAll = true; // gothic-diablo: hold Z to show all items / usable objects in sight
 
+  if(arpgMenu.isOpen()) {
+    // gothic-diablo: the ARPG window is open: I / C / T switch or close it, Esc closes it,
+    // 3-0 put the rune / scroll under the cursor on that key, the camera turn keys still turn the camera
+    event.accept();
+    if(event.key==Event::K_ESCAPE || event.key==Event::K_I || event.key==Event::K_C || event.key==Event::K_T) {
+      arpgMenuKey = event.key;
+      return;
+      }
+    if((event.key>=Event::K_3 && event.key<=Event::K_9) || event.key==Event::K_0) {
+      if(auto pl = Gothic::inst().player())
+        arpgMenu.spellKey(event.key==Event::K_0 ? uint8_t(10) : uint8_t(event.key-Event::K_0), *pl);
+      return;
+      }
+    auto act = keycodec.tr(event);
+    if(act==KeyCodec::RotateL || act==KeyCodec::RotateR)
+      player.onKeyPressed(act,event.key,keycodec.mapping(event));
+    return;
+    }
+
   if(Camera::isArpgEnabled() && Gothic::inst().player()!=nullptr) {
-    // gothic-diablo: Tab = minimap, I = inventory (Backspace keeps working too)
+    // gothic-diablo: C / T = character / skill trees (with I = equipment: ArpgMenu, acted on key-up)
+    if((event.key==Event::K_C || event.key==Event::K_T) && isArpgMouse()) {
+      arpgMenuKey = event.key;
+      event.accept();
+      return;
+      }
+    // gothic-diablo: Tab = minimap, I = equipment window (Backspace = Gothic's inventory)
     if(event.key==Event::K_Tab) {
       arpgMinimap = !arpgMinimap;
       arpgTabDown = true;
@@ -685,9 +741,24 @@ void MainWindow::keyUpEvent(KeyEvent &event) {
     }
   if(event.key==Event::K_I && arpgIDown) {
     arpgIDown = false;
-    if(!dialogs.isActive() && !inventory.isActive()) {
-      if(auto pl = Gothic::inst().player())
-        inventory.open(*pl);
+    if(!dialogs.isActive() && !inventory.isActive() && Gothic::inst().player()!=nullptr) {
+      arpgMenu.toggle(ArpgMenu::P_Equip); // gothic-diablo: the ARPG equipment window
+      player.arpgStop();
+      clearInput();
+      }
+    return;
+    }
+  if(arpgMenuKey!=Event::K_NoKey && event.key==arpgMenuKey) {
+    arpgMenuKey = Event::K_NoKey;
+    switch(event.key) {
+      case Event::K_ESCAPE: arpgMenu.close();                        break;
+      case Event::K_I:      arpgMenu.toggle(ArpgMenu::P_Equip);      break;
+      case Event::K_C:      arpgMenu.toggle(ArpgMenu::P_Character);  break;
+      case Event::K_T:      arpgMenu.toggle(ArpgMenu::P_Skills);     break;
+      default: break;
+      }
+    if(arpgMenu.isOpen()) {
+      player.arpgStop();
       clearInput();
       }
     return;
@@ -1323,6 +1394,42 @@ void MainWindow::tickCamera(uint64_t dt) {
   if(pcamera==nullptr)
     return;
 
+  // gothic-diablo: the ARPG window closes for dialogs, Gothic's menus, documents, death...;
+  // while it is open the camera stands in front of the hero
+  if(inventory.isArpgBook()) {
+    // trade, a chest, looting: shown by the ARPG book while Gothic's menu keeps the state
+    if(arpgMenu.current()!=ArpgMenu::P_Trade)
+      arpgMenu.open(ArpgMenu::P_Trade);
+    }
+  else if(arpgMenu.current()==ArpgMenu::P_Trade) {
+    arpgMenu.close();
+    }
+  if(arpgMenu.isOpen() && arpgMenu.current()!=ArpgMenu::P_Trade &&
+     (pl==nullptr || pl->isDead() || dialogs.isActive() || inventory.isActive() ||
+      document.isActive() || rootMenu.isActive() || video.isActive() || !pcamera->isArpgActive()))
+    arpgMenu.close();
+  // in front of the hero for his own windows
+  pcamera->setArpgPortrait(arpgMenu.isOpen() && arpgMenu.current()!=ArpgMenu::P_Trade && !dialogs.isActive());
+  {
+    // trade, chest, looting: the trader (the chest, the body) in the middle between the pages
+    Camera::ArpgBookShot bk;
+    if(arpgMenu.current()==ArpgMenu::P_Trade && pl!=nullptr) {
+      if(auto ch = inventory.arpgChest()) {
+        bk.on       = true;
+        bk.standing = false;
+        bk.subject  = ch->position()+Vec3(0,45.f,0);
+        }
+      else if(auto o = inventory.arpgOther(); o!=nullptr && o!=pl) {
+        bk.on       = true;
+        bk.standing = !o->isDown();
+        if(bk.standing)
+          bk.subject = o->position()+Vec3(0,100.f,0); else
+          bk.subject = (o->position()+o->mapHeadBone())*0.5f+Vec3(0,20.f,0); // the body on the ground
+        }
+      }
+    pcamera->setArpgBook(bk);
+  }
+
   auto&      camera       = *pcamera;
   const auto ws           = pl!=nullptr ? pl->weaponState() : WeaponState::NoWeapon;
   const bool meleeFocus   = (ws==WeaponState::Fist ||
@@ -1332,7 +1439,12 @@ void MainWindow::tickCamera(uint64_t dt) {
 
   if(!camera.isCutscene() && !camera.isFree()) {
     const bool fs = SystemApi::isFullscreen(hwnd());
-    if(!fs && mouseP[Event::ButtonLeft]) {
+    if(dialogs.isArpgCinema()) {
+      // gothic-diablo: cinematic dialog: the director in the camera films the two
+      camera.setArpgDialog(dialogs.arpgDialogInput());
+      camera.setTarget(pos);
+      }
+    else if(!fs && mouseP[Event::ButtonLeft]) {
       camera.setSpin(camera.spin());
       camera.setTarget(pos);
       }
@@ -1364,6 +1476,7 @@ void MainWindow::tickCamera(uint64_t dt) {
   if(camera.isToggleEnabled() && !camera.isCutscene())
     camera.setMode(solveCameraMode());
   camera.tick(dt);
+  updateArpgDialogLight(camera);
   }
 
 Camera::Mode MainWindow::solveCameraMode() const {
@@ -1508,6 +1621,8 @@ void MainWindow::onVideo(std::string_view fname) {
   }
 
 void MainWindow::onStartLoading() {
+  dropArpgDialogLight();
+  arpgRemarks.clear();
   player   .clearInput();
   inventory.onWorldChanged();
   dialogs  .onWorldChanged();
@@ -1583,9 +1698,51 @@ void MainWindow::onBenchmarkFinished() {
 
 void MainWindow::setGameImpl(std::unique_ptr<GameSession> &&w) {
   // clear pointers to outdated game-state
+  dropArpgDialogLight();
+  arpgRemarks.clear();
   inventory.onWorldChanged();
   dialogs  .onWorldChanged();
   Gothic::inst().setGame(std::move(w));
+  }
+
+void MainWindow::dropArpgDialogLight() {
+  // the world is still there: the light leaves it properly
+  if(arpgDlgLightOn && Gothic::inst().world()==arpgDlgLightWorld)
+    arpgDlgLight = LightGroup::Light(); else
+    arpgDlgLight.release();
+  arpgDlgLightOn    = false;
+  arpgDlgLightWorld = nullptr;
+  }
+
+void MainWindow::updateArpgDialogLight(const Camera& camera) {
+  // gothic-diablo: a soft light from the camera on the faces in dialog shots (night, interiors)
+  auto  world = Gothic::inst().world();
+  Vec3  pos;
+  float range = 0;
+  const bool on = world!=nullptr && camera.arpgDialogLight(pos, range);
+  if(arpgDlgLightOn && arpgDlgLightWorld!=world) {
+    arpgDlgLight.release(); // another world: the old one took its lights with it
+    arpgDlgLightOn = false;
+    }
+  if(!on) {
+    if(arpgDlgLightOn)
+      dropArpgDialogLight();
+    return;
+    }
+  if(!arpgDlgLightOn) {
+    zenkit::VLight v;
+    v.preset    = "ARPG_DIALOG_FILL";
+    v.range     = range;
+    v.color     = zenkit::Color{150, 138, 120, 255};
+    v.is_static = false;
+    v.on        = true;
+    v.position  = {pos.x, pos.y, pos.z};
+    arpgDlgLight      = world->addLight(v);
+    arpgDlgLightOn    = true;
+    arpgDlgLightWorld = world;
+    }
+  arpgDlgLight.setPosition(pos);
+  arpgDlgLight.setRange(range);
   }
 
 void MainWindow::clearInput() {
@@ -1645,9 +1802,14 @@ void MainWindow::render(){
       numOverlay.clear();
       PaintEvent p(numOverlay,atlas,this->w(),this->h());
       inventory.paintNumOverlay(p);
-      if(!inventory.isActive()) {
+      if(!inventory.isActive() || inventory.isArpgBook()) {
         Painter pn(p);
-        paintArpgBarOverlay(pn);
+        if(arpgMenu.isOpen()) {
+          if(auto pl = Gothic::inst().player())
+            arpgMenu.paintOverlay(pn, Gothic::interfaceScale(this), *pl);
+          } else {
+          paintArpgBarOverlay(pn);
+          }
         }
       }
     uiMesh [cmdId].update(device,uiLayer);
@@ -2300,5 +2462,90 @@ void MainWindow::paintArpgBarOverlay(Painter& p) {
     char key[4] = {};
     std::snprintf(key, sizeof(key), "%d", (k+3)%10);
     label(r, key, itm==nullptr);
+    }
+  }
+
+void MainWindow::onArpgSpeech(Npc& npc, std::string_view text, uint64_t ms, bool scripted) {
+  // gothic-diablo: a third one in a cinematic talk goes to its subtitles, anything else near the hero over the head
+  auto world = Gothic::inst().world();
+  auto pl    = Gothic::inst().player();
+  if(world==nullptr || pl==nullptr || text.empty())
+    return;
+  if(scripted && dialogs.arpgThirdLine(npc, text, ms))
+    return; // remarks (SVM) of people around do not cut into the film
+  if(npc.qDistTo(*pl)>2500.f*2500.f)
+    return;
+  const uint64_t now = world->tickCount();
+  for(auto& r:arpgRemarks)
+    if(r.npc==&npc) {
+      r.text  = std::string(text);
+      r.start = now;
+      r.until = now+ms+600;
+      return;
+      }
+  if(arpgRemarks.size()>=4)
+    arpgRemarks.erase(arpgRemarks.begin());
+  ArpgRemark r;
+  r.npc   = &npc;
+  r.text  = std::string(text);
+  r.start = now;
+  r.until = now+ms+600;
+  arpgRemarks.push_back(std::move(r));
+  }
+
+void MainWindow::paintArpgRemarks(Painter& p, const Matrix4x4& vp) {
+  auto world = Gothic::inst().world();
+  auto pl    = Gothic::inst().player();
+  if(world==nullptr || pl==nullptr) {
+    arpgRemarks.clear();
+    return;
+    }
+  if(arpgRemarks.empty())
+    return;
+  const uint64_t now = world->tickCount();
+
+  // only creatures that are still here (around the hero)
+  std::vector<const Npc*> alive;
+  world->detectNpc(pl->position(), 3000.f, [&](Npc& n) { alive.push_back(&n); });
+  for(size_t i=0; i<arpgRemarks.size();) {
+    auto& r = arpgRemarks[i];
+    const bool here = std::find(alive.begin(), alive.end(), r.npc)!=alive.end();
+    if(now>r.until || !here || r.npc->isDead())
+      arpgRemarks.erase(arpgRemarks.begin()+int(i)); else
+      ++i;
+    }
+
+  const float k   = std::max(0.5f, float(h())/1080.f);
+  auto&       fnt = Resources::font("font_old_10_white.tga", Resources::FontType::Hi, 1.15f*k);
+  const int   tw  = int(380*k);
+  const int   pad = int(8*k);
+  for(auto& r:arpgRemarks) {
+    Vec3  pos = r.npc->mapHeadBone()+Vec3(0, 45.f, 0);
+    float pw  = 1.f;
+    vp.project(pos.x, pos.y, pos.z, pw);
+    if(pw<=0.f)
+      continue;
+    pos /= pw;
+    if(pos.x<-1.1f || pos.x>1.1f || pos.y<-1.1f || pos.y>1.1f)
+      continue;
+    const int cx = int((0.5f*pos.x+0.5f)*float(w()));
+    const int cy = int((0.5f*pos.y+0.5f)*float(h()));
+
+    // in 0.15 s, out in the last 0.3 s
+    float a = 1.f;
+    if(now-r.start<150)
+      a = float(now-r.start)/150.f;
+    if(r.until-now<300)
+      a = std::min(a, float(r.until-now)/300.f);
+
+    const auto  sz = fnt.textSize(tw, r.text);
+    const int   bw = std::min(tw, sz.w)+2*pad;
+    const int   bh = sz.h+2*pad;
+    const Rect  box(cx-bw/2, cy-bh, bw, bh);
+    p.setBrush(Brush(Color(0.f, 0.f, 0.f, 0.55f*a), Painter::Alpha));
+    p.drawRect(box.x, box.y, box.w, box.h);
+    GthFont f = fnt;
+    f.setColor(Color(1.f, 1.f, 1.f, a));
+    f.drawText(p, box.x+pad, box.y+pad+f.pixelSize(), bw-2*pad, 0, r.text, AlignHCenter);
     }
   }

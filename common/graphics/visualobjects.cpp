@@ -389,7 +389,20 @@ void VisualObjects::startMMAnim(size_t i, std::string_view animName, float inten
 
   objectsMorph.insert(i);
 
-  auto& m = anim[id];
+  auto&    m       = anim[id];
+  uint32_t fadeIn  = 0;
+  uint32_t fadeOut = 0;
+  if(timeUntil==uint64_t(-2)) {
+    // gothic-diablo: played once. A pose of one frame (R_EYESBLINK: closed eyes, no duration, 1 s per frame) is a
+    // quick blink: 45 ms closing, a moment closed, 75 ms opening; longer animations: one cycle
+    if(m.numFrames<=1) {
+      timeUntil = scene.tickCount + 140;
+      fadeIn    = 45;
+      fadeOut   = 75;
+      } else {
+      timeUntil = scene.tickCount + (m.duration>0 ? m.duration : uint64_t(m.numFrames*m.tickPerFrame));
+      }
+    }
   if(timeUntil==uint64_t(-1) && m.duration>0)
     timeUntil = scene.tickCount + m.duration;
 
@@ -399,6 +412,10 @@ void VisualObjects::startMMAnim(size_t i, std::string_view animName, float inten
       continue;
     i.timeUntil = timeUntil;
     i.intensity = intensity;
+    if(fadeIn>0)
+      i.timeStart = scene.tickCount;
+    i.fadeIn    = fadeIn;
+    i.fadeOut   = fadeOut;
     return;
     }
 
@@ -411,6 +428,10 @@ void VisualObjects::startMMAnim(size_t i, std::string_view animName, float inten
     i.id        = id;
     i.timeUntil = timeUntil;
     i.intensity = intensity;
+    if(fadeIn>0)
+      i.timeStart = scene.tickCount;
+    i.fadeIn    = fadeIn;
+    i.fadeOut   = fadeOut;
     return;
     }
 
@@ -426,6 +447,8 @@ void VisualObjects::startMMAnim(size_t i, std::string_view animName, float inten
   ani.timeStart = scene.tickCount;
   ani.timeUntil = timeUntil;
   ani.intensity = intensity;
+  ani.fadeIn    = fadeIn;
+  ani.fadeOut   = fadeOut;
   }
 
 void VisualObjects::setAsGhost(size_t id, bool g) {
@@ -533,8 +556,14 @@ void VisualObjects::preFrameUpdateMorph() {
         continue;
         }
 
-      if(anim.numFrames>1)
+      // gothic-diablo: also a still pose with an end (blink, mood): the end has to be seen, or the face stays
+      // like that (eyes closed) until something else on the face moves
+      if(anim.numFrames>1 || ani.timeUntil!=uint64_t(-1))
         reschedule = true;
+      if(ani.fadeIn>0 && time<ani.fadeIn)
+        intensity *= float(time)/float(ani.fadeIn);
+      if(ani.fadeOut>0 && ani.timeUntil-scene.tickCount<ani.fadeOut)
+        intensity *= float(ani.timeUntil-scene.tickCount)/float(ani.fadeOut);
 
       const uint32_t samplesPerFrame = uint32_t(anim.samplesPerFrame);
       data.morph[i].indexOffset = uint32_t(anim.index);

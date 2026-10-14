@@ -8,6 +8,8 @@
 
 #include <zenkit/addon/daedalus.hh>
 
+#include "arpgdialogcam.h"
+
 class World;
 class Npc;
 class DbgPainter;
@@ -62,6 +64,8 @@ class Camera final {
       float         indoor     = 0;    // 0..1: indoors -> lower levels fade to black (animated)
       float         lowerStart = 0;    // lower levels: start of the fade, cm below the feet
       float         lowerEnd   = 0;    // lower levels: fully black, cm below the feet
+      float         nearCut    = 0;    // camera inside the rock (behind a ravine wall): the inner side of the world mesh
+                                       // closer than this to the camera is not drawn (cm, 0 = off)
       // line of sight around the hero (indoors): how far the hero sees in each direction (cm),
       // direction i = angle 2*pi*i/LosRays in the xz plane, same convention as atan2(z,x)
       static constexpr size_t LosRays = 128;
@@ -144,10 +148,28 @@ class Camera final {
     bool               isArpgActive() const;
     float              arpgYaw() const { return arpg.yaw; }
     void               arpgRotate(float deltaDeg);
+    // gothic-diablo: equipment / character window: the camera goes round to the front of the hero, close to him
+    void               setArpgPortrait(bool on);
     const ArpgView&    arpgView() const { return arpgV; }
     // gothic-diablo: creatures that glow a little (enemy under the cursor, current target): xyz = center, w = radius
     void               arpgSetHighlight(size_t i, const Tempest::Vec4& v) { if(i<arpgHi.size()) arpgHi[i] = v; }
     const std::array<Tempest::Vec4,2>& arpgHighlight() const { return arpgHi; }
+    // gothic-diablo: trade / chest / looting in the ARPG book: the camera shows the other one (or the thing) in the
+    // middle between the two pages, the hero stays at the side behind a page (every frame, before tick)
+    struct ArpgBookShot {
+      bool          on       = false;
+      Tempest::Vec3 subject  = {};    // the point in the middle of the picture
+      bool          standing = true;  // a trader (from the front, low) or a chest / body (from above)
+      };
+    void               setArpgBook(const ArpgBookShot& b) { arpgBook.in = b; }
+    // gothic-diablo: cinematic dialogs: the dialog menu tells the camera who talks (every frame, before tick)
+    void               setArpgDialog(const ArpgDialogCam::Input& in) { arpgDlg.in = in; arpgDlg.on = true; }
+    bool               isArpgDialogShot() const { return camMod==Dialog && arpgDlg.cutDone; }
+    // depth of field of the dialog shots: strength 0..1, distance in focus (cm)
+    struct ArpgDof { float strength = 0; float focus = 0; };
+    ArpgDof            arpgDof() const { return ArpgDof{arpgDlg.dof, arpgDlg.focus}; }
+    // a soft light for the faces in dialog shots (false: none)
+    bool               arpgDialogLight(Tempest::Vec3& pos, float& range) const;
 
   private:
     struct Arpg {
@@ -165,13 +187,52 @@ class Camera final {
       std::array<float,ArpgView::LosRays> losDst = {}; // last measured
       uint32_t losPhase = 0;
       bool     losInit  = false;
+      float    insideHold = 0;   // s left: the camera was inside the rock
+      float    nearCut    = 0;
+      bool     portraitOn = false;
+      float    portrait   = 0;   // 0..1 blend to the portrait view
+      float    yawSaved   = 0;   // yaw before the portrait view
       };
     Arpg                  arpg;
     ArpgView              arpgV;
+    Tempest::Vec3         arpgLookNow = {}; // where the ARPG / dialog camera looks (blends to and from the book shot)
+
+    struct ArpgBook {
+      ArpgBookShot  in;
+      float         k      = 0;   // 0..1 blend to the book shot
+      float         side   = 0;   // +1 / -1: picked when the book opens
+      Tempest::Vec3 origin = {};
+      Tempest::Vec3 look   = {};
+      float         focus  = 0;
+      };
+    ArpgBook              arpgBook;
+    void                  tickArpgBook(float dtF);
     std::array<Tempest::Vec4,2> arpgHi = {};
 
     void                  tickArpg(float dtF);
     void                  updateArpgView(float dtF);
+
+    // gothic-diablo: cinematic dialogs: a short way down from the ARPG view, then the cut to the director's shots
+    struct ArpgDlg {
+      bool                 on       = false; // input given for this frame
+      ArpgDialogCam::Input in;
+      float                t        = 0;     // seconds in the talk
+      bool                 cutDone  = false;
+      bool                 keepView = false; // the ARPG view (cut-away, fog of war) stays: on the way down, workbench menus
+      Tempest::Vec3        viewFrom = {};
+      Tempest::Vec3        look     = {};    // where the shot looks
+      float                focus    = 0;     // cm from the camera to the face in focus
+      float                dof      = 0;     // 0..1, depth of field fades in and out
+      bool                 exitOn   = false; // after the talk: the camera goes back up to the ARPG view
+      float                exitT    = 0;
+      Tempest::Vec3        exitFrom = {};
+      Tempest::Vec3        exitLook = {};
+      };
+    ArpgDlg               arpgDlg;
+    ArpgDialogCam         arpgDir;
+    float                 fovNow = 0;
+    void                  tickArpgDialog(float dtF);
+    void                  arpgPlaceHero (const ArpgDialogCam::Input& in);
 
     struct Pin {
       Tempest::Vec3       origin = {};

@@ -764,6 +764,14 @@ DynamicWorld::RayCamResult DynamicWorld::cameraRay(const Tempest::Vec3& from, co
   }
 
 DynamicWorld::RayLandResult DynamicWorld::ray(const Tempest::Vec3& from, const Tempest::Vec3& to) const {
+  return implRay(from, to, true);
+  }
+
+DynamicWorld::RayLandResult DynamicWorld::rayBothSides(const Tempest::Vec3& from, const Tempest::Vec3& to) const {
+  return implRay(from, to, false);
+  }
+
+DynamicWorld::RayLandResult DynamicWorld::implRay(const Tempest::Vec3& from, const Tempest::Vec3& to, bool frontOnly) const {
   struct CallBack:btCollisionWorld::ClosestRayResultCallback {
     using ClosestRayResultCallback::ClosestRayResultCallback;
     zenkit::MaterialGroup matId  = zenkit::MaterialGroup::UNDEFINED;
@@ -791,7 +799,9 @@ DynamicWorld::RayLandResult DynamicWorld::ray(const Tempest::Vec3& from, const T
     };
 
   CallBack callback{CollisionWorld::toMeters(from), CollisionWorld::toMeters(to)};
-  callback.m_flags = btTriangleRaycastCallback::kF_KeepUnflippedNormal | btTriangleRaycastCallback::kF_FilterBackfaces;
+  callback.m_flags = btTriangleRaycastCallback::kF_KeepUnflippedNormal;
+  if(frontOnly)
+    callback.m_flags |= btTriangleRaycastCallback::kF_FilterBackfaces;
 
   world->rayCast(from,to,callback);
   return toResult(callback, to, callback.matId, callback.sector);

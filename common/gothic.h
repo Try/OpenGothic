@@ -170,6 +170,9 @@ class Gothic final {
 
     Tempest::Signal<void(std::string_view,int,int,int,const GthFont&)>  onPrintScreen;
     Tempest::Signal<void(std::string_view)>                             onPrint;
+    // gothic-diablo: a line said outside a dialog window (a remark in passing, a third one in a talk):
+    // who, text, ms, scripted (AI_Output, not an SVM)
+    Tempest::Signal<void(Npc&,std::string_view,uint64_t,bool)>          onArpgSpeech;
     Tempest::Signal<void(std::string_view)>                             onVideo;
 
     Tempest::Signal<void(const ChapterScreen::Show&)>                   onIntroChapter;

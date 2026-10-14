@@ -1,5 +1,7 @@
 #include "sceneglobals.h"
 
+#include <algorithm>
+
 #include "graphics/shaders.h"
 #include "graphics/sky/sky.h"
 #include "worldview.h"
@@ -161,7 +163,7 @@ void SceneGlobals::setUnderWater(bool w) {
 void SceneGlobals::setArpgView(bool enabled, const Tempest::Vec3& feet, const Tempest::Vec3& center,
                                float cutHeight, float cutRadius, float fadeRadius,
                                float fowRadius, float fowFade,
-                               float seeThrough, float indoor, float lowerStart, float lowerEnd,
+                               float seeThrough, float indoor, float lowerStart, float lowerEnd, float nearCut,
                                const float* los128, const Tempest::Vec4* highlight2) {
   static_assert(sizeof(UboGlobal)==1776, "UboGlobal must match SceneDesc in scene.glsl");
   uboGlobalCpu.arpgHi[0] = (enabled && highlight2!=nullptr) ? highlight2[0] : Tempest::Vec4();
@@ -184,7 +186,8 @@ void SceneGlobals::setArpgView(bool enabled, const Tempest::Vec3& feet, const Te
   const float aspect = (uboGlobalCpu.screenRes.y>0) ? float(uboGlobalCpu.screenRes.x)/float(uboGlobalCpu.screenRes.y) : 1.f;
   const float dist   = (center-uboGlobalCpu.camPos).length();
 
-  uboGlobalCpu.arpgPlayer  = Tempest::Vec4(feet.x,   feet.y,   feet.z,   1.f);
+  // w: 1 = active, above 1: 1 + the near cut (cm, camera inside the rock; main.frag)
+  uboGlobalCpu.arpgPlayer  = Tempest::Vec4(feet.x,   feet.y,   feet.z,   1.f+std::max(0.f, nearCut));
   uboGlobalCpu.arpgCenter  = Tempest::Vec4(center.x, center.y, center.z, cutHeight);
   uboGlobalCpu.arpgParams  = Tempest::Vec4(cutRadius, (c.w>0.f ? fadeRadius : 0.f), ndcX, ndcY);
   uboGlobalCpu.arpgParams2 = Tempest::Vec4(aspect, dist, fowRadius, fowFade);

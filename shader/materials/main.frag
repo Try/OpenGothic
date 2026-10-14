@@ -418,6 +418,14 @@ void main() {
 #if defined(ARPG_BACKFACE) && !defined(VIRTUAL_SHADOW)
   if(arpgIsBackFace() && scene.arpgPlayer.w<=0.0)
     discard; // not in the ARPG view: behave like regular back-face culling
+  if(arpgIsBackFace() && scene.arpgPlayer.w>1.0) {
+    // the camera is inside the rock (behind a ravine wall, in a mountain): the inner side between it and the hero
+    // would be a black screen
+    const vec2 ndc  = (gl_FragCoord.xy*scene.screenResInv)*2.0-vec2(1.0);
+    const vec3 wpos = arpgWorldPos(ndc, gl_FragCoord.z);
+    if(distance(wpos, scene.camPos) < scene.arpgPlayer.w-1.0)
+      discard;
+    }
 #endif
 #if !defined(VIRTUAL_SHADOW)
   if(arpgHidden())
