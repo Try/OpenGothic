@@ -85,6 +85,12 @@ target_link_libraries(${PROJECT_NAME} GothicShaders)
 # editor icons and such
 add_subdirectory(spacer/assets)
 
+# Diathic: menu logo, menu music
+add_subdirectory(assets)
+target_link_libraries(${PROJECT_NAME} DiathicAssets)
+
+# build.h made by CI / dev.ps1 (game/build.h) wins over the default common/build.h everywhere
+include_directories(BEFORE "game")
 include_directories("common")
 
 ## submodule dependencies

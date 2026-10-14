@@ -5,6 +5,8 @@
 #include <Tempest/Log>
 
 #include "game/definitions/musicdefinitions.h"
+#include <Tempest/MemReader>
+#include <diathicassets.h>
 #include "dmusic/mixer.h"
 #include "resources.h"
 #include "dmusic.h"
@@ -364,6 +366,7 @@ bool GameMusic::isEnabled() const {
   }
 
 void GameMusic::setMusic(GameMusic::Music m) {
+  stopMenuTrack();
   const char *clsTheme = "";
   switch (m) {
     case GameMusic::SysLoading:
@@ -375,6 +378,7 @@ void GameMusic::setMusic(GameMusic::Music m) {
   }
 
 void GameMusic::setMusic(const zenkit::IMusicTheme &theme, Tags tags) {
+  stopMenuTrack();
   currentMusic.theme = theme;
   currentMusic.tags  = tags;
   impl->playTheme(currentMusic.theme, currentMusic.tags);
@@ -382,6 +386,46 @@ void GameMusic::setMusic(const zenkit::IMusicTheme &theme, Tags tags) {
 
 void GameMusic::stopMusic() {
   setEnabled(false);
+  }
+
+void GameMusic::playMenuTrack() {
+  if(menuTrackOn)
+    return;
+  if(menuTrack.isEmpty()) {
+    auto ogg = DiathicAsset::get("menu.ogg");
+    if(ogg.empty())
+      return;
+    try {
+      Tempest::MemReader rd(ogg.data, ogg.len);
+      Tempest::Sound     snd(rd);
+      menuTrack = device.load(snd);
+      }
+    catch(...) {
+      Log::e("unable to load the Diathic menu music");
+      return;
+      }
+    }
+  // the theme of the game stops, ours plays (stereo: not positioned in the world)
+  currentMusic.theme = zenkit::IMusicTheme{};
+  impl->stopTheme();
+  menuTrackOn     = true;
+  menuTrackPaused = !isEnabled();
+  menuTrack.setVolume(Gothic::settingsGetF("SOUND","musicVolume"));
+  if(!menuTrackPaused)
+    menuTrack.play();
+  }
+
+void GameMusic::stopMenuTrack() {
+  if(!menuTrackOn)
+    return;
+  menuTrackOn = false;
+  menuTrack.pause();
+  menuTrack = Tempest::SoundEffect(); // next time from the start
+  }
+
+void GameMusic::tick() {
+  if(menuTrackOn && !menuTrackPaused && menuTrack.isFinished())
+    menuTrack.play();
   }
 
 void GameMusic::setupSettings() {
@@ -410,4 +454,15 @@ void GameMusic::setupSettings() {
 
   setEnabled(musicEnabled != 0);
   sound.setVolume(musicVolume);
+  if(menuTrackOn) {
+    menuTrack.setVolume(musicVolume);
+    if(musicEnabled==0 && !menuTrackPaused) {
+      menuTrack.pause();
+      menuTrackPaused = true;
+      }
+    else if(musicEnabled!=0 && menuTrackPaused) {
+      menuTrack.play();
+      menuTrackPaused = false;
+      }
+    }
   }

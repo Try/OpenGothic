@@ -27,10 +27,15 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       semver: ${{ steps.version.outputs.semver }}
     steps:
+      # Diathic: the version line of the main menu (appBuild) = build number, branch, commit
       - id: version
+        env:
+          BRANCH: ${{ github.head_ref || github.ref_name }}
+          SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
-          echo "version=OpenGothic v1.0.$((GITHUB_RUN_NUMBER + BUILD_OFFSET))" >> $GITHUB_OUTPUT
-          echo "semver=1.0.$((GITHUB_RUN_NUMBER + BUILD_OFFSET))" >> $GITHUB_OUTPUT
+          N=$((GITHUB_RUN_NUMBER + BUILD_OFFSET))
+          echo "version=Diathic build $N (${BRANCH//[^A-Za-z0-9._\/-]/} ${SHA:0:7})" >> $GITHUB_OUTPUT
+          echo "semver=1.0.$N" >> $GITHUB_OUTPUT
 
   linux:
     needs: setup

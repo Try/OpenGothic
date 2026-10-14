@@ -35,6 +35,7 @@
 #include "utils/string_frm.h"
 
 #include <dmusic.h>
+#include <diathicassets.h>
 
 using namespace Tempest;
 
@@ -337,6 +338,16 @@ int64_t Resources::vdfTimestamp(const std::u16string& name) {
     }
   }
 
+bool Resources::isDiathicLogo(std::string_view name) {
+  constexpr std::string_view logo = "MENU_GOTHIC.TGA";
+  if(name.size()!=logo.size())
+    return false;
+  for(size_t i=0; i<logo.size(); ++i)
+    if(std::toupper(uint8_t(name[i]))!=logo[i])
+      return false;
+  return true;
+  }
+
 Tempest::Texture2d* Resources::implLoadTexture(std::string_view cname, bool forceMips) {
   if(cname.empty())
     return nullptr;
@@ -361,6 +372,21 @@ Tempest::Texture2d* Resources::implLoadTexture(std::string_view cname, bool forc
 Texture2d Resources::implLoadTextureUncached(std::string_view name, bool forceMips) {
   if(name.empty())
     return Texture2d();
+
+  // Diathic: our logo instead of Gothic's (MENUITEM_MAIN_HEADLINE2 of the main menu)
+  if(isDiathicLogo(name)) {
+    auto logo = DiathicAsset::get("logo.png");
+    try {
+      if(!logo.empty()) {
+        Tempest::MemReader rd(logo.data, logo.len);
+        Tempest::Pixmap    pm(rd);
+        return dev.texture(pm, true);
+        }
+      }
+    catch(...) {
+      Log::e("unable to load the Diathic logo");
+      }
+    }
 
   if(FileExt::hasExt(name,"TGA")) {
     auto nameAlt = std::string(name);

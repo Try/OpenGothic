@@ -17,7 +17,7 @@ Każda zmiana dalej idzie na GitHuba, CI i launcher (`build-<N>`) działają jak
 |---|---|
 | `graj_lokalnie.bat` | pobiera najnowszy commit (gałąź z najnowszym commitem, jak launcher), buduje przyrostowo, uruchamia grę |
 | `buduj_w_tle.bat` | zostaw otwarte: co 15 s sprawdza GitHuba i od razu buduje nowy commit (dźwięk = gotowe) |
-| `Gothic Diablo.bat` | launcher bez zmian – buildy z CI |
+| `Diathic.bat` (wcześniej `Gothic Diablo.bat`) | launcher bez zmian – buildy z CI |
 
 Gra startuje z `gra\dane` – te same zapisy i `Gothic.ini` co w launcherze.
 Zbudowane wersje: `gra\lokalne\<commit>\` (2 ostatnie). Logi: `gra\lokalne\build.log`, `setup.log`.

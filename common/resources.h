@@ -97,6 +97,7 @@ class Resources final {
     static auto                      fallbackImage() -> const Tempest::StorageImage&;
     static Tempest::Texture2d        loadTextureUncached(std::string_view name, bool forceMips = false);
     static const Tempest::Texture2d* loadTexture(std::string_view name, bool forceMips = false);
+    static bool                      isDiathicLogo(std::string_view name); // Diathic: MENU_GOTHIC.TGA is our logo
     static const Tempest::Texture2d* loadTexture(Tempest::Color color);
     static const Tempest::Texture2d* loadTexture(std::string_view name, int32_t v, int32_t c);
     static       Tempest::Texture2d  loadTexturePm(const Tempest::Pixmap& pm);

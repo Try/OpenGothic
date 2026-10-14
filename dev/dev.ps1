@@ -220,7 +220,7 @@ function Invoke-Configure([bool]$Lld) {
 function Invoke-Build([bool]$AllowLldFallback = $false) {
   Use-Toolchain
   $info = Get-CommitInfo
-  $header = "#pragma once`nstatic const char* appBuild = `"gothic-diablo lokalny $($info.Branch) $($info.Tag)`";`n"
+  $header = "#pragma once`nstatic const char* appBuild = `"Diathic lokalny build ($($info.Branch) $($info.Tag))`";`n"
   $headerFile = Join-Path $Src 'game\build.h'
   if (-not (Test-Path $headerFile) -or ([IO.File]::ReadAllText($headerFile) -ne $header)) {
     [IO.File]::WriteAllText($headerFile, $header)

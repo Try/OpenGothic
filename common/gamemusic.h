@@ -34,6 +34,10 @@ class GameMusic final {
     void      setMusic(const zenkit::IMusicTheme &theme, Tags t);
     void      stopMusic();
 
+    // Diathic: our main-menu track (assets/diathic/menu.ogg) instead of the SYS_Menu theme; any other music stops it
+    void      playMenuTrack();
+    void      tick(); // loops the menu track
+
   private:
     struct MusicProvider;
     struct OpenGothicMusicProvider;
@@ -48,8 +52,14 @@ class GameMusic final {
       Tags                tags  = Tags::Std;
       } currentMusic;
 
+    void      stopMenuTrack();
+
     int                  provider = -1;
     Tempest::SoundDevice device;
     Tempest::SoundEffect sound;
     MusicProvider*       impl = nullptr;
+
+    Tempest::SoundEffect menuTrack;
+    bool                 menuTrackOn     = false;
+    bool                 menuTrackPaused = false; // music switched off in the options
   };

@@ -1,13 +1,13 @@
-# gothic-diablo launcher (Windows)
+# Diathic – launcher (Windows)
 
 Każdy build Windows z `master` albo z PR tej repo CI publikuje jako release `build-<N>`
 (paczka `gothic-diablo-win64.zip`, gra bez Spacera). Trzymanych jest 15 ostatnich.
 
 Pliki kopiuje się do `G:\projekty\gothic-diablo`:
 
-- `Gothic Diablo.bat` – okno launchera: sam pobiera najnowszy build (pasek postępu), pokazuje „co nowego”,
+- `Diathic.bat` – okno launchera: sam pobiera najnowszy build (pasek postępu), pokazuje „co nowego”,
   pozwala wybrać starszą wersję, przyciski **Graj (ARPG)** / **Graj klasycznie**. Przy pierwszym uruchomieniu
-  tworzy skrót `Gothic Diablo.lnk` (bez migającej konsoli, z ikoną Gothic II) – można go przypiąć do paska / pulpitu.
+  tworzy skrót `Diathic.lnk` (bez migającej konsoli, z ikoną Gothic II); z plikiem `logo.png` obok pokazuje logo Diathic – można go przypiąć do paska / pulpitu.
 - `uruchom_arpg.bat` / `uruchom_klasycznie.bat` – szybki start bez okna (aktualizacja + gra).
 
 Co robi `launcher.ps1`:
@@ -44,8 +44,9 @@ Pozostałe parametry trafiają do `Gothic2Notr.exe`, np. `uruchom_arpg.bat -wind
 ## Wersje dla testerów
 
 Testerzy dostają stały link do paczki launchera:
-`https://github.com/wr0b3l/gothic-diablo/releases/download/testerzy/GothicDiablo-testerzy.zip`
-(`Gothic Diablo.bat`, `launcher.ps1`, `launcher.json` z kanałem `tester`, `CZYTAJ.txt` z instrukcją).
+`https://github.com/wr0b3l/gothic-diablo/releases/download/testerzy/Diathic-testerzy.zip`
+(folder `Diathic`: `Diathic.bat`, `launcher.ps1`, `logo.png`, `launcher.json` z kanałem `tester`, `CZYTAJ.txt` z instrukcją).
+Stary link `GothicDiablo-testerzy.zip` dalej działa (ta sama paczka).
 Ich launcher pobiera tylko wydania `tester-<N>` – nie każdy build.
 
 Udostępnienie buildu testerom: GitHub → **Actions** → **Wydanie dla testerów** → **Run workflow**

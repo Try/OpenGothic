@@ -1,5 +1,5 @@
 ﻿<#
-  gothic-diablo – launcher
+  Diathic – launcher (nazwa kodowa projektu: gothic-diablo)
 
   1. Sprawdza na GitHubie najnowszy build (release "build-N"), pobiera go i instaluje
      do gra\wersje\build-N.
@@ -7,7 +7,7 @@
   3. Usuwa stare wersje (zostawia -Keep najnowszych, domyślnie 2).
   4. Uruchamia grę.
 
-  Bez parametrów otwiera okno launchera ("Gothic Diablo.lnk" / "Gothic Diablo.bat").
+  Bez parametrów otwiera okno launchera ("Diathic.lnk" / "Diathic.bat").
   -Console: bez okna, od razu aktualizacja + gra (uruchom_arpg.bat / uruchom_klasycznie.bat).
 
   Folder Gothic II launcher szuka sam (Steam, GOG, rejestr, typowe ścieżki); gdy nie znajdzie,
@@ -73,7 +73,7 @@ $Cfg = @{
   Versions   = Join-Path $PSScriptRoot 'gra\wersje'
   DataDir    = Join-Path $PSScriptRoot 'gra\dane'
   Exe        = 'Gothic2Notr.exe'
-  UserAgent  = 'gothic-diablo-launcher'
+  UserAgent  = 'diathic-launcher'
   Repo       = $Repo
   GothicPath = $GothicPath
   Channel    = $Channel
@@ -276,7 +276,7 @@ $Core = {
 
   function Start-Game($Run, [bool]$ClassicMode) {
     if (-not $Cfg.GothicPath -or -not (Test-Path -LiteralPath (Join-Path $Cfg.GothicPath 'Data'))) {
-      throw 'Nie znaleziono Gothic II. Uruchom „Gothic Diablo.bat” i wskaż folder gry albo podaj -GothicPath.'
+      throw 'Nie znaleziono Gothic II. Uruchom „Diathic.bat” i wskaż folder gry albo podaj -GothicPath.'
     }
     New-Item -ItemType Directory -Force -Path $Cfg.DataDir | Out-Null
     $argList = @('-g', "`"$($Cfg.GothicPath)`"")
@@ -397,7 +397,7 @@ function Select-GothicFolder([string]$Why, $Owner) {
     } else {
       "W folderze`n$p`nnie ma Gothic II (brak System\Gothic2.exe).`n`nWskaż folder gry – ten, w którym są podfoldery System i Data."
     }
-    [void][Windows.Forms.MessageBox]::Show($Owner, $msg, 'Gothic Diablo', 'OK', 'Warning')
+    [void][Windows.Forms.MessageBox]::Show($Owner, $msg, 'Diathic', 'OK', 'Warning')
     $dlg.SelectedPath = $p
   }
 }
@@ -454,7 +454,7 @@ function Invoke-Console {
 # Okno
 # =============================================================================
 function New-LauncherShortcut {
-  $lnk = Join-Path $Cfg.Root 'Gothic Diablo.lnk'
+  $lnk = Join-Path $Cfg.Root 'Diathic.lnk'
   if (Test-Path $lnk) { return }
   try {
     $shell = New-Object -ComObject WScript.Shell
@@ -462,7 +462,7 @@ function New-LauncherShortcut {
     $s.TargetPath       = (Get-Process -Id $PID).Path
     $s.Arguments        = "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$PSCommandPath`""
     $s.WorkingDirectory = $Cfg.Root
-    $s.Description      = 'Gothic Diablo – aktualizacja i uruchamianie gry'
+    $s.Description      = 'Diathic – aktualizacja i uruchamianie gry'
     $ico = Join-Path $Cfg.GothicPath 'System\Gothic2.exe'
     if (Test-Path $ico) { $s.IconLocation = "$ico,0" }
     $s.Save()
@@ -500,7 +500,7 @@ function Invoke-Gui {
 
   # --- kontrolki ---
   $form = New-Object Windows.Forms.Form
-  $form.Text = if ($Cfg.Channel -eq 'tester') { 'Gothic Diablo – wersja testowa' } else { 'Gothic Diablo' }
+  $form.Text = if ($Cfg.Channel -eq 'tester') { 'Diathic – wersja testowa' } else { 'Diathic' }
   $form.AutoScaleDimensions = New-Object Drawing.SizeF(96, 96)
   $form.AutoScaleMode = 'Dpi'
   $form.ClientSize  = New-Object Drawing.Size(580, 450)
@@ -525,12 +525,27 @@ function Invoke-Gui {
   }
   $form.Controls.Add($grid)
 
-  $title = New-Object Windows.Forms.Label
-  $title.Text = 'GOTHIC DIABLO'
-  $title.Font = New-Object Drawing.Font('Georgia', 20, [Drawing.FontStyle]::Bold)
-  $title.ForeColor = $C.Accent
-  $title.AutoSize = $true
-  $title.Margin = Pad 0 0 0 0
+  # logo.png obok launchera (płonący napis Diathic), bez niego napis
+  $title = $null
+  $logoFile = Join-Path $Cfg.Root 'logo.png'
+  if (Test-Path -LiteralPath $logoFile) {
+    try {
+      $title = New-Object Windows.Forms.PictureBox
+      $title.Image = [Drawing.Image]::FromFile($logoFile)
+      $title.SizeMode = 'Zoom'
+      $title.Size = New-Object Drawing.Size(216, 100)
+      $title.BackColor = $C.Bg
+      $title.Margin = Pad 0 0 0 4
+    } catch { $title = $null }
+  }
+  if (-not $title) {
+    $title = New-Object Windows.Forms.Label
+    $title.Text = 'DIATHIC'
+    $title.Font = New-Object Drawing.Font('Georgia', 20, [Drawing.FontStyle]::Bold)
+    $title.ForeColor = $C.Accent
+    $title.AutoSize = $true
+    $title.Margin = Pad 0 0 0 0
+  }
   $grid.Controls.Add($title, 0, 0)
 
   $status = New-Object Windows.Forms.Label
@@ -879,7 +894,7 @@ try {
   } else {
     try {
       Add-Type -AssemblyName System.Windows.Forms
-      [void][Windows.Forms.MessageBox]::Show("$msg`n`n$($_.ScriptStackTrace)", 'Gothic Diablo – błąd', 'OK', 'Error')
+      [void][Windows.Forms.MessageBox]::Show("$msg`n`n$($_.ScriptStackTrace)", 'Diathic – błąd', 'OK', 'Error')
     } catch { }
   }
   exit 1

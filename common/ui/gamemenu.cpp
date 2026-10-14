@@ -427,7 +427,21 @@ void GameMenu::drawItem(Painter& p, Item& hItem) {
   int         szX   = int(float(w()*dimx       )/scriptDiv);
   int         szY   = int(float(h()*dimy       )/scriptDiv);
 
-  if(hItem.img && !hItem.img->isEmpty()) {
+  if(hItem.img && !hItem.img->isEmpty() && Resources::isDiathicLogo(item->backpic)) {
+    // Diathic: the logo keeps its proportions, 1.5x the height of Gothic's headline, flames over the top of the menu,
+    // the glowing line at the bottom just above the first item
+    const float aspect = float(hItem.img->w())/float(std::max(1,hItem.img->h()));
+    int lh = int(float(szY)*1.5f);
+    int lw = int(float(lh)*aspect);
+    if(lw>szX) {
+      lw = szX;
+      lh = int(float(lw)/aspect);
+      }
+    p.setBrush(*hItem.img);
+    p.drawRect(x+(szX-lw)/2, y+szY-lh, lw, lh,
+               0,0,hItem.img->w(),hItem.img->h());
+    }
+  else if(hItem.img && !hItem.img->isEmpty()) {
     p.setBrush(*hItem.img);
     p.drawRect(x,y,szX,szY,
                0,0,hItem.img->w(),hItem.img->h());
@@ -647,6 +661,13 @@ void GameMenu::onTick() {
   }
 
 void GameMenu::processMusicTheme() {
+  // Diathic: our track in the main menu before the game (in the game the menu keeps Gothic's music)
+  if(!Gothic::inst().isInGame() && menu->music_theme.size()==8 &&
+     std::equal(menu->music_theme.begin(), menu->music_theme.end(), "SYS_MENU",
+                [](char a, char b){ return std::toupper(uint8_t(a))==b; })) {
+    GameMusic::inst().playMenuTrack();
+    return;
+    }
   if(auto theme = Gothic::musicDef()[menu->music_theme])
     GameMusic::inst().setMusic(*theme,GameMusic::mkTags(GameMusic::Std,GameMusic::Day));
   }

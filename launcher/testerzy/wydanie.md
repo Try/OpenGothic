@@ -1,8 +1,8 @@
-## Gothic Diablo – paczka dla testerów
+## Diathic – paczka dla testerów
 
 Gothic II: Noc Kruka jako izometryczna gra akcji (w stylu Diablo / Path of Exile) na silniku OpenGothic.
 
-**Pobierz `GothicDiablo-testerzy.zip`** (poniżej, w sekcji „Assets”), rozpakuj i uruchom `Gothic Diablo.bat`.
+**Pobierz `Diathic-testerzy.zip`** (poniżej, w sekcji „Assets”), rozpakuj i uruchom `Diathic.bat`.
 Launcher sam znajdzie Gothic II, pobierze najnowszą wersję testową i będzie ją aktualizował.
 
 Potrzebne: Windows 10 / 11 (64-bitowy), karta graficzna z obsługą Vulkan, zainstalowany Gothic II Gold Edition

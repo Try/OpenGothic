@@ -43,9 +43,7 @@ MainWindow::MainWindow(Device& device)
   Gothic::inst().onSettingsChanged.bind(this,&MainWindow::onSettings);
   onSettings();
 
-  if(Gothic::inst().version().game==2)
-    setWindowTitle("Gothic II"); else
-    setWindowTitle("Gothic");
+  setWindowTitle("Diathic"); // Diathic: the name of the project (gothic-diablo is the internal code name)
 
   if(!CommandLine::inst().isWindowMode()) {
     setFullscreen(true);
@@ -1321,6 +1319,7 @@ uint64_t MainWindow::tick() {
   if(dt<5)
     return 0;
   lastTick  = time;
+  GameMusic::inst().tick(); // Diathic: the menu track loops
 
   auto st = Gothic::inst().checkLoading();
   if(st==Gothic::LoadState::Finalize || st==Gothic::LoadState::FailedLoad || st==Gothic::LoadState::FailedSave) {

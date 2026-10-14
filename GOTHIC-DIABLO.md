@@ -1,12 +1,12 @@
-# gothic-diablo
+# Diathic (nazwa kodowa: gothic-diablo)
 
 Fork [OpenGothic](https://github.com/Try/OpenGothic): Gothic II Noc Kruka jako izometryczny action RPG
-(Diablo / Path of Exile / Grim Dawn) na oryginalnych plikach gry.
+(Diablo / Path of Exile / Grim Dawn) na oryginalnych plikach gry. Oficjalna nazwa projektu: **Diathic**.
 
 ## Uruchomienie (Windows)
 
 - Launcher (buildy z CI, release `build-<N>`): [`launcher/README.md`](launcher/README.md).
-- Testerzy: paczka launchera z kanałem `tester` pod stałym linkiem `releases/download/testerzy/GothicDiablo-testerzy.zip`; build trafia do nich przez workflow **Wydanie dla testerów** (`.github/workflows/testerzy.yml`, wydanie `tester-<N>`).
+- Testerzy: paczka launchera z kanałem `tester` pod stałym linkiem `releases/download/testerzy/Diathic-testerzy.zip` (stary `GothicDiablo-testerzy.zip` też działa); build trafia do nich przez workflow **Wydanie dla testerów** (`.github/workflows/testerzy.yml`, wydanie `tester-<N>`).
 - Lokalny build (~1 min od commita do gry): [`dev/README.md`](dev/README.md).
 - Ręcznie: `Gothic2Notr.exe -g "F:\SteamLibrary\steamapps\common\Gothic II"`; `-classic` wyłącza tryb ARPG
   (oryginalna kamera i sterowanie OpenGothic).
@@ -160,3 +160,12 @@ Plan: punkty umiejętności z poziomu, od nauczycieli (za punkty nauki) i z kami
 | Fikołek: Zwinność +0,1 s bez obrażeń; Lekki krok −0,05 s przerwy; Drugi oddech: Spacja w drugiej połowie przewrotu = następny od razu (wraca po 3 s); Dalszy przewrót +15% drogi; Przez szereg: bez zderzeń z postaciami; Kontratak +15% obrażeń przez 2 s po przewrocie; Cios z przewrotu: klik w trakcie = cios zaraz po nim (bez węzła kliknięcia z przewrotu przepadają); Piasek w oczy: mijani wrogowie chybiają 1 s / punkt; Podcięcie: wrogowie na drodze przewracają się; Akrobata: bez obrażeń od upadku; Wyczucie strzał +10% szans uniku strzały przez 1 s po przewrocie; Cień: 1 s niewidzialności po przewrocie (wrogowie gubią cel, postać półprzezroczysta) | `PlayerControl::arpgStartRoll`, `arpgTickRoll`, `arpgEndRoll`, `DynamicWorld::NpcItem::setNpcCollision`, `Npc::arpgBlind`, `Npc::arpgSetShadow`, `Npc::canSenseNpc` |
 | Napisy nad głową, gdy umiejętność zadziała („Wir!”, „Fala uderzeniowa!”, „Grad strzał!”) i wpis w log.txt (do sprawdzania testów) | `World::arpgPopup` (rodzaj 5), `MainWindow::paintArpgCombat` |
 | Panel postaci (C): szybkość ataku, atak ładowany (mnożnik, ładowanie, odnowienie) i czas bez obrażeń fikołka z drzewek; pasek ładowania i odnowienie na pasku też | `ArpgMenu::paintStats`, `MainWindow::paintArpgCombat` / `paintArpgBarOverlay` |
+
+## Faza 9 — interfejs: menu, kursor, paski, mapa
+
+| Co | Gdzie w kodzie |
+|---|---|
+| Nazwa Diathic: tytuł okna; logo Diathic (płonący napis, plik od autora) zamiast MENU_GOTHIC.TGA w menu głównym — z zachowaniem proporcji, 1,5× wysokości nagłówka Gothica, płomienie nad menu | `Resources::isDiathicLogo`, `implLoadTextureUncached`, `GameMenu::drawItem`, `MainWindow` |
+| Muzyka menu głównego (plik od autora, OGG 128 kb/s) zamiast motywu SYS_Menu przed wejściem do gry, w pętli, głośność i wyłączenie z opcji muzyki; każda inna muzyka (wczytywanie, świat) ją wyłącza | `GameMusic::playMenuTrack`, `stopMenuTrack`, `tick`, `GameMenu::processMusicTheme` |
+| Pliki projektu wbudowane w program: `assets/diathic/*` → `DiathicAsset::get("logo.png")` (CMake jak shadery; nowy plik = ponowna konfiguracja) | `assets/CMakeLists.txt` |
+| Wersja w menu głównym (prawy dolny róg): CI „Diathic build N (gałąź commit)”, lokalnie „Diathic lokalny build (gałąź commit)”; `game/build.h` z CI / dev.ps1 ma pierwszeństwo przed domyślnym `common/build.h` także w menu | `.github/workflows/build.yml` (setup), `dev/dev.ps1`, `CMakeLists.txt` (`include_directories(BEFORE game)`) |

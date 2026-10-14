@@ -1,5 +1,5 @@
-GOTHIC DIABLO – wersja testowa
-==============================
+DIATHIC – wersja testowa
+========================
 
 Gothic II: Noc Kruka jako izometryczna gra akcji (w stylu Diablo / Path of Exile)
 na silniku OpenGothic. Fabuła, postacie, przedmioty i mapy są z oryginalnej gry.
@@ -20,8 +20,8 @@ Zapisy, ustawienia i logi są osobno, w folderze "gra\dane" obok launchera.
 INSTALACJA
 ----------
 1. Rozpakuj archiwum do dowolnego folderu, np. C:\Gry
-   (powstanie folder "Gothic Diablo"). Nie uruchamiaj prosto z archiwum.
-2. Uruchom "Gothic Diablo.bat".
+   (powstanie folder "Diathic"). Nie uruchamiaj prosto z archiwum.
+2. Uruchom "Diathic.bat".
    Jeśli Windows pokaże "System Windows ochronił ten komputer":
    kliknij "Więcej informacji", potem "Uruchom mimo to".
 3. Launcher sam szuka Gothic II (Steam, GOG, rejestr Windows).
@@ -30,7 +30,7 @@ INSTALACJA
    linkiem "Folder Gothic II" w oknie launchera.
 4. Launcher pobiera grę (około 130 MB) i włącza przycisk "Graj (ARPG)".
 
-Przy pierwszym uruchomieniu powstaje skrót "Gothic Diablo.lnk" –
+Przy pierwszym uruchomieniu powstaje skrót "Diathic.lnk" –
 można go przypiąć do paska zadań albo skopiować na pulpit.
 
 

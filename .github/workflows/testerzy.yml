@@ -4,7 +4,7 @@ name: Wydanie dla testerów
 # 1. Kopiuje wybrany build (wydanie build-N z CI) do wydania tester-N – tylko te pobiera launcher testerów
 #    (launcher.json z "Channel": "tester").
 # 2. Odświeża stałą paczkę launchera dla testerów:
-#    https://github.com/<repo>/releases/download/testerzy/GothicDiablo-testerzy.zip
+#    https://github.com/<repo>/releases/download/testerzy/Diathic-testerzy.zip
 # Wydania tester-N nie są usuwane przez sprzątanie buildów w build.yml (tam tylko build-*); tu zostaje 10.
 on:
   workflow_dispatch:
@@ -90,25 +90,29 @@ jobs:
         env:
           N: ${{ steps.pick.outputs.n }}
         run: |
-          D="pak/Gothic Diablo"
+          D="pak/Diathic"
           mkdir -p "$D"
           cp launcher/launcher.ps1 "$D/"
-          sed 's/\r*$/\r/' "launcher/Gothic Diablo.bat" > "$D/Gothic Diablo.bat"
+          cp assets/diathic/logo.png "$D/logo.png"
+          sed 's/\r*$/\r/' launcher/Diathic.bat           > "$D/Diathic.bat"
           sed 's/\r*$/\r/' launcher/testerzy/CZYTAJ.txt  > "$D/CZYTAJ.txt"
           printf '{\r\n  "Channel": "tester"\r\n}\r\n' > "$D/launcher.json"
-          (cd pak && zip -q -r -X ../GothicDiablo-testerzy.zip "Gothic Diablo")
-          unzip -l GothicDiablo-testerzy.zip
+          (cd pak && zip -q -r -X ../Diathic-testerzy.zip Diathic)
+          unzip -l Diathic-testerzy.zip
 
           { cat launcher/testerzy/wydanie.md; echo; echo "Aktualna wersja testowa: **#$N**"; } > opis.md
           if gh api "repos/$GH_REPO/releases/tags/testerzy" --jq .id >/dev/null 2>&1; then
-            gh release edit testerzy --notes-file opis.md
+            gh release edit testerzy --title 'Diathic – dla testerów' --notes-file opis.md
           else
             gh release create testerzy --target "$GITHUB_SHA" --latest=false \
-              --title 'Gothic Diablo – dla testerów' --notes-file opis.md
+              --title 'Diathic – dla testerów' --notes-file opis.md
           fi
+          gh release upload testerzy Diathic-testerzy.zip --clobber
+          # stary link sprzed zmiany nazwy (Gothic Diablo) dalej działa i daje tę samą paczkę
+          cp Diathic-testerzy.zip GothicDiablo-testerzy.zip
           gh release upload testerzy GothicDiablo-testerzy.zip --clobber
 
-          URL="https://github.com/$GH_REPO/releases/download/testerzy/GothicDiablo-testerzy.zip"
+          URL="https://github.com/$GH_REPO/releases/download/testerzy/Diathic-testerzy.zip"
           {
             echo "### Wersja testowa #$N"
             echo
