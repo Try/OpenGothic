@@ -28,9 +28,9 @@ class GameMenu : public Tempest::Widget {
     void setPlayer(const Npc& pl);
 
     void onKeyboard(KeyCodec::Action k);
-    bool beginTouch(Tempest::Point pos);
-    void dragTouch(Tempest::Point pos);
-    void endTouch(bool activate);
+    void onBeginTouch(Tempest::Point pos);
+    void onDragTouch(Tempest::Point pos);
+    void onEndTouch(bool activate);
     void onTick();
     void processMusicTheme();
 
@@ -79,6 +79,7 @@ class GameMenu : public Tempest::Widget {
     Item                                  hItems[zenkit::IMenu::item_count];
     Item*                                 ctrlInput = nullptr;
     Item*                                 touchSlider = nullptr;
+    bool                                  touchActive = false;
     uint32_t                              curItem=0;
     bool                                  exitFlag=false;
     bool                                  closeFlag=false;
@@ -100,7 +101,6 @@ class GameMenu : public Tempest::Widget {
     const GthFont&                        getTextFont(const Item &it);
 
     static bool                           isSelectable(const std::shared_ptr<zenkit::IMenuItem>& item);
-    static bool                           isDraggable(const Item& item);
     static bool                           isHorSelectable(const std::shared_ptr<zenkit::IMenuItem>& item);
     static bool                           isEnabled(const std::shared_ptr<zenkit::IMenuItem>& item);
     static bool                           isHidden(const std::shared_ptr<zenkit::IMenuItem>& item);

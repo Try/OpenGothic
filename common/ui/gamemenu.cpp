@@ -592,14 +592,9 @@ Rect GameMenu::itemRect(const Item& it) const {
               int(float(w()*dimx)/scriptDiv),int(float(h()*dimy)/scriptDiv));
   }
 
-bool GameMenu::isDraggable(const Item& it) {
-  const auto& item = *it.handle;
-  return item.type==zenkit::MenuItemType::SLIDER ||
-         (item.type==zenkit::MenuItemType::CHOICEBOX && !item.text[0].empty() && item.text[0].back()=='%');
-  }
-
-bool GameMenu::beginTouch(Point pos) {
+void GameMenu::onBeginTouch(Point pos) {
   touchSlider = nullptr;
+  touchActive = false;
   for(uint32_t i=0; i<zenkit::IMenu::item_count; ++i) {
     auto& selected = hItems[i];
     if(!selected.visible || !isSelectable(selected.handle) || !isEnabled(selected.handle))
@@ -615,7 +610,7 @@ bool GameMenu::beginTouch(Point pos) {
       if(it->visible && !isHidden(it->handle) && rect.contains(pos)) {
         if(hit==nullptr)
           hit = it;
-        if(isDraggable(*it)) {
+        if(it->handle->type==zenkit::MenuItemType::SLIDER) {
           hit = it;
           break;
           }
@@ -629,47 +624,35 @@ bool GameMenu::beginTouch(Point pos) {
     if(hit!=nullptr) {
       setSelection(int(i));
       updateSavThumb(selected);
-      if(isDraggable(*hit)) {
+      touchActive = true;
+      if(hit->handle->type==zenkit::MenuItemType::SLIDER) {
         touchSlider = hit;
-        dragTouch(pos);
+        onDragTouch(pos);
         }
       update();
-      return true;
+      return;
       }
     }
-
-  return false;
   }
 
-void GameMenu::dragTouch(Point pos) {
+void GameMenu::onDragTouch(Point pos) {
   if(touchSlider==nullptr)
     return;
-  const bool choice = touchSlider->handle->type==zenkit::MenuItemType::CHOICEBOX;
-  if(!choice && slider==nullptr)
+  const auto  rect = itemRect(*touchSlider);
+  const auto& sec  = touchSlider->handle->on_chg_set_option_section;
+  const auto& opt  = touchSlider->handle->on_chg_set_option;
+  if(rect.w<=0 || sec.empty() || opt.empty())
     return;
-  const auto rect = itemRect(*touchSlider);
-  const int knob = choice ? 0 : int(float(slider->w())*float(rect.h/2)/float(slider->h()));
-  const auto& sec = touchSlider->handle->on_chg_set_option_section;
-  const auto& opt = touchSlider->handle->on_chg_set_option;
-  if(rect.w<=knob || sec.empty() || opt.empty())
-    return;
-  const float value = std::clamp(float(pos.x-rect.x-knob/2)/float(rect.w-knob),0.f,1.f);
-  if(choice) {
-    const int count = int(strEnumSize(touchSlider->handle->text[0]));
-    if(count==0)
-      return;
-    touchSlider->value = int(std::round(value*float(count-1)));
-    Gothic::settingsSetI(sec,opt,touchSlider->value);
-    } else {
-    Gothic::settingsSetF(sec,opt,std::round(value*100.f)/100.f);
-    }
+  const float value = std::clamp(float(pos.x-rect.x)/float(rect.w),0.f,1.f);
+  Gothic::settingsSetF(sec,opt,std::round(value*100.f)/100.f);
   update();
   }
 
-void GameMenu::endTouch(bool activate) {
-  const bool isSlider = touchSlider!=nullptr;
+void GameMenu::onEndTouch(bool activate) {
+  const bool tap = touchActive && touchSlider==nullptr;
   touchSlider = nullptr;
-  if(activate && !isSlider)
+  touchActive = false;
+  if(activate && tap)
     onKeyboard(KeyCodec::ActionGeneric);
   }
 

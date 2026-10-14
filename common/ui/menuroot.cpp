@@ -58,9 +58,6 @@ void MenuRoot::setMenu(std::string_view menuEv, KeyCodec::Action key) {
   }
 
 void MenuRoot::setMenu(GameMenu *w) {
-#if defined(__MOBILE_PLATFORM__)
-  touchId = -1;
-#endif
   removeAllWidgets();
   if(w)
     addWidget(w);
@@ -68,9 +65,6 @@ void MenuRoot::setMenu(GameMenu *w) {
   }
 
 void MenuRoot::pushMenu(GameMenu *w) {
-#if defined(__MOBILE_PLATFORM__)
-  touchId = -1;
-#endif
   if(widgetsCount()>0) {
     takeWidget(current);
     menuStack.emplace_back(current);
@@ -83,9 +77,6 @@ void MenuRoot::pushMenu(GameMenu *w) {
   }
 
 void MenuRoot::popMenu() {
-#if defined(__MOBILE_PLATFORM__)
-  touchId = -1;
-#endif
   if(menuStack.size()==0) {
     if(Gothic::inst().isInGame() || Gothic::inst().checkLoading()!=Gothic::LoadState::Idle) {
       current=nullptr;
@@ -105,9 +96,6 @@ void MenuRoot::popMenu() {
   }
 
 void MenuRoot::closeAll() {
-#if defined(__MOBILE_PLATFORM__)
-  touchId = -1;
-#endif
   menuStack.clear();
   if(Gothic::inst().isInGame() || Gothic::inst().checkLoading()!=Gothic::LoadState::Idle) {
     current=nullptr;
@@ -139,51 +127,47 @@ bool MenuRoot::hasVersionLine() const {
   }
 
 void MenuRoot::mouseDownEvent(MouseEvent& event) {
-  if(current!=nullptr) {
-    if(event.button==Event::ButtonRight) {
-      popMenu();
-      } else {
-#if defined(__MOBILE_PLATFORM__)
-      if(touchId!=-1)
-        return;
-      touchStart = event.pos();
-      touchMoved = false;
-      if(current->beginTouch(touchStart-current->pos()))
-        touchId = event.mouseID;
-#else
-      current->onKeyboard(KeyCodec::ActionGeneric);
-#endif
-      }
-    } else {
+  // Only the first pointer interacts; ignoring others keeps their drag and up events away.
+  if(current==nullptr || event.mouseID!=0) {
     event.ignore();
+    return;
     }
+  if(event.button==Event::ButtonRight) {
+    popMenu();
+    return;
+    }
+#if defined(__MOBILE_PLATFORM__)
+  touchStart = event.pos();
+  touchMoved = false;
+  current->onBeginTouch(touchStart-current->pos());
+#else
+  current->onKeyboard(KeyCodec::ActionGeneric);
+#endif
   }
 
-#if defined(__MOBILE_PLATFORM__)
 void MenuRoot::mouseDragEvent(MouseEvent& event) {
-  if(current==nullptr || event.mouseID!=touchId)
+#if defined(__MOBILE_PLATFORM__)
+  if(current==nullptr)
     return;
-
   const int step = std::max(1, int(20.f*Gothic::interfaceScale(this)));
   const auto delta = event.pos()-touchStart;
   touchMoved |= std::max(std::abs(delta.x),std::abs(delta.y))>=step;
-  current->dragTouch(event.pos()-current->pos());
+  current->onDragTouch(event.pos()-current->pos());
+#else
+  (void)event;
+#endif
   }
 
 void MenuRoot::mouseUpEvent(MouseEvent& event) {
-  if(current==nullptr || event.mouseID!=touchId)
+#if defined(__MOBILE_PLATFORM__)
+  if(current==nullptr)
     return;
-
   mouseDragEvent(event);
-  if(event.mouseID!=touchId)
-    return;
-  touchId = -1;
-  current->endTouch(!touchMoved);
-  }
+  current->onEndTouch(!touchMoved);
 #else
-void MenuRoot::mouseUpEvent(MouseEvent&) {
-  }
+  (void)event;
 #endif
+  }
 
 void MenuRoot::mouseWheelEvent(MouseEvent &event) {
   if(current!=nullptr) {
