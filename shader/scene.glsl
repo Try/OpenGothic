@@ -45,6 +45,7 @@ struct SceneDesc {
   vec4  arpgParams2; // x = aspect (w/h), y = distance camera->hero center, z = fog of war radius (cm, 0 = off), w = fog of war fade (cm)
   vec4  arpgParams3; // x = indoor 0..1, y/z = lower levels fade start/end (cm below the feet), w = see-through strength 0..1
   vec4  arpgLos[32]; // indoors: line of sight from the hero, 128 directions (angle = 2*pi*i/128, atan(z,x)), cm
+  vec4  arpgHi[2];   // creatures that glow a little (enemy under the cursor, target): xyz = center, w = radius (0 = none)
   };
 
 struct LightSource {

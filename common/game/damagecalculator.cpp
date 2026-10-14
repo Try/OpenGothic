@@ -80,6 +80,8 @@ DamageCalculator::Val DamageCalculator::rangeDamage(Npc& nsrc, Npc& nother, cons
       hitCh = 0;
 
     noHit = (dist>float(MaxBowRange) || hitCh<=hitChance);
+    if(b.arpgSure())
+      noHit = false; // gothic-diablo: charged shot of the hero
 
     if(!g2 && !noHit && !invincible) {
       const int32_t mul        = script.criticalDamageMultiplyer();

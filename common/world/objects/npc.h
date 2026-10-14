@@ -189,6 +189,17 @@ class Npc final {
     bool       isFalling() const;
     auto       lastMoveFail() const -> const MoveAlgo::MoveFail& { return mvAlgo.lastMoveFail(); } // gothic-diablo
     auto       comboTiming() const -> Pose::ComboTiming;                                        // gothic-diablo
+    void       arpgHoldParade();         // gothic-diablo: block held
+    void       arpgHoldAttack();         // gothic-diablo: charged attack held in its wind-up
+    void       arpgStartSpecial(float mul); // gothic-diablo: the next swing is a special attack
+    void       arpgSetShotMul(float mul) { arpgShotMul = mul; } // gothic-diablo: the next arrow: damage x mul, always hits
+    bool       arpgKnockBack(Npc& from, float speed);  // gothic-diablo: push away without damage
+    bool       arpgUseItem(size_t cls);                // gothic-diablo: use an item like in the inventory
+    bool       arpgDrinkNow(size_t cls);               // gothic-diablo: potion at once, without the animation
+    void       arpgSetInvulnerable(uint64_t ms);       // gothic-diablo: dodge roll: no damage for 'ms'
+    void       arpgPlayFaster(const Animation::Sequence* sq, float extra) { arpgFastSeq = sq; arpgFastMul = extra; arpgFastAcc = 0; }
+    bool       arpgIsInvulnerable() const;
+    bool       arpgHasOverlay(const Skeleton* sk) const { return visual.hasOverlay(sk); }
     bool       isFallingDeep() const;
     bool       isSlide() const;
     bool       isInAir() const;
@@ -512,6 +523,18 @@ class Npc final {
     void      tickRoutine();
     void      nextAiAction(AiQueue& queue, uint64_t dt);
     void      commitDamage();
+    bool      commitDamageArpg();       // gothic-diablo: hero's swing hits all enemies in front
+    float     arpgWarpAcc = 0;          // gothic-diablo: fractional ms of the faster hero attacks
+    const Animation::Sequence* arpgFastSeq = nullptr; // gothic-diablo: animation played faster (dodge roll)
+    float     arpgFastMul = 0;          // extra speed (0.35 = 35% faster)
+    float     arpgFastAcc = 0;
+    bool      arpgSpecialPending = false;
+    uint64_t  arpgSpecialUntil   = 0;
+    bool      arpgHitSpecial     = false; // set while the special swing deals damage
+    float     arpgSpecialMul     = 1.f;
+    float     arpgShotMul        = 1.f;
+    uint64_t  arpgNoFallDamage   = 0;  // gothic-diablo: pushed by the hero: landing until this tick does no damage
+    uint64_t  arpgInvulnUntil    = 0;  // gothic-diablo: dodge roll of the hero: no damage until this tick
     Npc*      updateNearestEnemy();
     Npc*      updateNearestBody();
     bool      checkHealth(bool onChange, bool forceKill);

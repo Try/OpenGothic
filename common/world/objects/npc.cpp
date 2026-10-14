@@ -23,6 +23,9 @@ using namespace Tempest;
 
 static std::string_view humansTorchOverlay = "_TORCH.MDS";
 
+// gothic-diablo: hero's bow / crossbow in the ARPG view: damage after armour (Gothic: x1)
+static constexpr float ArpgBowDamage    = 0.5f;
+
 std::string_view Npc::Routine::wayPointName() const {
   return point!=nullptr ? point->name : fallbackName;
   }
@@ -2001,7 +2004,112 @@ bool Npc::setGoToLadder() {
   return false;
   }
 
+bool Npc::arpgKnockBack(Npc& from, float speed) {
+  // gothic-diablo: push away without damage (bow + middle mouse button)
+  if(isDown() || isPlayer() || interactive()!=nullptr)
+    return false;
+  float a  = angleDir(from.x-x,from.z-z);
+  float da = a-angle;
+  const char hitType = (std::cos(da*M_PI/180.0)<0) ? 'A' : 'B';
+  if(!mvAlgo.accessDamFly(x-from.x, z-from.z, hitType, speed))
+    return false;
+  arpgNoFallDamage = owner.tickCount()+4000;
+  lastHit = &from;
+  setOther(&from);
+  perceptionProcess(from,this,0,PERC_ASSESSDAMAGE);
+  return true;
+  }
+
+bool Npc::arpgDrinkNow(size_t cls) {
+  // gothic-diablo: potion keys: the potion works at once (its script, like Gothic's DEF_DESTROY_ITEM at the end
+  // of the drinking animation), with the drinking sound, weapon stays in hand
+  auto it = invent.getItem(cls);
+  if(it==nullptr)
+    return false;
+  const auto onState = it->handle().on_state[0];
+  if(onState!=0)
+    owner.script().invokeItem(this,uint32_t(onState));
+  invent.delItem(cls,1,*this);
+  emitSoundEffect("DRINKBOTTLE",1000.f,true);
+  return true;
+  }
+
+void Npc::arpgSetInvulnerable(uint64_t ms) {
+  arpgInvulnUntil = owner.tickCount()+ms;
+  }
+
+bool Npc::arpgIsInvulnerable() const {
+  return arpgInvulnUntil>owner.tickCount();
+  }
+
+bool Npc::arpgUseItem(size_t cls) {
+  // gothic-diablo: potion keys; same as using it in the inventory (Gothic animation)
+  return invent.use(cls,*this,Item::NSLOT,false);
+  }
+
+bool Npc::commitDamageArpg() {
+  if(!isPlayer() || !Camera::isArpgEnabled())
+    return false;
+  auto cam = Gothic::inst().camera();
+  if(cam==nullptr || !cam->isArpgActive())
+    return false;
+  const auto ws = weaponState();
+  if(ws!=WeaponState::Fist && ws!=WeaponState::W1H && ws!=WeaponState::W2H)
+    return false;
+
+  // gothic-diablo: the swing hits every enemy in a 120 degree arc in front of the hero (Gothic: one target);
+  // a charged special attack (right mouse button): 180 degrees, x3 damage, knocks the enemies down
+  const bool special = arpgSpecialPending && arpgSpecialUntil>owner.tickCount();
+  arpgSpecialPending = false;
+  const float rot = rotationRad();
+  const Tempest::Vec2 fwd = {std::cos(rot), std::sin(rot)};
+  const float cosHalf = special ? 0.f : std::cos(60.f*float(M_PI)/180.f);
+  auto inArc = [&](Npc& n) {
+    const auto  d = n.position()-position();
+    const float l = std::sqrt(d.x*d.x+d.z*d.z);
+    if(l<1.f)
+      return true;
+    return (d.x*fwd.x + d.z*fwd.y)/l >= cosHalf;
+    };
+
+  std::vector<Npc*> hit;
+  owner.detectNpc(position(), 600.f, [&](Npc& n) {
+    if(&n==this || n.isDown())
+      return;
+    const bool wanted = (&n==currentTarget) ||
+                        (n.isEnemy(*this) && !owner.script().isFriendlyFire(*this,n));
+    if(!wanted)
+      return;
+    if(!fghAlgo.isInAttackRange(*this,n,owner.script()))
+      return;
+    if(!inArc(n) && !(&n==currentTarget && fghAlgo.isInFocusAngle(*this,n)))
+      return;
+    hit.push_back(&n);
+    });
+  arpgHitSpecial = special;
+  for(auto n:hit)
+    n->takeDamage(*this,nullptr);
+  arpgHitSpecial = false;
+  return true;
+  }
+
+void Npc::arpgHoldParade() {
+  visual.holdParade(owner.tickCount());
+  }
+
+void Npc::arpgHoldAttack() {
+  visual.holdAttack(owner.tickCount());
+  }
+
+void Npc::arpgStartSpecial(float mul) {
+  arpgSpecialPending = true;
+  arpgSpecialUntil   = owner.tickCount()+1500;
+  arpgSpecialMul     = mul;
+  }
+
 void Npc::commitDamage() {
+  if(commitDamageArpg())
+    return;
   if(currentTarget==nullptr)
     return;
   if(!fghAlgo.isInAttackRange(*this,*currentTarget,owner.script()))
@@ -2014,11 +2122,22 @@ void Npc::commitDamage() {
 void Npc::takeDamage(Npc &other, const Bullet* b) {
   if(isDown())
     return;
+  if(arpgIsInvulnerable()) {
+    // gothic-diablo: dodge roll (i-frames like in Dark Souls)
+    owner.arpgPopup(position()+Tempest::Vec3(0,180.f,0), 0, 4);
+    return;
+    }
 
   assert(b==nullptr || !b->isSpell());
   const auto& pose    = visual.pose();
   const bool  isJumpb = pose.isJumpBack(owner.tickCount()) && fghAlgo.isInJumpBackAngle(*this,other);
-  const bool  isBlock = (!other.isMonster() || other.inventory().activeWeapon()!=nullptr) &&
+  // gothic-diablo: in the ARPG view the hero can parry monsters too (Gothic: only armed opponents)
+  bool arpgParry = false;
+  if(isPlayer() && Camera::isArpgEnabled()) {
+    auto cam = Gothic::inst().camera();
+    arpgParry = (cam!=nullptr && cam->isArpgActive());
+    }
+  const bool  isBlock = (arpgParry || !other.isMonster() || other.inventory().activeWeapon()!=nullptr) &&
                          fghAlgo.isInFocusAngle(*this,other) &&
                          pose.isDefence(owner.tickCount());
 
@@ -2030,6 +2149,8 @@ void Npc::takeDamage(Npc &other, const Bullet* b) {
   if(!(isBlock || isJumpb) || b!=nullptr) {
     takeDamage(other,b,COLL_DOEVERYTHING,0,false);
     } else {
+    if(Camera::isArpgEnabled() && (other.isPlayer() || isPlayer()))
+      owner.arpgPopup(position()+Tempest::Vec3(0,180.f,0), 0, 2); // gothic-diablo: "blocked"
     if(invent.activeWeapon()!=nullptr)
       visual.emitBlockEffect(*this,other);
     }
@@ -2038,6 +2159,10 @@ void Npc::takeDamage(Npc &other, const Bullet* b) {
 void Npc::takeDamage(Npc& other, const Bullet* b, const VisualFx* vfx, int32_t splId) {
   if(isDown())
     return;
+  if(arpgIsInvulnerable() && &other!=this) {
+    owner.arpgPopup(position()+Tempest::Vec3(0,180.f,0), 0, 4); // gothic-diablo: dodge roll
+    return;
+    }
 
   lastHitSpell = splId;
   lastHit      = &other;
@@ -2079,6 +2204,15 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
     }
 
   hitResult = DamageCalculator::damageValue(other,*this,b,isSpell,dmg,bMask);
+  if(b!=nullptr && !isSpell && !hitResult.hasHit && other.isPlayer() && Camera::isArpgEnabled())
+    owner.arpgPopup(position()+Tempest::Vec3(0,180.f,0), 0, 3); // gothic-diablo: "miss"
+  // gothic-diablo: charged special attack of the hero: more damage
+  const bool arpgSpecialHit = (other.isPlayer() && other.arpgHitSpecial && b==nullptr && !isSpell);
+  if(arpgSpecialHit && hitResult.value>0)
+    hitResult.value = int32_t(float(hitResult.value)*other.arpgSpecialMul);
+  // gothic-diablo: hero's arrows in the ARPG view (normal shot x0.5, charged shot x1.5)
+  if(b!=nullptr && !isSpell && hitResult.value>0 && b->arpgDamageMul()!=1.f)
+    hitResult.value = std::max<int32_t>(1, int32_t(std::lround(float(hitResult.value)*b->arpgDamageMul())));
   if(!isSpell && !isDown() && hitResult.hasHit)
     owner.addWeaponHitEffect(other,b,*this).play();
 
@@ -2107,10 +2241,20 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
   if(hitResult.hasHit && (damageType & (1<<zenkit::DamageType::FLY))) {
     mvAlgo.accessDamFly(x-other.x, z-other.z, lastHitType);
     }
+  else if(hitResult.hasHit && arpgSpecialHit) {
+    mvAlgo.accessDamFly(x-other.x, z-other.z, lastHitType); // gothic-diablo: special attack knocks down
+    }
 
   if(hitResult.value>0) {
     currentOther = &other;
+    const int32_t hp0 = hnpc->attribute[ATR_HITPOINTS];
     changeAttribute(ATR_HITPOINTS,-hitResult.value,dontKill);
+    // gothic-diablo: floating numbers for the hero's fights
+    if(Camera::isArpgEnabled() && (other.isPlayer() || isPlayer())) {
+      const int32_t lost = hp0 - hnpc->attribute[ATR_HITPOINTS];
+      if(lost>0)
+        owner.arpgPopup(position()+Tempest::Vec3(0,180.f,0), lost, isPlayer() ? 1 : 0);
+      }
 
     if(bMask&(COLL_APPLYVICTIMSTATE|COLL_DOEVERYTHING)) {
       owner.sendPassivePerc(*this,other,*this,PERC_ASSESSOTHERSDAMAGE);
@@ -2130,6 +2274,13 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
   }
 
 void Npc::takeFallDamage(const Vec3& fallSpeed) {
+  if(arpgNoFallDamage>owner.tickCount()) {
+    // gothic-diablo: landing after the hero's push (bow + middle mouse button): no damage
+    arpgNoFallDamage = 0;
+    if(bodyStateMasked()==BS_FALL)
+      setAnim(Anim::Idle);
+    return;
+    }
   if(bodyStateMasked()==BS_FALL) {
     if(!isFallingDeep()) {
       // small fall
@@ -2338,6 +2489,26 @@ void Npc::tick(uint64_t dt) {
     return;
 
   assert(go2.flag!=GoToHint::GT_Enemy && go2.flag!=GoToHint::GT_EnemyG);
+
+  // gothic-diablo: hero attacks 20% faster in the ARPG view
+  if(isPlayer() && Camera::isArpgEnabled() && isAttackAnim()) {
+    auto cam = Gothic::inst().camera();
+    if(cam!=nullptr && cam->isArpgActive()) {
+      arpgWarpAcc += float(dt)*0.2f;
+      const uint64_t ms = uint64_t(arpgWarpAcc);
+      arpgWarpAcc -= float(ms);
+      visual.warpAttack(ms, owner.tickCount());
+      }
+    }
+
+  // gothic-diablo: one animation played faster (hero's dodge roll)
+  if(arpgFastSeq!=nullptr) {
+    arpgFastAcc += float(dt)*arpgFastMul;
+    const uint64_t ms = uint64_t(arpgFastAcc);
+    arpgFastAcc -= float(ms);
+    if(!visual.warpSeq(arpgFastSeq, ms, owner.tickCount()))
+      arpgFastSeq = nullptr;
+    }
 
   tickAnimationTags();
 
@@ -4093,6 +4264,13 @@ bool Npc::shootBow(Interactive* focOverride) {
   if(itm==nullptr)
     return false;
 
+  // gothic-diablo: hero's arrows in the ARPG view: hit chance as in Gothic, damage x0.5 (charged shot: always hits, x3)
+  bool arpgHero = false;
+  if(isPlayer() && Camera::isArpgEnabled()) {
+    auto cam = Gothic::inst().camera();
+    arpgHero = (cam!=nullptr && cam->isArpgActive());
+    }
+
   auto& b = owner.shootBullet(*itm,*this,currentTarget,focOverride);
 
   invent.delItem(size_t(munition),1,*this);
@@ -4111,6 +4289,13 @@ bool Npc::shootBow(Interactive* focOverride) {
       b.setHitChance(float(hnpc->hitchance[TALENT_CROSSBOW])/100.f); else
       b.setHitChance(float(hnpc->hitchance[TALENT_BOW]     )/100.f);
     }
+  if(arpgHero) {
+    b.setArpgDamageMul(ArpgBowDamage*std::max(arpgShotMul, 1.f));
+    if(arpgShotMul>1.f)
+      b.setHitChance(1.f); // with Bullet::arpgSure: no miss at any distance
+    b.setArpgSure(arpgShotMul>1.f);
+    }
+  arpgShotMul = 1.f;
   return true;
   }
 

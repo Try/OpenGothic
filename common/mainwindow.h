@@ -73,6 +73,11 @@ class MainWindow : public Tempest::Window {
     void paintArpgFocus (Tempest::Painter& p, const Focus& fc, const Tempest::Matrix4x4& vp);
     void paintArpgCombo (Tempest::Painter& p, const Tempest::Matrix4x4& vp);
     void paintArpgMinimap(Tempest::Painter& p);
+    void paintArpgCombat(Tempest::Painter& p, const Tempest::Matrix4x4& vp);
+    void paintArpgBar   (Tempest::Painter& p);
+    void paintArpgBarOverlay(Tempest::Painter& p);
+    bool arpgBarVisible () const;
+    Tempest::Rect arpgBarSlot(int i) const;
     bool arpgLabelRect  (const Focus& f, const Tempest::Matrix4x4& vp, Tempest::Rect& out) const;
     void drawArpgLabel  (Tempest::Painter& p, const Tempest::Rect& r, const Focus& f, bool hi);
     Focus arpgLabelAt   (const Tempest::Point& pos) const;
@@ -157,6 +162,7 @@ class MainWindow : public Tempest::Window {
     MenuRoot                  rootMenu;
     VideoWidget               video;
     InventoryMenu             inventory;
+    InventoryRenderer         arpgBarItems;        // gothic-diablo: item models on the skill bar
     DialogMenu                dialogs;
     DocumentMenu              document;
     ChapterScreen             chapter;
@@ -174,6 +180,8 @@ class MainWindow : public Tempest::Window {
     bool                      arpgRightDown   = false;
     bool                      arpgMidDown     = false; // middle button: drag = rotate the camera, click = original binding
     bool                      arpgMidRotating = false;
+    bool                      arpgMidBlock    = false; // middle button held as a block
+    bool                      arpgMidPush     = false; // middle button with a bow: push (release does nothing)
     Tempest::Point            arpgMidStart;
     Tempest::Point            arpgMidLast;
     bool                      arpgShowAll     = false; // Z held: labels of all items/usable objects in sight

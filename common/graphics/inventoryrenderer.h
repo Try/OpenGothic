@@ -16,6 +16,7 @@ class InventoryRenderer {
     void draw(Tempest::Encoder<Tempest::CommandBuffer>& cmd);
 
     void reset(bool full=false);
+    bool isEmpty() const { return items.empty(); }
     void drawItem(int x, int y, int w, int h, const Item &item);
 
   private:

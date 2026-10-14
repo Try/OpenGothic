@@ -65,6 +65,39 @@ class PlayerControl final {
     void  arpgMouseDown(const Focus& f);         // click on a label (show-all key held)
     void  arpgMouseUp();
     void  arpgDodge();                           // side step / jump back
+    void  arpgSwapWeapon();                      // melee <-> bow
+    void  arpgBlock(bool on);                    // middle mouse button held: parry
+    void  arpgChargeStart();                     // right mouse button down: start charging the special attack
+    void  arpgChargeRelease();                   // right mouse button up: release it
+    float arpgSpecialLeft() const;               // 0..1 of the cooldown left
+    void  arpgPush();                            // middle mouse button with a bow: push the enemies in front away
+    bool  arpgCanPush() const;                   // a bow / crossbow is drawn
+    float arpgPushLeft() const;                  // 0..1 of the push cooldown left
+    static constexpr float SpecialCooldown = 5.f; // s
+    static constexpr float PushCooldown    = 5.f; // s
+    // skill bar: what the mouse buttons and the potion keys do now
+    struct ArpgBar {
+      const Item* weapon     = nullptr;  // left / right mouse button (nullptr = fists)
+      bool        ranged     = false;    // bow / crossbow: middle button pushes, otherwise it blocks
+      const Item* potion[2]  = {};       // what keys 1 / 2 drink now
+      int32_t     potions[2] = {};       // how many potions of that kind
+      bool        charging   = false;    // right mouse button held
+      };
+    ArpgBar arpgBar() const;
+    // charged attack: -1 = not charging, otherwise seconds charged
+    float arpgChargeTime() const { return arpgCharge==ChargeHold ? arpgChargeT : -1.f; }
+    static constexpr float ChargeFull   = 2.0f;  // s to fully charge
+    static constexpr float ChargeWindow = 0.2f;  // s after that to release for the full hit
+    // slash effect of the charged attack
+    struct ArpgSlash {
+      uint64_t      time = 0;     // world tick of the release
+      Tempest::Vec3 pos  = {};
+      float         ang  = 0;     // hero facing, degrees
+      float         dir  = 1;     // sweep direction
+      uint8_t       kind = 0;     // 0 = melee crescent, 1 = arrow streak, 2 = push wave
+      };
+    const ArpgSlash& arpgSlash() const { return arpgSlashFx; }
+    bool  arpgCanBlock() const;                  // a melee weapon (or fists) is drawn
     void  arpgVisibleObjects(std::vector<Focus>& out) const; // items and usable objects the hero can see
     float arpgCeiling() const;                   // indoors: everything above is cut away
     bool  arpgIsEnemy(const Npc& npc) const;     // would be attacked by a click
@@ -191,6 +224,7 @@ class PlayerControl final {
         Talk,
         Loot,
         Attack,
+        Strike,   // Shift + click: attack in place towards the cursor
         };
       Kind                       kind        = None;
       bool                       held        = false;  // left mouse button still down
@@ -207,6 +241,9 @@ class PlayerControl final {
       float                      detourAng   = 0;      // direction along the obstacle we bumped into
       float                      detourTime  = 0;
       uint64_t                   lastFail    = 0;      // last handled MoveAlgo::MoveFail::time
+      int                        clearCount  = 0;      // path planning: checks in a row with a clear straight line
+      int                        blockCount  = 0;      // path planning: checks in a row with a blocked straight line
+      Tempest::Vec3              pathDest    = {};     // destination the current path was planned for
       int                        swings      = 0;
       float                      actTimer    = 0;      // s, waiting in range for the action to succeed
       };
@@ -227,11 +264,53 @@ class PlayerControl final {
     Tempest::Vec3  arpgNextPoint(Npc& pl, const Tempest::Vec3& dest, uint64_t dt);
     bool           arpgLineClear(const Tempest::Vec3& from, const Tempest::Vec3& to) const;
     bool           arpgStartDodge(Npc& pl, float& rot);
+    void           arpgPlanPath(Npc& pl, const Tempest::Vec3& dest);
+    void           arpgPullPath(const Tempest::Vec3& pos);
+    bool           arpgSwing(Npc& pl, float& rot, bool allowRot, float faceAng, float faceDa);
     float          arpgSteer(Npc& pl, const Tempest::Vec3& next, uint64_t dt);
     bool           arpgCanSee(const Tempest::Vec3& p, float baseY, const Interactive* self) const;
     bool           arpgFeelerClear(const Npc& pl, float ang, float len) const;
     float          arpgFreeDistance(const Npc& pl, float ang) const;
 
+    bool           arpgBlocking  = false; // middle mouse button held with a melee weapon
+    enum ArpgCharge : uint8_t {
+      ChargeNone,
+      ChargeWant,   // button down, waiting to start the swing (drawing the weapon, end of a swing)
+      ChargeHold,   // swing frozen in its wind-up / bow drawn, charging
+      ChargeFire,   // bow: released, waiting for the shot to go off
+      };
+    ArpgCharge     arpgCharge       = ChargeNone;
+    bool           arpgChargeHeld   = false;
+    float          arpgChargeT      = 0;
+    float          arpgChargeWait   = 0;
+    float          arpgChargeSide   = 1;
+    bool           arpgChargeFull   = false;
+    float          arpgSpecialCd    = 0;  // s left of the special attack cooldown (not a world tick: survives loading)
+    float          arpgPushCd       = 0;  // s left of the bow push cooldown
+    bool           arpgPushReq      = false;
+    float          arpgPushWait     = 0;
+    uint8_t        arpgPotionReq    = 0;  // potion key pressed: 1 = health, 2 = mana
+    float          arpgPotionWait   = 0;  // s, how long the request is kept
+    uint8_t        arpgRedraw       = 0;  // WeaponAction to draw again after drinking (0 = none)
+    uint8_t        arpgSpellSlot    = 0;  // spell key pressed: Gothic's rune/scroll slot 3..10 (0 = none)
+    bool           arpgSpellHeld    = false;
+    float          arpgSpellWait    = 0;  // s, how long the request is kept
+    float          arpgSpellTurn    = 0;  // s spent turning to the cursor before the cast
+    bool           arpgSpellCasting = false; // investing a spell while its key is held
+    void           arpgSpellKey(uint8_t slot, bool pressed);
+    bool           arpgCursorAim(const Npc& pl, Tempest::Vec3& out) const;
+    Npc*           arpgNextEnemy(Npc& pl, const Npc* except, float range) const;
+    int            arpgStartRoll(Npc& pl, float& rot);
+    float          arpgRollCd       = 0;  // s until the next dodge roll
+    void           arpgPotion(uint8_t kind);
+    const Item*    arpgPickPotion(const Npc& pl, uint8_t kind, int32_t& total) const;
+    ArpgSlash      arpgSlashFx;
+    void           arpgChargeCancel(Npc& pl);
+    bool           arpgShoot(Npc& pl, float& rot, bool allowRot, float faceAng, Npc* tg);
+    void           arpgDrawPreferred(Npc& pl);   // the last used weapon: bow (if any arrows) or melee
+    bool           arpgHasRanged(Npc& pl) const;
+    float          arpgShotRange() const;
+    float          arpgFightFace(Npc& pl, float def);
     bool           arpgDodgeReq  = false; // dodge requested, waiting for the hero to be able to do it
     float          arpgDodgeWait = 0;     // s, how long the request is kept
     float          arpgDodgeLock = 0;     // s, dodge animation in progress: no steering

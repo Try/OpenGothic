@@ -161,6 +161,7 @@ void MainWindow::setupUi() {
 
 void MainWindow::paintEvent(PaintEvent& event) {
   Painter p(event);
+  arpgBarItems.reset(); // gothic-diablo: skill bar models, added again below when the bar is shown
   auto world = Gothic::inst().world();
   auto st    = Gothic::inst().checkLoading();
 
@@ -219,8 +220,10 @@ void MainWindow::paintEvent(PaintEvent& event) {
           arpgLabels.clear();
         if(!arpgShowAll || focus.npc!=nullptr)
           paintArpgFocus(p,focus,vp);
+        paintArpgCombat(p,vp);
         paintArpgCombo(p,vp);
         paintArpgMinimap(p);
+        paintArpgBar(p);
         } else {
         arpgLabels.clear();
         paintFocus(p,focus,vp);
@@ -337,6 +340,20 @@ void MainWindow::mouseDownEvent(MouseEvent &event) {
     player.arpgMouseDown();
     return;
     }
+  if(event.button==Event::ButtonMid && isArpgMouse() && player.arpgCanBlock()) {
+    // gothic-diablo: melee weapon in hand: middle button held = block
+    arpgMidBlock = true;
+    player.arpgBlock(true);
+    return;
+    }
+  if(event.button==Event::ButtonMid && isArpgMouse() && player.arpgCanPush()) {
+    // gothic-diablo: bow / crossbow in hand: middle button = push the enemies in front away
+    arpgMidPush = true;
+    updateArpgAim();
+    player.tickFocus();
+    player.arpgPush();
+    return;
+    }
   if(event.button==Event::ButtonMid && isArpgMouse()) {
     // gothic-diablo: middle button drag = rotate the camera; a plain click keeps its binding
     arpgMidDown     = true;
@@ -346,9 +363,11 @@ void MainWindow::mouseDownEvent(MouseEvent &event) {
     return;
     }
   if(event.button==Event::ButtonRight && isArpgMouse()) {
-    // gothic-diablo: right button = dodge (side step / jump back)
+    // gothic-diablo: right button held = charge the special attack, release = strike (dodge is on Space)
     arpgRightDown = true;
-    player.arpgDodge();
+    updateArpgAim();
+    player.tickFocus();
+    player.arpgChargeStart();
     return;
     }
   if(event.button<sizeof(mouseP))
@@ -366,6 +385,16 @@ void MainWindow::mouseUpEvent(MouseEvent &event) {
     }
   if(event.button==Event::ButtonRight && arpgRightDown) {
     arpgRightDown = false;
+    player.arpgChargeRelease();
+    return;
+    }
+  if(event.button==Event::ButtonMid && arpgMidBlock) {
+    arpgMidBlock = false;
+    player.arpgBlock(false);
+    return;
+    }
+  if(event.button==Event::ButtonMid && arpgMidPush) {
+    arpgMidPush = false;
     return;
     }
   if(event.button==Event::ButtonMid && arpgMidDown) {
@@ -729,7 +758,9 @@ void MainWindow::focusEvent(FocusEvent &event) {
   if(!event.in) {
     // gothic-diablo: key-ups are lost while the window is in the background
     player.clearInput();
-    arpgLeftDown = arpgRightDown = arpgMidDown = arpgShowAll = false;
+    player.arpgBlock(false);
+    player.arpgChargeRelease();
+    arpgLeftDown = arpgRightDown = arpgMidDown = arpgShowAll = arpgMidBlock = false;
     return;
     }
   dMouse = Point();
@@ -881,6 +912,8 @@ void MainWindow::paintArpgCombo(Painter& p, const Matrix4x4& vp) {
   const auto ws = pl->weaponState();
   if(ws!=WeaponState::Fist && ws!=WeaponState::W1H && ws!=WeaponState::W2H)
     return;
+  if(player.arpgChargeTime()>=0.f)
+    return; // the charge bar is shown instead
   const auto ct = pl->comboTiming();
   if(!ct.attack || ct.last || ct.missed)
     return;
@@ -892,13 +925,19 @@ void MainWindow::paintArpgCombo(Painter& p, const Matrix4x4& vp) {
     return;
   pos /= pw;
 
-  const float scale = Gothic::interfaceScale(this);
-  const int   bw    = int(70.f*scale);
-  const int   bh    = std::max(3, int(6.f*scale));
-  const int   x     = int((0.5f*pos.x+0.5f)*float(w())) - bw/2;
-  const int   y     = int((0.5f*pos.y+0.5f)*float(h())) - bh/2;
+  const float scale  = Gothic::interfaceScale(this);
+  const bool  queued = player.arpgAttackQueued();
+  const int   bw     = int(90.f*scale);
+  const int   bh     = std::max(4, int(8.f*scale));
+  const int   x      = int((0.5f*pos.x+0.5f)*float(w())) - bw/2;
+  const int   y      = int((0.5f*pos.y+0.5f)*float(h())) - bh/2;
 
-  p.setBrush(Brush(Color(0.f,0.f,0.f,0.6f), Painter::Alpha));
+  // next hit already clicked (queued): white frame, it goes off by itself when the window opens
+  if(queued) {
+    p.setBrush(Brush(Color(1.f,1.f,1.f,0.85f), Painter::Alpha));
+    p.drawRect(x-3, y-3, bw+6, bh+6);
+    }
+  p.setBrush(Brush(Color(0.f,0.f,0.f,0.75f), Painter::Alpha));
   p.drawRect(x-1, y-1, bw+2, bh+2);
   if(ct.broken) {
     p.setBrush(Brush(Color(0.8f,0.15f,0.1f,0.85f), Painter::Alpha));
@@ -916,15 +955,13 @@ void MainWindow::paintArpgCombo(Painter& p, const Matrix4x4& vp) {
     p.drawRect(x+bw-2, y, 2, bh); // where the window opens
     }
 
-  // hits chained so far, and a dot when the next one is already queued
-  const int pip = std::max(3, int(5.f*scale));
-  for(int i=0; i<int(ct.len) && i<6; ++i) {
-    p.setBrush(Brush(Color(1.f,0.78f,0.2f,0.9f), Painter::Alpha));
-    p.drawRect(x + i*(pip+2), y+bh+3, pip, pip);
-    }
-  if(player.arpgAttackQueued()) {
-    p.setBrush(Brush(Color(1.f,1.f,1.f,0.9f), Painter::Alpha));
-    p.drawRect(x+bw+4, y+(bh-pip)/2, pip, pip);
+  // hits chained so far: one gold pip per hit under the bar
+  const int pip = std::max(4, int(7.f*scale));
+  for(int i=0; i<=int(ct.len) && i<6; ++i) {
+    p.setBrush(Brush(Color(0.f,0.f,0.f,0.75f), Painter::Alpha));
+    p.drawRect(x + i*(pip+3)-1, y+bh+4-1, pip+2, pip+2);
+    p.setBrush(Brush(Color(1.f,0.78f,0.2f,0.95f), Painter::Alpha));
+    p.drawRect(x + i*(pip+3), y+bh+4, pip, pip);
     }
   }
 
@@ -1608,6 +1645,10 @@ void MainWindow::render(){
       numOverlay.clear();
       PaintEvent p(numOverlay,atlas,this->w(),this->h());
       inventory.paintNumOverlay(p);
+      if(!inventory.isActive()) {
+        Painter pn(p);
+        paintArpgBarOverlay(pn);
+        }
       }
     uiMesh [cmdId].update(device,uiLayer);
     numMesh[cmdId].update(device,numOverlay);
@@ -1615,7 +1656,7 @@ void MainWindow::render(){
     CommandBuffer& cmd = commands[cmdId];
     {
     auto enc = cmd.startEncoding(device);
-    renderer.draw(swapchain[swapchain.currentImage()],enc,cmdId,uiMesh[cmdId],numMesh[cmdId],inventory,video);
+    renderer.draw(swapchain[swapchain.currentImage()],enc,cmdId,uiMesh[cmdId],numMesh[cmdId],inventory,video,&arpgBarItems);
     }
     sync = device.submit(cmd);
     device.present(swapchain);
@@ -1839,4 +1880,425 @@ void MainWindow::paintArpgMinimap(Painter& p) {
   }
 
   p.popState();
+  }
+
+void MainWindow::paintArpgCombat(Painter& p, const Matrix4x4& vp) {
+  // gothic-diablo: life bars above enemies in a fight, floating damage numbers, special attack cooldown
+  auto world = Gothic::inst().world();
+  auto pl    = Gothic::inst().player();
+  auto cam   = Gothic::inst().camera();
+  if(world==nullptr || pl==nullptr || cam==nullptr || dialogs.isActive() || inventory.isActive())
+    return;
+  const float scale = Gothic::interfaceScale(this);
+  auto toScreen = [&](Vec3 pos, Point& out) {
+    float pw = 1.f;
+    vp.project(pos.x,pos.y,pos.z,pw);
+    if(pw<=0.f)
+      return false;
+    pos /= pw;
+    if(pos.x<-1.2f || pos.x>1.2f || pos.y<-1.2f || pos.y>1.2f)
+      return false;
+    out = Point(int((0.5f*pos.x+0.5f)*float(w())), int((0.5f*pos.y+0.5f)*float(h())));
+    return true;
+    };
+
+  // life bars
+  {
+    const auto& view  = cam->arpgView();
+    const float sight = view.fowRadius>0.f ? view.fowRadius : 1500.f;
+    const int   bw    = int(46.f*scale);
+    const int   bh    = std::max(3, int(5.f*scale));
+    const Vec3  hero  = pl->position();
+    world->detectNpc(hero, sight, [&](Npc& n) {
+      if(&n==pl || n.isDead() || !player.arpgIsEnemy(n))
+        return;
+      const int32_t hp  = n.attribute(ATR_HITPOINTS);
+      const int32_t hpM = std::max(1, n.attribute(ATR_HITPOINTSMAX));
+      if(hp>=hpM && n.target()!=pl)
+        return; // not in a fight yet
+      Point sp;
+      if(!toScreen(n.position()+Vec3(0,n.isDown() ? 60.f : 210.f,0), sp))
+        return;
+      const float v = std::clamp(float(hp)/float(hpM), 0.f, 1.f);
+      p.setBrush(Brush(Color(0.f,0.f,0.f,0.7f), Painter::Alpha));
+      p.drawRect(sp.x-bw/2-1, sp.y-1, bw+2, bh+2);
+      p.setBrush(Brush(Color(0.75f,0.08f,0.05f,0.95f), Painter::Alpha));
+      p.drawRect(sp.x-bw/2, sp.y, int(float(bw)*v), bh);
+      });
+  }
+
+  // floating numbers: rise and fade in about a second
+  {
+    auto&          list = world->arpgPopups();
+    const uint64_t now  = world->tickCount();
+    for(size_t i=0; i<list.size();) {
+      if(now>list[i].time+1100)
+        list.erase(list.begin()+long(i)); else
+        ++i;
+      }
+    for(auto& e:list) {
+      if(now<e.time)
+        continue; // not there yet (a missed arrow on its way)
+      const float t = float(now-e.time)/1000.f;
+      Point sp;
+      if(!toScreen(e.pos+Vec3(0,70.f*t,0), sp))
+        continue;
+      const float a = std::clamp(1.f-(t-0.6f)/0.5f, 0.f, 1.f);
+      Resources::FontType type = Resources::FontType::Normal;
+      char txt[32] = {};
+      if(e.kind==2) {
+        type = Resources::FontType::Disabled;
+        std::snprintf(txt, sizeof(txt), "Blok");
+        }
+      else if(e.kind==3) {
+        type = Resources::FontType::Disabled;
+        std::snprintf(txt, sizeof(txt), "Chybiono");
+        }
+      else if(e.kind==4) {
+        type = Resources::FontType::Yellow;
+        std::snprintf(txt, sizeof(txt), "Unik");
+        } else {
+        type = (e.kind==1) ? Resources::FontType::Red : Resources::FontType::Normal;
+        std::snprintf(txt, sizeof(txt), "%d", int(e.value));
+        }
+      auto&      fnt = Resources::font(type, scale*(e.kind==1 ? 1.f : 1.15f));
+      const auto ts  = fnt.textSize(txt);
+      p.setBrush(Color(1.f,1.f,1.f,a));
+      fnt.drawText(p, sp.x-ts.w/2, sp.y, txt);
+      }
+  }
+
+  // charging the special attack: bar above the head, gold = release now, red = held too long
+  {
+    const float t = player.arpgChargeTime();
+    Point sp;
+    if(t>=0.f && toScreen(pl->position()+Vec3(0,230.f,0), sp)) {
+      const int   bw   = int(90.f*scale), bh = std::max(4, int(8.f*scale));
+      const float full = PlayerControl::ChargeFull, win = PlayerControl::ChargeWindow;
+      p.setBrush(Brush(Color(0.f,0.f,0.f,0.7f), Painter::Alpha));
+      p.drawRect(sp.x-bw/2-2, sp.y-2, bw+4, bh+4);
+      if(t<full) {
+        p.setBrush(Brush(Color(0.85f,0.85f,0.85f,0.85f), Painter::Alpha));
+        p.drawRect(sp.x-bw/2, sp.y, int(float(bw)*t/full), bh);
+        }
+      else if(t<=full+win) {
+        p.setBrush(Brush(Color(1.f,0.8f,0.2f,1.f), Painter::Alpha));
+        p.drawRect(sp.x-bw/2-2, sp.y-2, bw+4, bh+4);
+        }
+      else {
+        p.setBrush(Brush(Color(0.85f,0.15f,0.1f,0.9f), Painter::Alpha));
+        p.drawRect(sp.x-bw/2, sp.y, bw, bh);
+        }
+      }
+  }
+
+  // slash of the charged attack: a bright 180 degree crescent sweeping around the hero
+  {
+    const auto&    fx  = player.arpgSlash();
+    const uint64_t now = world->tickCount();
+    if(fx.kind==1 && fx.time!=0 && now>=fx.time && now<fx.time+450) {
+      // charged arrow: a bright streak along the shot
+      const float t    = float(now-fx.time)/1000.f;
+      const float fade = 1.f - std::clamp(t/0.45f, 0.f, 1.f);
+      const float rad  = fx.ang*float(M_PI)/180.f;
+      const Vec3  fw   = {std::cos(rad), 0.f, std::sin(rad)};
+      const Vec3  sd   = {-fw.z, 0.f, fw.x};
+      const Vec3  base = fx.pos + Vec3(0,140.f,0);
+      const int   N    = 12;
+      const float len  = std::min(2500.f, 600.f + 9000.f*t);
+      for(int i=0; i<N; ++i) {
+        const float k0 = float(i)/float(N), k1 = float(i+1)/float(N);
+        const float a  = fade*(1.f-k0)*0.9f;
+        const float w0 = 18.f*(1.f-k0)+4.f, w1 = 18.f*(1.f-k1)+4.f;
+        Point p00, p01, p10, p11;
+        if(!toScreen(base+fw*(len*k0)-sd*w0, p00) || !toScreen(base+fw*(len*k0)+sd*w0, p01) ||
+           !toScreen(base+fw*(len*k1)-sd*w1, p10) || !toScreen(base+fw*(len*k1)+sd*w1, p11))
+          continue;
+        p.setBrush(Brush(Color(1.f*a, 0.85f*a, 0.45f*a, 1.f), Painter::Add));
+        p.drawTriangle(float(p00.x),float(p00.y),0,0, float(p01.x),float(p01.y),0,0, float(p11.x),float(p11.y),0,0);
+        p.drawTriangle(float(p00.x),float(p00.y),0,0, float(p11.x),float(p11.y),0,0, float(p10.x),float(p10.y),0,0);
+        }
+      }
+    else if(fx.kind==2 && fx.time!=0 && now>=fx.time && now<fx.time+400) {
+      // bow push: a wave rolling out 120 degrees in front of the hero
+      const float t    = float(now-fx.time)/1000.f;
+      const float k    = std::clamp(t/0.4f, 0.f, 1.f);
+      const float fade = 1.f-k;
+      const float r1   = 80.f + 280.f*std::sqrt(k);
+      const float r0   = std::max(40.f, r1-70.f);
+      const int   N    = 16;
+      for(int i=0; i<N; ++i) {
+        const float a0 = fx.ang - 60.f + 120.f*float(i)/float(N);
+        const float a1 = fx.ang - 60.f + 120.f*float(i+1)/float(N);
+        auto pt = [&](float a, float r, Point& out) {
+          const float rad = a*float(M_PI)/180.f;
+          return toScreen(fx.pos + Vec3(std::cos(rad)*r, 90.f, std::sin(rad)*r), out);
+          };
+        Point p00, p01, p10, p11;
+        if(!pt(a0,r0,p00) || !pt(a0,r1,p01) || !pt(a1,r0,p10) || !pt(a1,r1,p11))
+          continue;
+        const float edge = 1.f - std::abs(float(i)+0.5f-float(N)/2.f)/(float(N)/2.f); // brighter in the middle
+        const float a    = fade*(0.35f+0.65f*edge)*0.8f;
+        p.setBrush(Brush(Color(0.75f*a, 0.85f*a, 1.f*a, 1.f), Painter::Add));
+        p.drawTriangle(float(p00.x),float(p00.y),0,0, float(p01.x),float(p01.y),0,0, float(p11.x),float(p11.y),0,0);
+        p.drawTriangle(float(p00.x),float(p00.y),0,0, float(p11.x),float(p11.y),0,0, float(p10.x),float(p10.y),0,0);
+        }
+      }
+    else if(fx.kind==0 && fx.time!=0 && now>=fx.time && now<fx.time+600) {
+      const float t     = float(now-fx.time)/1000.f;
+      const float sweep = std::clamp((t-0.06f)/0.18f, 0.f, 1.f);   // follows the swing
+      const float fade  = 1.f - std::clamp((t-0.25f)/0.35f, 0.f, 1.f);
+      if(sweep>0.f && fade>0.f) {
+        const int   N  = 24;
+        const float r0 = 90.f, r1 = 260.f, y = 110.f;
+        auto pt = [&](float a, float r, Point& out) {
+          const float rad = a*float(M_PI)/180.f;
+          return toScreen(fx.pos + Vec3(std::cos(rad)*r, y, std::sin(rad)*r), out);
+          };
+        p.setBrush(Brush(Color(1.f,0.85f,0.45f,1.f), Painter::Add));
+        for(int i=0; i<N; ++i) {
+          const float k0 = float(i)/float(N), k1 = float(i+1)/float(N);
+          if(k1>sweep)
+            break;
+          // the newest part of the sweep is brightest
+          const float a  = fade*(0.25f + 0.75f*std::clamp(1.f-(sweep-k1)*2.f, 0.f, 1.f));
+          const float a0 = fx.ang + fx.dir*(90.f - 180.f*k0);
+          const float a1 = fx.ang + fx.dir*(90.f - 180.f*k1);
+          Point p00, p01, p10, p11;
+          if(!pt(a0,r0,p00) || !pt(a0,r1,p01) || !pt(a1,r0,p10) || !pt(a1,r1,p11))
+            continue;
+          p.setBrush(Brush(Color(1.f*a, 0.82f*a, 0.4f*a, 1.f), Painter::Add));
+          p.drawTriangle(float(p00.x),float(p00.y),0,0, float(p01.x),float(p01.y),0,0, float(p11.x),float(p11.y),0,0);
+          p.drawTriangle(float(p00.x),float(p00.y),0,0, float(p11.x),float(p11.y),0,0, float(p10.x),float(p10.y),0,0);
+          }
+        }
+      }
+  }
+  }
+
+// gothic-diablo: skill bar at the bottom: mouse buttons, potions 1-2, spells 3-0
+static constexpr int ArpgBarSlots = 13; // LPM PPM SPM | 1 2 | 3 4 5 6 7 8 9 0
+
+bool MainWindow::arpgBarVisible() const {
+  if(!isArpgMouse() || rootMenu.isActive() || chapter.isActive() || video.isActive())
+    return false;
+  auto pl = Gothic::inst().player();
+  return pl!=nullptr && !pl->isDead() && Gothic::inst().checkLoading()==Gothic::LoadState::Idle;
+  }
+
+Tempest::Rect MainWindow::arpgBarSlot(int i) const {
+  const float scale = Gothic::interfaceScale(this);
+  const int   s     = int(46.f*scale);
+  const int   gap   = std::max(2, int(4.f*scale));
+  const int   group = int(16.f*scale);
+  const int   wAll  = ArpgBarSlots*s + (ArpgBarSlots-1)*gap + 2*group;
+  const int   x0    = (w()-wAll)/2;
+  const int   y     = h() - s - int(12.f*scale);
+  const int   grp   = (i<3) ? 0 : (i<5 ? 1 : 2);
+  return Rect(x0 + i*(s+gap) + grp*group, y, s, s);
+  }
+
+void MainWindow::paintArpgBar(Painter& p) {
+  if(!arpgBarVisible())
+    return;
+  auto pl = Gothic::inst().player();
+  const auto bar   = player.arpgBar();
+  const auto ws    = pl->weaponState();
+  auto  slotTex    = Resources::loadTexture("INV_SLOT.TGA");
+  auto  hiTex      = Resources::loadTexture("INV_SLOT_HIGHLIGHTED.TGA");
+
+  auto tri = [&](float x0, float y0, float x1, float y1, float x2, float y2) {
+    p.drawTriangle(x0,y0,0,0, x1,y1,0,0, x2,y2,0,0);
+    };
+  auto poly = [&](float cx, float cy, const float* pts, int n, float sc) {
+    // convex polygon around (cx,cy): pts = x,y pairs in units of sc
+    for(int i=0; i<n; ++i) {
+      const int j = (i+1)%n;
+      tri(cx, cy, cx+pts[2*i]*sc, cy+pts[2*i+1]*sc, cx+pts[2*j]*sc, cy+pts[2*j+1]*sc);
+      }
+    };
+  auto drawSlot = [&](const Rect& r, bool hi) {
+    auto t = (hi && hiTex!=nullptr) ? hiTex : slotTex;
+    if(t!=nullptr) {
+      p.setBrush(*t);
+      p.drawRect(r.x, r.y, r.w, r.h, 0, 0, t->w(), t->h());
+      } else {
+      p.setBrush(Brush(Color(0.f,0.f,0.f,0.6f), Painter::Alpha));
+      p.drawRect(r.x, r.y, r.w, r.h);
+      }
+    };
+  auto drawFist = [&](const Rect& r) {
+    const float cx = float(r.x)+float(r.w)*0.5f, cy = float(r.y)+float(r.h)*0.55f, u = float(r.w)*0.13f;
+    p.setBrush(Brush(Color(0.78f,0.62f,0.48f,1.f), Painter::Alpha));
+    p.drawRect(int(cx-2.f*u), int(cy-0.6f*u), int(4.f*u), int(2.2f*u));      // back of the hand
+    for(int f=0; f<4; ++f)
+      p.drawRect(int(cx-2.f*u+float(f)*u+1.f), int(cy-1.7f*u), int(u-2.f), int(1.3f*u)); // fingers
+    p.drawRect(int(cx-2.7f*u), int(cy-0.2f*u), int(0.9f*u), int(1.3f*u));    // thumb
+    };
+  auto drawShield = [&](const Rect& r) {
+    // block: the shield with Khorinis' coat of arms (wall decoration in the city), cut out along its edge
+    auto t = Resources::loadTexture("OBJ_CITY_DECO_SHIELD_01.TGA");
+    if(t==nullptr) {
+      const float cx = float(r.x)+float(r.w)*0.5f, cy = float(r.y)+float(r.h)*0.46f, u = float(r.w)*0.30f;
+      static const float shape[] = {-1.f,-1.f, 1.f,-1.f, 1.f,0.15f, 0.55f,0.8f, 0.f,1.15f, -0.55f,0.8f, -1.f,0.15f};
+      p.setBrush(Brush(Color(0.36f,0.38f,0.42f,1.f), Painter::Alpha));
+      poly(cx, cy, shape, 7, u);
+      return;
+      }
+    // outline in texture space (256x256 texture: x 44..205, y 6..250)
+    static const float uv[][2] = {{44,6},{205,6},{205,150},{190,190},{125,250},{60,190},{44,150}};
+    const float u0 = 40.f, v0 = 4.f, uw = 169.f, vh = 248.f;          // the part that is drawn
+    const float hh = float(r.h)*0.86f, ww = hh*uw/vh;
+    const float x0 = float(r.x)+(float(r.w)-ww)*0.5f, y0 = float(r.y)+(float(r.h)-hh)*0.5f;
+    const float tw = float(t->w())/256.f, th = float(t->h())/256.f;
+    auto sx = [&](int i) { return x0 + (uv[i][0]-u0)/uw*ww; };
+    auto sy = [&](int i) { return y0 + (uv[i][1]-v0)/vh*hh; };
+    const float cu = 125.f, cv = 128.f;                                  // fan center
+    const float cx = x0 + (cu-u0)/uw*ww, cy = y0 + (cv-v0)/vh*hh;
+    p.setBrush(Brush(*t, Painter::Alpha, ClampMode::ClampToEdge));
+    for(int i=0; i<7; ++i) {
+      const int j = (i+1)%7;
+      p.drawTriangle(cx, cy, cu*tw, cv*th,
+                     sx(i), sy(i), uv[i][0]*tw, uv[i][1]*th,
+                     sx(j), sy(j), uv[j][0]*tw, uv[j][1]*th);
+      }
+    };
+  auto drawPush = [&](const Rect& r) {
+    // push: the Wind Fist rune's symbol (its face in ITARRUNE1, cell 6 of the first row)
+    auto t = Resources::loadTexture("ITARRUNE1.TGA");
+    if(t==nullptr)
+      return;
+    const int pad = r.w/12;
+    p.setBrush(Brush(*t, Painter::Alpha, ClampMode::ClampToEdge));
+    p.drawRect(r.x+pad, r.y+pad, r.w-2*pad, r.h-2*pad,
+               float(t->w())*0.625f, 0.f, float(t->w())*0.75f, float(t->h())*0.125f);
+    };
+  auto drawGlow = [&](const Rect& r) {
+    // "skill": red glow inside the slot, model drawn over it
+    for(int k=0; k<6; ++k) {
+      const int   in = int(float(r.w)*0.06f*float(k));
+      const float a  = 0.09f;
+      p.setBrush(Brush(Color(0.9f*a,0.12f*a,0.08f*a,1.f), Painter::Add));
+      p.drawRect(r.x+in, r.y+in, r.w-2*in, r.h-2*in);
+      }
+    p.setBrush(Brush(Color(0.85f,0.12f,0.08f,0.9f), Painter::Alpha));
+    const int b = std::max(1, r.w/24);
+    p.drawRect(r.x, r.y, r.w, b);
+    p.drawRect(r.x, r.y+r.h-b, r.w, b);
+    p.drawRect(r.x, r.y, b, r.h);
+    p.drawRect(r.x+r.w-b, r.y, b, r.h);
+    };
+  auto model = [&](const Rect& r, const Item* itm) {
+    if(itm==nullptr)
+      return;
+    const int pad = r.w/10;
+    arpgBarItems.drawItem(r.x+pad, r.y+pad, r.w-2*pad, r.h-2*pad, *itm);
+    };
+
+  // LPM: the weapon in use, PPM: the weapon with a red glow (charged attack / shot = special skill), SPM: block or push
+  {
+    const Rect r = arpgBarSlot(0);
+    drawSlot(r, arpgLeftDown);
+    if(bar.weapon!=nullptr) model(r, bar.weapon); else drawFist(r);
+  }
+  {
+    const Rect r = arpgBarSlot(1);
+    drawSlot(r, bar.charging);
+    drawGlow(r); // special skill
+    if(bar.weapon!=nullptr) model(r, bar.weapon); else drawFist(r);
+  }
+  {
+    const Rect r = arpgBarSlot(2);
+    drawSlot(r, arpgMidBlock || arpgMidPush);
+    if(bar.ranged) drawPush(r); else drawShield(r);
+  }
+  // 1-2: health / mana potion that the key drinks now
+  for(int k=0; k<2; ++k) {
+    const Rect r = arpgBarSlot(3+k);
+    drawSlot(r, false);
+    model(r, bar.potion[k]);
+  }
+  // 3-0: Gothic's rune / scroll slots
+  for(uint8_t k=0; k<8; ++k) {
+    const Rect r   = arpgBarSlot(5+k);
+    auto       itm = pl->inventory().currentSpell(k);
+    drawSlot(r, ws==WeaponState::Mage && itm!=nullptr && pl->inventory().currentSpellSlot()==k+3);
+    model(r, itm);
+  }
+  }
+
+void MainWindow::paintArpgBarOverlay(Painter& p) {
+  // over the item models: cooldowns, key names, potion counts
+  if(!arpgBarVisible())
+    return;
+  const float scale = Gothic::interfaceScale(this);
+  const auto  bar   = player.arpgBar();
+  auto&       fnt   = Resources::font(Resources::FontType::Normal,   scale*0.7f);
+  auto&       fntD  = Resources::font(Resources::FontType::Disabled, scale*0.7f);
+
+  auto cooldown = [&](const Rect& r, float left, float total) {
+    if(left<=0.f)
+      return;
+    const int hh = int(float(r.h)*left);
+    p.setBrush(Brush(Color(0.f,0.f,0.f,0.65f), Painter::Alpha));
+    p.drawRect(r.x, r.y, r.w, hh);
+    char txt[16] = {};
+    std::snprintf(txt, sizeof(txt), "%d", int(std::ceil(left*total)));
+    auto& f  = Resources::font(Resources::FontType::Normal, scale*1.1f);
+    auto  ts = f.textSize(txt);
+    p.setBrush(Color(1.f));
+    f.drawText(p, r.x+(r.w-ts.w)/2, r.y+(r.h+ts.h)/2-ts.h/4, txt);
+    };
+  auto label = [&](const Rect& r, std::string_view txt, bool dim) {
+    p.setBrush(Color(1.f));
+    auto& f = dim ? fntD : fnt;
+    f.drawText(p, r.x+std::max(2,r.w/16), r.y+f.textSize(txt).h, txt);
+    };
+
+  const Rect rL = arpgBarSlot(0), rR = arpgBarSlot(1), rM = arpgBarSlot(2);
+  cooldown(rR, player.arpgSpecialLeft(), PlayerControl::SpecialCooldown);
+  if(bar.ranged)
+    cooldown(rM, player.arpgPushLeft(), PlayerControl::PushCooldown);
+  label(rL, "LPM", false);
+  label(rR, "PPM", false);
+  label(rM, "SPM", false);
+
+  for(int k=0; k<2; ++k) {
+    const Rect r = arpgBarSlot(3+k);
+    char key[4] = {};
+    std::snprintf(key, sizeof(key), "%d", k+1);
+    label(r, key, bar.potions[k]==0);
+    char cnt[16] = {};
+    std::snprintf(cnt, sizeof(cnt), "%d", int(bar.potions[k]));
+    auto& f  = bar.potions[k]==0 ? fntD : fnt;
+    auto  ts = f.textSize(cnt);
+    p.setBrush(Color(1.f));
+    f.drawText(p, r.x+r.w-ts.w-std::max(2,r.w/16), r.y+r.h-std::max(2,r.h/16), cnt);
+    }
+
+  auto pl    = Gothic::inst().player();
+  auto world = Gothic::inst().world();
+  for(uint8_t k=0; k<8; ++k) {
+    const Rect  r   = arpgBarSlot(5+k);
+    const Item* itm = (pl!=nullptr) ? pl->inventory().currentSpell(k) : nullptr;
+    if(itm!=nullptr && world!=nullptr) {
+      const int32_t cost = world->script().arpgSpellCost(*itm);
+      const bool    poor = (cost>0 && pl->attribute(ATR_MANA)<cost);
+      if(poor) {
+        p.setBrush(Brush(Color(0.f,0.f,0.f,0.6f), Painter::Alpha));
+        p.drawRect(r.x, r.y, r.w, r.h);
+        }
+      if(cost>0) {
+        char txt[16] = {};
+        std::snprintf(txt, sizeof(txt), "%d", int(cost));
+        auto& f  = Resources::font(poor ? Resources::FontType::Red : Resources::FontType::Normal, scale*0.7f);
+        auto  ts = f.textSize(txt);
+        p.setBrush(Color(1.f));
+        f.drawText(p, r.x+r.w-ts.w-std::max(2,r.w/16), r.y+r.h-std::max(2,r.h/16), txt);
+        }
+      }
+    char key[4] = {};
+    std::snprintf(key, sizeof(key), "%d", (k+3)%10);
+    label(r, key, itm==nullptr);
+    }
   }

@@ -1274,6 +1274,33 @@ void GameScript::playerHotLameHeal(Npc& pl) {
   vm.call_function<void>(fn);
   }
 
+int32_t GameScript::arpgSpellCost(const Item& it) {
+  // Gothic keeps the cost in the script constants used by Spell_Logic_*: SPL_COST_<name>, scrolls SPL_COST_SCROLL,
+  // charged spells pay per step: STEP_<name>
+  if(spellFxInstanceNames==nullptr)
+    return -1;
+  auto get = [this](std::string_view n) -> int32_t {
+    std::string up(n);
+    for(auto& c:up)
+      c = char(std::toupper(uint8_t(c)));
+    auto sym = vm.find_symbol_by_name(up);
+    if(sym==nullptr || sym->type()!=zenkit::DaedalusDataType::INT || !sym->is_const())
+      return -1;
+    return sym->get_int();
+    };
+  if(it.isSpell()) {
+    // scroll
+    const int32_t v = get("SPL_COST_SCROLL");
+    if(v>=0)
+      return v;
+    }
+  auto& tag = spellFxInstanceNames->get_string(uint16_t(it.spellId()));
+  int32_t v = get(string_frm("SPL_COST_",tag));
+  if(v<0)
+    v = get(string_frm("STEP_",tag));
+  return v;
+  }
+
 std::string_view GameScript::spellCastAnim(Npc&, Item &it) {
   if(spellFxAniLetters==nullptr)
     return "FIB";

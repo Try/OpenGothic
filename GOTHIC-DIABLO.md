@@ -5,12 +5,10 @@ Fork [OpenGothic](https://github.com/Try/OpenGothic): Gothic II Noc Kruka jako i
 
 ## Uruchomienie (Windows)
 
-1. Pobierz artefakt `opengothic_*_win_x64` z zakładki **Actions** (ostatni zielony build) i rozpakuj.
-2. Uruchom:
-   ```
-   Gothic2Notr.exe -g "F:\SteamLibrary\steamapps\common\Gothic II"
-   ```
-3. `-classic` wyłącza tryb ARPG (oryginalna kamera i sterowanie OpenGothic).
+- Launcher (buildy z CI, release `build-<N>`): [`launcher/README.md`](launcher/README.md).
+- Lokalny build (~1 min od commita do gry): [`dev/README.md`](dev/README.md).
+- Ręcznie: `Gothic2Notr.exe -g "F:\SteamLibrary\steamapps\common\Gothic II"`; `-classic` wyłącza tryb ARPG
+  (oryginalna kamera i sterowanie OpenGothic).
 
 ## Faza 1 — kamera ARPG
 
@@ -74,3 +72,36 @@ Dachy i ściany dalej rzucają cienie (ukrywanie działa tylko w widoku kamery).
 ### Poprawki sterowania (faza 3)
 - Oba kierunki wciśnięte (np. zgubione puszczenie S w menu) → wygrywa ostatnio wciśnięty; czyszczenie klawiszy przy otwarciu/zamknięciu menu i utracie fokusu okna
 - Łup przy zwłokach: przedmiot ma pierwszeństwo przed martwym potworem pod kursorem
+
+## Faza 4 — walka hack&slash
+
+| Element | Gdzie |
+|---|---|
+| Spacja = unik (krok w bok / odskok), także w trakcie bloku — po uniku blok wraca, jeśli środkowy przycisk wciąż wciśnięty | `PlayerControl::onKeyPressed`, `arpgStartDodge` |
+| Lewy Shift = dobycie / schowanie broni (ostatnio używanej) | `PlayerControl::onKeyPressed` |
+| Środkowy przycisk z bronią białą / pięściami = blok trzymany: postać zwraca się do wroga, animacja parady zatrzymana w oknie obrony, puszczenie kończy blok; w trybie ARPG da się parować także potwory; bez broni: przeciąganie = obrót kamery, klik = dobycie broni | `implMove`, `Pose::holdParade`, `Npc::takeDamage` |
+| PPM = atak ładowany: przytrzymanie — zamach z boku zatrzymany w zamachu, pasek nad głową ładuje się 2 s; puszczenie w ciągu 0,2 s po pełnym naładowaniu (złoty pasek) = jeden zamach 180° z obrażeniami ×3, przewraca wrogów, jasna smuga cięcia; puszczenie za wcześnie albo za późno = zwykły cios; odnowienie 5 s po udanym (niebieski pasek pod stopami); unik i blok przerywają ładowanie | `implMove`, `Pose::holdAttack`, `Npc::commitDamageArpg`, `MainWindow::paintArpgCombat` |
+| Zatrzymana parada / zamach nie przesuwają postaci (bez ruchu z animacji) | `Pose::animMoveSpeed` |
+| X = zmiana broni biała ↔ łuk; skradanie przeniesione z X na V (tylko w trybie ARPG); atak bez broni dobywa ostatnio używaną (łuk, jeśli są strzały) | `PlayerControl::arpgSwapWeapon`, `arpgDrawPreferred` |
+| Łuk / kusza: LPM na wroga = strzał (podejście na zasięg do 25 m / promienia mgły i wolną linię strzału), przytrzymanie = seria, Ctrl + LPM w puste miejsce = strzał prosto w stronę kursora; brak strzał = komunikat i broń biała | `arpgShoot`, `arpgClickTick` |
+| Łuk / kusza + trzymany Ctrl = napięty łuk, postać obraca się za kursorem (wróg pod kursorem albo punkt na ziemi); Ctrl + LPM strzela od razu; Ctrl w trybie ARPG nie działa jak klawisz akcji Gothica | `onKeyPressed`, `implMove` |
+| Trafienie strzałą: szansa jak w Gothicu/OpenGothic (talent, z bliska prawie zawsze); chybienie pokazuje „Chybiono”; obrażenia po pancerzu ×0,5 (tylko bohater w trybie ARPG) | `Npc::shootBow`, `Npc::takeDamage`, `Bullet::arpgDamageMul` |
+| Łuk / kusza + PPM = strzał ładowany: przytrzymanie = napięty łuk, pasek 2 s, okno 0,2 s → ×3 obrażeń zwykłego strzału, zawsze trafia, jasna smuga strzału; odnowienie 5 s | `implMove` (ładowanie), `Npc::shootBow` (`arpgShotMul`) |
+| Łuk / kusza + środkowy przycisk = odepchnięcie: wrogowie do 3 m w łuku 120° przed postacią odlatują ok. 2 m, bez obrażeń (także przy lądowaniu), fala w świecie; odnowienie 5 s | `PlayerControl::arpgPush`, `Npc::arpgKnockBack`, `MoveAlgo::accessDamFly` (prędkość) |
+| Odnowienia (atak ładowany, odepchnięcie) liczone w sekundach gry, nie w tickach świata — wczytanie zapisu nie wydłuża paska | `arpgSpecialCd`, `arpgPushCd` |
+| Mikstury: 1 = zdrowie, 2 = mana (Gothic II: ItPo_Health_*, ItPo_Mana_*, bez ItPo_Perm_*); wybiera najmniejszą, która wystarczy na brakujące punkty, inaczej największą; klawisze 3–0 = sloty run i zwojów Gothica | `arpgPotion`, `arpgPickPotion`, `Npc::arpgUseItem` |
+| Czary 3–0 (sloty run i zwojów Gothica, przypisanie jak w Gothicu: w ekwipunku zaznaczyć runę/zwój i nacisnąć klawisz): naciśnięcie = broń chowana od razu, runa wyjmowana animacją Gothica, obrót do kursora i rzut (wróg pod kursorem = cel, inaczej w stronę kursora); przytrzymanie = ładowanie czarów ładowanych, puszczenie = rzut; brak many = „Brak many”; LPM/PPM z runą w ręku wracają do broni | `arpgSpellKey`, `implMove` (`arpgSpellSlot`, `arpgSpellCasting`), `arpgCursorAim` |
+| Fikołek pod Spacją (i lewym Alt z bronią) zamiast uniku: przewrót w stronę kursora (W/S/A/D wygrywają), animacja przewrotu z akrobatyki Gothica II (nakładka HUMANS_ACROBATIC na czas przewrotu, T_FALLDN_2_RUNL, ok. 1,6 m) odtwarzana 1,4× szybciej (ok. 0,7 s), przez pierwsze ~0,45 s brak obrażeń od broni, strzał i czarów (napis „Unik”); przerwa 0,25 s między fikołkami; później osobna umiejętność do nauczenia | `PlayerControl::arpgStartRoll`, `Npc::arpgSetInvulnerable`, `Npc::takeDamage` |
+| Pomoc w celowaniu: żywy wróg łapie się kursorem z większej odległości (95 px przy 1080p, albo kursor na ziemi do 1,4 m od niego), wrogowie mają pierwszeństwo przed innymi postaciami | `arpgPick` (krok 3) |
+| Kolejkowanie ciosów: klik w trakcie ciosu bronią białą obok wroga (nie trafiony kursorem) = kolejny cios w tego samego wroga w oknie combo, a nie odejście; wskaźnik combo większy, biała ramka = cios w kolejce, złote kwadraty = ciosy w serii | `arpgMouseDown`, `MainWindow::paintArpgCombo` |
+| Trzymany LPM: po śmierci / powaleniu celu postać sama atakuje najbliższego widocznego wroga (do 4,5 m bronią białą, w zasięgu strzału łukiem; ci przed postacią mają pierwszeństwo) | `arpgClickTick` (`Attack`), `arpgNextEnemy` |
+| Mikstury pod 1–2 działają od razu (skrypt mikstury + dźwięk DRINKBOTTLE z gry), broń zostaje w ręku | `Npc::arpgDrinkNow` |
+| Koszt many na pasku przy runach i zwojach (stałe skryptów SPL_COST_<czar>, zwoje SPL_COST_SCROLL, czary ładowane STEP_<czar> za krok); za mało many = przyciemnione pole i czerwona liczba | `GameScript::arpgSpellCost`, `paintArpgBarOverlay` |
+| Wróg pod kursorem i atakowany cel lekko świecą (jaśniejsi o 30% + ciepła poświata na krawędziach); pasek odnowienia pod stopami usunięty (jest na pasku umiejętności) | `scene.arpgHi` (UboGlobal), `main.frag`, `Camera::arpgSetHighlight`, `tickFocus` |
+| Pasek umiejętności na dole: LPM (broń w ręku), PPM (broń z czerwoną poświatą = umiejętność specjalna, odnowienie ataku ładowanego), SPM (blok = tarcza z herbem Khorinis z tekstury OBJ_CITY_DECO_SHIELD_01, wycięta po obrysie; z łukiem = symbol runy Pięści Wiatru z ITARRUNE1, odnowienie odepchnięcia), 1–2 mikstury (model mikstury, która się wypije, liczba sztuk), 3–0 runy i zwoje z Gothica; modele przedmiotów jak w ekwipunku | `MainWindow::paintArpgBar`, `paintArpgBarOverlay`, `Renderer::draw` (`hudItems`) |
+| Ctrl + LPM: na postaci = atak na każdego, w puste miejsce = atak w miejscu w stronę kursora (przytrzymanie = ciągłe ciosy za kursorem) | `arpgMouseDown`, `arpgClickTick` (`Strike`) |
+| Przy każdym ciosie postać od razu zwraca się do celu (jak Diablo), w zasięgu obraca się szybciej | `PlayerControl::arpgSwing` |
+| Cios bronią białą trafia wszystkich wrogów w łuku 120° przed postacią (cel ataku zawsze, inni tylko wrodzy) | `Npc::commitDamageArpg` |
+| Ataki bohatera o 20% szybsze (animacje ataku przesuwane do przodu, zdarzenia trafienia i dźwięki nie giną) | `Npc::tick`, `Pose::warpAttack` |
+| Liczby obrażeń nad trafionymi (białe = zadane, czerwone = otrzymane, „Blok”), paski życia nad wrogami w walce | `World::arpgPopup`, `MainWindow::paintArpgCombat` |
+| Dojście do celu bez pętli: prosta linia ↔ waynet z histerezą (2 sprawdzenia z rzędu), pierwszy waypoint za plecami pomijany, ścieżka skracana do najdalszego widocznego punktu | `arpgNextPoint`, `arpgPlanPath`, `arpgPullPath` |

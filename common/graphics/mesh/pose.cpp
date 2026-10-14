@@ -14,6 +14,12 @@
 
 using namespace Tempest;
 
+// gothic-diablo: event barrier of one layer, corrected for faster attacks / held parades
+static uint64_t shiftBarrier(uint64_t barrier, int64_t shift) {
+  const int64_t b = int64_t(barrier) - shift;
+  return b<0 ? 0 : uint64_t(b);
+  }
+
 Pose::Pose() {
   lay.reserve(4);
   }
@@ -341,6 +347,8 @@ bool Pose::update(uint64_t tickCount, bool force) {
 
       needMkSkeleton |= updateFrame(*seq,i.bs,i.sBlend,lastUpdate,i.sAnim,tickCount);
       }
+    for(auto& i:lay)
+      i.warpSfx = 0;
     lastUpdate   = tickCount;
     needToUpdate = needMkSkeleton;
     }
@@ -566,17 +574,90 @@ bool Pose::hasLayerEvents(const Pose::Layer& l) {
 
 void Pose::processSfx(Npc &npc, uint64_t tickCount) {
   for(auto& i:lay)
-    i.seq->processSfx(lastUpdate,i.sAnim,tickCount,&npc,nullptr);
+    i.seq->processSfx(shiftBarrier(lastUpdate,i.warpSfx),i.sAnim,tickCount,&npc,nullptr);
   }
 
 void Pose::processSfx(Interactive& mob, uint64_t tickCount) {
   for(auto& i:lay)
-    i.seq->processSfx(lastUpdate,i.sAnim,tickCount,nullptr,&mob);
+    i.seq->processSfx(shiftBarrier(lastUpdate,i.warpSfx),i.sAnim,tickCount,nullptr,&mob);
   }
 
 void Pose::processPfx(MdlVisual& visual, World& world, uint64_t tickCount) {
   for(auto& i:lay)
-    i.seq->processPfx(lastUpdate,i.sAnim,tickCount,visual,world);
+    i.seq->processPfx(shiftBarrier(lastUpdate,i.warpSfx),i.sAnim,tickCount,visual,world);
+  }
+
+void Pose::warpAttack(uint64_t ms, uint64_t tickCount) {
+  if(ms==0)
+    return;
+  for(auto& i:lay) {
+    if(!i.seq->isAttackAnim() || i.sAnim<ms || i.sAnim>tickCount)
+      continue;
+    i.sAnim   -= ms;
+    i.warpEv  += int64_t(ms);
+    i.warpSfx += int64_t(ms);
+    }
+  }
+
+bool Pose::warpSeq(const Animation::Sequence* sq, uint64_t ms, uint64_t tickCount) {
+  // gothic-diablo: play one animation faster (dodge roll), same way as warpAttack
+  bool found = false;
+  for(auto& i:lay) {
+    if(i.seq!=sq)
+      continue;
+    found = true;
+    if(ms==0 || i.sAnim<ms || i.sAnim>tickCount)
+      continue;
+    i.sAnim   -= ms;
+    i.warpEv  += int64_t(ms);
+    i.warpSfx += int64_t(ms);
+    }
+  return found;
+  }
+
+void Pose::holdParade(uint64_t tickCount) {
+  for(auto& i:lay) {
+    if(i.bs!=BS_PARADE || i.seq==nullptr || i.seq->data==nullptr || i.sAnim>tickCount)
+      continue;
+    auto&    d     = *i.seq->data;
+    uint64_t tHold = 300;
+    if(d.defWindow.size()>=2 && d.defWindow[1]>d.defWindow[0]+20)
+      tHold = d.defWindow[1]-20; // inside the parry window
+    i.heldTick = tickCount;
+    const uint64_t t = tickCount-i.sAnim;
+    if(t<=tHold)
+      continue;
+    const uint64_t dt = t-tHold;
+    i.sAnim   += dt;
+    i.warpEv  -= int64_t(dt);
+    i.warpSfx -= int64_t(dt);
+    }
+  }
+
+void Pose::holdAttack(uint64_t tickCount) {
+  for(auto& i:lay) {
+    if(i.seq==nullptr || i.seq->data==nullptr || !i.seq->isAttackAnim() || i.sAnim>tickCount)
+      continue;
+    // freeze before the hit: at ~40% of the time to the first "optimal frame" (hit) event
+    auto&    d     = *i.seq->data;
+    uint64_t tHold = 200;
+    for(auto& e:d.events) {
+      if(e.type!=zenkit::MdsEventType::OPTIMAL_FRAME || e.frames.empty() || d.fpsRate<=0.f)
+        continue;
+      const int32_t fr  = std::max<int32_t>(0, e.frames[0]-int32_t(d.firstFrame));
+      const uint64_t th = uint64_t(float(fr)*1000.f/d.fpsRate);
+      tHold = std::clamp<uint64_t>(th*2/5, 60, 400);
+      break;
+      }
+    i.heldTick = tickCount;
+    const uint64_t t = tickCount-i.sAnim;
+    if(t<=tHold)
+      continue;
+    const uint64_t dt = t-tHold;
+    i.sAnim   += dt;
+    i.warpEv  -= int64_t(dt);
+    i.warpSfx -= int64_t(dt);
+    }
   }
 
 bool Pose::processEvents(uint64_t &barrier, uint64_t now, Animation::EvCount &ev) const {
@@ -585,8 +666,10 @@ bool Pose::processEvents(uint64_t &barrier, uint64_t now, Animation::EvCount &ev
     return false;
     }
 
-  for(auto& i:lay)
-    i.seq->processEvents(barrier,i.sAnim,now,ev);
+  for(auto& i:lay) {
+    i.seq->processEvents(shiftBarrier(barrier,i.warpEv),i.sAnim,now,ev);
+    i.warpEv = 0;
+    }
   barrier=now;
   return hasEvents>0;
   }
@@ -606,6 +689,8 @@ Tempest::Vec3 Pose::animMoveSpeed(uint64_t tickCount, uint64_t dt) const {
     auto& lx = lay[i];
     if(!lx.seq->data->hasMoveTr)
       continue;
+    if(lx.heldTick!=0 && lx.heldTick+100>=tickCount)
+      return Tempest::Vec3(); // gothic-diablo: frozen block / charge must not slide
     return lx.seq->speed(tickCount-lx.sAnim,dt);
     }
   return Tempest::Vec3();

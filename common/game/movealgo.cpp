@@ -493,7 +493,7 @@ void MoveAlgo::clearSpeed() {
   fallCount   = 0;
   }
 
-bool MoveAlgo::accessDamFly(float dx, float dz, char hitType) {
+bool MoveAlgo::accessDamFly(float dx, float dz, char hitType, float speed) {
   if(flags!=Run && flags!=Falling && flags!=InAir)
     return false;
 
@@ -513,7 +513,7 @@ bool MoveAlgo::accessDamFly(float dx, float dz, char hitType) {
   auto  vec = Tempest::Vec3(dx,len*0.5f,dz);
   vec = Tempest::Vec3::normalize(vec);
 
-  fallSpeed = vec*0.75f;
+  fallSpeed = vec*speed;
   fallCount = 0;
   setState(InAir);
   return true;

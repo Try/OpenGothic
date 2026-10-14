@@ -88,6 +88,14 @@ class Pose final {
       };
     ComboTiming        comboTiming(uint64_t tickCount) const;
 
+    // gothic-diablo: play attack animations faster: moves them ahead by 'ms'
+    void               warpAttack(uint64_t ms, uint64_t tickCount);
+    bool               warpSeq(const Animation::Sequence* sq, uint64_t ms, uint64_t tickCount); // gothic-diablo: false = not playing
+    // gothic-diablo: keep a parade animation in its defence window (block held)
+    void               holdParade(uint64_t tickCount);
+    // gothic-diablo: keep an attack animation in its wind-up (charged attack)
+    void               holdAttack(uint64_t tickCount);
+
     float              translateY() const { return trY; }
     auto               rootNode() const -> const Tempest::Matrix4x4;
     auto               rootBone() const -> const Tempest::Matrix4x4;
@@ -116,6 +124,11 @@ class Pose final {
       uint64_t                   sBlend   = 0;
       uint8_t                    comb     = 0;
       BodyState                  bs       = BS_NONE;
+      // gothic-diablo: how far sAnim was moved back (faster attacks) since the last event / sfx pass,
+      // so that no frame event (hit!) is skipped
+      mutable int64_t            warpEv   = 0;
+      mutable int64_t            warpSfx  = 0;
+      mutable uint64_t           heldTick = 0;     // frozen in this tick (block / charge): no root motion
       };
 
     struct ComboState {

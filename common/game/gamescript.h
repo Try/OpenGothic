@@ -164,6 +164,7 @@ class GameScript final {
     bool isAttack     (const Npc &pl) const;
 
     std::string_view spellCastAnim(Npc& npc, Item&  fn);
+    int32_t          arpgSpellCost(const Item& it);   // gothic-diablo: mana of one cast (or of one invest step), -1 = unknown
     std::string_view messageFromSvm(std::string_view id,int voice) const;
     std::string_view messageByName (std::string_view id) const;
     uint32_t         messageTime   (std::string_view id) const;

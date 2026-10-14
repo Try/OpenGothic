@@ -1,4 +1,5 @@
 #include "renderer.h"
+#include "inventoryrenderer.h"
 
 #include <Tempest/Color>
 #include <Tempest/Fence>
@@ -544,7 +545,7 @@ void Renderer::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldVi
 
 void Renderer::draw(Attachment& result, Encoder<CommandBuffer>& cmd, uint8_t fId,
                     VectorImage::Mesh& uiLayer, VectorImage::Mesh& numOverlay,
-                    InventoryMenu& inventory, VideoWidget& video) {
+                    InventoryMenu& inventory, VideoWidget& video, InventoryRenderer* hudItems) {
   auto wview  = Gothic::inst().worldView();
   auto camera = Gothic::inst().camera();
 
@@ -565,6 +566,18 @@ void Renderer::draw(Attachment& result, Encoder<CommandBuffer>& cmd, uint8_t fId
 
     cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}});
     cmd.setDebugMarker("Inventory-counters");
+    numOverlay.draw(cmd);
+    }
+  else if(hudItems!=nullptr) {
+    // gothic-diablo: item models on the skill bar, then the numbers/cooldowns over them
+    if(!hudItems->isEmpty()) {
+      auto& zb = (zbufferUi.isEmpty() ? zbuffer : zbufferUi);
+      cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}},{zb, 1.f, Tempest::Preserve});
+      cmd.setDebugMarker("Hud-items");
+      hudItems->draw(cmd);
+      cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}});
+      }
+    cmd.setDebugMarker("Hud-overlay");
     numOverlay.draw(cmd);
     }
   }
