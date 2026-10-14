@@ -758,7 +758,8 @@ void Camera::tick(uint64_t dt) {
     auto& physic = *world->physic();
 
     if(pl!=nullptr && pl->isSwim()) {
-      inWater = (angles.x < -8.f);
+      // The swimmer stays at the surface while the orbit camera can dip below it at any pitch.
+      inWater = physic.waterRay(origin, 0.f).hasCol;
       }
     else if(pl!=nullptr && (pl->isInAir() || pl->isJump()) && !pl->isDead()) {
       // NOTE: not quite correct
