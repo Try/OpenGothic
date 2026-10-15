@@ -38,6 +38,9 @@ jobs:
           echo "semver=1.0.$N" >> $GITHUB_OUTPUT
 
   linux:
+    # Diathic: na razie tylko Windows. Wlaczenie z powrotem: zmienna repo ALL_PLATFORMS = true
+    # (Settings -> Secrets and variables -> Actions -> Variables) albo usunac ten warunek.
+    if: vars.ALL_PLATFORMS == 'true'
     needs: setup
     runs-on: ubuntu-24.04
     steps:
@@ -75,6 +78,9 @@ jobs:
           path: build/opengothic/Gothic2Notr
 
   linux-deb:
+    # Diathic: na razie tylko Windows. Wlaczenie z powrotem: zmienna repo ALL_PLATFORMS = true
+    # (Settings -> Secrets and variables -> Actions -> Variables) albo usunac ten warunek.
+    if: vars.ALL_PLATFORMS == 'true'
     needs: setup
     runs-on: ubuntu-24.04
     steps:
@@ -115,6 +121,9 @@ jobs:
           path: opengothic_${{ needs.setup.outputs.semver }}_linux_x64.deb
 
   android-arm64:
+    # Diathic: na razie tylko Windows. Wlaczenie z powrotem: zmienna repo ALL_PLATFORMS = true
+    # (Settings -> Secrets and variables -> Actions -> Variables) albo usunac ten warunek.
+    if: vars.ALL_PLATFORMS == 'true'
     needs: setup
     runs-on: ubuntu-24.04
     steps:
@@ -231,6 +240,9 @@ jobs:
           compression-level: 0
 
   macos-arm64:
+    # Diathic: na razie tylko Windows. Wlaczenie z powrotem: zmienna repo ALL_PLATFORMS = true
+    # (Settings -> Secrets and variables -> Actions -> Variables) albo usunac ten warunek.
+    if: vars.ALL_PLATFORMS == 'true'
     needs: setup
     runs-on: macos-15
     steps:
@@ -262,6 +274,9 @@ jobs:
             build/opengothic/*
 
   macos-x64:
+    # Diathic: na razie tylko Windows. Wlaczenie z powrotem: zmienna repo ALL_PLATFORMS = true
+    # (Settings -> Secrets and variables -> Actions -> Variables) albo usunac ten warunek.
+    if: vars.ALL_PLATFORMS == 'true'
     needs: setup
     runs-on: macos-15-intel
     steps:
