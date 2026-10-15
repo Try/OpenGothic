@@ -18,7 +18,7 @@ class InventoryRenderer;
 class InventoryMenu;
 class GthFont;
 
-// gothic-diablo: the ARPG window: equipment, character, skill trees.
+// gothic-diablo: the ARPG window: equipment, character, skill trees, the diary (Diathic).
 // The hero himself is not drawn here: while it is open the camera stands in front of him (Camera::setArpgPortrait),
 // so he is seen in the middle of the screen between the two pages, with his idle animation and his real equipment.
 // Drawn as an open book of the game (BOOK_BROWN_L/R pages, the book fonts, LETTERS sheets, INV_SLOT frames)
@@ -34,6 +34,7 @@ class ArpgMenu final {
       P_Character,
       P_Skills,
       P_Trade,     // trade, a chest, looting: opened and closed with Gothic's menu (InventoryMenu keeps the state)
+      P_Log,       // Diathic: the diary (quests and notes of Gothic's quest log) as a book
       };
 
     bool   isOpen()  const { return page!=P_Closed; }
@@ -54,6 +55,7 @@ class ArpgMenu final {
     void   mouseMove (const Tempest::Point& pos);
     void   mouseWheel(int delta);
     bool   spellKey  (uint8_t slot, Npc& pl);   // 3..10: the rune / scroll under the cursor goes to that key
+    void   logKey    (int dy, bool page);         // the diary: up / down the list (page: Page Up / Down = the text)
     void   setInventoryMenu(InventoryMenu* m) { invMenu = m; }
 
     // UTF-8 text for Gothic's fonts (they draw the bytes of the game's code page; Polish game = Windows-1250)
@@ -71,6 +73,8 @@ class ArpgMenu final {
       H_Other,    // trade / chest / looting: a thing on the other's page
       H_CatL,     // trade / chest / looting: kind of things on the other's page
       H_TakeAll,  // chest / looting: take everything
+      H_LogCat,   // the diary: kind of entries (current, done, failed, notes)
+      H_Quest,    // the diary: a quest (id = index in the quest log)
       };
     struct Hit {
       Tempest::Rect r;
@@ -92,6 +96,13 @@ class ArpgMenu final {
     int                  scrollL   = 0;
     int                  maxScrollL = 0;
     InventoryMenu*       invMenu   = nullptr;
+    // the diary
+    int                  logCat     = 0;   // 0 current, 1 done, 2 failed / obsolete, 3 notes
+    int                  logSel     = -1;  // quest index in the quest log
+    int                  logScrollL = 0, logMaxScrollL = 0;  // the list: rows
+    int                  logScrollR = 0, logMaxScrollR = 0;  // the text: lines
+    int                  logRowsL   = 1;   // rows of the list that fit (from the last drawing)
+    std::vector<int>     logList;          // the quests of the kind shown, newest first (from the last drawing)
     float                k      = 1;   // size of the window: 1 = 1080 lines
     Tempest::Point       mouse;
     std::vector<Hit>     hits;
@@ -142,6 +153,7 @@ class ArpgMenu final {
     void   paintInfo (Tempest::Painter& p, const Fonts& f, const Tempest::Rect& r, InventoryRenderer& items, const Item* it,
                       std::string_view extra = {}, std::string_view help = {}) const;
     void   paintTrade(Tempest::Painter& p, const Fonts& f, const Tempest::Rect& left, const Tempest::Rect& right, InventoryRenderer& items, Npc& pl);
+    void   paintLog  (Tempest::Painter& p, const Fonts& f, const Tempest::Rect& left, const Tempest::Rect& right);
     void   tradeMove (bool fromOther, size_t cls, int32_t count, bool equipped, Npc& pl);
     void   tradeDrop (const Tempest::Point& pos, Npc& pl);
   };

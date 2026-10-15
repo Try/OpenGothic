@@ -806,9 +806,21 @@ void MainWindow::keyDownEvent(KeyEvent &event) {
     // gothic-diablo: the ARPG window is open: I / C / T switch or close it, Esc closes it,
     // 3-0 put the rune / scroll under the cursor on that key, the camera turn keys still turn the camera
     event.accept();
-    if(event.key==Event::K_ESCAPE || ak==ArpgKeys::Equipment || ak==ArpgKeys::Character || ak==ArpgKeys::Skills) {
+    if(event.key==Event::K_ESCAPE || ak==ArpgKeys::Equipment || ak==ArpgKeys::Character || ak==ArpgKeys::Skills ||
+       ak==ArpgKeys::Log) {
       arpgMenuKey = event.key;
       return;
+      }
+    if(arpgMenu.current()==ArpgMenu::P_Log) {
+      // Diathic: the diary - arrows: the list, Page Up / Down: the text
+      if(event.key==Event::K_Up || event.key==Event::K_Down) {
+        arpgMenu.logKey(event.key==Event::K_Up ? -1 : 1, false);
+        return;
+        }
+      if(event.key==Event::K_PageUp || event.key==Event::K_PageDown) {
+        arpgMenu.logKey(event.key==Event::K_PageUp ? -1 : 1, true);
+        return;
+        }
       }
     if((event.key>=Event::K_3 && event.key<=Event::K_9) || event.key==Event::K_0) {
       if(auto pl = Gothic::inst().player())
@@ -854,7 +866,7 @@ void MainWindow::keyDownEvent(KeyEvent &event) {
       return;
       }
     if(ak==ArpgKeys::Log && isArpgMouse()) {
-      arpgLogDown = true; // the diary (Gothic's MENU_LOG) on key-up
+      arpgLogDown = true; // the diary (Diathic: a page of the ARPG book) on key-up
       event.accept();
       return;
       }
@@ -927,10 +939,9 @@ void MainWindow::keyUpEvent(KeyEvent &event) {
     }
   if(ak==ArpgKeys::Log && arpgLogDown) {
     arpgLogDown = false;
-    if(!dialogs.isActive() && !inventory.isActive()) {
-      rootMenu.setMenu("MENU_LOG", KeyCodec::Log);
-      if(auto pl = Gothic::inst().player())
-        rootMenu.setPlayer(*pl);
+    if(!dialogs.isActive() && !inventory.isActive() && Gothic::inst().player()!=nullptr) {
+      arpgMenu.toggle(ArpgMenu::P_Log); // Diathic: the diary as a page of the ARPG book (instead of Gothic's MENU_LOG)
+      player.arpgStop();
       clearInput();
       }
     return;
@@ -954,6 +965,8 @@ void MainWindow::keyUpEvent(KeyEvent &event) {
       arpgMenu.toggle(ArpgMenu::P_Character);
     else if(ak==ArpgKeys::Skills)
       arpgMenu.toggle(ArpgMenu::P_Skills);
+    else if(ak==ArpgKeys::Log)
+      arpgMenu.toggle(ArpgMenu::P_Log);
     if(arpgMenu.isOpen()) {
       player.arpgStop();
       clearInput();
@@ -997,6 +1010,15 @@ void MainWindow::keyUpEvent(KeyEvent &event) {
   if(ak>=0 && act!=KeyCodec::Escape) {
     // Diathic: a key of the ARPG mode does not also do what Gothic binds to it (status, log, inventory...)
     player.onKeyReleased(act, mapping);
+    return;
+    }
+
+  if(act==KeyCodec::Log && Camera::isArpgEnabled() && Gothic::inst().player()!=nullptr &&
+     !dialogs.isActive() && !inventory.isActive()) {
+    // Diathic: Gothic's own key of the diary opens our diary too
+    arpgMenu.toggle(ArpgMenu::P_Log);
+    player.arpgStop();
+    clearInput();
     return;
     }
 

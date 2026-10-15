@@ -19,6 +19,7 @@
 #include "world/world.h"
 #include "game/gamescript.h"
 #include "game/gamesession.h"
+#include "game/questlog.h"
 #include "utils/gthfont.h"
 #include "resources.h"
 #include "gothic.h"
@@ -286,6 +287,14 @@ const ArpgMenu::Hit* ArpgMenu::hitAt(const Point& pos) const {
   }
 
 void ArpgMenu::mouseWheel(int delta) {
+  if(page==P_Log) {
+    // the diary: over the list - the list, elsewhere the text
+    const int d = delta>0 ? -1 : 1;
+    if(pageL.contains(mouse))
+      logScrollL = std::clamp(logScrollL+d,   0, logMaxScrollL); else
+      logScrollR = std::clamp(logScrollR+3*d, 0, logMaxScrollR);
+    return;
+    }
   if(page==P_Trade && pageL.contains(mouse)) {
     scrollL = std::clamp(scrollL + (delta>0 ? -1 : 1), 0, maxScrollL);
     return;
@@ -358,6 +367,22 @@ bool ArpgMenu::mouseDown(const Point& pos, bool right, bool shift, Npc& pl) {
     case H_CatL:
       catL    = h->id;
       scrollL = 0;
+      return true;
+    case H_LogCat:
+      if(logCat!=h->id) {
+        logCat     = h->id;
+        logSel     = -1;
+        logScrollL = 0;
+        logScrollR = 0;
+        Gothic::inst().emitGlobalSound(Gothic::inst().loadSoundFx("MENU_BROWSE"));
+        }
+      return true;
+    case H_Quest:
+      if(logSel!=h->id) {
+        logSel     = h->id;
+        logScrollR = 0;
+        Gothic::inst().emitGlobalSound(Gothic::inst().loadSoundFx("MENU_BROWSE"));
+        }
       return true;
     case H_TakeAll: {
       // everything from the chest / the body
@@ -579,6 +604,31 @@ bool ArpgMenu::spellKey(uint8_t slot, Npc& pl) {
   return false;
   }
 
+void ArpgMenu::logKey(int dy, bool pageKey) {
+  if(page!=P_Log)
+    return;
+  if(pageKey) {
+    logScrollR = std::clamp(logScrollR+dy*std::max(1, logRowsL), 0, logMaxScrollR);
+    return;
+    }
+  if(logList.empty())
+    return;
+  int at = 0;
+  for(size_t i=0; i<logList.size(); ++i)
+    if(logList[i]==logSel)
+      at = int(i);
+  const int nx = std::clamp(at+dy, 0, int(logList.size())-1);
+  if(logList[size_t(nx)]!=logSel) {
+    logSel     = logList[size_t(nx)];
+    logScrollR = 0;
+    Gothic::inst().emitGlobalSound(Gothic::inst().loadSoundFx("MENU_BROWSE"));
+    }
+  if(nx<logScrollL)
+    logScrollL = nx;
+  if(nx>=logScrollL+logRowsL)
+    logScrollL = nx-logRowsL+1;
+  }
+
 // ---------------------------------------------------------------------------------------------------------------
 // drawing helpers: Gothic's own textures
 
@@ -641,23 +691,25 @@ int ArpgMenu::drawSection(Painter& p, const Fonts& f, const Rect& c, int y, std:
 
 void ArpgMenu::drawTabs(Painter& p, int w, const Fonts& f) {
   // Diathic: the keys from ArpgKeys ("Sterowanie" in the main menu)
-  const std::string names[3] = {
+  const std::string names[4] = {
     "Ekwipunek ("   + ArpgKeys::keyName(ArpgKeys::key(ArpgKeys::Equipment)) + ")",
     "Postać ("      + ArpgKeys::keyName(ArpgKeys::key(ArpgKeys::Character)) + ")",
-    "Umiejętności (" + ArpgKeys::keyName(ArpgKeys::key(ArpgKeys::Skills))   + ")"};
+    "Umiejętności (" + ArpgKeys::keyName(ArpgKeys::key(ArpgKeys::Skills))   + ")",
+    "Dziennik ("    + ArpgKeys::keyName(ArpgKeys::key(ArpgKeys::Log))       + ")"};
+  const Page ids[4] = {P_Equip, P_Character, P_Skills, P_Log};
   const int gap = int(10*k);
   const int tw  = int(220*k);
   const int th  = int(46*k);
   const int y   = int(14*k);
-  const int x0  = (w-(3*tw+2*gap))/2;
-  for(int i=0; i<3; ++i) {
+  const int x0  = (w-(4*tw+3*gap))/2;
+  for(int i=0; i<4; ++i) {
     const Rect r(x0+i*(tw+gap), y, tw, th);
-    const bool on = (page==P_Equip+i);
+    const bool on = (page==ids[i]);
     const bool hv = r.contains(mouse);
     letter(p, r, (on || hv) ? 1.f : 0.78f);
     auto& fn = on ? *f.red : *f.ink;
     textCenter(p, fn, r.x+r.w/2, r.y+(r.h-fn.pixelSize())/2, gtxt(names[i]));
-    Hit h; h.r = r; h.kind = H_Tab; h.id = P_Equip+i;
+    Hit h; h.r = r; h.kind = H_Tab; h.id = ids[i];
     hits.push_back(h);
     }
   }
@@ -689,8 +741,8 @@ void ArpgMenu::paint(Painter& p, int w, int h, float /*scale*/, InventoryRendere
   const int top = int(14*k)+int(46*k)+int(10*k);
   const int ph  = h-top-M;
   Rect left, right;
-  if(page==P_Skills) {
-    // one open book in the middle: the tree needs room
+  if(page==P_Skills || page==P_Log) {
+    // one open book in the middle: the tree (the diary's text) needs room
     const int pw = std::min(int(float(ph)*0.68f), (w-2*M)/2);
     left  = Rect(w/2-pw, top, pw, ph);
     right = Rect(w/2,    top, pw, ph);
@@ -714,9 +766,10 @@ void ArpgMenu::paint(Painter& p, int w, int h, float /*scale*/, InventoryRendere
     case P_Character: paintStats(p, f, cl, cr, pl);        break;
     case P_Skills:    paintTrees(p, f, cl, cr, items, pl); break;
     case P_Trade:     paintTrade(p, f, cl, cr, items, pl); break;
+    case P_Log:       paintLog  (p, f, cl, cr);            break;
     }
 
-  if(page!=P_Skills)
+  if(page!=P_Skills && page!=P_Log)
     drawHint(p, w, h, f);
   if(page==P_Equip || page==P_Trade)
     paintDrag(p, f, items, pl);
@@ -1475,6 +1528,191 @@ void ArpgMenu::paintTrees(Painter& p, const Fonts& f, const Rect& cl, const Rect
     wrap(p, *f.small, nx, ny, nw, gtxt("Najedź na węzeł drzewka, żeby przeczytać jego opis."));
   text(p, *f.small, nx, nr.y+nr.h-pad-f.small->pixelSize(),
        gtxt(t.weapons ? "Biegłość działa od razu (procent Gothica)." : "Punkty działają od razu w walce."));
+  }
+
+// ---------------------------------------------------------------------------------------------------------------
+// Diathic: the diary - Gothic's quest log as a book: the kinds and the quests on the left page, the chosen one on the
+// right (newest entry first)
+
+static int logKindOf(const QuestLog::Quest& q) {
+  if(q.section==QuestLog::Section::Note)
+    return 3;
+  switch(q.status) {
+    case QuestLog::Status::Running: return 0;
+    case QuestLog::Status::Success: return 1;
+    default:                        return 2; // failed, obsolete
+    }
+  }
+
+// a thin bar at the side: where in a long list / text we are
+static void scrollBar(Painter& p, const Rect& r, int pos, int max, int visible) {
+  if(max<=0 || r.h<=0)
+    return;
+  fill(p, r.x, r.y, r.w, r.h, RuleC);
+  const int total = max+visible;
+  const int th    = std::max(r.w*3, r.h*visible/std::max(1,total));
+  const int ty    = r.y + (r.h-th)*std::clamp(pos,0,max)/max;
+  fill(p, r.x, ty, r.w, th, LineC);
+  }
+
+void ArpgMenu::paintLog(Painter& p, const Fonts& f, const Rect& cl, const Rect& cr) {
+  const QuestLog* ql = Gothic::inst().questLog();
+  static const char* kinds[4] = {"Bieżące", "Wykonane", "Nieudane", "Notatki"};
+
+  // the quests of the kind shown, newest first; how many of every kind
+  int count[4] = {};
+  logList.clear();
+  if(ql!=nullptr) {
+    for(size_t i=ql->questCount(); i>0; --i) {
+      const int kd = logKindOf(ql->quest(i-1));
+      count[kd]++;
+      if(kd==logCat)
+        logList.push_back(int(i-1));
+      }
+    }
+  if(std::find(logList.begin(), logList.end(), logSel)==logList.end()) {
+    logSel     = logList.empty() ? -1 : logList[0];
+    logScrollR = 0;
+    }
+  const int sbW = std::max(3, int(5*k));
+
+  // ---- left page: the date, the kinds, the list ----
+  int y = cl.y;
+  text(p, *f.title, cl.x, y, gtxt("Dziennik"));
+  y += f.title->pixelSize()+int(2*k);
+  if(auto w = Gothic::inst().world()) {
+    const auto t = w->time();
+    char buf[64] = {};
+    std::snprintf(buf, sizeof(buf), "Dzień %d, godzina %d:%02d", int(t.day()), int(t.hour()), int(t.minute()));
+    text(p, *f.body, cl.x, y, gtxt(buf));
+    y += f.body->pixelSize()+int(8*k);
+    }
+  drawRule(p, cl.x, y, cl.w);
+  y += int(10*k);
+  {
+    const int cw = cl.w/2, ch = f.red->pixelSize()+int(16*k);
+    for(int i=0; i<4; ++i) {
+      const Rect r(cl.x + (i%2)*cw, y + (i/2)*ch, cw-int(6*k), ch-int(4*k));
+      const bool on = (logCat==i), hv = r.contains(mouse);
+      if(on)
+        fill(p, r.x, r.y, r.w, r.h, Color(0.55f, 0.09f, 0.05f, 0.10f));
+      else if(hv)
+        fill(p, r.x, r.y, r.w, r.h, FaintC);
+      if(on)
+        fill(p, r.x, r.y+r.h-std::max(1,int(2*k)), r.w, std::max(1,int(2*k)), LineRedC);
+      char buf[64] = {};
+      std::snprintf(buf, sizeof(buf), "%s (%d)", kinds[i], count[i]);
+      auto& fn = on ? *f.red : *f.ink;
+      text(p, fn, r.x+int(8*k), r.y+(r.h-fn.pixelSize())/2, gtxt(buf));
+      Hit h; h.r = r; h.kind = H_LogCat; h.id = i;
+      hits.push_back(h);
+      }
+    y += 2*ch+int(6*k);
+  }
+  drawRule(p, cl.x, y, cl.w);
+  y += int(8*k);
+
+  const int rowH = f.body->pixelSize()+int(14*k);
+  const int rows = std::max(1, (cl.y+cl.h-y)/rowH);
+  logRowsL      = rows;
+  logMaxScrollL = std::max(0, int(logList.size())-rows);
+  logScrollL    = std::clamp(logScrollL, 0, logMaxScrollL);
+  if(logList.empty())
+    text(p, *f.small, cl.x, y+int(6*k), gtxt(logCat==3 ? "Nie ma jeszcze notatek." : "Nie ma tu jeszcze zadań."));
+  const int lw = cl.w-sbW-int(8*k);
+  for(int i=0; i<rows && logScrollL+i<int(logList.size()); ++i) {
+    const int   qi = logList[size_t(logScrollL+i)];
+    const auto& q  = ql->quest(size_t(qi));
+    const Rect  r(cl.x, y+i*rowH, lw, rowH);
+    const bool  on = (qi==logSel), hv = r.contains(mouse);
+    if(on)
+      fill(p, r.x, r.y, r.w, r.h, Color(0.55f, 0.09f, 0.05f, 0.10f));
+    else if(hv)
+      fill(p, r.x, r.y, r.w, r.h, FaintC);
+    if(on)
+      fill(p, r.x, r.y+int(3*k), std::max(2,int(3*k)), r.h-int(6*k), LineRedC);
+    auto& fn = on ? *f.red : *f.body;
+    // a name too long for the row: cut, with "..."
+    std::string name = q.name;
+    const int   maxW = r.w-int(18*k);
+    if(fn.textSize(name).w>maxW) {
+      while(!name.empty() && fn.textSize(name+"...").w>maxW)
+        name.pop_back();
+      name += "...";
+      }
+    text(p, fn, r.x+int(12*k), r.y+(r.h-fn.pixelSize())/2, name);
+    Hit h; h.r = r; h.kind = H_Quest; h.id = qi;
+    hits.push_back(h);
+    }
+  scrollBar(p, Rect(cl.x+cl.w-sbW, y, sbW, rows*rowH), logScrollL, logMaxScrollL, rows);
+
+  // ---- right page: the chosen quest ----
+  int ry = cr.y;
+  if(logSel<0 || ql==nullptr || size_t(logSel)>=ql->questCount()) {
+    logMaxScrollR = 0;
+    wrap(p, *f.small, cr.x, ry, cr.w, gtxt("Wybierz zadanie z listy po lewej."));
+    return;
+    }
+  const auto& q = ql->quest(size_t(logSel));
+  ry += wrap(p, *f.title, cr.x, ry, cr.w, q.name)+int(4*k);
+  {
+    const char* st = "Notatka";
+    if(q.section!=QuestLog::Section::Note) {
+      switch(q.status) {
+        case QuestLog::Status::Running:  st = "Zadanie w toku"; break;
+        case QuestLog::Status::Success:  st = "Wykonane";       break;
+        case QuestLog::Status::Failed:   st = "Nieudane";       break;
+        case QuestLog::Status::Obsolete: st = "Nieaktualne";    break;
+        }
+      }
+    char buf[96] = {};
+    std::snprintf(buf, sizeof(buf), "%s  -  wpisów: %d (najnowszy u góry)", st, int(q.entry.size()));
+    text(p, *f.redS, cr.x, ry, gtxt(buf));
+    ry += f.redS->pixelSize()+int(8*k);
+  }
+  drawRule(p, cr.x, ry, cr.w);
+  ry += int(12*k);
+
+  // the entries, newest first, a short line between them; scrolled by lines
+  const int lineH = f.body->pixelSize();
+  const int tw    = cr.w-sbW-int(12*k);
+  const int vis   = std::max(1, (cr.y+cr.h-ry)/lineH);
+  const size_t n  = q.entry.size();
+  std::vector<int> lines(n);
+  int total = 0;
+  for(size_t e=0; e<n; ++e) {
+    lines[e] = std::max(1, int(f.body->lineCount(tw, q.entry[n-1-e])));
+    total   += lines[e] + (e+1<n ? 1 : 0);
+    }
+  logMaxScrollR = std::max(0, total-vis);
+  logScrollR    = std::clamp(logScrollR, 0, logMaxScrollR);
+
+  int       skip   = logScrollR;
+  int       yy     = ry;
+  const int bottom = ry+vis*lineH;
+  for(size_t e=0; e<n && yy+lineH<=bottom; ++e) {
+    const auto& txt = q.entry[n-1-e];
+    if(skip>=lines[e]) {
+      skip -= lines[e];
+      } else {
+      const int show = std::min(lines[e]-skip, (bottom-yy)/lineH);
+      if(show>0) {
+        f.body->drawText(p, cr.x, yy+lineH, tw, show*lineH, txt, AlignLeft, skip);
+        yy += show*lineH;
+        }
+      skip = 0;
+      }
+    if(e+1<n) {
+      if(skip>0) {
+        --skip;
+        } else {
+        if(yy+lineH<=bottom)
+          fill(p, cr.x+tw/3, yy+lineH/2, tw/3, std::max(1,int(2*k)), RuleC);
+        yy += lineH;
+        }
+      }
+    }
+  scrollBar(p, Rect(cr.x+cr.w-sbW, ry, sbW, vis*lineH), logScrollR, logMaxScrollR, vis);
   }
 
 void ArpgMenu::paintOverlay(Painter& p, float /*scale*/, Npc&) {

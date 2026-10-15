@@ -5194,6 +5194,10 @@ SensesBit Npc::canSenseNpc(const Npc &oth, bool freeLos, float extRange) const {
   // NOTE3: seem npc can't hear player in general case, and hearing relevant only for sendImmediatePerc cases
   const bool isNoisy = false;
   const auto mid     = oth.centerPosition();
+  if(Camera::isArpgEnabled() && oth.isPlayer() && isMonster()) {
+    // Diathic: from above the hero sees far around; creatures notice him at 80% of their range
+    return canSenseNpc(mid,freeLos,isNoisy,extRange-ArpgMonsterSenseCut*float(hnpc->senses_range));
+    }
   return canSenseNpc(mid,freeLos,isNoisy,extRange);
   }
 
