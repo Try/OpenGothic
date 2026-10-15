@@ -88,6 +88,8 @@ class Gothic final {
     void         setupGlobalScripts();
 
     auto         loadingBanner() const -> const Tempest::Texture2d*;
+    // Diathic: the name of the loading picture, e.g. "LOADING_OLDWORLD.TGA" (where the hero goes; "LOADING.TGA" = new game / save)
+    auto         loadingBannerName() const -> std::string_view { return loadName; }
     int          loadingProgress() const;
     void         setLoadingProgress(int v);
 
@@ -232,6 +234,7 @@ class Gothic final {
     std::unique_ptr<IniFile>                systemPackIniFile;
 
     Tempest::Texture2d                      loadTex;
+    std::string                             loadName;
     Tempest::Texture2d                      saveTex;
     std::atomic_int                         loadProgress{0};
     std::thread                             loaderTh;

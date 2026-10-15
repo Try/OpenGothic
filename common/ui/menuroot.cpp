@@ -132,11 +132,8 @@ void MenuRoot::mouseDownEvent(MouseEvent& event) {
       if(!current->modernBack())
         popMenu();
       }
-    else if(current->isModern()) {
-      current->modernMouse(event.pos(), true); // Diathic: a click acts only on an item
-      }
     else {
-      current->onKeyboard(KeyCodec::ActionGeneric);
+      current->modernMouse(event.pos(), true); // Diathic: a click acts only on an item
       }
     } else {
     event.ignore();
@@ -147,8 +144,8 @@ void MenuRoot::mouseUpEvent(MouseEvent&) {
   }
 
 void MenuRoot::mouseMoveEvent(MouseEvent& event) {
-  // Diathic: the modern main menu selects what the mouse is over; the move goes on (the cursor of the game)
-  if(current!=nullptr && current->isModern())
+  // Diathic: the menu selects what the mouse is over; the move goes on (the cursor of the game)
+  if(current!=nullptr)
     current->modernMouse(event.pos(), false);
   event.ignore();
   }

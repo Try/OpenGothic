@@ -30,6 +30,111 @@ using namespace Tempest;
 
 static const float scriptDiv=8192.0f;
 
+// Diathic: the menus in the new style - dark panels with a golden frame, parchment text, gold for the selected item
+namespace {
+  const Color SkinGold    (0.70f, 0.54f, 0.26f, 0.95f);
+  const Color SkinGoldDim (0.42f, 0.32f, 0.16f, 0.85f);
+  const Color SkinText    (0.90f, 0.85f, 0.76f, 1.f);
+  const Color SkinTextSel (1.00f, 0.82f, 0.45f, 1.f);
+  const Color SkinTextHead(0.96f, 0.72f, 0.36f, 1.f);
+  const Color SkinTextOff (0.46f, 0.42f, 0.38f, 1.f);
+  const Color SkinTextInfo(0.78f, 0.70f, 0.58f, 1.f);
+
+  // the UI pipeline culls one winding: both are given
+  void skinTri(Painter& p, float ax, float ay, float bx, float by, float cx, float cy) {
+    p.drawTriangle(ax,ay,0,0, bx,by,0,0, cx,cy,0,0);
+    p.drawTriangle(ax,ay,0,0, cx,cy,0,0, bx,by,0,0);
+    }
+
+  void skinFrame(Painter& p, const Rect& r, int bw, const Color& cl) {
+    p.setBrush(Brush(cl, Painter::Alpha));
+    p.drawRect(r.x,          r.y,          r.w, bw);
+    p.drawRect(r.x,          r.y+r.h-bw,   r.w, bw);
+    p.drawRect(r.x,          r.y+bw,       bw,  r.h-2*bw);
+    p.drawRect(r.x+r.w-bw,   r.y+bw,       bw,  r.h-2*bw);
+    }
+
+  void skinDiamond(Painter& p, float cx, float cy, float s, const Color& cl) {
+    p.setBrush(Brush(cl, Painter::Alpha));
+    skinTri(p, cx, cy-s, cx+s, cy, cx, cy+s);
+    skinTri(p, cx, cy-s, cx, cy+s, cx-s, cy);
+    }
+
+  void skinPanel(Painter& p, const Rect& r, float s, float alpha) {
+    const int steps = 16;
+    for(int i=0; i<steps; ++i) {
+      const float t = float(i)/float(steps);
+      p.setBrush(Brush(Color(0.075f-0.045f*t, 0.050f-0.030f*t, 0.035f-0.020f*t, alpha), Painter::Alpha));
+      p.drawRect(r.x, r.y + r.h*i/steps, r.w, r.h/steps+1);
+      }
+    // a warm glow under the top edge
+    const int gh = std::max(8, int(46.f*s));
+    for(int i=0; i<8; ++i) {
+      p.setBrush(Brush(Color(0.9f, 0.42f, 0.12f, 0.05f*(1.f-float(i)/8.f)), Painter::Add));
+      p.drawRect(r.x, r.y + gh*i/8, r.w, gh/8+1);
+      }
+    const int in = std::max(3, int(6.f*s));
+    skinFrame(p, r, std::max(1, int(2.f*s)), SkinGold);
+    skinFrame(p, Rect(r.x+in, r.y+in, r.w-2*in, r.h-2*in), 1, SkinGoldDim);
+    const float d = std::max(3.f, 5.f*s);
+    skinDiamond(p, float(r.x+in),     float(r.y+in),     d, SkinGold);
+    skinDiamond(p, float(r.x+r.w-in), float(r.y+in),     d, SkinGold);
+    skinDiamond(p, float(r.x+in),     float(r.y+r.h-in), d, SkinGold);
+    skinDiamond(p, float(r.x+r.w-in), float(r.y+r.h-in), d, SkinGold);
+    }
+
+  void skinBox(Painter& p, const Rect& r, float s) {
+    p.setBrush(Brush(Color(0.f, 0.f, 0.f, 0.55f), Painter::Alpha));
+    p.drawRect(r.x, r.y, r.w, r.h);
+    skinFrame(p, r, std::max(1, int(1.f*s)), SkinGoldDim);
+    }
+
+  // the selected line: a glowing band (from the left edge, or from the middle for centered items)
+  void skinBand(Painter& p, const Rect& r, float s, bool centered) {
+    const uint64_t now   = Application::tickCount();
+    const float    pulse = 0.85f + 0.15f*std::sin(float(now%100000)*0.004f);
+    const int      steps = 20;
+    const int      pad   = std::max(1, int(2.f*s));
+    if(centered) {
+      const int cx = r.x + r.w/2, half = r.w/2;
+      for(int i=0; i<steps; ++i) {
+        const float t = float(i)/float(steps);
+        const int   x = int(float(half)*t), sw = half/steps+1;
+        p.setBrush(Brush(Color(0.75f,0.22f,0.06f, 0.40f*(1.f-t)*pulse), Painter::Alpha));
+        p.drawRect(cx+x,    r.y+pad, sw, r.h-2*pad);
+        p.drawRect(cx-x-sw, r.y+pad, sw, r.h-2*pad);
+        }
+      const int lw = r.w/3;
+      p.setBrush(Brush(Color(1.f,0.72f,0.30f,0.8f*pulse), Painter::Alpha));
+      p.drawRect(cx-lw/2, r.y+r.h-pad-1, lw, 1);
+      } else {
+      for(int i=0; i<steps; ++i) {
+        const float t = float(i)/float(steps);
+        p.setBrush(Brush(Color(0.75f,0.22f,0.06f, 0.42f*(1.f-t)*pulse), Painter::Alpha));
+        p.drawRect(r.x+int(float(r.w)*t), r.y+pad, r.w/steps+1, r.h-2*pad);
+        }
+      p.setBrush(Brush(Color(1.f,0.72f,0.30f,1.f), Painter::Alpha));
+      p.drawRect(r.x, r.y+pad, std::max(2, int(3.f*s)), r.h-2*pad);
+      }
+    }
+
+  void skinArrow(Painter& p, int cx, int cy, float s, bool upward) {
+    const float a = std::max(4.f, 7.f*s);
+    p.setBrush(Brush(SkinTextSel, Painter::Alpha));
+    if(upward)
+      skinTri(p, float(cx), float(cy)-a*0.6f, float(cx)+a, float(cy)+a*0.4f, float(cx)-a, float(cy)+a*0.4f); else
+      skinTri(p, float(cx), float(cy)+a*0.6f, float(cx)-a, float(cy)-a*0.4f, float(cx)+a, float(cy)-a*0.4f);
+    }
+
+  bool skinIsHeadFont(std::string_view font) {
+    // the big Gothic font (font_old_20_*) on a not selectable item: a headline
+    for(size_t i=0; i+1<font.size(); ++i)
+      if(font[i]=='2' && font[i+1]=='0')
+        return true;
+    return false;
+    }
+  }
+
 struct GameMenu::ListContentDialog : Dialog {
   ListContentDialog(Item& textView):textView(textView) {
     setFocusPolicy(ClickFocus);
@@ -88,10 +193,30 @@ struct GameMenu::ListViewDialog : Dialog {
 
   void mouseDownEvent(MouseEvent& e) override {
     if(e.button==Event::ButtonLeft) {
+      hover(e.pos());
       showQuest();
       }
     if(e.button==Event::ButtonRight) {
       close();
+      }
+    }
+
+  void mouseMoveEvent(MouseEvent& e) override {
+    hover(e.pos());
+    }
+
+  // Diathic: the mouse selects the quest under it (rows from the last drawing of the list)
+  void hover(const Point& at) {
+    const Point pos = at - Point(owner.x(), owner.y());
+    for(auto& r:owner.questRows) {
+      if(pos.x<r.second.x || pos.y<r.second.y || pos.x>=r.second.x+r.second.w || pos.y>=r.second.y+r.second.h)
+        continue;
+      if(list.value!=r.first) {
+        list.value = r.first;
+        Gothic::inst().emitGlobalSound(Gothic::inst().loadSoundFx("MENU_BROWSE"));
+        owner.update();
+        }
+      return;
       }
     }
 
@@ -396,12 +521,14 @@ void GameMenu::paintEvent(PaintEvent &e) {
     return;
     }
 
-  if(back) {
-    p.setBrush(*back);
-    p.drawRect(0,0,w(),h(),
-               0,0,back->w(),back->h());
-    }
+  // Diathic: instead of Gothic's picture behind the menu, the game (or our picture) darker and a dark panel
+  p.setBrush(Brush(Color(0.f, 0.f, 0.f, Gothic::inst().isInGame() ? 0.55f : 0.35f), Painter::Alpha));
+  p.drawRect(-x(), -y(), owner.w(), owner.h());
+  skinPanel(p, Rect(0,0,w(),h()), scale, 0.90f);
+  (void)back;
 
+  for(auto& hItem:hItems)
+    hItem.modernRect = Rect();
   for(auto& hItem:hItems)
     drawItem(p,hItem);
 
@@ -413,7 +540,8 @@ void GameMenu::paintEvent(PaintEvent &e) {
         std::string_view txt   = item->text[1];
         int              tw    = fnt.textSize(txt).w;
 
-        fnt.drawText(p,(w()-tw)/2,h()-int(7*scale),txt);
+        fnt.setColor(SkinTextInfo);
+        fnt.drawText(p,(w()-tw)/2,h()-int(12*scale),txt);
         }
       }
     }
@@ -677,9 +805,89 @@ bool GameMenu::modernBack() {
   return true;
   }
 
+bool GameMenu::skinMouse(const Point& pos, bool click) {
+  auto inside = [&](const Rect& r) { return r.w>0 && pos.x>=r.x && pos.y>=r.y && pos.x<r.x+r.w && pos.y<r.y+r.h; };
+  int  hit      = -1;
+  bool anyRects = false;
+  for(int i=0; i<zenkit::IMenu::item_count; ++i) {
+    auto& it = hItems[i];
+    if(it.handle==nullptr || !isSelectable(it.handle) || !isEnabled(it.handle) || it.modernRect.w<=0)
+      continue;
+    anyRects = true;
+    if(hit<0 && inside(it.modernRect))
+      hit = i;
+    }
+  // a choice or a slider: its label (the selectable item before it) acts for it
+  Item* target = nullptr;
+  for(int i=0; hit<0 && i<zenkit::IMenu::item_count; ++i) {
+    auto& it = hItems[i];
+    if(it.handle==nullptr || !inside(it.modernRect))
+      continue;
+    if(it.handle->type!=zenkit::MenuItemType::CHOICEBOX && it.handle->type!=zenkit::MenuItemType::SLIDER)
+      continue;
+    for(int j=0; j<zenkit::IMenu::item_count; ++j) {
+      auto& l = hItems[j];
+      if(l.handle==nullptr || !isSelectable(l.handle) || !isEnabled(l.handle))
+        continue;
+      if((l.handle->flags & zenkit::MenuItemFlag::EFFECTS) && selectedNextItem(&l)==&it) {
+        hit    = j;
+        target = &it;
+        break;
+        }
+      }
+    }
+  if(hit<0) {
+    if(click && !anyRects) {
+      onKeyboard(KeyCodec::ActionGeneric); // nothing to point at: like Gothic, the selected item
+      return true;
+      }
+    return false;
+    }
+  if(curItem!=uint32_t(hit)) {
+    Gothic::inst().emitGlobalSound(Gothic::inst().loadSoundFx("MENU_BROWSE"));
+    setSelection(hit, 1);
+    if(auto s = selectedItem())
+      updateSavThumb(*s);
+    update();
+    }
+  if(!click)
+    return true;
+
+  auto& lbl = hItems[hit];
+  if(target==nullptr && (lbl.handle->flags & zenkit::MenuItemFlag::EFFECTS)) {
+    auto nx = selectedNextItem(&lbl);
+    if(nx!=nullptr && nx->handle!=nullptr && nx->handle->type==zenkit::MenuItemType::CHOICEBOX)
+      target = nx;
+    }
+  if(target!=nullptr && target->handle->type==zenkit::MenuItemType::SLIDER) {
+    // the value from where the slider was clicked
+    auto& sec = target->handle->on_chg_set_option_section;
+    auto& opt = target->handle->on_chg_set_option;
+    const Rect& r = target->modernRect;
+    if(!sec.empty() && !opt.empty() && r.w>0 && inside(r)) {
+      Gothic::settingsSetF(sec, opt, std::clamp(float(pos.x-r.x)/float(r.w), 0.f, 1.f));
+      Gothic::inst().emitGlobalSound(Gothic::inst().loadSoundFx("MENU_SELECT"));
+      update();
+      }
+    return true;
+    }
+  if(target!=nullptr && target->handle->type==zenkit::MenuItemType::CHOICEBOX) {
+    // the next value, after the last one the first
+    const int cnt = int(strEnumSize(target->handle->text[0]));
+    const int dx  = (target->value+1<cnt) ? 1 : -(std::max(1,cnt)-1);
+    Gothic::inst().emitGlobalSound(Gothic::inst().loadSoundFx("MENU_SELECT"));
+    if(dx!=0)
+      exec(lbl, dx, KeyCodec::Right);
+    update();
+    return true;
+    }
+  onKeyboard(KeyCodec::ActionGeneric);
+  return true;
+  }
+
 bool GameMenu::modernMouse(const Point& pos, bool click) {
   if(!modern)
-    return false;
+    return skinMouse(pos - Point(x(),y()), click);
   auto inside = [&](const Rect& r) { return r.w>0 && pos.x>=r.x && pos.y>=r.y && pos.x<r.x+r.w && pos.y<r.y+r.h; };
   if(modernPage==1) {
     if(keysCapture)
@@ -745,7 +953,26 @@ void GameMenu::drawItem(Painter& p, Item& hItem) {
   int         szX   = int(float(w()*dimx       )/scriptDiv);
   int         szY   = int(float(h()*dimy       )/scriptDiv);
 
-  if(hItem.img && !hItem.img->isEmpty() && Resources::isDiathicLogo(item->backpic)) {
+  // Diathic: the new style - the item's place (the mouse selects what it is over), boxes instead of Gothic's pictures
+  const float skinS    = Gothic::interfaceScale(this);
+  const bool  selected = (&hItem==selectedItem());
+  hItem.modernRect = Rect(x, y, szX, szY);
+  if(item->type==zenkit::MenuItemType::CHOICEBOX) {
+    skinBox(p, Rect(x, y, szX, szY), skinS);
+    }
+  else if(item->type==zenkit::MenuItemType::SLIDER) {
+    // the track is drawn by drawSlider
+    }
+  else if(item->type==zenkit::MenuItemType::LISTBOX) {
+    p.setBrush(Brush(Color(0.f, 0.f, 0.f, 0.35f), Painter::Alpha));
+    p.drawRect(x, y, szX, szY);
+    skinFrame(p, Rect(x, y, szX, szY), 1, SkinGoldDim);
+    }
+  else if(hItem.img && !hItem.img->isEmpty() && (flags & zenkit::MenuItemFlag::MULTILINE)) {
+    // the page of the diary (log_paper.tga)
+    skinPanel(p, Rect(x, y, szX, szY), skinS, 0.97f);
+    }
+  else if(hItem.img && !hItem.img->isEmpty() && Resources::isDiathicLogo(item->backpic)) {
     // Diathic: the logo keeps its proportions, 1.5x the height of Gothic's headline, flames over the top of the menu,
     // the glowing line at the bottom just above the first item
     const float aspect = float(hItem.img->w())/float(std::max(1,hItem.img->h()));
@@ -763,9 +990,22 @@ void GameMenu::drawItem(Painter& p, Item& hItem) {
     p.setBrush(*hItem.img);
     p.drawRect(x,y,szX,szY,
                0,0,hItem.img->w(),hItem.img->h());
+    if(item->backpic.empty()) // a picture from the game (the save's thumbnail): a golden frame
+      skinFrame(p, Rect(x-1, y-1, szX+2, szY+2), std::max(1, int(2.f*skinS)), SkinGold);
     }
 
+  if(selected && isSelectable(item) && item->type!=zenkit::MenuItemType::LISTBOX)
+    skinBand(p, Rect(x, y, szX, szY), skinS, (flags & zenkit::MenuItemFlag::CENTERED));
+
   auto fnt = getTextFont(hItem);
+  if(!isEnabled(item))
+    fnt.setColor(SkinTextOff);
+  else if(selected)
+    fnt.setColor(SkinTextSel);
+  else if(!isSelectable(item) && skinIsHeadFont(item->fontname))
+    fnt.setColor(SkinTextHead);
+  else
+    fnt.setColor(SkinText);
   int  tw  = szX;
   int  th  = szY;
 
@@ -792,14 +1032,10 @@ void GameMenu::drawItem(Painter& p, Item& hItem) {
     hItem.scroll = std::min(hItem.scroll, std::max(lineCnt-linesInView,0));
     hItem.scroll = std::max(hItem.scroll, 0);
     if(lineCnt>linesInView+hItem.scroll) {
-      p.setBrush(*down);
-      p.drawRect(x+(tw-down->w())/2, y+th-padd,
-                 down->w(), down->h());
+      skinArrow(p, x+tw/2, y+th-padd+int(8.f*skinS), skinS, false);
       }
     if(hItem.scroll>0) {
-      p.setBrush(*up);
-      p.drawRect(x+(tw-up->w())/2, y+padd-up->h(),
-                 up->w(), up->h());
+      skinArrow(p, x+tw/2, y+padd-int(8.f*skinS), skinS, true);
       }
     } else {
     tRect.h = std::max(tRect.h, fnt.pixelSize());
@@ -847,20 +1083,24 @@ void GameMenu::drawItem(Painter& p, Item& hItem) {
   }
 
 void GameMenu::drawSlider(Painter& p, Item& it, int x, int y, int sw, int sh) {
-  float k = float(sh/2)/float(slider->h());
-  int w = int(float(slider->w())*k);
-  int h = int(float(slider->h())*k);
-  p.setBrush(*slider);
-
+  // Diathic: a thin track, gold up to the value, a diamond as the handle
   auto& sec = it.handle->on_chg_set_option_section;
   auto& opt = it.handle->on_chg_set_option;
   if(sec.empty() || opt.empty())
     return;
 
-  float v  = Gothic::settingsGetF(sec, opt);
-  int   dx = int(float(sw-w)*std::max(0.f,std::min(v,1.f)));
-  p.drawRect(x+dx,y+(sh-h)/2,w,h,
-             0,0,p.brush().w(),p.brush().h());
+  const float s  = Gothic::interfaceScale(this);
+  const float v  = std::clamp(Gothic::settingsGetF(sec, opt), 0.f, 1.f);
+  const float d  = std::max(4.f, 7.f*s);
+  const int   tx = x + int(d), tw = std::max(1, sw - 2*int(d));
+  const int   th = std::max(2, int(3.f*s));
+  const int   cy = y + sh/2;
+  p.setBrush(Brush(Color(0.f, 0.f, 0.f, 0.6f), Painter::Alpha));
+  p.drawRect(tx, cy-th/2-1, tw, th+2);
+  p.setBrush(Brush(SkinGold, Painter::Alpha));
+  p.drawRect(tx, cy-th/2, int(float(tw)*v), th);
+  skinDiamond(p, float(tx) + float(tw)*v, float(cy), d, SkinTextSel);
+  (void)slider;
   }
 
 void GameMenu::drawQuestList(Painter& p, Item& it, int x, int y, int w, int h,
@@ -872,6 +1112,7 @@ void GameMenu::drawQuestList(Painter& p, Item& it, int x, int y, int w, int h,
   int32_t listEnd   = listLen;
 
   const float scale = Gothic::interfaceScale(this);
+  questRows.clear();
   for(size_t i=0; i<log.questCount(); i++) {
     auto& quest = log.quest(log.questCount()-i-1);
     if(!isCompatible(quest,st))
@@ -881,16 +1122,21 @@ void GameMenu::drawQuestList(Painter& p, Item& it, int x, int y, int w, int h,
       continue;
 
     auto ft = Resources::FontType::Normal;
-    if(listId==it.value && selectedItem()==&it)
+    const bool sel = (listId==it.value && selectedItem()==&it);
+    if(sel)
       ft = Resources::FontType::Hi;
 
-    auto& fnt = Resources::font(it.handle->fontname,ft,scale);
+    GthFont fnt = Resources::font(it.handle->fontname,ft,scale);
+    fnt.setColor(sel ? SkinTextSel : SkinText);
     auto sz  = fnt.textSize(w,quest.name);
     if(itY+sz.h>h+y) {
       listEnd = listId;
       break;
       }
 
+    questRows.emplace_back(listId, Rect(x-int(6.f*scale), itY, w+int(6.f*scale), sz.h));
+    if(sel)
+      skinBand(p, Rect(x-int(6.f*scale), itY, w+int(6.f*scale), sz.h+int(4.f*scale)), scale, false);
     fnt.drawText(p,x,itY+int(fnt.pixelSize()),w,sz.h,quest.name,Tempest::AlignLeft);
     itY+=sz.h;
     }
@@ -904,16 +1150,10 @@ void GameMenu::drawQuestList(Painter& p, Item& it, int x, int y, int w, int h,
     update();
     }
 
-  if(listEnd<listLen && down!=nullptr) {
-    p.setBrush(*down);
-    p.drawRect(x+w-down->w(),y+h-down->h(),
-               down->w(),down->h());
-    }
-  if(listBegin>0 && up!=nullptr) {
-    p.setBrush(*up);
-    p.drawRect(x+w-up->w(),y,
-               up->w(),up->h());
-    }
+  if(listEnd<listLen)
+    skinArrow(p, x+w-int(10.f*scale), y+h-int(8.f*scale), scale, false);
+  if(listBegin>0)
+    skinArrow(p, x+w-int(10.f*scale), y+int(8.f*scale), scale, true);
   }
 
 void GameMenu::resizeEvent(SizeEvent &) {

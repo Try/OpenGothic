@@ -38,6 +38,7 @@ class GameMenu : public Tempest::Widget {
     // Diathic: the main menu in a modern layout (full screen: logo top left, items in a column on a dark band,
     // the mouse selects what it is over); false for every other menu
     bool isModern() const { return modern; }
+    // the mouse over the menu (MenuRoot coordinates): selects the item under it; the other menus in the new style too
     bool modernMouse(const Tempest::Point& pos, bool click); // true: over an item (click: executed)
     bool modernKeyDown(Tempest::KeyEvent& e); // the "Sterowanie" page: Esc back, a new key (true: used)
     bool modernBack();                        // right button: back from "Sterowanie" (true: was there)
@@ -67,7 +68,7 @@ class GameMenu : public Tempest::Widget {
       int32_t                             value   = 0;
       int32_t                             scroll  = 0;
       bool                                visible = true;
-      Tempest::Rect                       modernRect;  // Diathic: where the modern main menu drew it
+      Tempest::Rect                       modernRect;  // Diathic: where it was drawn last (the mouse selects it)
       };
 
     MenuRoot&                             owner;
@@ -97,6 +98,7 @@ class GameMenu : public Tempest::Widget {
                                                           const std::function<void(const Tempest::Rect&)>& band);
     std::vector<int>                      modernOrder();
     void                                  modernActivate();
+    bool                                  skinMouse(const Tempest::Point& pos, bool click); // widget coordinates
     bool                                  modern      = false;
     int                                   modernPage  = 0;     // 0 = the list, 1 = "Sterowanie"
     bool                                  keysItemSel = false; // "Sterowanie" selected in the list
@@ -104,6 +106,7 @@ class GameMenu : public Tempest::Widget {
     bool                                  keysCapture = false; // waiting for the new key
     Tempest::Rect                         keysItemRect;
     std::vector<Tempest::Rect>            keysRows;
+    std::vector<std::pair<int32_t,Tempest::Rect>> questRows; // Diathic: the diary's list as drawn (quest number, place)
     void                                  drawSlider(Tempest::Painter& p, Item& it, int x, int y, int w, int h);
     void                                  drawQuestList(Tempest::Painter& p, Item& it, int x, int y, int w, int h,
                                                         const QuestLog& log, QuestStat st);

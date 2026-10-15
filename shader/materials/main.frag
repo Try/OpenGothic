@@ -89,6 +89,23 @@ bool arpgHidden() {
       return true;
     }
 
+#if (MESH_TYPE!=T_PFX) && defined(ATEST)
+  // Diathic: tree crowns near the hero are cut above twice his height (~3.6 m), on the camera side
+  // and next to him (behind him they stay); soft dithered rim
+  if(wpos.y > scene.arpgPlayer.y+360.0) {
+    const vec2  d  = wpos.xz - scene.arpgPlayer.xz;
+    const vec2  cv = scene.camPos.xz - scene.arpgPlayer.xz;
+    const float cl = length(cv);
+    const float behind = cl>1.0 ? -dot(d, cv/cl) : 0.0;
+    const float r  = length(d);
+    if(behind<250.0 && r<750.0) {
+      const float a = 1.0 - smoothstep(500.0, 750.0, r);
+      if(arpgDither(gl_FragCoord.xy) < a)
+        return true;
+      }
+    }
+#endif
+
 #if (MESH_TYPE!=T_PFX)
   // 2. see-through circle: walls/objects between the camera and the hero are cut down to a low stub,
   //    only while something really hides the hero (strength animated on the CPU);

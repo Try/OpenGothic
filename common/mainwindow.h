@@ -87,10 +87,10 @@ class MainWindow : public Tempest::Window {
 
     void drawBar(Tempest::Painter& p, const Tempest::Texture2d *bar, int x, int y, float v, Tempest::AlignFlag flg);
     void drawMsg(Tempest::Painter& p);
-    void drawProgress(Tempest::Painter& p, int x, int y, int w, int h, float v);
-    void drawLoading (Tempest::Painter& p,int x,int y,int w,int h);
+    void drawDiathicBar(Tempest::Painter& p, const Tempest::Rect& r, float v);
+    void drawLoadingScreen(Tempest::Painter& p);
     void drawSaving  (Tempest::Painter& p);
-    void drawSaving  (Tempest::Painter& p, const Tempest::Texture2d& back, int w, int h, float scale);
+    std::string loadingTip() const;
 
     void startGame(std::string_view slot);
     void loadGame (std::string_view slot);
@@ -146,8 +146,13 @@ class MainWindow : public Tempest::Window {
     uint8_t                cmdId = 0;
 
     Tempest::Texture2d        background;
-    const Tempest::Texture2d* loadBox=nullptr;
-    const Tempest::Texture2d* loadVal=nullptr;
+    Tempest::Texture2d        diathicBg;                // Diathic: menu_bg.jpg for the loading screens
+    bool                      diathicBgTried = false;
+    const Tempest::Texture2d* diathicBackground();
+    float                     loadShown   = 0.f;        // the loading bar, following the progress smoothly
+    uint64_t                  loadShownAt = 0;
+    std::string               loadTip;                  // the hint of this loading screen
+    std::string               loadWorldHint;            // the world of a new game / of the loaded save
 
     const Tempest::Texture2d* barBack=nullptr;
     const Tempest::Texture2d* barHp  =nullptr;
@@ -155,8 +160,6 @@ class MainWindow : public Tempest::Window {
     const Tempest::Texture2d* barMana=nullptr;
 
     const Tempest::Texture2d* focusImg=nullptr;
-
-    const Tempest::Texture2d* saveback=nullptr;
 
     bool                      mouseP[Tempest::MouseEvent::ButtonBack]={};
 
@@ -171,6 +174,8 @@ class MainWindow : public Tempest::Window {
     static constexpr bool     ArpgCursorFlip = false;  // true: the other end of the model is the tip
     void                      paintArpgCursor();
     void                      paintMenuBackground(Tempest::Painter& p); // Diathic: picture + embers
+    void                      paintCover (Tempest::Painter& p, const Tempest::Texture2d& tex);
+    void                      paintEmbers(Tempest::Painter& p, size_t count);
     struct MenuEmber { float x = 0, y = 0, vx = 0, vy = 0, size = 1, life = 0; };
     std::vector<MenuEmber>    menuEmbers;
     uint64_t                  menuEmbersAt = 0;

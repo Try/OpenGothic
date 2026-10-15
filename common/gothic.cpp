@@ -500,7 +500,8 @@ void Gothic::startLoad(std::string_view banner,
 void Gothic::implStartLoadSave(std::string_view banner,
                                bool load,
                                const std::function<std::unique_ptr<GameSession>(std::unique_ptr<GameSession>&&)> f) {
-  loadTex = banner.empty() ? Texture2d() : Resources::loadTextureUncached(banner);
+  loadTex  = banner.empty() ? Texture2d() : Resources::loadTextureUncached(banner);
+  loadName = std::string(banner);
   loadProgress.store(0);
 
   auto zero=LoadState::Idle;
