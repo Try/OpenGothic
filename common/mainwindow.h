@@ -52,7 +52,7 @@ class MainWindow : public Tempest::Window {
   private:
     void paintEvent     (Tempest::PaintEvent& event) override;
     void resizeEvent    (Tempest::SizeEvent & event) override;
-    void displayMetricsEvent(Tempest::DisplayMetricsEvent& event) override;
+    void metricsEvent   (Tempest::DisplayMetricsEvent& event) override;
 
     void mouseDownEvent (Tempest::MouseEvent& event) override;
     void mouseUpEvent   (Tempest::MouseEvent& event) override;
@@ -94,7 +94,6 @@ class MainWindow : public Tempest::Window {
     void onSettings();
 
     void setupUi();
-    void setUiMargins(const Tempest::Margin& margin);
 
     void render() override;
 

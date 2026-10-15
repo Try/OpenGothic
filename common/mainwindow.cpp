@@ -153,7 +153,6 @@ void MainWindow::setupUi() {
   addWidget(&mobileUi);
 #endif
 
-  setUiMargins(safeAreaMargins());
   rootMenu.setMainMenu();
 
   Gothic::inst().onDialogPipe  .bind(&dialogs,&DialogMenu::openPipe);
@@ -298,7 +297,6 @@ void MainWindow::paintEvent(PaintEvent& event) {
   }
 
 void MainWindow::resizeEvent(SizeEvent&) {
-  setUiMargins(safeAreaMargins());
   for(auto& i:fence)
     i.wait();
   swapchain.reset();
@@ -312,11 +310,8 @@ void MainWindow::resizeEvent(SizeEvent&) {
   dMouse = Point();
   }
 
-void MainWindow::displayMetricsEvent(DisplayMetricsEvent& event) {
-  setUiMargins(event.safeAreaMargins);
-  }
-
-void MainWindow::setUiMargins(const Margin& margin) {
+void MainWindow::metricsEvent(DisplayMetricsEvent& event) {
+  const auto& margin = event.safeAreaMargins;
   setMargins(margin);
   document.setMargins(margin);
   dialogs.setMargins(margin);
