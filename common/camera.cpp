@@ -124,8 +124,10 @@ void Camera::load(Serialize &s, Npc* pl) {
 
 void Camera::changeZoom(int delta) {
   if(isArpgActive()) {
-    arpg.rangeDest += (delta>0 ? -100.f : 100.f);
-    arpg.rangeDest  = std::clamp(arpg.rangeDest, 500.f, 2200.f);
+    // Diathic: only 10% closer / further than the default distance (two steps each way)
+    const float def = Arpg::DefaultRange;
+    arpg.rangeDest += (delta>0 ? -0.05f*def : 0.05f*def);
+    arpg.rangeDest  = std::clamp(arpg.rangeDest, 0.9f*def, 1.1f*def);
     return;
     }
   if(fpEnable)

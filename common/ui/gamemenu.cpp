@@ -67,12 +67,6 @@ namespace {
       p.setBrush(Brush(Color(0.075f-0.045f*t, 0.050f-0.030f*t, 0.035f-0.020f*t, alpha), Painter::Alpha));
       p.drawRect(r.x, r.y + r.h*i/steps, r.w, r.h/steps+1);
       }
-    // a warm glow under the top edge
-    const int gh = std::max(8, int(46.f*s));
-    for(int i=0; i<8; ++i) {
-      p.setBrush(Brush(Color(0.9f, 0.42f, 0.12f, 0.05f*(1.f-float(i)/8.f)), Painter::Add));
-      p.drawRect(r.x, r.y + gh*i/8, r.w, gh/8+1);
-      }
     const int in = std::max(3, int(6.f*s));
     skinFrame(p, r, std::max(1, int(2.f*s)), SkinGold);
     skinFrame(p, Rect(r.x+in, r.y+in, r.w-2*in, r.h-2*in), 1, SkinGoldDim);

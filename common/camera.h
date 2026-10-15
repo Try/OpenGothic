@@ -177,8 +177,9 @@ class Camera final {
       float yaw         = 0;      // world yaw, same convention as Npc::rotation()
       float yawDest     = 0;
       float elevation   = 55.f;   // degrees above horizon
-      float range       = 1100.f; // cm
-      float rangeDest   = 1100.f;
+      static constexpr float DefaultRange = 1100.f; // cm; the wheel: +-10%
+      float range       = DefaultRange;
+      float rangeDest   = DefaultRange;
       bool  indoor      = false;
       float indoorHold  = 0;      // seconds left before 'indoor' may switch off
       float indoorBlend = 0;      // 0..1, smooth version of 'indoor'

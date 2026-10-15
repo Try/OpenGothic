@@ -90,17 +90,19 @@ bool arpgHidden() {
     }
 
 #if (MESH_TYPE!=T_PFX) && defined(ATEST)
-  // Diathic: tree crowns near the hero are cut above twice his height (~3.6 m), on the camera side
-  // and next to him (behind him they stay); soft dithered rim
-  if(wpos.y > scene.arpgPlayer.y+360.0) {
+  // Diathic: trees near the hero (on the camera side and next to him; behind him they stay):
+  // the crowns above his head (+0.7 m) are cut, the lower foliage (fir branches, bushes) is mostly see-through;
+  // soft dithered rim
+  if(wpos.y > scene.arpgPlayer.y+100.0) {
     const vec2  d  = wpos.xz - scene.arpgPlayer.xz;
     const vec2  cv = scene.camPos.xz - scene.arpgPlayer.xz;
     const float cl = length(cv);
     const float behind = cl>1.0 ? -dot(d, cv/cl) : 0.0;
     const float r  = length(d);
-    if(behind<250.0 && r<750.0) {
-      const float a = 1.0 - smoothstep(500.0, 750.0, r);
-      if(arpgDither(gl_FragCoord.xy) < a)
+    if(behind<300.0 && r<950.0) {
+      const float edge = 1.0 - smoothstep(650.0, 950.0, r);
+      const float keep = (wpos.y > scene.arpgPlayer.y+250.0) ? 0.0 : 0.3; // part of the pixels that stays
+      if(arpgDither(gl_FragCoord.xy) < edge*(1.0-keep))
         return true;
       }
     }

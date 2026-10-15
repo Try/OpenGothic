@@ -3529,6 +3529,25 @@ void GameScript::arpgRaiseFightTalent(Npc& npc, int talent, int32_t delta) {
   vm.call_function<void>(fn, npc.handlePtr(), int32_t(talent), delta);
   }
 
+int32_t GameScript::arpgEquipFightBonus(const Npc& npc, int talent) {
+  if(talent<1 || talent>4)
+    return 0;
+  arpgScanTeachers();
+  int32_t sum = 0;
+  const Item* seen[8] = {};
+  size_t      seenN   = 0;
+  for(uint8_t slot=0; slot<7; ++slot) {
+    const Item* it = npc.inventory().equippedIn(slot);
+    if(it==nullptr || std::find(seen, seen+seenN, it)!=seen+seenN)
+      continue;
+    seen[seenN++] = it;
+    auto f = arpgEquipBonus.find(int32_t(it->handle().on_equip));
+    if(f!=arpgEquipBonus.end())
+      sum += f->second[size_t(talent)];
+    }
+  return sum;
+  }
+
 // Diathic: the key of the skill trees (ArpgKeys) for the messages
 static std::string skillsKey() {
   return ArpgKeys::keyName(ArpgKeys::key(ArpgKeys::Skills));
@@ -3551,6 +3570,7 @@ void GameScript::arpgScanTeachers() {
     }
   std::sort(fns.begin(), fns.end());
   auto lesson = vm.find_symbol_by_name("B_TEACHFIGHTTALENTPERCENT");
+  auto addFs  = vm.find_symbol_by_name("B_ADDFIGHTSKILL");
 
   std::vector<std::pair<bool,int32_t>> ints; // known constant?, value
   const uint32_t size = vm.size();
@@ -3594,6 +3614,14 @@ void GameScript::arpgScanTeachers() {
           }
         if(tgt!=nullptr && tgt->name().rfind("B_TEACH",0)==0)
           arpgTeachFns.insert(int32_t(fns[cur].second));
+        if(tgt!=nullptr && tgt==addFs && ints.size()>=2) {
+          auto& t = ints[ints.size()-2];
+          auto& p = ints[ints.size()-1];
+          if(t.first && p.first && t.second>=1 && t.second<=4) {
+            auto& b = arpgEquipBonus[int32_t(fns[cur].second)];
+            b[size_t(t.second)] += p.second;
+            }
+          }
         if(tgt!=nullptr && tgt==lesson && ints.size()>=3) {
           auto& t = ints[ints.size()-3];
           auto& p = ints[ints.size()-2];

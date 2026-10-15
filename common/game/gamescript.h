@@ -8,6 +8,7 @@
 #include <map>
 #include <memory>
 #include <set>
+#include <array>
 #include <random>
 #include <unordered_map>
 
@@ -180,6 +181,9 @@ class GameScript final {
     int32_t          arpgSpellCost(const Item& it);   // gothic-diablo: mana of one cast (or of one invest step), -1 = unknown
     // gothic-diablo: Gothic's weapon percent changed the Gothic way (B_RaiseFightTalent: hit chance, real talent, moves)
     void             arpgRaiseFightTalent(Npc& npc, int talent, int32_t delta);
+    // Diathic: weapon percents the equipped items give (their on_equip calls B_AddFightSkill, e.g. +3% of a knife);
+    // they do not count for the limit of Biegłość
+    int32_t          arpgEquipFightBonus(const Npc& npc, int talent);
     std::string_view messageFromSvm(std::string_view id,int voice) const;
     std::string_view messageByName (std::string_view id) const;
     uint32_t         messageTime   (std::string_view id) const;
@@ -470,6 +474,7 @@ class GameScript final {
     struct ArpgLesson { int32_t talent = 0, percent = 0, max = 0; };
     std::map<int32_t,ArpgLesson> arpgLessons;
     std::set<int32_t>            arpgTeachFns;
+    std::map<int32_t,std::array<int32_t,5>> arpgEquipBonus; // function -> percent per talent (B_AddFightSkill with constants)
     bool                         arpgTeachScanned = false;
     void arpgScanTeachers();
     std::vector<WorldMap>                       arpgMapsAll;

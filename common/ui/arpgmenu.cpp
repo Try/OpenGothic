@@ -212,11 +212,17 @@ static ArpgProgress* progress() {
   return gs!=nullptr ? &gs->arpgProgress() : nullptr;
   }
 
+// Diathic: percents from equipped weapons / rings (e.g. +3% of a knife) do not count for the limit of Biegłość
+static int32_t equipBonus(const Npc& pl, int talent) {
+  auto w = Gothic::inst().world();
+  return w!=nullptr ? w->script().arpgEquipFightBonus(pl, talent) : 0;
+  }
+
 static ArpgProgress::Hero heroOf(const Npc& pl) {
   ArpgProgress::Hero h;
   h.level = pl.level();
   for(int t=1; t<=4; ++t)
-    h.pct[t] = pl.hitChance(Talent(t));
+    h.pct[t] = pl.hitChance(Talent(t)) - equipBonus(pl, t);
   return h;
   }
 
@@ -1058,10 +1064,72 @@ void ArpgMenu::paintStats(Painter& p, const Fonts& f, const Rect& cl, const Rect
   row(cl, y, gtxt("Przed magią"), buf);
 
   // ---- right page: Gothic's talents (names from the scripts) and the ARPG fight ----
+  // Diathic: everything the skill trees give (only what the hero has), small rows under "Walka"
+  ArpgPerks pk;
+  if(auto pr = progress())
+    pk = pr->perks();
+  std::vector<std::pair<std::string,std::string>> perkRows;
+  {
+    auto num = [](float v, int prec) {
+      char b[32] = {};
+      std::snprintf(b, sizeof(b), "%.*f", prec, double(v));
+      std::string r = b;
+      if(r.find('.')!=std::string::npos) {
+        while(!r.empty() && r.back()=='0')
+          r.pop_back();
+        if(!r.empty() && r.back()=='.')
+          r.pop_back();
+        }
+      for(auto& c:r)
+        if(c=='.')
+          c = ',';
+      return r;
+      };
+    auto pc  = [&](float v) { return "+"+num(v*100.f, 0)+"%"; };
+    auto add = [&](const char* k, std::string v) { perkRows.emplace_back(k, std::move(v)); };
+    if(pk.meleeDmg>0)      add("Obrażenia ciosu", pc(pk.meleeDmg));
+    if(pk.critAdd>0)       add("Szansa na pełne obrażenia", "+"+std::to_string(pk.critAdd)+"%");
+    if(pk.bleed>0)         add("Krwawienie (3 s)", num(pk.bleed*100.f,0)+"% ciosu / s");
+    if(pk.comboWindow>0)   add("Dłuższe okno serii", pc(pk.comboWindow));
+    if(pk.fourthHit)       add("Czwarty cios serii", "x1,5");
+    if(pk.arc>120.f)       add("Szerokość zamachu", num(pk.arc,0)+"°");
+    if(pk.knockback>0)     add("Odrzut małych stworów", num(pk.knockback,1)+" m");
+    if(pk.vsDown>0)        add("Przeciw powalonym", pc(pk.vsDown));
+    if(pk.leech>0)         add("Pijawka (zdrowie z obrażeń)", num(pk.leech*100.f,0)+"%");
+    if(pk.hardSkin>0)      add("Twarda skóra (3 s po ciosie)", "+"+std::to_string(pk.hardSkin)+" ochrony");
+    if(pk.shotSpeed>0)     add("Szybszy naciąg", pc(pk.shotSpeed));
+    if(pk.pierce>0)        add("Strzała przebija", std::to_string(pk.pierce)+" wrog.");
+    if(pk.farAim>0)        add("Celność powyżej 15 m", pc(pk.farAim));
+    if(pk.whirl)           add("Wir (ostatni cios serii)", "wokół");
+    if(pk.chargeWindow>0.2f+1e-4f) add("Złote okno ładowania", num(pk.chargeWindow,1)+" s");
+    if(pk.sureHand)        add("Pewna ręka (późne puszczenie)", "x2");
+    if(pk.getUpDelay>0)    add("Wstrząs (powaleni dłużej)", "+"+num(pk.getUpDelay,1)+" s");
+    if(pk.guardBreak)      add("Łamacz gardy", "tak");
+    if(pk.waveRange>0)     add("Fala uderzeniowa", num(pk.waveRange/100.f,0)+" m");
+    if(pk.battleRush)      add("Pęd bitewny (zabójstwo = bez czekania)", "tak");
+    if(pk.piercingShot)    add("Strzała przeszywająca", "tak");
+    if(pk.volley>0)        add("Grad strzał", "+"+std::to_string(pk.volley));
+    if(pk.heavyHead>0)     add("Ciężki grot", pk.heavyHead>1 ? "powala" : "odpycha");
+    if(pk.innosWrath)      add("Gniew Innosa", "ogień 4 s");
+    if(pk.rollCdCut>0)     add("Krótsza przerwa fikołka", "-"+num(pk.rollCdCut,2)+" s");
+    if(pk.secondWind)      add("Drugi oddech", "2 fikołki");
+    if(pk.rollDist>0)      add("Dalszy przewrót", pc(pk.rollDist));
+    if(pk.rollThrough)     add("Przez szereg wrogów", "tak");
+    if(pk.counter>0)       add("Kontratak (2 s po fikołku)", pc(pk.counter));
+    if(pk.rollStrike)      add("Cios z przewrotu", "tak");
+    if(pk.sandEyes>0)      add("Piasek w oczy", num(pk.sandEyes,0)+" s");
+    if(pk.trip)            add("Podcięcie", "tak");
+    if(pk.acrobat)         add("Akrobata (upadki)", "bez obrażeń");
+    if(pk.arrowDodge>0)    add("Wyczucie strzał (1 s)", num(pk.arrowDodge*100.f,0)+"%");
+    if(pk.shadow)          add("Cień (po fikołku)", "1 s");
+  }
+  const int smallLine = f.small->pixelSize()+int(5*k);
+
   y = cr.y;
   text(p, *f.title, cr.x, y, gtxt("Umiejętności Gothica"));
   y += f.title->pixelSize()+int(2*k);
-  const int talentsEnd = cr.y+cr.h-(6*line+f.sub->pixelSize()+int(30*k)); // room for the fight below
+  const int perksH     = perkRows.empty() ? 0 : f.sub->pixelSize()+int(30*k)+int(perkRows.size())*smallLine;
+  const int talentsEnd = cr.y+cr.h-(6*line+f.sub->pixelSize()+int(30*k))-perksH; // room for the fight below
   if(w!=nullptr) {
     auto& sc   = w->script();
     auto* tal  = sc.findSymbol("TXT_TALENTS");
@@ -1073,6 +1141,9 @@ void ArpgMenu::paintStats(Painter& p, const Fonts& f, const Rect& cl, const Rect
       for(int i=0; i<max; ++i) {
         auto& name = tal->get_string(uint16_t(i));
         if(name.empty())
+          continue;
+        // Diathic: the weapons always, the other talents only when the hero has them (room for the trees below)
+        if(!(i>=TALENT_1H && i<=TALENT_CROSSBOW) && pl.talentSkill(Talent(i))<=0)
           continue;
         if(y+line>talentsEnd)
           break;
@@ -1109,9 +1180,6 @@ void ArpgMenu::paintStats(Painter& p, const Fonts& f, const Rect& cl, const Rect
       row(cr, y, gtxt("Obrażenia strzałą (x0,5)"), buf);
       }
     // with the skill trees
-    ArpgPerks pk;
-    if(auto pr = progress())
-      pk = pr->perks();
     std::snprintf(buf, sizeof(buf), "+%d%%", int(std::lround((0.2f+pk.atkSpeed)*100.f)));
     row(cr, y, gtxt("Szybkość ataku"), buf);
     std::snprintf(buf, sizeof(buf), "x%.1f, %.1f s, co %.1f s", double(pk.chargeMul), double(pk.chargeTime), double(std::max(0.5f, pk.chargeCd)));
@@ -1125,6 +1193,19 @@ void ArpgMenu::paintStats(Painter& p, const Fonts& f, const Rect& cl, const Rect
         c = ',';
     row(cr, y, gtxt("Fikołek bez obrażeń"), buf);
   }
+  if(!perkRows.empty()) {
+    section(cr, y, gtxt("Z drzewek umiejętności"));
+    const int bottom = cr.y+cr.h;
+    for(size_t i=0; i<perkRows.size(); ++i) {
+      if(y+smallLine>bottom) {
+        text(p, *f.small, cr.x, y, "...");
+        break;
+        }
+      text(p, *f.small, cr.x, y, gtxt(perkRows[i].first));
+      textRight(p, *f.redS, cr.x+cr.w, y+(f.small->pixelSize()-f.redS->pixelSize())/2, gtxt(perkRows[i].second));
+      y += smallLine;
+      }
+    }
   }
 
 void ArpgMenu::paintTrees(Painter& p, const Fonts& f, const Rect& cl, const Rect& cr, InventoryRenderer& items, Npc& pl) {
@@ -1244,8 +1325,11 @@ void ArpgMenu::paintTrees(Painter& p, const Fonts& f, const Rect& cl, const Rect
     auto&      br = t.branches[size_t(b)];
     const Rect n0 = nodeRect(1, b);
     if(t.weapons && b<4 && pr!=nullptr) {
-      char buf[96] = {};
-      std::snprintf(buf, sizeof(buf), "%s   %d%%  (nauka do %d%%)", br.name, int(hero.pct[b+1]), int(pr->cap(b+1)));
+      char buf[128] = {};
+      const int32_t eb = Gothic::inst().player()!=nullptr ? equipBonus(*Gothic::inst().player(), b+1) : 0;
+      if(eb!=0)
+        std::snprintf(buf, sizeof(buf), "%s   %d%% %+d%% z broni  (nauka do %d%%)", br.name, int(hero.pct[b+1]), int(eb), int(pr->cap(b+1))); else
+        std::snprintf(buf, sizeof(buf), "%s   %d%%  (nauka do %d%%)", br.name, int(hero.pct[b+1]), int(pr->cap(b+1)));
       text(p, *f.redS, n0.x-int(2*k), n0.y-nameH, gtxt(buf));
       } else {
       text(p, *f.redS, n0.x-int(2*k), n0.y-nameH, gtxt(br.name));

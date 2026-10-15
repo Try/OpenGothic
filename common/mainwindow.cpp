@@ -263,8 +263,10 @@ void MainWindow::paintEvent(PaintEvent& event) {
           bool showManaBar   = (opt.showManaBar==2) || (opt.showManaBar==1 && (pl->weaponState()==WeaponState::Mage || inventory.isActive()));
           bool showSwimBar   = (opt.showSwimBar==2) || (opt.showSwimBar==1 && pl->isDive());
 
-          if(arpgBarVisible()) {
+          if(arpgBarVisible())
             paintArpgVitals(p); // Diathic: life and mana next to the skill bar, experience over it
+          if(Camera::isArpgEnabled()) {
+            // Diathic: never Gothic's bars (in a pause, behind a menu, in Gothic's inventory)
             showHealthBar = false;
             showManaBar   = false;
             }
@@ -1696,6 +1698,10 @@ uint64_t MainWindow::tick() {
     return 0;
 
   if(Gothic::inst().isPause()) {
+    // Diathic: in a pause the interface is still drawn every frame (the sword cursor, the menus' animation);
+    // before only on the menu's timer (10 times a second) - the cursor jumped
+    if(Camera::isArpgEnabled() || rootMenu.isActive())
+      update();
     return 0;
     }
 
@@ -1736,7 +1742,7 @@ uint64_t MainWindow::tick() {
       ArpgProgress::Hero h;
       h.level = pl->level();
       for(int t=1; t<=4; ++t)
-        h.pct[t] = pl->hitChance(Talent(t));
+        h.pct[t] = pl->hitChance(Talent(t)) - pl->world().script().arpgEquipFightBonus(*pl, t); // without the weapon's bonus
       gs->arpgProgress().initWeapons(h);
       }
   }
