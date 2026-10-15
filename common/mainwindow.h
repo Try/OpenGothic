@@ -31,6 +31,7 @@
 #include "ui/dialogmenu.h"
 #include "ui/inventorymenu.h"
 #include "ui/arpgmenu.h"
+#include "ui/arpgworldmap.h"
 #include "ui/chapterscreen.h"
 #include "ui/documentmenu.h"
 #include "ui/videowidget.h"
@@ -73,6 +74,7 @@ class MainWindow : public Tempest::Window {
     void paintArpgLabels(Tempest::Painter& p, const Tempest::Matrix4x4& vp, const Focus& hover);
     void paintArpgFocus (Tempest::Painter& p, const Focus& fc, const Tempest::Matrix4x4& vp);
     void paintArpgCombo (Tempest::Painter& p, const Tempest::Matrix4x4& vp);
+    void paintArpgVitals(Tempest::Painter& p);
     void paintArpgMinimap(Tempest::Painter& p);
     void paintArpgCombat(Tempest::Painter& p, const Tempest::Matrix4x4& vp);
     void paintArpgBar   (Tempest::Painter& p);
@@ -164,6 +166,14 @@ class MainWindow : public Tempest::Window {
     VideoWidget               video;
     InventoryMenu             inventory;
     InventoryRenderer         arpgBarItems;        // gothic-diablo: item models on the skill bar and in the ARPG window
+    InventoryRenderer         arpgCursorItem;      // Diathic: the sword cursor
+    static constexpr const char* ArpgCursorModel = "ItMw_030_1h_PAL_Sword_02.3DS"; // Miecz paladyna (ITMW_1H_PAL_SWORD)
+    static constexpr bool     ArpgCursorFlip = false;  // true: the other end of the model is the tip
+    void                      paintArpgCursor();
+    void                      paintMenuBackground(Tempest::Painter& p); // Diathic: picture + embers
+    struct MenuEmber { float x = 0, y = 0, vx = 0, vy = 0, size = 1, life = 0; };
+    std::vector<MenuEmber>    menuEmbers;
+    uint64_t                  menuEmbersAt = 0;
     ArpgMenu                  arpgMenu;            // gothic-diablo: equipment / character / skill trees (I, C, T)
     LightGroup::Light         arpgDlgLight;        // gothic-diablo: soft light on the faces in dialog shots
     const World*              arpgDlgLightWorld = nullptr;
@@ -208,15 +218,23 @@ class MainWindow : public Tempest::Window {
     int32_t                   arpgLevelSeen   = 0;       // ... and his level last frame (a level up = a skill point)
     // gothic-diablo: minimap (Tab), map texture from the world map item of the scripts, explored 4 m cells
     bool                      arpgMinimap     = false;
+    bool                      arpgOverlay     = false;  // Diathic: the explored map over the game (Tab, second time)
+    float                     arpgHpGhost     = -1.f;   // Diathic: trail of the life / mana just lost
+    float                     arpgMpGhost     = -1.f;
+    uint64_t                  arpgHpHit       = 0;
+    uint64_t                  arpgMpHit       = 0;
+    uint64_t                  arpgVitalsAt    = 0;
+    Tempest::KeyEvent::KeyType arpgMapKey     = Tempest::KeyEvent::K_NoKey; // M / Esc pressed for the big map
+    ArpgWorldMap              arpgWorldMap;
     bool                      arpgTabDown     = false;
     bool                      arpgIDown       = false;
+    bool                      arpgLogDown     = false;  // Diathic: the diary key (ArpgKeys::Log)
     std::string               arpgMapWorld;
     std::string               arpgMapTex;
     Tempest::Rect             arpgMapBounds;
     bool                      arpgMapValid    = false;
     float                     arpgMapHalf     = 3500.f; // minimap: cm from the center to the edge (zoom)
     Tempest::Rect             arpgMapRect;              // where the minimap was drawn last frame
-    std::unordered_map<std::string, std::unordered_set<int64_t>> arpgExplored;
     struct ArpgLabel {
       Tempest::Rect           rect;
       Focus                   focus;

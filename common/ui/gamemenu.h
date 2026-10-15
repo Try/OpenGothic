@@ -8,7 +8,9 @@
 #include <zenkit/DaedalusVm.hh>
 #include <zenkit/addon/daedalus.hh>
 
+#include <functional>
 #include <memory>
+#include <vector>
 
 #include "game/savegameheader.h"
 #include "game/questlog.h"
@@ -32,6 +34,13 @@ class GameMenu : public Tempest::Widget {
     void processMusicTheme();
 
     KeyCodec::Action keyClose() const { return kClose; }
+
+    // Diathic: the main menu in a modern layout (full screen: logo top left, items in a column on a dark band,
+    // the mouse selects what it is over); false for every other menu
+    bool isModern() const { return modern; }
+    bool modernMouse(const Tempest::Point& pos, bool click); // true: over an item (click: executed)
+    bool modernKeyDown(Tempest::KeyEvent& e); // the "Sterowanie" page: Esc back, a new key (true: used)
+    bool modernBack();                        // right button: back from "Sterowanie" (true: was there)
 
   protected:
     void paintEvent (Tempest::PaintEvent& event) override;
@@ -58,6 +67,7 @@ class GameMenu : public Tempest::Widget {
       int32_t                             value   = 0;
       int32_t                             scroll  = 0;
       bool                                visible = true;
+      Tempest::Rect                       modernRect;  // Diathic: where the modern main menu drew it
       };
 
     MenuRoot&                             owner;
@@ -82,6 +92,18 @@ class GameMenu : public Tempest::Widget {
     KeyCodec::Action                      kClose = KeyCodec::Escape;
 
     void                                  drawItem(Tempest::Painter& p, Item& it);
+    void                                  paintModern(Tempest::Painter& p);
+    void                                  paintModernKeys(Tempest::Painter& p, GthFont& fItem, GthFont& fSel, GthFont& fInfo,
+                                                          const std::function<void(const Tempest::Rect&)>& band);
+    std::vector<int>                      modernOrder();
+    void                                  modernActivate();
+    bool                                  modern      = false;
+    int                                   modernPage  = 0;     // 0 = the list, 1 = "Sterowanie"
+    bool                                  keysItemSel = false; // "Sterowanie" selected in the list
+    int                                   keysSel     = 0;     // row on the "Sterowanie" page
+    bool                                  keysCapture = false; // waiting for the new key
+    Tempest::Rect                         keysItemRect;
+    std::vector<Tempest::Rect>            keysRows;
     void                                  drawSlider(Tempest::Painter& p, Item& it, int x, int y, int w, int h);
     void                                  drawQuestList(Tempest::Painter& p, Item& it, int x, int y, int w, int h,
                                                         const QuestLog& log, QuestStat st);

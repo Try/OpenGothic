@@ -27,7 +27,8 @@ class Renderer final {
 
     void draw(Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId,
               Tempest::VectorImage::Mesh& uiLayer, Tempest::VectorImage::Mesh& numOverlay,
-              InventoryMenu &inventory, VideoWidget& video, InventoryRenderer* hudItems = nullptr);
+              InventoryMenu &inventory, VideoWidget& video, InventoryRenderer* hudItems = nullptr,
+              InventoryRenderer* cursorItem = nullptr); // Diathic: the cursor model, over everything
     void draw(Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId,
               WorldView& view, const Camera& camera);
 

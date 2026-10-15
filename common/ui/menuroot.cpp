@@ -129,8 +129,13 @@ bool MenuRoot::hasVersionLine() const {
 void MenuRoot::mouseDownEvent(MouseEvent& event) {
   if(current!=nullptr) {
     if(event.button==Event::ButtonRight) {
-      popMenu();
-      } else {
+      if(!current->modernBack())
+        popMenu();
+      }
+    else if(current->isModern()) {
+      current->modernMouse(event.pos(), true); // Diathic: a click acts only on an item
+      }
+    else {
       current->onKeyboard(KeyCodec::ActionGeneric);
       }
     } else {
@@ -139,6 +144,13 @@ void MenuRoot::mouseDownEvent(MouseEvent& event) {
   }
 
 void MenuRoot::mouseUpEvent(MouseEvent&) {
+  }
+
+void MenuRoot::mouseMoveEvent(MouseEvent& event) {
+  // Diathic: the modern main menu selects what the mouse is over; the move goes on (the cursor of the game)
+  if(current!=nullptr && current->isModern())
+    current->modernMouse(event.pos(), false);
+  event.ignore();
   }
 
 void MenuRoot::mouseWheelEvent(MouseEvent &event) {
@@ -193,6 +205,8 @@ void MenuRoot::keyDownEvent(KeyEvent &e) {
     }
 
   if(current!=nullptr) {
+    if(current->isModern() && current->modernKeyDown(e))
+      return; // Diathic: "Sterowanie" (a new key, Esc = back)
     if(e.key==Event::K_W || e.key==Event::K_Up)
       current->onKeyboard(KeyCodec::Forward);
     else if(e.key==Event::K_S || e.key==Event::K_Down)

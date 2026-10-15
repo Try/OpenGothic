@@ -6,6 +6,7 @@
 
 #include "game/gamescript.h"
 #include "game/arpgskills.h"
+#include "game/arpgmapdata.h"
 #include "camera.h"
 #include "gametime.h"
 
@@ -50,6 +51,7 @@ class GameSession final {
     // gothic-diablo: skill points and skill trees of the hero (saved with the game, survive a change of the world)
     ArpgProgress&       arpgProgress()       { return arpgProg; }
     const ArpgProgress& arpgProgress() const { return arpgProg; }
+    ArpgMapData&        arpgMap()            { return arpgMapData; } // Diathic: explored map, pins
 
     auto         loadSound(const Tempest::Sound& raw) -> Tempest::SoundEffect;
     auto         loadSound(const SoundFx&        fx, bool& looped)  -> Tempest::SoundEffect;
@@ -107,6 +109,7 @@ class GameSession final {
 
     std::vector<WorldStateStorage> visitedWorlds;
     ArpgProgress                   arpgProg;
+    ArpgMapData                    arpgMapData;
 
     ChWorld                        chWorld;
     bool                           exitSessionFlg=false;

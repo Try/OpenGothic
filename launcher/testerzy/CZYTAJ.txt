@@ -44,21 +44,27 @@ i sam ją pobiera. Na liście "Wersja" można wrócić do poprzedniej
 
 STEROWANIE (TRYB ARPG)
 ----------------------
+Klawisze można zmienić w menu głównym: "Sterowanie" (także w grze pod Esc).
+
 Lewy przycisk myszy     chodzenie, rozmowa, podnoszenie, otwieranie, atak
                         (przytrzymanie = kolejne ciosy)
 Ctrl + lewy przycisk    atak w miejscu w stronę kursora / na dowolną postać
 Prawy przycisk          atak ładowany: przytrzymaj, puść, gdy pasek jest złoty
-Środkowy przycisk       blok (z łukiem: odepchnięcie)
+Środkowy przycisk       blok (z łukiem: odepchnięcie, bez broni: obrót kamery)
 Spacja                  fikołek (przewrót)
 Lewy Shift              dobycie / schowanie broni
 X                       broń biała <-> łuk lub kusza
-V                       skradanie
+R                       chód / bieg
+V                       skradanie (trzeba się go nauczyć u nauczyciela)
 1 / 2                   mikstura zdrowia / many
 3 – 0                   runy i zwoje (przypisanie w ekwipunku: najedź i naciśnij klawisz)
 I / C / T               ekwipunek / postać / drzewka umiejętności
-Tab                     mapa
+Tab                     minimapa -> mapa na grze -> wyłączona
+M                       duża mapa (pinezki: prawy przycisk myszy)
+L                       dziennik
+Z (przytrzymaj)         etykiety przedmiotów i postaci
 Q / E                   obrót kamery
-Esc                     menu gry (zapis, wczytanie, ustawienia)
+Esc                     menu gry (zapis, wczytanie, ustawienia, sterowanie)
 
 
 ZGŁASZANIE BŁĘDÓW

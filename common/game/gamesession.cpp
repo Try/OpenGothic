@@ -167,6 +167,8 @@ GameSession::GameSession(Serialize &fin) {
 
   if(fin.setEntry("game/arpg"))
     arpgProg.load(fin); // gothic-diablo: older saves have none (no points spent yet)
+  if(fin.setEntry("game/arpgmap"))
+    arpgMapData.load(fin); // Diathic: explored map and pins (older saves: nothing explored yet)
 
   fin.setEntry("game/camera");
   cam->load(fin,wrld->player());
@@ -229,6 +231,9 @@ void GameSession::save(Serialize &fout, std::string_view name, const Pixmap& scr
 
   fout.setEntry("game/arpg");
   arpgProg.save(fout);
+
+  fout.setEntry("game/arpgmap");
+  arpgMapData.save(fout);
   Gothic::inst().setLoadingProgress(80);
   }
 

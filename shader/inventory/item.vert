@@ -5,6 +5,7 @@ out gl_PerVertex {
   vec4 gl_Position;
   };
 layout(location = 0) out vec2 UV;
+layout(location = 1) out flat vec4 tint;
 
 layout(location = 0) in vec3 inPos;
 layout(location = 1) in vec3 inNormal;
@@ -13,9 +14,11 @@ layout(location = 3) in uint inColor;
 
 layout(push_constant, std430) uniform UboPush {
   mat4 viewProject;
+  vec4 tintPush; // Diathic: rgb = multiply, a = red glow (the cursor over an enemy)
   };
 
 void main() {
   UV          = inUV;
+  tint        = tintPush;
   gl_Position = viewProject*vec4(inPos,1.0);
   }

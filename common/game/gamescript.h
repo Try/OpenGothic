@@ -9,6 +9,7 @@
 #include <memory>
 #include <set>
 #include <random>
+#include <unordered_map>
 
 #include <Tempest/Matrix4x4>
 #include <Tempest/Painter>
@@ -86,8 +87,17 @@ class GameScript final {
       std::string   level;    // lower case file name, e.g. "newworld.zen"
       std::string   texture;  // e.g. "MAP_NEWWORLD.TGA"
       int32_t       left = 0, top = 0, right = 0, bottom = 0;
+      uint32_t      fn    = uint32_t(-1); // Diathic: the function using the map (on_state[0] of the map item)
+      bool          whole = false;        // the map of the whole level (largest area)
       };
-    std::vector<WorldMap> arpgWorldMaps();
+    std::vector<WorldMap> arpgWorldMaps();             // one per level: the whole level
+    const std::vector<WorldMap>& arpgAllMaps();        // Diathic: every map item (also city maps, treasure maps)
+
+    // Diathic: the diary's lists of teachers and traders: entry text -> the NPC it is about (from the dialogs
+    // that write it, read from the bytecode), topic name (as in the diary) -> teacher (true) / trader (false)
+    struct ArpgLogNpc { uint32_t npc = 0; bool teacher = false; };
+    const std::unordered_map<std::string, ArpgLogNpc>& arpgLogNpcs();
+    const std::unordered_map<std::string, bool>&       arpgMarkerTopics();
     auto         questLog() const -> const QuestLog&;
 
     const World& world() const;
@@ -462,6 +472,12 @@ class GameScript final {
     std::set<int32_t>            arpgTeachFns;
     bool                         arpgTeachScanned = false;
     void arpgScanTeachers();
+    std::vector<WorldMap>                       arpgMapsAll;
+    bool                                        arpgMapsScanned = false;
+    std::unordered_map<std::string, ArpgLogNpc> arpgLogNpcMap;
+    std::unordered_map<std::string, bool>       arpgMarkerTopicMap;
+    bool                                        arpgLogScanned = false;
+    void arpgScanLog();
     bool arpgChoice  (zenkit::IInfo& info, int func);       // true: the script's choice is replaced
     void arpgAddMarker(zenkit::IInfo& info, int32_t marker, std::string_view utf8);
     void arpgExec    (const DlgChoice& dlg, Npc& player, Npc& npc);

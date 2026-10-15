@@ -15,6 +15,8 @@
 #include "gothic.h"
 #include "game/gamesession.h"
 #include "game/arpgskills.h"
+#include "game/arpgkeys.h"
+#include "ui/arpgmenu.h"
 
 // gothic-diablo: what the hero's skill trees give (defaults without a game)
 static const ArpgPerks& heroPerks() {
@@ -85,7 +87,9 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
   if(w!=nullptr && w->isCutsceneLock())
     return;
 
-  handleMovementAction(KeyCodec::ActionMapping{a,mapping}, true);
+  // Diathic: a key of the ARPG mode does not move the hero as well (Gothic's binding of the same key)
+  if(!(pl!=nullptr && c!=nullptr && c->isArpgActive() && ArpgKeys::actionOf(key)>=0))
+    handleMovementAction(KeyCodec::ActionMapping{a,mapping}, true);
 
   if(pl!=nullptr && pl->interactive()!=nullptr && c!=nullptr && !c->isFree()) {
     auto inter = pl->interactive();
@@ -101,38 +105,39 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
 
   const bool arpgKeys = (pl!=nullptr && c!=nullptr && c->isArpgActive());
   if(arpgKeys) {
-    // gothic-diablo: Space = dodge (the middle mouse button keeps drawing/sheathing the weapon),
-    // X = melee <-> bow, V = sneak (X was sneak in Gothic)
-    if(key==Tempest::KeyEvent::K_Space) {
+    // Diathic: the keys of the ARPG mode (ArpgKeys, "Sterowanie" in the main menu) win over Gothic's
+    const int ak = ArpgKeys::actionOf(key);
+    if(ak==ArpgKeys::Dodge) {
       arpgDodge();
       return;
       }
-    if(key==Tempest::KeyEvent::K_X) {
+    if(ak==ArpgKeys::SwapWeapon) {
       arpgSwapWeapon();
       return;
       }
-    if(key==Tempest::KeyEvent::K_V) {
+    if(ak==ArpgKeys::Sneak) {
+      // Gothic: only with the talent (learned from a teacher)
+      if(!pl->canSneak() && (pl->walkMode()&WalkBit::WM_Sneak)!=WalkBit::WM_Sneak) {
+        Gothic::inst().onPrint(ArpgMenu::gtxt("Nie umiesz się skradać - naucz się tego u nauczyciela"));
+        return;
+        }
       toggleSneakMode();
+      const bool on = (pl->walkMode()&WalkBit::WM_Sneak)==WalkBit::WM_Sneak;
+      Gothic::inst().onPrint(ArpgMenu::gtxt(on ? "Skradanie" : "Koniec skradania"));
       return;
       }
-    if(a>=Action::WeaponMage3 && a<=Action::WeaponMage10) {
-      // 3-0: cast the spell of that slot at the cursor (Gothic: draw the rune, then cast with the action key)
-      arpgSpellKey(uint8_t(a-Action::WeaponMage3+3), true);
+    if(ak==ArpgKeys::Walk) {
+      toggleWalkMode();
+      const bool walk = (pl->walkMode()&WalkBit::WM_Walk)==WalkBit::WM_Walk;
+      Gothic::inst().onPrint(ArpgMenu::gtxt(walk ? "Chód" : "Bieg"));
       return;
       }
-    if(key==Tempest::KeyEvent::K_1 || key==Tempest::KeyEvent::K_2) {
-      // 1 = health potion, 2 = mana potion (Gothic: melee weapon / bow; X swaps the weapons here)
-      arpgPotion(key==Tempest::KeyEvent::K_1 ? 1 : 2);
+    if(ak==ArpgKeys::PotionHealth || ak==ArpgKeys::PotionMana) {
+      arpgPotion(ak==ArpgKeys::PotionHealth ? 1 : 2);
       return;
       }
-    if(a==KeyCodec::ActionGeneric && key==Tempest::KeyEvent::K_LControl) {
-      // Ctrl is only a modifier for the mouse here (attack anyone / in place; with a bow: aim at the cursor),
-      // not Gothic's action key (it would aim the bow and shoot only on release)
-      ctrl[a] = true;
-      return;
-      }
-    if(key==Tempest::KeyEvent::K_LShift) {
-      // left Shift = draw / put away the weapon (Space is the dodge now)
+    if(ak==ArpgKeys::Weapon) {
+      // draw / put away the weapon
       if(ws!=WeaponState::NoWeapon) {
         wctrl[WeaponClose] = true;
         } else {
@@ -144,6 +149,23 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
         }
       return;
       }
+    if(ak>=0)
+      return; // the windows / map / labels: MainWindow
+    if(a>=Action::WeaponMage3 && a<=Action::WeaponMage10) {
+      // 3-0: cast the spell of that slot at the cursor (Gothic: draw the rune, then cast with the action key)
+      arpgSpellKey(uint8_t(a-Action::WeaponMage3+3), true);
+      return;
+      }
+    if(a==KeyCodec::ActionGeneric && key==Tempest::KeyEvent::K_LControl) {
+      // Ctrl is only a modifier for the mouse here (attack anyone / in place; with a bow: aim at the cursor),
+      // not Gothic's action key (it would aim the bow and shoot only on release)
+      ctrl[a] = true;
+      return;
+      }
+    // Gothic's keys that do the same as ours or break the view from above
+    if(a==Action::Walk || a==Action::Sneak || a==Action::Weapon || a==Action::WeaponMele || a==Action::WeaponBow ||
+       a==Action::FirstPerson || a==Action::LookBack)
+      return;
     }
 
   if(pl!=nullptr) {
@@ -2511,6 +2533,11 @@ void PlayerControl::arpgVisibleObjects(std::vector<Focus>& out) const {
     if(arpgCanSee(m.displayPosition(), m.position().y, &m))
       out.push_back(Focus(m));
     });
+  }
+
+bool PlayerControl::arpgCursorOnEnemy() const {
+  auto n = arpgHover.npc;
+  return n!=nullptr && !n->isDead() && !n->isDown() && arpgIsEnemy(*n);
   }
 
 bool PlayerControl::arpgIsEnemy(const Npc& npc) const {

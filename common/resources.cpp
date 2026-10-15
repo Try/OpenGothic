@@ -886,6 +886,34 @@ std::vector<const Texture2d*> Resources::loadTextureAnim(std::string_view name) 
     }
   }
 
+Pixmap Resources::loadPixmapRgba(std::string_view name) {
+  // the compiled texture "<NAME>-C.TEX" decoded to RGBA (DXT too)
+  std::string cname = std::string(name);
+  for(auto& c:cname)
+    c = char(std::toupper(uint8_t(c)));
+  if(cname.size()>4 && cname.substr(cname.size()-4)==".TGA")
+    cname = cname.substr(0, cname.size()-4)+"-C.TEX";
+  std::lock_guard<std::recursive_mutex> g(inst->sync);
+  try {
+    if(const auto* entry = Resources::vdfsIndex().find(cname)) {
+      zenkit::Texture tex;
+      auto reader = entry->open_read();
+      tex.load(reader.get());
+      if(tex.format()==zenkit::TextureFormat::P8)
+        return Pixmap(); // zenkit's palette conversion writes past its buffer
+      auto rgba = tex.as_rgba8(0);
+      Pixmap pm(tex.width(), tex.height(), TextureFormat::RGBA8);
+      if(rgba.size()==size_t(tex.width())*size_t(tex.height())*4u) {
+        std::memcpy(pm.data(), rgba.data(), rgba.size());
+        return pm;
+        }
+      }
+    }
+  catch(...) {
+    }
+  return Pixmap();
+  }
+
 Texture2d Resources::loadTexturePm(const Pixmap &pm) {
   if(pm.isEmpty()) {
     Pixmap p2(1,1,TextureFormat::R8);

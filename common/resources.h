@@ -101,6 +101,7 @@ class Resources final {
     static const Tempest::Texture2d* loadTexture(Tempest::Color color);
     static const Tempest::Texture2d* loadTexture(std::string_view name, int32_t v, int32_t c);
     static       Tempest::Texture2d  loadTexturePm(const Tempest::Pixmap& pm);
+    static       Tempest::Pixmap     loadPixmapRgba(std::string_view name); // Diathic: pixels of a game texture (*.TGA)
     static auto                      loadTextureAnim(std::string_view name) -> std::vector<const Tempest::Texture2d*>;
     static       Material            loadMaterial(const zenkit::Material& src, bool enableAlphaTest);
 

@@ -545,7 +545,8 @@ void Renderer::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldVi
 
 void Renderer::draw(Attachment& result, Encoder<CommandBuffer>& cmd, uint8_t fId,
                     VectorImage::Mesh& uiLayer, VectorImage::Mesh& numOverlay,
-                    InventoryMenu& inventory, VideoWidget& video, InventoryRenderer* hudItems) {
+                    InventoryMenu& inventory, VideoWidget& video, InventoryRenderer* hudItems,
+                    InventoryRenderer* cursorItem) {
   auto wview  = Gothic::inst().worldView();
   auto camera = Gothic::inst().camera();
 
@@ -580,6 +581,15 @@ void Renderer::draw(Attachment& result, Encoder<CommandBuffer>& cmd, uint8_t fId
       }
     cmd.setDebugMarker("Hud-overlay");
     numOverlay.draw(cmd);
+    }
+
+  // Diathic: the sword cursor over all of the interface
+  if(cursorItem!=nullptr && !cursorItem->isEmpty()) {
+    auto& zb = (zbufferUi.isEmpty() ? zbuffer : zbufferUi);
+    cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}},{zb, 1.f, Tempest::Preserve});
+    cmd.setDebugMarker("Cursor");
+    cursorItem->draw(cmd);
+    cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}});
     }
   }
 

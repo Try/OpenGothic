@@ -1,3 +1,4 @@
+#include "game/arpgkeys.h"
 #include "arpgmenu.h"
 
 #include <Tempest/Brush>
@@ -633,7 +634,11 @@ int ArpgMenu::drawSection(Painter& p, const Fonts& f, const Rect& c, int y, std:
   }
 
 void ArpgMenu::drawTabs(Painter& p, int w, const Fonts& f) {
-  static const char* names[3] = {"Ekwipunek (I)", "Postać (C)", "Umiejętności (T)"};
+  // Diathic: the keys from ArpgKeys ("Sterowanie" in the main menu)
+  const std::string names[3] = {
+    "Ekwipunek ("   + ArpgKeys::keyName(ArpgKeys::key(ArpgKeys::Equipment)) + ")",
+    "Postać ("      + ArpgKeys::keyName(ArpgKeys::key(ArpgKeys::Character)) + ")",
+    "Umiejętności (" + ArpgKeys::keyName(ArpgKeys::key(ArpgKeys::Skills))   + ")"};
   const int gap = int(10*k);
   const int tw  = int(220*k);
   const int th  = int(46*k);
@@ -1030,7 +1035,7 @@ void ArpgMenu::paintStats(Painter& p, const Fonts& f, const Rect& cl, const Rect
     std::snprintf(buf, sizeof(buf), "%d", pr!=nullptr ? int(std::max(0, pr->freePoints(pl.level()))) : 0);
     row(cl, y, gtxt("Punkty umiejętności"), buf);
   }
-  y += wrap(p, *f.small, cl.x, y-int(4*k), cl.w, gtxt("Do drzewek (T): 1 za poziom; każdy nauczyciel zamienia 5 punktów nauki na 1; kamienne tablice walki dają punkty do Biegłości."));
+  y += wrap(p, *f.small, cl.x, y-int(4*k), cl.w, gtxt("Do drzewek ("+ArpgKeys::keyName(ArpgKeys::key(ArpgKeys::Skills))+"): 1 za poziom; każdy nauczyciel zamienia 5 punktów nauki na 1; kamienne tablice walki dają punkty do Biegłości."));
 
   section(cl, y, gtxt("Atrybuty"));
   std::snprintf(buf, sizeof(buf), "%d", int(pl.attribute(ATR_STRENGTH)));
