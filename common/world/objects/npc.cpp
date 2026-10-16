@@ -2525,9 +2525,11 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
       arpgHardSkinUntil = now+3000;
       }
     }
-  // Diathic: staggered (after a parry): damage x4
-  if(hitResult.value>0 && arpgHasStatus(ArpgStatus::Stagger))
+  // Diathic: staggered (after a parry): this hit x4, and the stagger is over (damage over time does not end it)
+  if(hitResult.value>0 && arpgHasStatus(ArpgStatus::Stagger)) {
     hitResult.value = int32_t(std::lround(float(hitResult.value)*ArpgStatus::StaggerDmgMul));
+    arpgSt[ArpgStatus::Stagger].until = owner.tickCount();
+    }
   // gothic-diablo: hero's arrows in the ARPG view (normal shot x0.5, charged shot x1.5)
   if(b!=nullptr && !isSpell && hitResult.value>0 && b->arpgDamageMul()!=1.f)
     hitResult.value = std::max<int32_t>(1, int32_t(std::lround(float(hitResult.value)*b->arpgDamageMul())));
