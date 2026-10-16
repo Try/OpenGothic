@@ -27,3 +27,8 @@ pozostałe parametry trafiają do `Gothic2Notr.exe`.
 
 Build lokalny: RelWithDebInfo z `-g1` (lżejsze info debug), tylko `Gothic2Notr` (bez Spacera), ccache, linker lld.
 `dev.ps1` i `.bat` w folderze launchera aktualizują się same z `src\dev`.
+
+## Piaskownica Claude (Linux)
+`dev/piaskownica.sh` — build i sprawdzenie przed pushem, wypisuje tylko błędy:
+- `setup` (raz na sesję: apt, nagłówki Vulkan, submoduły, cmake), `build` (przyrostowo; pierwszy build w tle), `clang` (clang `-Wconversion -Werror` jak macOS w CI, na zmienionych `.cpp` albo podanych plikach), `all`
+- pełne logi w `/tmp/diathic` (`DIATHIC_TMP`)
