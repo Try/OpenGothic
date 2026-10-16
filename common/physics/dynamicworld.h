@@ -4,6 +4,7 @@
 
 #include <Tempest/Matrix4x4>
 #include <memory>
+#include <functional>
 #include <limits>
 
 class btTriangleIndexVertexArray;
@@ -255,6 +256,8 @@ class DynamicWorld final {
       };
 
     RayLandResult  landRay      (const Tempest::Vec3& from, float maxDy=0) const;
+    // Diathic: every triangle of the landscape (cm), for the overlay map
+    void           forEachLandTriangle(const std::function<void(const Tempest::Vec3&, const Tempest::Vec3&, const Tempest::Vec3&)>& f) const;
     RayLandResult  landSweep    (const Tempest::Vec3& from, float R, float maxDy) const;
     RayWaterResult waterRay     (const Tempest::Vec3& from, float stepHeight) const;
     RayCamResult   cameraRay    (const Tempest::Vec3& from, const Tempest::Vec3& to) const;

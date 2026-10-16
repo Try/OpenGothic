@@ -2,10 +2,12 @@
 
 #include <Tempest/Application>
 #include <Tempest/Pixmap>
+#include <Tempest/Log>
 
 #include <algorithm>
 #include <cmath>
 #include <functional>
+#include <unordered_set>
 
 #include "game/arpgmapdata.h"
 #include "game/gamesession.h"
@@ -16,6 +18,7 @@
 #include "world/objects/npc.h"
 #include "world/objects/item.h"
 #include "world/world.h"
+#include "physics/dynamicworld.h"
 #include "camera.h"
 #include "gothic.h"
 #include "resources.h"
@@ -506,18 +509,62 @@ void ArpgWorldMap::paint(Painter& p, const Ctx& c) {
   }
   }
 
+void ArpgWorldMap::buildWalls(World& w) {
+  walls.clear();
+  wallWorld = &w;
+  std::unordered_set<uint64_t> seen;
+  size_t                       count = 0;
+  w.physic()->forEachLandTriangle([&](const Vec3& a, const Vec3& b, const Vec3& c) {
+    // steep only: walls, cliffs, the sides of rocks (not floors, slopes, ceilings)
+    const Vec3  u  = b-a, v = c-a;
+    const float nx = u.y*v.z-u.z*v.y, ny = u.z*v.x-u.x*v.z, nz = u.x*v.y-u.y*v.x;
+    const float nl = std::sqrt(nx*nx+ny*ny+nz*nz);
+    if(nl<1e-3f || std::fabs(ny)/nl>0.5f)
+      return;
+    // seen from above a wall is a line: the two points farthest apart
+    const Vec2 pt[3] = {{a.x,a.z},{b.x,b.z},{c.x,c.z}};
+    int   i0 = 0, i1 = 1;
+    float best = -1.f;
+    for(int i=0; i<3; ++i)
+      for(int j=i+1; j<3; ++j) {
+        const float dx = pt[i].x-pt[j].x, dz = pt[i].y-pt[j].y;
+        if(dx*dx+dz*dz>best) {
+          best = dx*dx+dz*dz;
+          i0 = i;
+          i1 = j;
+          }
+        }
+    if(best<40.f*40.f)
+      return; // small bits (edges of stones, steps): no line
+    WallSeg sg;
+    sg.x0 = pt[i0].x; sg.z0 = pt[i0].y;
+    sg.x1 = pt[i1].x; sg.z1 = pt[i1].y;
+    sg.y0 = std::min(a.y, std::min(b.y, c.y));
+    sg.y1 = std::max(a.y, std::max(b.y, c.y));
+    // the two triangles of one wall give the same line: once
+    auto q = [](float x) { return uint64_t(uint32_t(int32_t(std::lround(x/20.f)))); };
+    uint64_t ka = (q(sg.x0)*73856093u) ^ (q(sg.z0)*19349663u), kb = (q(sg.x1)*73856093u) ^ (q(sg.z1)*19349663u);
+    if(ka>kb)
+      std::swap(ka, kb);
+    const uint64_t key = (ka*0x9E3779B97F4A7C15ull) ^ (kb + (q(sg.y0*0.25f)<<1));
+    if(!seen.insert(key).second)
+      return;
+    const float mx = (sg.x0+sg.x1)*0.5f, mz = (sg.z0+sg.z1)*0.5f;
+    const int   ci = int(std::floor(mx/ArpgMapData::Cell)), cj = int(std::floor(mz/ArpgMapData::Cell));
+    walls[ArpgMapData::key(ci,cj)].push_back(sg);
+    ++count;
+    });
+  Tempest::Log::i("Diathic: overlay map, ", count, " lines of walls and cliffs");
+  }
+
 void ArpgWorldMap::paintOverlay(Painter& p, const Ctx& c) {
   updateLayers(c.world, c.hero);
   updateMarkers(c.world);
-  if(layers.empty())
-    return;
-  const Layer& L = layers[0];                    // the map of the whole place
-  const Texture2d* tex = sketchOf(L.texture, true); // only its lines, light, like the lines of Diablo II
-  if(tex==nullptr || tex->isEmpty())
-    return;
+  if(wallWorld!=&c.world)
+    buildWalls(c.world);
 
   const auto  hero = c.hero.position();
-  const float half = 4500.f;                     // cm from the hero to the top of the screen
+  const float half = 3000.f;                     // cm from the hero to the top of the screen
   const float k    = (float(c.h)*0.5f)/half;
   const float cx   = float(c.w)*0.5f, cy = float(c.h)*0.5f;
   // like the minimap: screen up = where the camera looks
@@ -528,11 +575,51 @@ void ArpgWorldMap::paintOverlay(Painter& p, const Ctx& c) {
     const float dx = wx-hero.x, dz = wz-hero.z;
     return Vec2(cx + k*(dx*rt.x + dz*rt.y), cy - k*(dx*f.x + dz*f.y));
     };
-  const float reach = half*1.2f*std::max(1.f, float(c.w)/float(std::max(1,c.h)));
-  drawExplored(p, L, *tex, toScreen, hero.x-reach, hero.z-reach, hero.x+reach, hero.z+reach,
-               Color(1.f,0.86f,0.55f,0.85f), true);
-
   const float s = c.scale;
+
+  // the walls and cliffs the hero has seen (explored cells), of his own level; thin, light lines, none close around
+  // him (the fight stays visible), fading out at the edge
+  {
+    auto        d        = data();
+    const auto* explored = d!=nullptr ? d->explored(worldName) : nullptr;
+    const float reach    = half*1.25f*std::max(1.f, float(c.w)/float(std::max(1,c.h)));
+    const int   i0 = int(std::floor((hero.x-reach)/ArpgMapData::Cell)), i1 = int(std::floor((hero.x+reach)/ArpgMapData::Cell));
+    const int   j0 = int(std::floor((hero.z-reach)/ArpgMapData::Cell)), j1 = int(std::floor((hero.z+reach)/ArpgMapData::Cell));
+    // a few strengths of the line: lines grouped by them (one pen each)
+    constexpr int Levels = 4;
+    std::vector<std::pair<Vec2,Vec2>> byLevel[Levels];
+    for(int j=j0; j<=j1; ++j)
+      for(int i=i0; i<=i1; ++i) {
+        const int64_t key = ArpgMapData::key(i,j);
+        if(explored==nullptr || explored->find(key)==explored->end())
+          continue;
+        auto it = walls.find(key);
+        if(it==walls.end())
+          continue;
+        for(auto& sg:it->second) {
+          if(sg.y1<hero.y-200.f || sg.y0>hero.y+350.f)
+            continue; // another floor, a cave below, the top of a cliff high above
+          const float mx = (sg.x0+sg.x1)*0.5f-hero.x, mz = (sg.z0+sg.z1)*0.5f-hero.z;
+          const float dist = std::sqrt(mx*mx+mz*mz);
+          const float a    = std::clamp((dist-250.f)/450.f, 0.f, 1.f) * std::clamp((reach-dist)/1000.f, 0.f, 1.f);
+          if(a<=0.05f)
+            continue;
+          const int lv = std::min(Levels-1, int(a*float(Levels)));
+          byLevel[lv].emplace_back(toScreen(sg.x0, sg.z0), toScreen(sg.x1, sg.z1));
+          }
+        }
+    // 1 px lines (the pen): crisp at any size; wider ones would be quads drawn with the brush
+    for(int lv=0; lv<Levels; ++lv) {
+      if(byLevel[lv].empty())
+        continue;
+      const float a = 0.60f*float(lv+1)/float(Levels);
+      p.setPen(Pen(Color(1.f, 0.88f, 0.60f, a), Painter::Alpha, 1.f));
+      for(auto& l:byLevel[lv])
+        p.drawLine(int(l.first.x), int(l.first.y), int(l.second.x), int(l.second.y));
+      }
+    p.setPen(Pen());
+  }
+
   for(auto& m:markers) {
     const Npc* npc = c.world.findNpcByInstance(m.instance);
     if(npc==nullptr || npc->isDead())
@@ -541,7 +628,7 @@ void ArpgWorldMap::paintOverlay(Painter& p, const Ctx& c) {
     const Vec2 sp  = toScreen(pos.x, pos.z);
     if(sp.x<0 || sp.y<0 || sp.x>float(c.w) || sp.y>float(c.h))
       continue;
-    diamond(p, sp.x, sp.y, 4.f*s, m.trader ? Color(0.95f,0.75f,0.20f,0.9f) : Color(0.45f,0.68f,0.98f,0.9f));
+    diamond(p, sp.x, sp.y, 4.f*s, m.trader ? Color(0.95f,0.75f,0.20f,0.8f) : Color(0.45f,0.68f,0.98f,0.8f));
     }
   if(auto d = data()) {
     for(auto& pin:d->pins(worldName)) {
@@ -550,10 +637,11 @@ void ArpgWorldMap::paintOverlay(Painter& p, const Ctx& c) {
         pinShape(p, sp.x, sp.y, s, false);
       }
     }
+  // the hero himself: only a small arrow (he is right there on the screen)
   const float rot = c.hero.rotation()*Pi/180.f;
   const Vec2  a   = toScreen(hero.x, hero.z);
   const Vec2  b   = toScreen(hero.x+std::cos(rot)*100.f, hero.z+std::sin(rot)*100.f);
-  drawHero(p, a, b-a, s);
+  drawHero(p, a, b-a, s*0.8f);
   }
 
 // ---------------------------------------------------------------------------------------------------------------

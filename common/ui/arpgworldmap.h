@@ -90,6 +90,13 @@ class ArpgWorldMap final {
 
     bool                          open = false;
     std::string                   worldName;
+
+    // Diathic: the overlay (Tab): walls and cliffs of the world (steep triangles of the landscape) as thin lines, like
+    // the automap of Diablo II - not the painted map blown up; per 4 m cell (ArpgMapData::Cell), made once per world
+    struct WallSeg { float x0, z0, x1, z1, y0, y1; };
+    const void*                                       wallWorld = nullptr;
+    std::unordered_map<int64_t, std::vector<WallSeg>> walls;
+    void                          buildWalls(World& w);
     std::vector<Layer>            layers;
     size_t                        layer = 0;
     uint64_t                      layersAt = 0;

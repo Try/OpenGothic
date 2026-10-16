@@ -642,6 +642,21 @@ DynamicWorld::RayLandResult DynamicWorld::landRay(const Tempest::Vec3& from, flo
   return ray(from, Tempest::Vec3(from.x,from.y-maxDy,from.z));
   }
 
+void DynamicWorld::forEachLandTriangle(const std::function<void(const Tempest::Vec3&, const Tempest::Vec3&, const Tempest::Vec3&)>& f) const {
+  if(landMesh==nullptr || landMesh->isEmpty())
+    return;
+  struct Cb : btInternalTriangleIndexCallback {
+    const std::function<void(const Tempest::Vec3&, const Tempest::Vec3&, const Tempest::Vec3&)>& f;
+    explicit Cb(const std::function<void(const Tempest::Vec3&, const Tempest::Vec3&, const Tempest::Vec3&)>& f):f(f) {}
+    void internalProcessTriangleIndex(btVector3* tri, int /*part*/, int /*index*/) override {
+      f(CollisionWorld::toCentimeters(tri[0]), CollisionWorld::toCentimeters(tri[1]), CollisionWorld::toCentimeters(tri[2]));
+      }
+    };
+  Cb cb(f);
+  const btScalar big = btScalar(1e6);
+  landMesh->InternalProcessAllTriangles(&cb, btVector3(-big,-big,-big), btVector3(big,big,big));
+  }
+
 DynamicWorld::RayLandResult DynamicWorld::landSweep(const Tempest::Vec3& from, float R, float maxDy) const {
   world->updateAabbs();
   if(maxDy==0)
