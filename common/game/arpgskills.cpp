@@ -16,7 +16,7 @@ const std::vector<Tree>& ArpgSkills::trees() {
         {"Ostrze",       {{"Ostra klinga",5,"+4% obrażeń ciosu za punkt","ITMW_SCHWERT1"},
                           {"Słaby punkt",3,"+5% szansy na pełne obrażenia (krytyk Gothica)","ITMW_1H_VLK_DAGGER"},
                           {"Głębokie rany",3,"Trafienie: krwawienie 5% obrażeń na sekundę przez 3 s, za punkt","ITAT_CLAW"}}},
-        {"Rytm",         {{"Płynne ruchy",5,"+3% szybkości ataku za punkt","ITMW_RAPIER"},
+        {"Rytm",         {{"Płynne ruchy",5,"+7% szybkości ataku za punkt","ITMW_RAPIER"},
                           {"Wyczucie chwili",2,"Okno combo dłuższe o 25% za punkt","ITMI_SEXTANT"},
                           {"Czwarty cios",1,"Seria kończy się dodatkowym ciosem x1,5","ITMW_MEISTERDEGEN"}}},
         {"Zamach",       {{"Szeroki łuk",3,"Łuk cięcia 120 stopni, +20 za punkt (do 180)","ITMW_SENSE"},
@@ -435,7 +435,7 @@ const ArpgPerks& ArpgProgress::perks() const {
   p.meleeDmg    = 0.04f*r("Cios","Ostra klinga");
   p.critAdd     = int(5.f*r("Cios","Słaby punkt"));
   p.bleed       = 0.05f*r("Cios","Głębokie rany");
-  p.atkSpeed    = 0.03f*r("Cios","Płynne ruchy");
+  p.atkSpeed    = 0.07f*r("Cios","Płynne ruchy"); // Diathic: from the standard speed of Gothic (no base bonus)
   p.comboWindow = 0.25f*r("Cios","Wyczucie chwili");
   p.fourthHit   = r("Cios","Czwarty cios")>0;
   p.arc         = std::min(180.f, 120.f+20.f*r("Cios","Szeroki łuk"));

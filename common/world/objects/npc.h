@@ -4,6 +4,7 @@
 #include "graphics/mesh/animation.h"
 #include "graphics/meshobjects.h"
 #include "graphics/mdlvisual.h"
+#include "game/arpgstatus.h"
 #include "game/gametime.h"
 #include "game/movealgo.h"
 #include "game/inventory.h"
@@ -195,6 +196,9 @@ class Npc final {
     auto       lastMoveFail() const -> const MoveAlgo::MoveFail& { return mvAlgo.lastMoveFail(); } // gothic-diablo
     auto       comboTiming() const -> Pose::ComboTiming;                                        // gothic-diablo
     void       arpgHoldParade();         // gothic-diablo: block held
+    // Diathic: negative statuses (game/arpgstatus.h); value: damage per second for damage over time
+    void       arpgApplyStatus(ArpgStatus::Id id, uint64_t ms, float value, Npc* from);
+    bool       arpgHasStatus(ArpgStatus::Id id) const;
     void       arpgHoldAttack();         // gothic-diablo: charged attack held in its wind-up
     void       arpgStartSpecial(float mul, bool knock = true); // gothic-diablo: the next swing: x mul (knock: throws down)
     const ArpgPerks* arpgPerks() const;    // gothic-diablo: what the hero's skill trees give (ARPG view; others: nullptr)
@@ -574,17 +578,20 @@ class Npc final {
     uint64_t  arpgSpinUntil      = 0;     // hero: Wir, turning round
     bool      arpgShadowOn       = false;
     bool      arpgSpecialKill    = false; // hero: the charged attack killed someone (Pęd bitewny)
-    struct ArpgDot {
-      float    dps   = 0;
+    // Diathic: negative statuses (ArpgStatus): stagger, burning, bleeding...
+    struct ArpgStatusState {
+      float    value = 0;      // damage over time: per second
       uint64_t until = 0;
-      uint64_t next  = 0;
+      uint64_t next  = 0;      // damage over time: the next tick
       Npc*     from  = nullptr;
       };
-    ArpgDot   arpgBleed, arpgBurn;     // bleeding (Głębokie rany), fire (Gniew Innosa)
+    ArpgStatusState arpgSt[ArpgStatus::Count];
     const VisualFx* arpgBurnFx = nullptr;
+    uint64_t  arpgParadeLast  = 0;     // hero: the last frame the block was held
+    uint64_t  arpgParadeStart = 0;     // hero: when the block held now started (parry)
     ArpgFx    arpgFxLast;
-    void      arpgDot(ArpgDot& d, float dps, uint64_t ms, Npc& from);
-    void      arpgTickDots();
+    void      arpgTickStatus();
+    void      arpgParrySound();
     void      arpgTickShadow();
     Npc*      updateNearestEnemy();
     Npc*      updateNearestBody();

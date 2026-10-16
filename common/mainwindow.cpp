@@ -2515,6 +2515,43 @@ void MainWindow::paintArpgCombat(Painter& p, const Matrix4x4& vp) {
       });
   }
 
+  // Diathic: staggered (after a parry): blue stars going round over the head
+  {
+    const uint64_t now = world->tickCount();
+    auto stars = [&](Npc& n) {
+      if(n.isDead() || !n.arpgHasStatus(ArpgStatus::Stagger))
+        return;
+      const auto  bb  = n.bounds();
+      const float top = (bb.bbox[1].y>n.position().y+60.f && bb.bbox[1].y<n.position().y+700.f) ? bb.bbox[1].y : n.position().y+190.f;
+      Point sp;
+      if(!toScreen(Vec3(n.position().x, top+25.f, n.position().z), sp))
+        return;
+      const float rx = 26.f*scale, ry = 8.f*scale;
+      for(int i=0; i<3; ++i) {
+        const float ang = float(now%100000)*0.008f + float(i)*2.0944f;
+        const float cx  = float(sp.x) + std::cos(ang)*rx;
+        const float cy  = float(sp.y) + std::sin(ang)*ry;
+        const float s   = (6.f + 1.5f*std::sin(float(now%100000)*0.02f+float(i)))*scale;
+        const float w   = s*0.28f;
+        // a four-pointed star: two thin crossed diamonds (both windings: the UI pipeline culls one)
+        auto tri = [&](float ax, float ay, float bx, float by, float qx, float qy) {
+          p.drawTriangle(ax,ay,0,0, bx,by,0,0, qx,qy,0,0);
+          p.drawTriangle(ax,ay,0,0, qx,qy,0,0, bx,by,0,0);
+          };
+        p.setBrush(Brush(Color(0.35f,0.6f,1.f,0.6f), Painter::Add));
+        tri(cx,cy-s, cx+w,cy, cx,cy+s);
+        tri(cx,cy-s, cx-w,cy, cx,cy+s);
+        tri(cx-s,cy, cx,cy+w, cx+s,cy);
+        tri(cx-s,cy, cx,cy-w, cx+s,cy);
+        p.setBrush(Brush(Color(0.75f,0.88f,1.f,1.f), Painter::Alpha));
+        p.drawRect(int(cx)-1, int(cy)-1, 3, 3);
+        }
+      };
+    const auto& view  = cam->arpgView();
+    const float sight = view.fowRadius>0.f ? view.fowRadius : 1500.f;
+    world->detectNpc(pl->position(), sight, [&](Npc& n) { stars(n); });
+  }
+
   // floating numbers: rise and fade in about a second
   {
     auto&          list = world->arpgPopups();
@@ -2549,7 +2586,8 @@ void MainWindow::paintArpgCombat(Painter& p, const Matrix4x4& vp) {
       else if(e.kind==5) {
         // a skill of the trees went off
         type = Resources::FontType::Yellow;
-        const char* nm = (e.value==1) ? "Wir!" : (e.value==2) ? "Fala uderzeniowa!" : (e.value==3) ? "Grad strzał!" : "";
+        const char* nm = (e.value==1) ? "Wir!" : (e.value==2) ? "Fala uderzeniowa!" : (e.value==3) ? "Grad strzał!" :
+                         (e.value==4) ? "Parowanie!" : "";
         std::snprintf(txt, sizeof(txt), "%s", ArpgMenu::gtxt(nm).c_str());
         } else {
         type = (e.kind==1) ? Resources::FontType::Red : Resources::FontType::Normal;

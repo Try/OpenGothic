@@ -18,6 +18,7 @@
 #include "camera.h"
 #include "game/gamesession.h"
 #include "game/arpgskills.h"
+#include "game/definitions/sounddefinitions.h"
 #include "gothic.h"
 #include "resources.h"
 
@@ -2166,7 +2167,12 @@ bool Npc::arpgSpinning() const {
   }
 
 void Npc::arpgHoldParade() {
-  visual.holdParade(owner.tickCount());
+  // Diathic: a block held without a break is one block; a new one starts after a pause (parry: ArpgStatus::ParryWindowMs)
+  const uint64_t now = owner.tickCount();
+  if(arpgParadeLast==0 || now>arpgParadeLast+200)
+    arpgParadeStart = now;
+  arpgParadeLast = now;
+  visual.holdParade(now);
   }
 
 void Npc::arpgHoldAttack() {
@@ -2255,45 +2261,106 @@ void Npc::arpgNpcCollision(bool on) {
   physic.setNpcCollision(on);
   }
 
-void Npc::arpgDot(ArpgDot& d, float dps, uint64_t ms, Npc& from) {
+void Npc::arpgApplyStatus(ArpgStatus::Id id, uint64_t ms, float value, Npc* from) {
+  if(id>=ArpgStatus::Count || isDead())
+    return;
   const uint64_t now = owner.tickCount();
-  if(d.until<=now)
-    d.next = now+1000;
-  d.dps   = std::max(d.until>now ? d.dps : 0.f, dps); // the stronger one, longer
-  d.until = now+ms;
-  d.from  = &from;
+  auto&          st  = arpgSt[id];
+  if(ArpgStatus::info(id).dot) {
+    if(st.until<=now)
+      st.next = now+1000;
+    st.value = std::max(st.until>now ? st.value : 0.f, value); // the stronger one, longer
+    } else {
+    st.value = value;
+    }
+  st.until = std::max(st.until, now+ms);
+  st.from  = from;
+
+  if(id==ArpgStatus::Stagger) {
+    // the swing stops (a stumble, like a hit), no attack until it is over (Npc::doAttack)
+    const bool noInter = (hnpc->bodystate_interruptable_override!=0);
+    if(!isDown() && interactive()==nullptr && !noInter) {
+      char hitType = 'A';
+      if(from!=nullptr) {
+        const float a  = angleDir(from->x-x, from->z-z);
+        const float da = a-angle;
+        hitType = (std::cos(da*M_PI/180.0)<0) ? 'A' : 'B';
+        }
+      visual.interrupt();
+      setAnimAngGet(hitType=='A' ? Anim::StumbleA : Anim::StumbleB);
+      }
+    if(!isPlayer())
+      implFaiWait(ms);
+    }
+  if(id==ArpgStatus::Burn && arpgBurnFx==nullptr) {
+    if(auto vfx = Gothic::inst().loadVisualFx("VOB_MAGICBURN")) {
+      Effect e(*vfx, owner, *this, SpellFxKey::Count);
+      e.setActive(true);
+      visual.startEffect(owner, std::move(e), 0, true);
+      arpgBurnFx = vfx;
+      }
+    }
   }
 
-void Npc::arpgTickDots() {
+void Npc::arpgParrySound() {
+  // Diathic: a parry - the clang and the sparks of metal on metal (Gothic's block) and a short bell, when the sounds of
+  // the game have one (looked up once by name, the names found go to the log)
+  static bool        chosen = false;
+  static std::string bell;
+  if(!chosen) {
+    chosen = true;
+    const auto  list = Gothic::sfx().find({"BELL", "GLOCK", "CHIME", "GONG", "KLING"});
+    std::string all;
+    for(auto& n:list)
+      all += (all.empty() ? "" : ", ") + n;
+    Tempest::Log::i("Diathic: parry, bells in the sounds of the game: ", all.empty() ? std::string("none") : all);
+    if(!list.empty())
+      bell = list[0];
+    }
+  Tempest::Matrix4x4 m;
+  m.identity();
+  m.translate(x, y+130.f, z);
+  owner.addWeaponBlkEffect(MAT_METAL, MAT_METAL, m).play();
+  if(!bell.empty())
+    emitSoundEffect(bell, 2000.f, true);
+  }
+
+bool Npc::arpgHasStatus(ArpgStatus::Id id) const {
+  return id<ArpgStatus::Count && arpgSt[id].until>owner.tickCount();
+  }
+
+void Npc::arpgTickStatus() {
   const uint64_t now = owner.tickCount();
-  for(ArpgDot* d:{&arpgBleed, &arpgBurn}) {
-    if(d->until==0)
+  for(uint8_t i=0; i<ArpgStatus::Count; ++i) {
+    auto& st = arpgSt[i];
+    if(st.until==0)
       continue;
-    if(isDead() || d->from==nullptr) {
-      d->until = 0;
-      continue;
+    if(isDead()) {
+      st.until = now;
       }
-    while(d->next<=now && d->next<=d->until) {
-      d->next += 1000;
-      const int32_t v = std::max<int32_t>(1, int32_t(std::lround(d->dps)));
-      if(isDown())
-        break;
-      const int32_t hp0 = hnpc->attribute[ATR_HITPOINTS];
-      lastHit      = d->from;
-      currentOther = d->from;
-      changeAttribute(ATR_HITPOINTS, -v, true);
-      const int32_t lost = hp0-hnpc->attribute[ATR_HITPOINTS];
-      if(lost>0)
-        owner.arpgPopup(position()+Tempest::Vec3(0,180.f,0), lost, 0);
-      if(isDead())
-        owner.sendPassivePerc(*this,*d->from,*this,PERC_ASSESSMURDER);
-      else if(isUnconscious())
-        owner.sendPassivePerc(*this,*d->from,*this,PERC_ASSESSDEFEAT);
+    else if(ArpgStatus::info(ArpgStatus::Id(i)).dot && st.from!=nullptr) {
+      // damage every second
+      while(st.next<=now && st.next<=st.until) {
+        st.next += 1000;
+        const int32_t v = std::max<int32_t>(1, int32_t(std::lround(st.value)));
+        if(isDown())
+          break;
+        const int32_t hp0 = hnpc->attribute[ATR_HITPOINTS];
+        lastHit      = st.from;
+        currentOther = st.from;
+        changeAttribute(ATR_HITPOINTS, -v, true);
+        const int32_t lost = hp0-hnpc->attribute[ATR_HITPOINTS];
+        if(lost>0)
+          owner.arpgPopup(position()+Tempest::Vec3(0,180.f,0), lost, 0);
+        if(isDead())
+          owner.sendPassivePerc(*this,*st.from,*this,PERC_ASSESSMURDER);
+        else if(isUnconscious())
+          owner.sendPassivePerc(*this,*st.from,*this,PERC_ASSESSDEFEAT);
+        }
       }
-    if(d->until<=now) {
-      d->until = 0;
-      d->dps   = 0;
-      if(d==&arpgBurn && arpgBurnFx!=nullptr) {
+    if(st.until<=now) {
+      st = ArpgStatusState();
+      if(i==ArpgStatus::Burn && arpgBurnFx!=nullptr) {
         visual.stopEffect(*arpgBurnFx);
         arpgBurnFx = nullptr;
         }
@@ -2355,6 +2422,18 @@ void Npc::takeDamage(Npc &other, const Bullet* b) {
   if(!isPlayer())
     setOther(&other);
   owner.sendPassivePerc(*this,other,*this,PERC_ASSESSFIGHTSOUND);
+
+  // Diathic: parry - the hero's block started at most ArpgStatus::ParryWindowMs before the hit of an enemy in front of him:
+  // no damage, the enemy is staggered (ArpgStatus::Stagger), a short sound
+  if(arpgParry && b==nullptr && !guardBreak && &other!=this && arpgParadeStart!=0 &&
+     owner.tickCount()<=arpgParadeLast+100 && owner.tickCount()<=arpgParadeStart+ArpgStatus::ParryWindowMs &&
+     fghAlgo.isInFocusAngle(*this,other)) {
+    other.arpgApplyStatus(ArpgStatus::Stagger, ArpgStatus::StaggerMs, 0.f, this);
+    owner.arpgPopup(position()+Tempest::Vec3(0,200.f,0), 4, 5); // "Parowanie!"
+    arpgParrySound();
+    arpgParadeStart = 0; // one parry per block
+    return;
+    }
 
   if(!(isBlock || isJumpb) || b!=nullptr) {
     takeDamage(other,b,COLL_DOEVERYTHING,0,false);
@@ -2446,6 +2525,9 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
       arpgHardSkinUntil = now+3000;
       }
     }
+  // Diathic: staggered (after a parry): damage x4
+  if(hitResult.value>0 && arpgHasStatus(ArpgStatus::Stagger))
+    hitResult.value = int32_t(std::lround(float(hitResult.value)*ArpgStatus::StaggerDmgMul));
   // gothic-diablo: hero's arrows in the ARPG view (normal shot x0.5, charged shot x1.5)
   if(b!=nullptr && !isSpell && hitResult.value>0 && b->arpgDamageMul()!=1.f)
     hitResult.value = std::max<int32_t>(1, int32_t(std::lround(float(hitResult.value)*b->arpgDamageMul())));
@@ -2501,18 +2583,9 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
         if(hk->leech>0.f && !other.isDead())
           other.changeAttribute(ATR_HITPOINTS, std::max<int32_t>(1, int32_t(std::lround(float(lost)*hk->leech))), false);
         if(hk->bleed>0.f && b==nullptr && !isDown())
-          arpgDot(arpgBleed, float(lost)*hk->bleed, 3000, other);      // Głębokie rany
-        if(hk->innosWrath && arpgSpecialHit && !isDown()) {
-          arpgDot(arpgBurn, std::max(4.f, float(lost)*0.1f), 4000, other); // Gniew Innosa
-          if(arpgBurnFx==nullptr) {
-            if(auto vfx = Gothic::inst().loadVisualFx("VOB_MAGICBURN")) {
-              Effect e(*vfx, owner, *this, SpellFxKey::Count);
-              e.setActive(true);
-              visual.startEffect(owner, std::move(e), 0, true);
-              arpgBurnFx = vfx;
-              }
-            }
-          }
+          arpgApplyStatus(ArpgStatus::Bleed, 3000, float(lost)*hk->bleed, &other);              // Głębokie rany
+        if(hk->innosWrath && arpgSpecialHit && !isDown())
+          arpgApplyStatus(ArpgStatus::Burn, 4000, std::max(4.f, float(lost)*0.1f), &other);    // Gniew Innosa
         if(arpgSpecialHit && isDown())
           other.arpgSpecialKill = true;                                 // Pęd bitewny
         }
@@ -2754,15 +2827,15 @@ void Npc::tick(uint64_t dt) {
 
   assert(go2.flag!=GoToHint::GT_Enemy && go2.flag!=GoToHint::GT_EnemyG);
 
-  // gothic-diablo: hero attacks 20% faster in the ARPG view (Płynne ruchy more); Szybki naciąg: bow / crossbow
+  // gothic-diablo: hero's attacks faster with Płynne ruchy (Diathic: no base bonus any more); Szybki naciąg: bow / crossbow
   if(isPlayer() && Camera::isArpgEnabled()) {
     auto        cam = Gothic::inst().camera();
     const auto* pk  = arpgPerks();
     if(cam!=nullptr && cam->isArpgActive() && pk!=nullptr) {
       visual.setArpgComboWindow(1.f+pk->comboWindow);
       const auto ws = weaponState();
-      if(isAttackAnim()) {
-        arpgWarpAcc += float(dt)*(0.2f+pk->atkSpeed);
+      if(isAttackAnim() && pk->atkSpeed>0.f) {
+        arpgWarpAcc += float(dt)*pk->atkSpeed;
         const uint64_t ms = uint64_t(arpgWarpAcc);
         arpgWarpAcc -= float(ms);
         visual.warpAttack(ms, owner.tickCount());
@@ -2778,8 +2851,7 @@ void Npc::tick(uint64_t dt) {
       }
     arpgTickShadow();
     }
-  if(arpgBleed.until!=0 || arpgBurn.until!=0)
-    arpgTickDots();
+  arpgTickStatus();
   if(arpgSpinUntil!=0) {
     // Wir: one turn in 0.3 s
     if(arpgSpinUntil>owner.tickCount())
@@ -4261,6 +4333,8 @@ bool Npc::doAttack(Anim anim, BodyState bs) {
   auto weaponSt = weaponState();
   if(weaponSt==WeaponState::NoWeapon || weaponSt==WeaponState::Mage)
     return false;
+  if(arpgHasStatus(ArpgStatus::Stagger))
+    return false; // Diathic: staggered - no attack, no block
 
   if(mvAlgo.isSwim())
     return false;

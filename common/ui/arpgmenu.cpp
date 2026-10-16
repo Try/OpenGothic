@@ -1233,7 +1233,7 @@ void ArpgMenu::paintStats(Painter& p, const Fonts& f, const Rect& cl, const Rect
       row(cr, y, gtxt("Obrażenia strzałą (x0,5)"), buf);
       }
     // with the skill trees
-    std::snprintf(buf, sizeof(buf), "+%d%%", int(std::lround((0.2f+pk.atkSpeed)*100.f)));
+    std::snprintf(buf, sizeof(buf), "+%d%%", int(std::lround(pk.atkSpeed*100.f)));
     row(cr, y, gtxt("Szybkość ataku"), buf);
     std::snprintf(buf, sizeof(buf), "x%.1f, %.1f s, co %.1f s", double(pk.chargeMul), double(pk.chargeTime), double(std::max(0.5f, pk.chargeCd)));
     for(auto& c:buf)

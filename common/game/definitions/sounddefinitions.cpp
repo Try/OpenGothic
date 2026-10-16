@@ -1,6 +1,7 @@
 #include "sounddefinitions.h"
 
 #include <Tempest/Log>
+#include <algorithm>
 #include <gothic.h>
 
 using namespace Tempest;
@@ -27,3 +28,18 @@ const zenkit::ISoundEffect& SoundDefinitions::operator[](std::string_view name) 
   return s;
   }
 
+
+std::vector<std::string> SoundDefinitions::find(std::initializer_list<std::string_view> parts) const {
+  std::vector<std::string> ret;
+  for(auto& i:sfx) {
+    for(auto p:parts)
+      if(i.first.find(p)!=std::string::npos) {
+        ret.push_back(i.first);
+        break;
+        }
+    }
+  std::sort(ret.begin(), ret.end(), [](const std::string& a, const std::string& b){
+    return a.size()!=b.size() ? a.size()<b.size() : a<b;
+    });
+  return ret;
+  }

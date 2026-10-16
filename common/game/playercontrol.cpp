@@ -1935,48 +1935,103 @@ bool PlayerControl::arpgLineClear(const Tempest::Vec3& from, const Tempest::Vec3
   return !w->physic()->ray(from+up, to+up).hasCol;
   }
 
-Tempest::Vec3 PlayerControl::arpgNextPoint(Npc& pl, const Tempest::Vec3& dest, uint64_t dt) {
+namespace {
+// Diathic: ArpgNav asks the physics of the world
+struct NavScene : ArpgNav::Scene {
+  explicit NavScene(World& w):w(w) {}
+  bool ray(const Tempest::Vec3& from, const Tempest::Vec3& to, Tempest::Vec3& hit) const override {
+    const auto r = w.physic()->ray(from, to);
+    hit = r.v;
+    return r.hasCol;
+    }
+  bool sweepDown(const Tempest::Vec3& from, const Tempest::Vec3& to, float r) const override {
+    return w.physic()->sweep(from, to, r).hasCol;
+    }
+  uint64_t    time() const override { return w.tickCount(); }
+  const void* id()   const override { return &w; }
+  World& w;
+  };
+}
+
+bool PlayerControl::arpgWalkClear(const Tempest::Vec3& from, const Tempest::Vec3& to) {
+  auto w = Gothic::inst().world();
+  if(w==nullptr)
+    return true;
+  return arpgNav.lineClear(NavScene(*w), from, to);
+  }
+
+bool PlayerControl::arpgGridPath(Npc& pl, const Tempest::Vec3& dest, float reach) {
+  // Diathic: around tables, chairs, benches... on a grid tested with the hero's body (ArpgNav)
+  auto  w = Gothic::inst().world();
+  auto& c = arpgClick;
+  if(w==nullptr)
+    return false;
+  std::vector<Tempest::Vec3> way;
+  if(!arpgNav.findPath(NavScene(*w), pl.position(), dest, reach, way))
+    return false;
+  c.path     = std::move(way);
+  c.pathIdx  = 0;
+  c.pathDest = dest;
+  c.gridPath = true;
+  return true;
+  }
+
+Tempest::Vec3 PlayerControl::arpgNextPoint(Npc& pl, const Tempest::Vec3& dest, float reach, uint64_t dt) {
   auto&       c   = arpgClick;
-  auto        w   = Gothic::inst().world();
   const auto  pos = pl.position();
   const float dtF = float(dt)/1000.f;
 
-  // re-plan a few times a second, with hysteresis: a straight line while it is clear,
-  // the waynet only after the line was blocked twice in a row (or when stuck); back to straight
-  // when the line is clear twice in a row; the path is shortened to the farthest visible point
-  (void)w;
+  // a few times a second: straight on while the walk is clear (tested with the hero's body, ArpgNav), else a way
+  // around on the grid near the hero; the waynet for far places; the path is shortened to the farthest point
+  // that can be walked to straight
   c.repathTimer -= dtF;
-  if(c.repathTimer<=0.f) {
+  if(c.repathTimer<=0.f || c.replan) {
     c.repathTimer = 0.4f;
-    const bool clear = arpgLineClear(pos,dest);
-    c.clearCount = clear ? c.clearCount+1 : 0;
-    c.blockCount = clear ? 0 : c.blockCount+1;
     const auto  md       = dest-c.pathDest;
     const bool  destMove = (md.x*md.x+md.z*md.z) > 200.f*200.f;
-    if(c.path.empty()) {
-      if(c.useWaynet || c.blockCount>=2)
-        arpgPlanPath(pl,dest);
-      }
-    else if(!c.useWaynet && c.clearCount>=2) {
+    const bool  clear    = !c.replan && arpgWalkClear(pos,dest);
+    c.clearCount = clear ? c.clearCount+1 : 0;
+    c.blockCount = clear ? 0 : c.blockCount+1;
+    if(clear) {
       c.path.clear();
-      c.pathIdx = 0;
+      c.pathIdx  = 0;
+      c.gridPath = false;
       }
-    else if(destMove) {
-      arpgPlanPath(pl,dest);
+    else if(c.path.empty() || destMove || c.replan) {
+      if(destMove || c.replan)
+        c.gridFailed = false;
+      c.replan   = false;
+      c.gridPath = false;
+      // the grid costs a little: after it found nothing for this destination it is not asked every 0.4 s
+      const bool grid = !c.gridFailed && arpgGridPath(pl, dest, reach);
+      if(!grid)
+        c.gridFailed = true;
+      if(!grid) {
+        arpgPlanPath(pl, dest);
+        // a far place: the waynet; around things close by: the grid to the next point of it
+        if(c.pathIdx<c.path.size() && !arpgWalkClear(pos, c.path[c.pathIdx])) {
+          const auto rest = std::vector<Tempest::Vec3>(c.path.begin()+long(c.pathIdx), c.path.end());
+          if(arpgGridPath(pl, rest.front(), ArpgNav::Cell)) {
+            c.path.insert(c.path.end(), rest.begin()+1, rest.end());
+            c.pathDest = dest;
+            }
+          }
+        }
       }
     else {
       arpgPullPath(pos);
       }
     }
 
+  const float near = c.gridPath ? 35.f : 90.f; // the corners of a way around furniture: closely
   while(c.pathIdx<c.path.size()) {
     const auto d = c.path[c.pathIdx]-pos;
-    if(d.x*d.x+d.z*d.z > 90.f*90.f)
+    if(d.x*d.x+d.z*d.z > near*near)
       break;
     ++c.pathIdx;
     }
 
-  // no progress for 0.4 s: try the other side, then the waynet, then give up (~1.6 s)
+  // no progress for 0.4 s: what is in front of him is closed on the grid, plan again; give up after ~1.6 s
   c.stuckTimer += dtF;
   if(c.stuckTimer>=0.4f) {
     const auto  d      = pos-c.stuckPos;
@@ -1987,12 +2042,9 @@ Tempest::Vec3 PlayerControl::arpgNextPoint(Npc& pl, const Tempest::Vec3& dest, u
       c.stuckCount++;
       c.avoidSide  = (c.avoidSide==0) ? 1 : -c.avoidSide;
       c.detourTime = 0;
-      if(c.stuckCount==2 && !c.useWaynet) {
-        c.useWaynet   = true;
-        c.repathTimer = 0;
-        c.path.clear();
-        c.pathIdx     = 0;
-        }
+      const float a = pl.rotationRad();
+      arpgNav.block(pos + Tempest::Vec3(std::cos(a), 0, std::sin(a))*(ArpgNav::Radius+ArpgNav::Cell));
+      c.replan = true;
       if(c.stuckCount>=4)
         c.kind = ArpgClick::None;
       }
@@ -2079,8 +2131,9 @@ float PlayerControl::arpgSteer(Npc& pl, const Tempest::Vec3& next, uint64_t dt) 
     }
 
   // 3. feelers: something ahead -> turn away from it, preferring the side we already avoid on
+  //    (not on a way around furniture from the grid: it is clear already, the feelers would only push him off it)
   const float len = std::min(110.f, dist-20.f);
-  if(len>=40.f && !arpgFeelerClear(pl, want, len)) {
+  if(!c.gridPath && len>=40.f && !arpgFeelerClear(pl, want, len)) {
     const int s0 = (c.avoidSide!=0) ? c.avoidSide : 1;
     for(float off:{30.f, 60.f, 90.f}) {
       for(int side:{s0, -s0}) {
@@ -2179,7 +2232,17 @@ PlayerControl::ArpgStep PlayerControl::arpgClickTick(Npc& pl, float& rot, int& r
 
   if(!inRange) {
     const auto kind = c.kind;
-    arpgNextPoint(pl, dest, dt);
+    // how close the way has to lead: a bit less than what counts as "in range" (Diathic: ArpgNav)
+    float navReach = ArpgNav::Cell;
+    switch(kind) {
+      case ArpgClick::PickUp: navReach = reach*0.8f; break;
+      case ArpgClick::Use:    navReach = reach*0.8f; break;
+      case ArpgClick::Talk:   navReach = reach*0.8f; break;
+      case ArpgClick::Loot:   navReach = reach*0.8f; break;
+      case ArpgClick::Attack: navReach = 110.f;      break;
+      default:                navReach = ArpgNav::Cell; break;
+      }
+    arpgNextPoint(pl, dest, navReach, dt);
     if(c.kind==ArpgClick::None) {
       // stuck (furniture, shelves): close enough still counts for using things
       if(kind!=ArpgClick::Ground && kind!=ArpgClick::Attack && dist2<=320.f*320.f) {
@@ -2640,7 +2703,7 @@ void PlayerControl::arpgPullPath(const Tempest::Vec3& pos) {
   // "string pulling": go straight to the farthest point of the path that can be seen
   auto& c = arpgClick;
   for(size_t k=c.path.size(); k>c.pathIdx+1; --k) {
-    if(arpgLineClear(pos, c.path[k-1])) {
+    if(arpgWalkClear(pos, c.path[k-1])) {
       c.pathIdx = k-1;
       return;
       }

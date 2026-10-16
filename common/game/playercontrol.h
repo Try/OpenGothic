@@ -1,6 +1,7 @@
 #pragma once
 
 #include "world/focus.h"
+#include "game/arpgnav.h"
 #include "utils/keycodec.h"
 #include "constants.h"
 
@@ -250,6 +251,9 @@ class PlayerControl final {
       int                        clearCount  = 0;      // path planning: checks in a row with a clear straight line
       int                        blockCount  = 0;      // path planning: checks in a row with a blocked straight line
       Tempest::Vec3              pathDest    = {};     // destination the current path was planned for
+      bool                       gridPath    = false;  // Diathic: the path is from ArpgNav (around furniture)
+      bool                       replan      = false;  // Diathic: stuck - plan again from here
+      bool                       gridFailed  = false;  // Diathic: no way on the grid to this destination (not again)
       int                        swings      = 0;
       bool                       swingCheck  = false;  // a swing was started: does its animation really play?
       float                      actTimer    = 0;      // s, waiting in range for the action to succeed
@@ -269,8 +273,11 @@ class PlayerControl final {
 
     Focus          arpgPick();
     ArpgStep       arpgClickTick(Npc& pl, float& rot, int& rotation, bool allowRot, uint64_t dt);
-    Tempest::Vec3  arpgNextPoint(Npc& pl, const Tempest::Vec3& dest, uint64_t dt);
-    bool           arpgLineClear(const Tempest::Vec3& from, const Tempest::Vec3& to) const;
+    Tempest::Vec3  arpgNextPoint(Npc& pl, const Tempest::Vec3& dest, float reach, uint64_t dt);
+    bool           arpgLineClear(const Tempest::Vec3& from, const Tempest::Vec3& to) const;  // a shot (a ray at 90 cm)
+    bool           arpgWalkClear(const Tempest::Vec3& from, const Tempest::Vec3& to);        // a walk (ArpgNav)
+    bool           arpgGridPath (Npc& pl, const Tempest::Vec3& dest, float reach);
+    ArpgNav        arpgNav;
     bool           arpgStartDodge(Npc& pl, float& rot);
     void           arpgPlanPath(Npc& pl, const Tempest::Vec3& dest);
     void           arpgPullPath(const Tempest::Vec3& pos);

@@ -55,7 +55,7 @@ struct ArpgPerks {
   float meleeDmg    = 0;     // Ostra klinga: +damage of a normal hit (0.04 = +4%)
   int   critAdd     = 0;     // Słaby punkt: +% chance of Gothic's full damage
   float bleed       = 0;     // Głębokie rany: part of the hit as bleeding per second, 3 s
-  float atkSpeed    = 0;     // Płynne ruchy: faster swings (0.03 = +3%)
+  float atkSpeed    = 0;     // Płynne ruchy: faster swings (0.07 = +7%)
   float comboWindow = 0;     // Wyczucie chwili: longer combo window (0.25 = +25%)
   bool  fourthHit   = false; // Czwarty cios: from the 4th hit of a series x1.5
   float arc         = 120;   // Szeroki łuk: degrees a swing hits
