@@ -12,7 +12,13 @@ class Serialize;
 // Texts are UTF-8 (ArpgMenu::gtxt converts them for Gothic's fonts); icons are item instances of the game.
 namespace ArpgSkills {
   struct Node   { const char* name; int max; const char* desc; const char* icon; };
-  struct Branch { const char* name; std::vector<Node> nodes; };
+  struct Branch {
+    const char*       name;
+    std::vector<Node> nodes;
+    int               pct   = 0;   // weapon trees: the first node needs this percent of Biegłość in the tree's weapon
+    int               skill = -1;  // the first node unlocks the skill under this key (ArpgKeys::Action)
+    int               needs = -1;  // the first node needs a point in the first node of this branch (it changes that skill)
+    };
   struct KeyReq {
     int                              treePoints = 0;  // this many points in the tree's branches ...
     std::vector<std::pair<int,int>>  anyMaxed;        // ... or one of these nodes (branch, node) at its maximum
@@ -29,6 +35,8 @@ namespace ArpgSkills {
     KeyReq               keyReq;
     bool                 weapons = false; // Biegłość: branch b = Gothic's talent b+1 (1H, 2H, bow, crossbow), a rank = +5%,
                                           // the next node needs the one before it full; no keystone (keystone.name nullptr)
+    int                  talent  = 0;     // a weapon tree: Gothic's talent of its weapon (3: bow or crossbow, the better one)
+    int                  keyPct  = 0;     // the keystone needs this percent of Biegłość in the weapon
     };
 
   constexpr int32_t PctPerRank = 5;
@@ -45,6 +53,9 @@ namespace ArpgSkills {
   struct NodeId { size_t tree = 0; int branch = 0; int node = 0; };
 
   size_t      weaponsTree();             // index of Biegłość
+  size_t      treeOf(std::string_view name); // index of a tree by its name, size_t(-1): none
+  // percent of Biegłość that counts for a weapon tree (bow tree: bow or crossbow); pct: index = talent 1..4
+  int32_t     treePct(const Tree& t, const int32_t pct[5]);
   int         talentOf(const NodeId& n); // Gothic's talent of a Biegłość node, 0: not one
   const char* weaponName(int talent);    // "broń jednoręczna"...
   }
@@ -94,6 +105,56 @@ struct ArpgPerks {
   bool  acrobat      = false;// Akrobata: no damage from falls
   float arrowDodge   = 0;    // Wyczucie strzał: chance an arrow misses for 1 s after a roll
   bool  shadow       = false;// Cień: 1 s unseen after a roll
+  // Blok (the block with a weapon or the fists; later a shield too)
+  bool  bash         = false;// Uderzenie: the skill of the block key
+  float bashDmg      = 0;    // Ciężkie uderzenie: +damage (0.25 = +25%)
+  float bashStagger  = 0;    // Ciężkie uderzenie: + s of the stagger
+  float bashCdCut    = 0;    // Szybsze uderzenie: - s of the cooldown
+  bool  bashRun      = false;// Szarża: the bash with a run-up
+  float bashRunDist  = 0;    // Taran: + cm of the run
+  int   blockCharges = 0;    // Twarda garda: + charges of the block
+  float blockRegen   = 0;    // Oddech: charges back faster (0.2 = +20%)
+  bool  arrowBlock   = false;// Osłona: the block stops arrows and bolts from the front
+  float spellBlock   = 0;    // Osłona przed magią: - part of spell damage in the block
+  float retaliate    = 0;    // Odwet: part of a blocked hit back to the attacker
+  bool  bastion      = false;// Bastion: 3 s after a parry the block holds all round, without charges
+  // Jednoręczna
+  bool  thrust       = false;// Pchnięcie
+  float thrustDmg    = 0;    // Głębokie pchnięcie
+  float thrustDist   = 0;    // Dalszy wypad: + cm
+  bool  bladeDance   = false;// Taniec ostrzy
+  float danceCdCut   = 0;    // Szybkie ostrza: - s of the cooldown
+  int   danceHits    = 3;    // Czwarte cięcie: 4
+  float parry1H      = 0;    // Wyczucie ostrza: + ms of the parry window with a 1H weapon
+  float staggerAdd   = 0;    // Dłuższe zachwianie: + s of the hero's staggers
+  int   crit1H       = 0;    // Celny sztych: +% of the full damage with a 1H weapon
+  float critBleed    = 0;    // Rozcięcie: the full damage with a 1H weapon: bleeding (part per second, 3 s)
+  float atkSpeed1H   = 0;    // Lekka broń
+  float rollCd1H     = 0;    // Zwinny krok: - s between rolls with a 1H weapon
+  bool  riposte      = false;// Riposta: a parry - at once a counter swing
+  // Dwuręczna
+  bool  leap         = false;// Skok
+  float leapDmg      = 0;    // Twarde lądowanie
+  float leapDist     = 0;    // Dalszy skok: + cm
+  bool  mill         = false;// Młyn
+  float millDmg      = 0;    // Wicher
+  float millTime     = 0;    // Długi młyn: + s
+  float dmg2H        = 0;    // Miażdżenie
+  float stun2H       = 0;    // Ogłuszenie: chance of a stagger (0.1 = 10%)
+  bool  unstoppable  = false;// Niewzruszony
+  float guard2H      = 0;    // Twardy jak skała: - part of the damage taken with a 2H weapon
+  float butcher      = 0;    // Rzeźnik: + attack speed for 3 s after a kill
+  bool  mercRage     = false;// Szał najemnika
+  // Łuk i kusza
+  bool  rain         = false;// Deszcz strzał
+  float rainTime     = 0;    // Ulewa: + s
+  float rainRadius   = 0;    // Szeroki deszcz: + cm
+  bool  disengage    = false;// Odskok
+  float disengageDist= 0;    // Dalszy odskok: + cm
+  bool  doubleShot   = false;// Podwójny strzał
+  float hunter       = 0;    // Myśliwy: + damage of arrows against animals and monsters
+  float quiver       = 0;    // Kołczan: chance an arrow is not used up
+  bool  stalker      = false;// Łowca: the first shot at an enemy who has not noticed the hero x3
   };
 
 class ArpgProgress final {

@@ -827,9 +827,10 @@ void MainWindow::keyDownEvent(KeyEvent &event) {
         arpgMenu.spellKey(event.key==Event::K_0 ? uint8_t(10) : uint8_t(event.key-Event::K_0), *pl);
       return;
       }
-    auto act = keycodec.tr(event);
-    if(act==KeyCodec::RotateL || act==KeyCodec::RotateR)
+    if(ak==ArpgKeys::CamLeft || ak==ArpgKeys::CamRight) {
+      auto act = keycodec.tr(event);
       player.onKeyPressed(act,event.key,keycodec.mapping(event));
+      }
     return;
     }
 
@@ -919,6 +920,7 @@ void MainWindow::keyRepeatEvent(KeyEvent& event) {
 
 void MainWindow::keyUpEvent(KeyEvent &event) {
   const int ak = Camera::isArpgEnabled() ? ArpgKeys::actionOf(event.key) : -1;
+  player.arpgKeyUp(ak);
   if(ak==ArpgKeys::Labels)
     arpgShowAll = false;
   if(arpgMapKey!=Event::K_NoKey && event.key==arpgMapKey) {
@@ -2586,8 +2588,11 @@ void MainWindow::paintArpgCombat(Painter& p, const Matrix4x4& vp) {
       else if(e.kind==5) {
         // a skill of the trees went off
         type = Resources::FontType::Yellow;
-        const char* nm = (e.value==1) ? "Wir!" : (e.value==2) ? "Fala uderzeniowa!" : (e.value==3) ? "Grad strzał!" :
-                         (e.value==4) ? "Parowanie!" : "";
+        // (World::arpgPopup: value = the number of the skill here)
+        static const char* names[] = {"", "Wir!", "Fala uderzeniowa!", "Grad strzał!", "Parowanie!",
+                                      "Uderzenie!", "Szarża!", "Pchnięcie!", "Taniec ostrzy!", "Łowca!",
+                                      "Skok!", "Młyn!", "Deszcz strzał!", "Odskok!", "Riposta!"};
+        const char* nm = (e.value>0 && size_t(e.value)<std::size(names)) ? names[e.value] : "";
         std::snprintf(txt, sizeof(txt), "%s", ArpgMenu::gtxt(nm).c_str());
         } else {
         type = (e.kind==1) ? Resources::FontType::Red : Resources::FontType::Normal;
@@ -2628,8 +2633,8 @@ void MainWindow::paintArpgCombat(Painter& p, const Matrix4x4& vp) {
   {
     const int32_t ch = pl->arpgBlockCharges();
     Point sp;
-    if((pl->arpgBlockHeld() || ch<ArpgStatus::BlockCharges) && toScreen(pl->position()+Vec3(0,215.f,0), sp)) {
-      const int n   = ArpgStatus::BlockCharges;
+    if((pl->arpgBlockHeld() || ch<pl->arpgBlockMax()) && toScreen(pl->position()+Vec3(0,215.f,0), sp)) {
+      const int n   = pl->arpgBlockMax();
       const int sw  = int(20.f*scale), sh = std::max(4, int(6.f*scale)), gap = std::max(2, int(3.f*scale));
       const int all = n*sw+(n-1)*gap;
       const int x0  = sp.x-all/2;
@@ -2767,7 +2772,10 @@ void MainWindow::paintArpgCombat(Painter& p, const Matrix4x4& vp) {
   }
 
 // gothic-diablo: skill bar at the bottom: mouse buttons, potions 1-2, spells 3-0
-static constexpr int ArpgBarSlots = 13; // LPM PPM SPM | 1 2 | 3 4 5 6 7 8 9 0
+static constexpr int ArpgBarSlots = 16; // LPM PPM SPM | Q E F | 1 2 | 3 4 5 6 7 8 9 0
+static constexpr int ArpgBarSkill  = 3;  // Diathic: the skills of the weapon trees (ArpgKeys SkillA, SkillB, SkillBlock)
+static constexpr int ArpgBarPotion = 6;
+static constexpr int ArpgBarSpell  = 8;
 
 bool MainWindow::arpgBarVisible() const {
   if(!isArpgMouse() || rootMenu.isActive() || chapter.isActive() || video.isActive())
@@ -2781,10 +2789,10 @@ Tempest::Rect MainWindow::arpgBarSlot(int i) const {
   const int   s     = int(46.f*scale);
   const int   gap   = std::max(2, int(4.f*scale));
   const int   group = int(16.f*scale);
-  const int   wAll  = ArpgBarSlots*s + (ArpgBarSlots-1)*gap + 2*group;
+  const int   wAll  = ArpgBarSlots*s + (ArpgBarSlots-1)*gap + 3*group;
   const int   x0    = (w()-wAll)/2;
   const int   y     = h() - s - int(12.f*scale);
-  const int   grp   = (i<3) ? 0 : (i<5 ? 1 : 2);
+  const int   grp   = (i<ArpgBarSkill) ? 0 : (i<ArpgBarPotion ? 1 : (i<ArpgBarSpell ? 2 : 3));
   return Rect(x0 + i*(s+gap) + grp*group, y, s, s);
   }
 
@@ -2987,15 +2995,24 @@ void MainWindow::paintArpgBar(Painter& p) {
     drawSlot(r, arpgMidBlock || arpgMidPush);
     if(bar.ranged) drawPush(r); else drawShield(r);
   }
+  // Diathic: Q / E / F: the skills of the weapon trees (the model of the node; not learned: dark)
+  for(int k=0; k<3; ++k) {
+    const Rect r  = arpgBarSlot(ArpgBarSkill+k);
+    const auto sk = player.arpgSkillSlot(k);
+    drawSlot(r, sk.active);
+    if(sk.skill==PlayerControl::SkNone || sk.icon==nullptr)
+      continue;
+    model(r, arpgMenu.skillIcon(sk.icon));
+  }
   // 1-2: health / mana potion that the key drinks now
   for(int k=0; k<2; ++k) {
-    const Rect r = arpgBarSlot(3+k);
+    const Rect r = arpgBarSlot(ArpgBarPotion+k);
     drawSlot(r, false);
     model(r, bar.potion[k]);
   }
   // 3-0: Gothic's rune / scroll slots
   for(uint8_t k=0; k<8; ++k) {
-    const Rect r   = arpgBarSlot(5+k);
+    const Rect r   = arpgBarSlot(ArpgBarSpell+k);
     auto       itm = pl->inventory().currentSpell(k);
     drawSlot(r, ws==WeaponState::Mage && itm!=nullptr && pl->inventory().currentSpellSlot()==k+3);
     model(r, itm);
@@ -3038,8 +3055,26 @@ void MainWindow::paintArpgBarOverlay(Painter& p) {
   label(rR, "PPM", false);
   label(rM, "SPM", false);
 
+  // Diathic: Q / E / F: the key, the cooldown; not learned / nothing with this weapon: dark, the key dim
+  for(int k=0; k<3; ++k) {
+    const Rect r  = arpgBarSlot(ArpgBarSkill+k);
+    const auto sk = player.arpgSkillSlot(k);
+    const bool on = sk.skill!=PlayerControl::SkNone && sk.known;
+    if(sk.skill!=PlayerControl::SkNone && !sk.known) {
+      p.setBrush(Brush(Color(0.f,0.f,0.f,0.6f), Painter::Alpha));
+      p.drawRect(r.x, r.y, r.w, r.h);
+      }
+    if(on)
+      cooldown(r, sk.left, sk.total);
+    static const ArpgKeys::Action keys[3] = {ArpgKeys::SkillA, ArpgKeys::SkillB, ArpgKeys::SkillBlock};
+    std::string key = ArpgKeys::keyName(ArpgKeys::key(keys[k]));
+    if(key.size()>3)
+      key = key.substr(0,3);
+    label(r, ArpgMenu::gtxt(key), !on);
+    }
+
   for(int k=0; k<2; ++k) {
-    const Rect r = arpgBarSlot(3+k);
+    const Rect r = arpgBarSlot(ArpgBarPotion+k);
     // Diathic: the key of the potion from ArpgKeys (cut to fit the slot)
     std::string key = ArpgKeys::keyName(ArpgKeys::key(k==0 ? ArpgKeys::PotionHealth : ArpgKeys::PotionMana));
     if(key.size()>3)
@@ -3056,7 +3091,7 @@ void MainWindow::paintArpgBarOverlay(Painter& p) {
   auto pl    = Gothic::inst().player();
   auto world = Gothic::inst().world();
   for(uint8_t k=0; k<8; ++k) {
-    const Rect  r   = arpgBarSlot(5+k);
+    const Rect  r   = arpgBarSlot(ArpgBarSpell+k);
     const Item* itm = (pl!=nullptr) ? pl->inventory().currentSpell(k) : nullptr;
     if(itm!=nullptr && world!=nullptr) {
       const int32_t cost = world->script().arpgSpellCost(*itm);

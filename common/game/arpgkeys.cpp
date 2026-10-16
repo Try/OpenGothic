@@ -10,6 +10,9 @@ static const Info infos[Count] = {
   {"Fikołek (unik)",                      "keyDodge",        Event::K_Space   },
   {"Broń: dobycie / schowanie",           "keyWeapon",       Event::K_LShift  },
   {"Broń biała / łuk lub kusza",          "keySwapWeapon",   Event::K_X       },
+  {"Umiejętność broni 1",                 "keySkillA",       Event::K_Q       },
+  {"Umiejętność broni 2",                 "keySkillB",       Event::K_E       },
+  {"Umiejętność bloku",                   "keySkillBlock",   Event::K_F       },
   {"Chód / bieg",                         "keyWalk",         Event::K_R       },
   {"Skradanie",                           "keySneak",        Event::K_V       },
   {"Mikstura zdrowia",                    "keyPotionHealth", Event::K_1       },
@@ -21,6 +24,8 @@ static const Info infos[Count] = {
   {"Minimapa / mapa na grze",             "keyMinimap",      Event::K_Tab     },
   {"Etykiety (przytrzymaj)",              "keyLabels",       Event::K_Z       },
   {"Dziennik",                            "keyLog",          Event::K_L       },
+  {"Obrót kamery w lewo",                 "keyCamLeft",      Event::K_Left    },
+  {"Obrót kamery w prawo",                "keyCamRight",     Event::K_Right   },
   };
 
 static constexpr std::string_view Section = "DIATHIC";

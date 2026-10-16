@@ -21,6 +21,7 @@ class DamageCalculator {
       int32_t value      = 0;
       bool    hasHit     = false;
       bool    invincible = false;
+      bool    arpgFull   = false; // Diathic: Gothic II's full damage of a weapon (not the 10% without the "critical" hit)
       };
 
     struct Damage final {

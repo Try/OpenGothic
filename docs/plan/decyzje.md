@@ -71,3 +71,11 @@ Archiwum z dokumentów projektu claude.ai (02-plan, 03-faza6, 04-faza9), przenie
 ## Publikacja (2026-10-16)
 - Użytkownik: „dodajmy do planu dokładne kroki do zrobienia przed publikacją” → publikacja.md (etapy A–G, decyzje otwarte: język pierwszej wersji, launcher, fazy 7–8 przed betą, pad)
 - Model: mod wymagający własnego Gothic II Gold (Steam / GOG), niekomercyjnie; publiczna beta (GitHub, ModDB, fora) → 1.0 → Steam za zgodą THQ Nordic
+
+## Faza 11 — drzewka broni (2026-10-16)
+- Użytkownik: „zróbmy brancha z osobnym drzewkiem i skillami do łuków, tarcz, broni 1H, 2H” — po burzy mózgów:
+  - jedno drzewko na broń (umiejętności jako gałęzie, nie osobne drzewko na każdą umiejętność)
+  - łuk i kusza we wspólnym drzewku
+  - tarcza i blok bronią to samo: drzewko Blok działa dla bloku bronią i pięściami, do czasu dodania przedmiotu tarczy
+  - Q / E / F dla umiejętności; obrót kamery przeniesiony na strzałki (przypisywanie umiejętności do PPM i 3–0 — możliwe później)
+- Do testu: wszystkie umiejętności (Q / E z 1H, 2H, łukiem; F), przeniesione punkty łuku w starym zapisie, wygląd księgi z 8 drzewkami, pasek z Q / E / F, strona „Sterowanie”

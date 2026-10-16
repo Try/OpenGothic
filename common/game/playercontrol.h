@@ -2,6 +2,7 @@
 
 #include "world/focus.h"
 #include "game/arpgnav.h"
+#include "game/arpgkeys.h"
 #include "utils/keycodec.h"
 #include "constants.h"
 
@@ -41,6 +42,7 @@ class PlayerControl final {
     bool  interact(Item&        item);
 
     void  clearInput();
+    void  arpgKeyUp(int ak); // Diathic: a key of ArpgKeys released (held keys: camera turn, skills)
 
     void  setTarget(Npc* other);
     void  actionFocus(Npc& other);
@@ -72,6 +74,7 @@ class PlayerControl final {
     void  arpgChargeRelease();                   // right mouse button up: release it
     float arpgSpecialLeft() const;               // 0..1 of the cooldown left
     void  arpgPush();                            // middle mouse button with a bow: push the enemies in front away
+    void  arpgSkillKey(int slot);                // Diathic: Q / E / F pressed (the skills of the weapon trees)
     void  arpgStop();                            // a window opened: drop every mouse order / charge / request
     bool  arpgCanPush() const;                   // a bow / crossbow is drawn
     float arpgPushLeft() const;                  // 0..1 of the push cooldown left
@@ -86,6 +89,19 @@ class PlayerControl final {
       bool        charging   = false;    // right mouse button held
       };
     ArpgBar arpgBar() const;
+    // Diathic: the skills of the weapon trees: slot 0 = Q (SkillA), 1 = E (SkillB), 2 = F (SkillBlock)
+    enum ArpgSkill : uint8_t { SkNone, SkBash, SkThrust, SkDance, SkLeap, SkMill, SkRain, SkDisengage, SkCount };
+    struct ArpgSkillSlot {
+      ArpgSkill   skill = SkNone;   // what the key does with the weapon in hand (or the one drawn by it)
+      const char* icon  = nullptr;  // the item model of the node
+      bool        known = false;
+      bool        active = false;   // going on now
+      float       left  = 0;        // 0..1 of the cooldown left
+      float       total = 0;        // s of the cooldown
+      };
+    ArpgSkillSlot arpgSkillSlot(int slot) const;
+    bool      arpgSkillKnown(ArpgSkill s) const;
+    ArpgSkill arpgSkillFor(int slot, WeaponState ws) const;
     // charged attack: -1 = not charging, otherwise seconds charged
     float arpgChargeTime() const { return arpgCharge==ChargeHold ? arpgChargeT : -1.f; }
     static constexpr float ChargeFull   = 2.0f;  // s to fully charge (without the skill tree)
@@ -206,6 +222,7 @@ class PlayerControl final {
     bool           ctrl[Action::Last]={};
     bool           wctrl[WeaponAction::Last]={};
     bool           actrl[7]={};
+    bool           arpgHeld[ArpgKeys::Count]={}; // Diathic: keys of ArpgKeys held down
 
     WeaponAction   wctrlLast = WeaponAction::WeaponMele; //!< Reminder for weapon toggle.
 
@@ -303,6 +320,32 @@ class PlayerControl final {
     bool           arpgChargeLate   = false; // released late, with Pewna ręka: x2
     float          arpgSpecialCd    = 0;  // s left of the special attack cooldown (not a world tick: survives loading)
     float          arpgPushCd       = 0;  // s left of the bow push cooldown
+    // Diathic: the skills of the weapon trees (PlayerControl::arpgSkillStart / arpgSkillRun)
+    float          arpgSkillCd[SkCount] = {};  // s left of each cooldown
+    int            arpgSkillReq   = -1;        // a key pressed (slot), waiting for the hero to be able
+    float          arpgSkillWait  = 0;
+    bool           arpgSkillDraw  = false;     // the weapon is being drawn for it
+    ArpgSkill      arpgSkillNow   = SkNone;    // going on
+    float          arpgSkillT     = 0;         // s since it started
+    float          arpgSkillLen   = 0;         // s it takes (dashes), the most it takes (Młyn)
+    float          arpgSkillDist  = 0;         // cm of the dash left
+    float          arpgSkillSpeed = 0;         // cm/s of the dash
+    Tempest::Vec3  arpgSkillDir;               // of the dash (unit, flat)
+    float          arpgSkillStep  = 0;         // Taniec: s of this cut, Młyn: s to the next hit, Odskok: the 2nd arrow
+    int            arpgSkillN     = 0;         // Taniec: cuts done; Odskok: arrows shot
+    uint32_t       arpgSkillCommits = 0;       // Taniec: hits dealt when the cut started
+    Npc*           arpgSkillTg    = nullptr;   // Odskok: shot at
+    std::vector<Npc*> arpgSkillHit;            // hit once already (Pchnięcie, Szarża)
+    float          arpgRiposteT   = 0;         // Riposta: s of the counter swing left
+    // Deszcz strzał: goes on by itself where it fell
+    Tempest::Vec3  arpgRainAt;
+    float          arpgRainLeft   = 0;
+    float          arpgRainNext   = 0;
+    float          arpgRainR      = 0;
+    bool  arpgSkillStart(Npc& pl, float& rot);
+    bool  arpgSkillRun  (Npc& pl, float& rot, float dtF);
+    void  arpgSkillEnd  (Npc& pl);
+    void  arpgTickRain  (Npc& pl, float dtF);
     bool           arpgPushReq      = false;
     float          arpgPushWait     = 0;
     uint8_t        arpgPotionReq    = 0;  // potion key pressed: 1 = health, 2 = mana
