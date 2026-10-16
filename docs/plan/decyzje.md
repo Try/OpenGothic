@@ -67,3 +67,7 @@ Archiwum z dokumentów projektu claude.ai (02-plan, 03-faza6, 04-faza9), przenie
 ## Faza 10 — przejście gry (2026-10-15)
 - Poprawki map pionowych (Górnicza Dolina, Jarkendar, wieże), jaskinie wielopoziomowe, kamera, ruch na klik
 - Ręczny test zbyt czasochłonny → bot testowy, „zrobimy to później” (plan: bot-testowy.md)
+
+## Publikacja (2026-10-16)
+- Użytkownik: „dodajmy do planu dokładne kroki do zrobienia przed publikacją” → publikacja.md (etapy A–G, decyzje otwarte: język pierwszej wersji, launcher, fazy 7–8 przed betą, pad)
+- Model: mod wymagający własnego Gothic II Gold (Steam / GOG), niekomercyjnie; publiczna beta (GitHub, ModDB, fora) → 1.0 → Steam za zgodą THQ Nordic
