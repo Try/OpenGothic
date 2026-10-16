@@ -2437,12 +2437,30 @@ void Npc::takeDamage(Npc &other, const Bullet* b) {
 
   if(!(isBlock || isJumpb) || b!=nullptr) {
     takeDamage(other,b,COLL_DOEVERYTHING,0,false);
-    } else {
+    }
+  else if(arpgParry && isBlock && arpgBlockCh<=0) {
+    // Diathic: the block is worn out: one more below 0 (to -BlockDebt), 25% of the damage through for each
+    arpgBlockCh = std::max(arpgBlockCh-1, -ArpgStatus::BlockDebt);
+    arpgDmgScale  = std::min(1.f, float(-arpgBlockCh)*ArpgStatus::BlockLeak);
+    arpgBlockLeak = true;
+    takeDamage(other,b,COLL_DOEVERYTHING,0,false);
+    arpgDmgScale  = 1.f;
+    arpgBlockLeak = false;
+    if(invent.activeWeapon()!=nullptr)
+      visual.emitBlockEffect(*this,other);
+    }
+  else {
+    if(arpgParry && isBlock)
+      arpgBlockCh = std::max(0, arpgBlockCh-1); // Diathic: one hit of the block's 3
     if(Camera::isArpgEnabled() && (other.isPlayer() || isPlayer()))
       owner.arpgPopup(position()+Tempest::Vec3(0,180.f,0), 0, 2); // gothic-diablo: "blocked"
     if(invent.activeWeapon()!=nullptr)
       visual.emitBlockEffect(*this,other);
     }
+  }
+
+bool Npc::arpgBlockHeld() const {
+  return arpgParadeLast!=0 && owner.tickCount()<=arpgParadeLast+100;
   }
 
 void Npc::takeDamage(Npc& other, const Bullet* b, const VisualFx* vfx, int32_t splId) {
@@ -2525,6 +2543,9 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
       arpgHardSkinUntil = now+3000;
       }
     }
+  // Diathic: through the worn out block: only a part
+  if(hitResult.value>0 && arpgDmgScale!=1.f)
+    hitResult.value = std::max<int32_t>(1, int32_t(std::lround(float(hitResult.value)*arpgDmgScale)));
   // Diathic: staggered (after a parry): this hit x4, and the stagger is over (damage over time does not end it)
   if(hitResult.value>0 && arpgHasStatus(ArpgStatus::Stagger)) {
     hitResult.value = int32_t(std::lround(float(hitResult.value)*ArpgStatus::StaggerDmgMul));
@@ -2541,7 +2562,7 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
     return;
     }
 
-  if(hitResult.hasHit) {
+  if(hitResult.hasHit && !arpgBlockLeak) { // Diathic: a hit through the worn out block does not break the block
     auto state = bodyStateMasked();
     if(interactive()==nullptr && ((state&BS_FLAG_INTERRUPTABLE)!=BS_NONE || state==BS_RUN || state==BS_NONE)) {
       //NONE/RUN requires for monsters like waran
@@ -2852,6 +2873,15 @@ void Npc::tick(uint64_t dt) {
       visual.setArpgComboWindow(1.f);
       }
     arpgTickShadow();
+    // Diathic: the block lowered: one charge back a second
+    const uint64_t now = owner.tickCount();
+    if(arpgBlockHeld() || arpgBlockCh>=ArpgStatus::BlockCharges) {
+      arpgBlockRegen = now+ArpgStatus::BlockRegenMs;
+      }
+    else if(now>=arpgBlockRegen) {
+      arpgBlockCh   += 1;
+      arpgBlockRegen = now+ArpgStatus::BlockRegenMs;
+      }
     }
   arpgTickStatus();
   if(arpgSpinUntil!=0) {

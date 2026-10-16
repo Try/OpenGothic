@@ -2624,6 +2624,30 @@ void MainWindow::paintArpgCombat(Painter& p, const Matrix4x4& vp) {
       }
   }
 
+  // Diathic: the block: 3 charges over the head while it is held or not full (worn below 0: red, damage leaks)
+  {
+    const int32_t ch = pl->arpgBlockCharges();
+    Point sp;
+    if((pl->arpgBlockHeld() || ch<ArpgStatus::BlockCharges) && toScreen(pl->position()+Vec3(0,215.f,0), sp)) {
+      const int n   = ArpgStatus::BlockCharges;
+      const int sw  = int(20.f*scale), sh = std::max(4, int(6.f*scale)), gap = std::max(2, int(3.f*scale));
+      const int all = n*sw+(n-1)*gap;
+      const int x0  = sp.x-all/2;
+      p.setBrush(Brush(Color(0.f,0.f,0.f,0.7f), Painter::Alpha));
+      p.drawRect(x0-2, sp.y-2, all+4, sh+4);
+      for(int i=0; i<n; ++i) {
+        const int x = x0+i*(sw+gap);
+        if(ch>i)
+          p.setBrush(Brush(Color(0.85f,0.82f,0.70f,0.95f), Painter::Alpha));   // holds
+        else if(ch<0 && i<-ch)
+          p.setBrush(Brush(Color(0.85f,0.15f,0.10f,0.95f), Painter::Alpha));   // worn: 25% through each
+        else
+          p.setBrush(Brush(Color(0.25f,0.23f,0.20f,0.85f), Painter::Alpha));   // empty
+        p.drawRect(x, sp.y, sw, sh);
+        }
+      }
+  }
+
   // slash of the charged attack: a bright 180 degree crescent sweeping around the hero
   {
     const auto&    fx  = player.arpgSlash();

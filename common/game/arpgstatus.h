@@ -29,4 +29,11 @@ namespace ArpgStatus {
   constexpr uint64_t StaggerMs     = 1000;  // how long a parried enemy is staggered (ends at the first hit taken)
   constexpr float    StaggerDmgMul = 4.f;   // damage of that hit
   constexpr uint64_t ParryWindowMs = 250;   // the block has to start at most this long before the enemy's hit
+
+  // Diathic: the hero's block holds 3 hits; lowered, it gets 1 back a second; at 0 every hit goes 1 below
+  // (to -3) and each charge below 0 lets 25% of the damage through. A parry does not use the block (and the other way)
+  constexpr int32_t  BlockCharges  = 3;
+  constexpr int32_t  BlockDebt     = 3;     // down to -3
+  constexpr float    BlockLeak     = 0.25f; // damage through the block for each charge below 0
+  constexpr uint64_t BlockRegenMs  = 1000;  // one charge back, the block lowered
   }

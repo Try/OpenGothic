@@ -199,6 +199,9 @@ class Npc final {
     // Diathic: negative statuses (game/arpgstatus.h); value: damage per second for damage over time
     void       arpgApplyStatus(ArpgStatus::Id id, uint64_t ms, float value, Npc* from);
     bool       arpgHasStatus(ArpgStatus::Id id) const;
+    // Diathic: the hero's block: charges (ArpgStatus::BlockCharges .. -BlockDebt), the block held now
+    int32_t    arpgBlockCharges() const { return arpgBlockCh; }
+    bool       arpgBlockHeld() const;
     void       arpgHoldAttack();         // gothic-diablo: charged attack held in its wind-up
     void       arpgStartSpecial(float mul, bool knock = true); // gothic-diablo: the next swing: x mul (knock: throws down)
     const ArpgPerks* arpgPerks() const;    // gothic-diablo: what the hero's skill trees give (ARPG view; others: nullptr)
@@ -589,6 +592,10 @@ class Npc final {
     const VisualFx* arpgBurnFx = nullptr;
     uint64_t  arpgParadeLast  = 0;     // hero: the last frame the block was held
     uint64_t  arpgParadeStart = 0;     // hero: when the block held now started (parry)
+    int32_t   arpgBlockCh     = ArpgStatus::BlockCharges; // hero: hits the block still holds (below 0: damage leaks)
+    uint64_t  arpgBlockRegen  = 0;     // hero: the next charge back
+    float     arpgDmgScale    = 1.f;   // a hit through the block: part of the damage
+    bool      arpgBlockLeak   = false; // a hit through the block: no stumble (the block stays)
     ArpgFx    arpgFxLast;
     void      arpgTickStatus();
     void      arpgParrySound();
