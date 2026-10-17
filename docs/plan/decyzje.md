@@ -81,5 +81,6 @@ Archiwum z dokumentów projektu claude.ai (02-plan, 03-faza6, 04-faza9), przenie
 - Do testu: wszystkie umiejętności (Q / E z 1H, 2H, łukiem; F), przeniesione punkty łuku w starym zapisie, wygląd księgi z 8 drzewkami, pasek z Q / E / F, strona „Sterowanie”
 
 ## Faza 12 — grafika (2026-10-17)
+- 2026-10-17: kierunek grafiki: mroczny Gothic — klimat Gothic II na pierwszym planie, subtelne akcenty Diablo.
 - Użytkownik: drugi agent ulepsza tekstury i grafikę równolegle z pracą nad grą → gałąź faza12-grafika, zasady i podział plików w grafika.md
 - Agent grafiki to ChatGPT (bez skilli, pamięci i dokumentów projektu) → grafika.md samowystarczalny, stan w jego sekcji „Stan”
