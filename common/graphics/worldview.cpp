@@ -9,15 +9,19 @@
 
 using namespace Tempest;
 
-WorldView::WorldView(const PackedMesh& wmesh, std::string_view skyPreset)
-    : aabb(wmesh.bbox()), gSky(skyPreset), gLights(sGlobal), visuals(sGlobal,wmesh.bbox()),
-    objGroup(visuals), pfxGroup(*this,sGlobal,visuals), land(visuals,wmesh) {
+WorldView::WorldView(std::unique_ptr<Landscape::Mesh> wmesh, std::string_view skyPreset)
+    : aabb(wmesh->mesh.bbox.bbox[0],wmesh->mesh.bbox.bbox[1]), gSky(skyPreset), gLights(sGlobal), visuals(sGlobal,aabb),
+    objGroup(visuals), pfxGroup(*this,sGlobal,visuals), land(visuals,std::move(wmesh)) {
   pfxGroup.resetTicks();
   }
 
 WorldView::~WorldView() {
   // cmd buffers must not be in use
   Resources::device().waitIdle();
+  }
+
+auto WorldView::takeLand() -> std::unique_ptr<Landscape::Mesh> {
+  return land.takeMesh();
   }
 
 const LightSource& WorldView::mainLight() const {

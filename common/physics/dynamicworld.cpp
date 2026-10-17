@@ -554,9 +554,18 @@ struct DynamicWorld::BBoxList final {
   DynamicWorld&          wrld;
   };
 
-DynamicWorld::DynamicWorld(World* owner, const zenkit::Mesh& worldMesh) {
-  world.reset(new CollisionWorld());
+DynamicWorld::Land::Land() {
+  }
 
+DynamicWorld::Land::~Land() {
+  }
+
+static std::unique_ptr<DynamicWorld::Land> mkLand(const zenkit::Mesh& worldMesh) {
+  auto  land      = std::make_unique<DynamicWorld::Land>();
+  auto& sectors   = land->sectors;
+  auto& landVbo   = land->vbo;
+  auto& landMesh  = land->landMesh;
+  auto& waterMesh = land->waterMesh;
   {
   PackedMesh pkg(worldMesh,PackedMesh::PK_Physic);
   sectors.resize(pkg.subMeshes.size());
@@ -584,12 +593,26 @@ DynamicWorld::DynamicWorld(World* owner, const zenkit::Mesh& worldMesh) {
     }
   }
 
+  if(!landMesh->isEmpty())
+    land->landShape.reset(new btMultimaterialTriangleMeshShape(landMesh.get(),landMesh->useQuantization(),true));
+  if(!waterMesh->isEmpty())
+    land->waterShape.reset(new btMultimaterialTriangleMeshShape(waterMesh.get(),waterMesh->useQuantization(),true));
+  return land;
+  }
+
+DynamicWorld::DynamicWorld(World* owner, const zenkit::Mesh& worldMesh)
+  :DynamicWorld(owner,mkLand(worldMesh)) {
+  }
+
+DynamicWorld::DynamicWorld(World* owner, std::unique_ptr<Land> l)
+  :land(std::move(l)) {
+  world.reset(new CollisionWorld());
+
   btVector3 bbox[2] = {btVector3(0,0,0), btVector3(0,0,0)};
-  if(!landMesh->isEmpty()) {
+  if(land->landShape!=nullptr) {
     Tempest::Matrix4x4 mt;
     mt.identity();
-    landShape.reset(new btMultimaterialTriangleMeshShape(landMesh.get(),landMesh->useQuantization(),true));
-    landBody = world->addCollisionBody(*landShape,mt,DynamicWorld::materialFriction(zenkit::MaterialGroup::NONE));
+    landBody = world->addCollisionBody(*land->landShape,mt,DynamicWorld::materialFriction(zenkit::MaterialGroup::NONE));
     landBody->setUserIndex(C_Landscape);
 
     btVector3 b[2] = {btVector3(0,0,0), btVector3(0,0,0)};
@@ -598,11 +621,10 @@ DynamicWorld::DynamicWorld(World* owner, const zenkit::Mesh& worldMesh) {
     bbox[1].setMax(b[1]);
     }
 
-  if(!waterMesh->isEmpty()) {
+  if(land->waterShape!=nullptr) {
     Tempest::Matrix4x4 mt;
     mt.identity();
-    waterShape.reset(new btMultimaterialTriangleMeshShape(waterMesh.get(),waterMesh->useQuantization(),true));
-    waterBody = world->addCollisionBody(*waterShape,mt,0);
+    waterBody = world->addCollisionBody(*land->waterShape,mt,0);
     waterBody->setUserIndex(C_Water);
     waterBody->setCollisionFlags(btCollisionObject::CF_STATIC_OBJECT | btCollisionObject::CF_NO_CONTACT_RESPONSE);
     // waterBody->setCollisionFlags(btCollisionObject::CO_HF_FLUID);
@@ -630,6 +652,13 @@ DynamicWorld::DynamicWorld(World* owner, const zenkit::Mesh& worldMesh) {
   }
 
 DynamicWorld::~DynamicWorld(){
+  }
+
+std::unique_ptr<DynamicWorld::Land> DynamicWorld::takeLand() {
+  // bodies reference the land shapes
+  landBody.reset();
+  waterBody.reset();
+  return std::move(land);
   }
 
 DynamicWorld::RayLandResult DynamicWorld::landRay(const Tempest::Vec3& from, float maxDy) const {
@@ -1120,7 +1149,7 @@ float DynamicWorld::rayBox(const Tempest::Vec3& orig, const Tempest::Vec3& dir, 
   }
 
 std::string_view DynamicWorld::validateSectorName(std::string_view name) const {
-  return landMesh->validateSectorName(name);
+  return land->landMesh->validateSectorName(name);
   }
 
 bool DynamicWorld::hasCollision(const NpcItem& it, CollisionTest& out) {

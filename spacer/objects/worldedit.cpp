@@ -175,7 +175,7 @@ WorldEdit::WorldEdit(std::string_view wname) {
   auto wviewFut = std::async(std::launch::async, [&]() {
     Workers::setThreadName("Loading: PackedMesh thread");
     PackedMesh vmesh(worldMesh,PackedMesh::PK_VisualLnd);
-    return std::unique_ptr<WorldView>(new WorldView(vmesh, wname));
+    return std::unique_ptr<WorldView>(new WorldView(std::make_unique<Landscape::Mesh>(vmesh), wname));
     });
 
   load(rootVob, world.world_vobs);
