@@ -220,6 +220,13 @@ Decyzje 2026-10-16: jedno drzewko na broń; łuk i kusza wspólnie; drzewko Blok
 | Napisy umiejętności nad głową: Uderzenie!, Szarża!, Pchnięcie!, Taniec ostrzy!, Łowca!, Skok!, Młyn!, Deszcz strzał!, Odskok!, Riposta!; wpis „Diathic: skill …” w log.txt | `MainWindow::paintArpgCombat` (`names`), `arpgSkillStart` |
 | Wartości do balansu (odnowienia, odległości, mnożniki) w jednym miejscu | `game/arpgstatus.h` (`BashCd` … `RiposteTime`, `RageDmg`, `StalkerMul`) |
 
+## Faza 12 — grafika (gałąź faza12-grafika, równolegle z rozgrywką)
+
+Drugi agent: tekstury, światło, obraz, efekty. Zasady i podział plików: [`docs/plan/grafika.md`](docs/plan/grafika.md).
+
+| Co | Gdzie w kodzie |
+|---|---|
+
 ## Ustalenia techniczne (silnik, skrypty, pliki gry)
 Wiedza o Gothicu i OpenGothic zebrana przy pracy. Nowe ustalenia dopisywać tutaj, nie do dokumentów projektu.
 
@@ -281,3 +288,9 @@ Wiedza o Gothicu i OpenGothic zebrana przy pracy. Nowe ustalenia dopisywać tuta
 - Dziennik: B_LogEntry / Log_AddEntry z tematem TOPIC_*TEACHER / *TRADER (bez TOPIC_ADDON_BANDITTRADER) w funkcji dialogu (C_Info.information) → C_Info.npc; 141 wpisów, 131 z postacią; gdy wpis wymienia inne imię (np. Skip o Garecie) — ta postać
 - Klawisze w Gothic.ini: kody DIK (0x2d = X, 0x13 = R, 0x2e = C, 0x39 = Spacja, 0x32 = M…), przyciski myszy 0x0c02 lewy, 0x0d02 prawy, 0x0e02 środkowy; klawisze ARPG w sekcji [DIATHIC]; keyShowMap = M → skrypt playerHotKeyScreenMap (w trybie ARPG M przejmuje nasza mapa); skradanie w Gothicu wymaga talentu (Npc::canSneak = TALENT_SNEAK)
 - Klawisze użytkownika: Gothic II\system\Gothic.ini — Q/E obrót, A/D krok w bok, Spacja + środkowy przycisk broń, Alt / prawy Ctrl skok, End + prawy przycisk parada, lewy Ctrl + lewy przycisk akcja, Tab + Backspace ekwipunek, X skradanie, keyLook = R, keyLookFP = F; gra\dane\Gothic.ini — keySlow = X, keySneak = prawy Shift, keyShowStatus = C, B
+
+### Grafika i renderer
+- Tekstury: `Resources::implLoadTextureUncached` — dla NAZWA.TGA najpierw skompilowana NAZWA-C.TEX z VDF (DXT1–5 → DDS, inne → RGBA8), potem sam .TGA; podmiana na własny plik jak logo (`isDiathicLogo` + `DiathicAsset::get`); mipmapy tylko, gdy tekstura je ma albo `forceMips`
+- Archiwa: `Resources::loadVdfs` — wszystkie .vdf z Data i podfolderów, .mod tylko z listy modów; przy tej samej nazwie wygrywa nowsze archiwum (`VfsOverwriteBehavior::OLDER`); folder _work montowany osobno (`Resources::mountWork`, `NONE`) — czy luźne tekstury z _work nadpisują VDF, nie sprawdzone
+- Obraz końcowy: `Renderer::drawTonemapping` (jasność, kontrast, gamma z opcji gry w push constant) → `shader/lighting/tonemapping.frag` (`-DUPSCALE` = Lanczos przy innej rozdzielczości renderu); wygładzanie `Renderer::drawCMAA2`; SSAO `shader/ssao`; własny przebieg na wzór głębi ostrości rozmów (`Renderer::drawArpgDof`, `shader/arpg_dof.frag`, `Shaders::postEffect`)
+- Świat: materiały `shader/materials/main.frag` (zasłanianie `arpgHidden`, podświetlenie), mgła `shader/sky/fog.frag` + `shader/arpg.glsl`; próbnik cieni bez anizotropii (`Resources::shadowSampler`)
