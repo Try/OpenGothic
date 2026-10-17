@@ -75,10 +75,12 @@ Pierwszy krok: jedno pytanie do użytkownika, od czego zacząć — przed kodem:
 - Krok 2: jeśli tor świata na to pozwala, dodać filtrowanie anizotropowe ograniczone do trybu ARPG, sterowane przez `[DIATHIC] gfxAnisotropy`; dobrać poziom według obsługi GPU i zmierzyć koszt na 1080p.
 - Krok 3: porównać te same ujęcia przed/po — targ w Khorinis, ziemia w lesie i jaskini. Jeśli tekstury nadal są zbyt miękkie, zaplanować osobną paczkę lub narzędzie HD uruchamiane u gracza.
 - Krok 4 (dodatkowy, po poprawie próbkowania): ocenić DLSS Super Resolution przez Streamline/Vulkan. Sprawdzić wymagane bufory obrazu, głębi i wektorów ruchu, obsługę GPU oraz koszt. DLSS skaluje obraz renderowany w niższej rozdzielczości — nie podnosi rozdzielczości źródłowych tekstur — więc traktować go jako opcjonalne ulepszenie jakości obrazu i wydajności; z fallbackiem, tylko w trybie ARPG.
+- Krok 5 (integracja ustawień): dodać zakładkę „Grafika” do istniejących opcji gry, początkowo z `gfxColorGrade`, a kolejne przełączniki i ustawienia dodawać wraz z ich wdrożeniem (np. anizotropia, ewentualnie DLSS). Zmiany zapisywać do `[DIATHIC]` w `Gothic.ini`; stosować od razu, jeśli dana funkcja na to pozwala, a przy konieczności restartu jasno to oznaczyć. Zakres UI uzgodnić z agentem rozgrywki; działanie tylko w ARPG.
 - Prawa: żadnych oryginalnych tekstur z VDF ani ich przeróbek w repozytorium lub paczce Diathic; ewentualna paczka pozostaje plikiem instalowanym przez gracza.
 
 ## Stan
 - 2026-10-17: PR #12 otwarty do `faza11-drzewka-broni`; korekcja koloru ARPG czeka na CI i test użytkownika.
 - Następne: audyt próbkowania tekstur świata i dostępności mipmap; pierwszy kandydat to anizotropia dla kamery izometrycznej, tylko ARPG, z przełącznikiem `[DIATHIC] gfxAnisotropy`.
 - Po tym kroku: ocena DLSS Super Resolution przez Streamline/Vulkan jako osobnego ulepszenia obrazu; DLSS nie zastępuje tekstur HD.
+- Integracja po wdrożeniu ustawień: zakładka „Grafika” w opcjach gry, aby zmieniać i zapisywać dostępne efekty bez ręcznej edycji `Gothic.ini`; UI do uzgodnienia z agentem rozgrywki.
 - Jeśli próbkowanie nie wystarczy, przygotować narzędzie lub paczkę HD instalowaną przez gracza; tekstury gry ani ich przeróbki nie trafią do repozytorium ani paczki projektu.
