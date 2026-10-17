@@ -595,43 +595,27 @@ Rect GameMenu::itemRect(const Item& it) const {
 void GameMenu::onBeginTouch(Point pos) {
   touchSlider = nullptr;
   touchActive = false;
-  for(uint32_t i=0; i<zenkit::IMenu::item_count; ++i) {
-    auto& selected = hItems[i];
-    if(!selected.visible || !isSelectable(selected.handle) || !isEnabled(selected.handle))
+
+  // reverse of draw order
+  for(uint32_t i = zenkit::IMenu::item_count; i-- > 0;) {
+    if(hItems[i].handle==nullptr)
       continue;
-    auto* it = &selected;
-    Item* hit = nullptr;
-    for(int n=0; n<zenkit::IMenu::item_count && it!=nullptr; ++n) {
-      auto rect = itemRect(*it);
-      if(it->handle->type!=zenkit::MenuItemType::SLIDER) {
-        const int fontHeight = getTextFont(*it).pixelSize();
-        rect.h = fontHeight;
-        }
-      if(it->visible && !isHidden(it->handle) && rect.contains(pos)) {
-        if(hit==nullptr)
-          hit = it;
-        if(it->handle->type==zenkit::MenuItemType::SLIDER) {
-          hit = it;
-          break;
-          }
-        }
-      if(!(it->handle->flags & zenkit::MenuItemFlag::EFFECTS))
-        break;
-      it = selectedNextItem(it);
-      if(it==&selected)
-        break;
-      }
-    if(hit!=nullptr) {
-      setSelection(int(i));
-      updateSavThumb(selected);
+    auto& item = hItems[i].handle;
+    if(!isEnabled(item) || isHidden(item))
+      continue;
+    auto rect = itemRect(hItems[i]);
+    if(!rect.contains(pos))
+      continue;
+    setSelection(int(i), -1);
+    if(auto s = selectedItem()) {
+      updateSavThumb(*s);
       touchActive = true;
-      if(hit->handle->type==zenkit::MenuItemType::SLIDER) {
-        touchSlider = hit;
-        onDragTouch(pos);
-        }
-      update();
-      return;
       }
+    if(item->type==zenkit::MenuItemType::SLIDER) {
+      touchSlider = &hItems[i];
+      break;
+      }
+    break;
     }
   }
 
@@ -972,8 +956,7 @@ void GameMenu::execChgOption(Item &item, int slideDx) {
     const int cnt = int(strEnumSize(item.handle->text[0]));
 #if defined(__MOBILE_PLATFORM__)
     if(slideDx==0 && cnt>0)
-      item.value = (item.value+1)%cnt;
-    else
+      item.value = (item.value+1)%cnt; else
       item.value += slideDx;
 #else
     if(slideDx==0 && cnt==2)
