@@ -83,6 +83,7 @@ Archiwum z dokumentów projektu claude.ai (02-plan, 03-faza6, 04-faza9), przenie
 ## Faza 12 — grafika (2026-10-17)
 - 2026-10-17: użytkownik wskazał poprawę jakości tekstur jako następne ulepszenie; pierwszy krok planu to audyt mipmap i próbnika tekstur świata.
 - 2026-10-17: użytkownik dodał ocenę DLSS Super Resolution przez Streamline/Vulkan jako późniejszy, opcjonalny krok; nie zastępuje to poprawy samych tekstur.
+- 2026-10-17: użytkownik chce panel „Grafika” w grze do zmiany i zapisu dostępnych opcji bez ręcznej edycji `Gothic.ini`; wdrożenie UI wymaga uzgodnienia z agentem rozgrywki.
 - 2026-10-17: kierunek grafiki: mroczny Gothic — klimat Gothic II na pierwszym planie, subtelne akcenty Diablo.
 - Użytkownik: drugi agent ulepsza tekstury i grafikę równolegle z pracą nad grą → gałąź faza12-grafika, zasady i podział plików w grafika.md
 - Agent grafiki to ChatGPT (bez skilli, pamięci i dokumentów projektu) → grafika.md samowystarczalny, stan w jego sekcji „Stan”
