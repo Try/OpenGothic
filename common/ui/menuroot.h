@@ -41,6 +41,7 @@ class MenuRoot : public Tempest::Widget {
   protected:
     void mouseDownEvent (Tempest::MouseEvent& event) override;
     void mouseUpEvent   (Tempest::MouseEvent& event) override;
+    void mouseDragEvent (Tempest::MouseEvent& event) override;
 
   private:
     void initSettings();
@@ -54,4 +55,8 @@ class MenuRoot : public Tempest::Widget {
 
     Tempest::Event::KeyType                cheatCode[6] = {};
     bool                                   showVersionHint = false;
+#if defined(__MOBILE_PLATFORM__)
+    Tempest::Point                         touchStart;
+    bool                                   touchMoved = false;
+#endif
   };

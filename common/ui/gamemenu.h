@@ -31,6 +31,9 @@ class GameMenu : public Tempest::Widget {
     void setPlayer(const Npc& pl);
 
     void onKeyboard(KeyCodec::Action k);
+    void onBeginTouch(Tempest::Point pos);
+    void onDragTouch(Tempest::Point pos);
+    void onEndTouch(bool activate);
     void onTick();
 #ifdef OPENGOTHIC_TOUCH_UI
     bool isTouchMenu() const { return touch.list || touch.log; }
@@ -84,6 +87,8 @@ class GameMenu : public Tempest::Widget {
 
     Item                                  hItems[zenkit::IMenu::item_count];
     Item*                                 ctrlInput = nullptr;
+    Item*                                 touchSlider = nullptr;
+    bool                                  touchActive = false;
     uint32_t                              curItem=0;
 #ifdef OPENGOTHIC_TOUCH_UI
     /// Script menus are shown as a scrollable list of rows on touch devices
@@ -152,17 +157,20 @@ class GameMenu : public Tempest::Widget {
                                                         const QuestLog& log, QuestStat st);
 
     Item*                                 selectedItem();
+    Tempest::Rect                         itemRect(const Item& item) const;
     Item*                                 selectedNextItem(Item* cur);
     Item*                                 selectedContentItem(Item* it);
     void                                  setSelection(int cur, int seek=1);
     void                                  initItems();
     void                                  getText(const Item &it, std::vector<char>& out);
     const GthFont&                        getTextFont(const Item &it);
+    Item*                                 touchHitTest(Item& p, Tempest::Point pos);
 
     static bool                           isSelectable(const std::shared_ptr<zenkit::IMenuItem>& item);
     static bool                           isHorSelectable(const std::shared_ptr<zenkit::IMenuItem>& item);
     static bool                           isEnabled(const std::shared_ptr<zenkit::IMenuItem>& item);
     static bool                           isHidden(const std::shared_ptr<zenkit::IMenuItem>& item);
+    static float                          sliderStep(const std::shared_ptr<zenkit::IMenuItem>& item);
 
     void                                  exec         (Item &item, int slideDx, KeyCodec::Action hint);
     void                                  execSingle   (Item &it,   int slideDx, KeyCodec::Action hint);

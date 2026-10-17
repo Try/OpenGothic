@@ -1125,13 +1125,8 @@ void GameMenu::drawItem(Painter& p, Item& hItem) {
   auto flags = item->flags;
   getText(hItem,textBuf);
 
-  const int32_t dimx = (item->dim_x!=-1) ? item->dim_x : 8192;
-  const int32_t dimy = (item->dim_y!=-1) ? item->dim_y : 750;
-
-  const int   x     = int(float(w()*item->pos_x)/scriptDiv);
-  const int   y     = int(float(h()*item->pos_y)/scriptDiv);
-  int         szX   = int(float(w()*dimx       )/scriptDiv);
-  int         szY   = int(float(h()*dimy       )/scriptDiv);
+  const auto rect = itemRect(hItem);
+  const int x = rect.x, y = rect.y, szX = rect.w, szY = rect.h;
 
   if(hItem.img && !hItem.img->isEmpty()) {
     p.setBrush(*hItem.img);
@@ -1292,6 +1287,88 @@ void GameMenu::drawQuestList(Painter& p, Item& it, int x, int y, int w, int h,
 
 void GameMenu::resizeEvent(SizeEvent &) {
   onTick();
+  }
+
+Rect GameMenu::itemRect(const Item& it) const {
+  const auto& item = it.handle;
+  const int dimx = item->dim_x!=-1 ? item->dim_x : 8192;
+  const int dimy = item->dim_y!=-1 ? item->dim_y : 750;
+  return Rect(int(float(w()*item->pos_x)/scriptDiv),int(float(h()*item->pos_y)/scriptDiv),
+              int(float(w()*dimx)/scriptDiv),int(float(h()*dimy)/scriptDiv));
+  }
+
+GameMenu::Item* GameMenu::touchHitTest(Item& p, Point pos) {
+  auto* it = &p;
+  while(it!=nullptr) {
+    auto rect = itemRect(*it);
+    if(rect.contains(pos))
+      return it;
+    if(it->handle->flags & zenkit::MenuItemFlag::EFFECTS) {
+      auto next=selectedNextItem(it);
+      if(next!=&p)
+        it=next;
+      } else {
+      it=nullptr;
+      }
+    }
+  return nullptr;
+  }
+
+void GameMenu::onBeginTouch(Point pos) {
+  touchSlider = nullptr;
+  touchActive = false;
+
+  // reverse of draw order
+  for(uint32_t i = zenkit::IMenu::item_count; i-- > 0;) {
+    if(hItems[i].handle==nullptr)
+      continue;
+    auto& item = hItems[i].handle;
+    if(!isEnabled(item) || isHidden(item))
+      continue;
+    if(!isSelectable(item))
+      continue;
+    auto hit = touchHitTest(hItems[i], pos);
+    if(hit==nullptr)
+      continue;
+    setSelection(int(i), -1);
+    if(auto s = selectedItem()) {
+      updateSavThumb(*s);
+      touchActive = true;
+      }
+    if(hit->handle->type==zenkit::MenuItemType::SLIDER) {
+      touchSlider = hit;
+      break;
+      }
+    break;
+    }
+  }
+
+void GameMenu::onDragTouch(Point pos) {
+  if(touchSlider==nullptr)
+    return;
+  const auto  rect = itemRect(*touchSlider);
+  const auto& sec  = touchSlider->handle->on_chg_set_option_section;
+  const auto& opt  = touchSlider->handle->on_chg_set_option;
+  if(rect.w<=0 || sec.empty() || opt.empty())
+    return;
+
+  float value = std::clamp(float(pos.x-rect.x)/float(rect.w),0.f,1.f) * 100.f;
+  float stp   = sliderStep(touchSlider->handle) * 100.f;
+  if(stp<=1.f)
+    stp = 1.f;
+
+  value = std::clamp(std::round(value/stp)*stp,0.f,100.f);
+
+  Gothic::settingsSetF(sec,opt,value/100.f);
+  update();
+  }
+
+void GameMenu::onEndTouch(bool activate) {
+  const bool tap = touchActive && touchSlider==nullptr;
+  touchSlider = nullptr;
+  touchActive = false;
+  if(activate && tap)
+    onKeyboard(KeyCodec::ActionGeneric);
   }
 
 void GameMenu::onKeyboard(KeyCodec::Action key) {
@@ -1507,6 +1584,15 @@ bool GameMenu::isHidden(const std::shared_ptr<zenkit::IMenuItem>& item) {
   return opt==item->hide_on_value;
   }
 
+float GameMenu::sliderStep(const std::shared_ptr<zenkit::IMenuItem>& item) {
+  if(item==nullptr || item->type!=zenkit::MenuItemType::SLIDER)
+    return 0;
+  float v = item->user_float[0];
+  if(v==0.f)
+    return 0.03f; // error?
+  return 1.f/v;
+  }
+
 void GameMenu::exec(Item &p, int slideDx, KeyCodec::Action hint) {
   auto* it = &p;
   while(it!=nullptr) {
@@ -1635,16 +1721,22 @@ void GameMenu::execChgOption(Item &item, int slideDx) {
   if(item.handle->type==zenkit::MenuItemType::SLIDER && slideDx!=0) {
     updateItem(item);
     float v = Gothic::settingsGetF(sec, opt);
-    v  = std::max(0.f,std::min(v+float(slideDx)*0.03f,1.f));
+    float s = sliderStep(item.handle);
+    v  = std::max(0.f,std::min(v+float(slideDx)*s,1.f));
     Gothic::settingsSetF(sec, opt, v);
     }
   if(item.handle->type==zenkit::MenuItemType::CHOICEBOX) {
     updateItem(item);
     const int cnt = int(strEnumSize(item.handle->text[0]));
+#if defined(__MOBILE_PLATFORM__)
+    if(slideDx==0 && cnt>0)
+      item.value = (item.value+1)%cnt; else
+      item.value += slideDx;
+#else
     if(slideDx==0 && cnt==2)
-      slideDx = 1; // QoL: on/off toggle
-
-    item.value += slideDx; // next value
+      slideDx = 1;
+    item.value += slideDx;
+#endif
     if(cnt>0)
       item.value = std::clamp(item.value,0,cnt-1);  else
       item.value = 0;

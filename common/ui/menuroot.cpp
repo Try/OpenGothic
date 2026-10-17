@@ -142,10 +142,43 @@ void MenuRoot::mouseDownEvent(MouseEvent& event) {
       }
     } else {
     event.ignore();
+    return;
     }
+  if(event.button==Event::ButtonRight) {
+    popMenu();
+    return;
+    }
+#if defined(__MOBILE_PLATFORM__)
+  touchStart = event.pos();
+  touchMoved = false;
+  current->onBeginTouch(touchStart-current->pos());
+#else
+  current->onKeyboard(KeyCodec::ActionGeneric);
+#endif
   }
 
-void MenuRoot::mouseUpEvent(MouseEvent&) {
+void MenuRoot::mouseDragEvent(MouseEvent& event) {
+#if defined(__MOBILE_PLATFORM__)
+  if(current==nullptr)
+    return;
+  const int step = std::max(1, int(20.f*Gothic::interfaceScale(this)));
+  const auto delta = event.pos()-touchStart;
+  touchMoved |= std::max(std::abs(delta.x),std::abs(delta.y))>=step;
+  current->onDragTouch(event.pos()-current->pos());
+#else
+  (void)event;
+#endif
+  }
+
+void MenuRoot::mouseUpEvent(MouseEvent& event) {
+#if defined(__MOBILE_PLATFORM__)
+  if(current==nullptr)
+    return;
+  mouseDragEvent(event);
+  current->onEndTouch(!touchMoved);
+#else
+  (void)event;
+#endif
   }
 
 void MenuRoot::mouseWheelEvent(MouseEvent &event) {
