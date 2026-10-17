@@ -293,6 +293,11 @@ Wiedza o Gothicu i OpenGothic zebrana przy pracy. Nowe ustalenia dopisywać tuta
 - Tekstury: `Resources::implLoadTextureUncached` — dla NAZWA.TGA najpierw skompilowana NAZWA-C.TEX z VDF (DXT1–5 → DDS, inne → RGBA8), potem sam .TGA; podmiana na własny plik jak logo (`isDiathicLogo` + `DiathicAsset::get`); mipmapy tylko, gdy tekstura je ma albo `forceMips`
 - Archiwa: `Resources::loadVdfs` — wszystkie .vdf z Data i podfolderów, .mod tylko z listy modów; przy tej samej nazwie wygrywa nowsze archiwum (`VfsOverwriteBehavior::OLDER`); folder _work montowany osobno (`Resources::mountWork`, `NONE`) — czy luźne tekstury z _work nadpisują VDF, nie sprawdzone
 - Obraz końcowy: `Renderer::drawTonemapping` (jasność, kontrast, gamma z opcji gry w push constant) → `shader/lighting/tonemapping.frag` (`-DUPSCALE` = Lanczos przy innej rozdzielczości renderu); wygładzanie `Renderer::drawCMAA2`; SSAO `shader/ssao`; własny przebieg na wzór głębi ostrości rozmów (`Renderer::drawArpgDof`, `shader/arpg_dof.frag`, `Shaders::postEffect`)
+- Korekcja obrazu ARPG po DOF, przed AA i tonemappingiem; kopia obrazu + shader z chłodniejszymi cieniami, cieplejszymi światłami i delikatną winietą; przełącznik `[DIATHIC] gfxColorGrade` (domyślnie wyłączony) — `Renderer::drawArpgColorGrade`, `shader/arpg_color_grade.frag`
 - Świat: materiały `shader/materials/main.frag` (zasłanianie `arpgHidden`, podświetlenie), mgła `shader/sky/fog.frag` + `shader/arpg.glsl`; próbnik cieni bez anizotropii (`Resources::shadowSampler`)
 
+## Faza 12 — grafika
+
+| Co | Gdzie w kodzie |
+|---|---|
 | Korekcja koloru tylko w widoku ARPG: chłodniejsze cienie, cieplejsze światła i delikatna winieta; opcjonalna przez `[DIATHIC] gfxColorGrade=1` (domyślnie wyłączona ze względu na dodatkowy przebieg obrazu) | `Renderer::drawArpgColorGrade`, `shader/arpg_color_grade.frag`, `common/graphics/arpggfx.h` |
