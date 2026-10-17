@@ -757,9 +757,8 @@ void Camera::tick(uint64_t dt) {
     auto  pl     = isFree() ? nullptr : world->player();
     auto& physic = *world->physic();
 
-    if(pl!=nullptr && pl->isSwim()) {
-      // Cast toward the swimmer's head above the surface; water backfaces are filtered.
-      inWater = (angles.x < -8.f) || (physic.cameraRay(origin, pl->cameraBone(true)).waterCol % 2);
+    if(pl!=nullptr && (pl->isSwim() || pl->isDive())) {
+      inWater = physic.waterRay(origin,0.f).hasCol;
       }
     else if(pl!=nullptr && (pl->isInAir() || pl->isJump()) && !pl->isDead()) {
       // NOTE: not quite correct
