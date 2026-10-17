@@ -68,7 +68,15 @@ Pierwszy krok: jedno pytanie do użytkownika, od czego zacząć — przed kodem:
 - Czytelność postaci na tle świata (rozbudowa podświetlenia wroga z fazy 4: obrys, światło krawędzi)
 - Paczki tekstur HD instalowane przez gracza: zgodność, kolejność archiwów, luźne pliki w _work
 
+## Następne ulepszenie — jakość tekstur
+
+- Cel: poprawić czytelność tekstur świata z kamery izometrycznej, zachowując surowy wygląd Gothic II.
+- Krok 1: sprawdzić sampler tekstur świata i to, które tekstury mają mipmapy; nie zakładać, że `Resources::shadowSampler` jest samplerem świata.
+- Krok 2: jeśli tor świata na to pozwala, dodać filtrowanie anizotropowe ograniczone do trybu ARPG, sterowane przez `[DIATHIC] gfxAnisotropy`; dobrać poziom według obsługi GPU i zmierzyć koszt na 1080p.
+- Krok 3: porównać te same ujęcia przed/po — targ w Khorinis, ziemia w lesie i jaskini. Jeśli tekstury nadal są zbyt miękkie, zaplanować osobną paczkę lub narzędzie HD uruchamiane u gracza.
+- Prawa: żadnych oryginalnych tekstur z VDF ani ich przeróbek w repozytorium lub paczce Diathic; ewentualna paczka pozostaje plikiem instalowanym przez gracza.
+
 ## Stan
-- 2026-10-17: PR #12 otwarty do `faza11-drzewka-broni`; korekcja koloru ARPG jest w gałęzi `faza12-grafika`.
-- Efekt domyślnie wyłączony; aby go porównać, dodaj `[DIATHIC]` i `gfxColorGrade=1` do `Gothic.ini`.
-- Oczekuje na CI i test ręczny: `graj_lokalnie.bat -Branch faza12-grafika`; porównać targ, las, jaskinię, noc z pochodnią i walkę z magią.
+- 2026-10-17: PR #12 otwarty do `faza11-drzewka-broni`; korekcja koloru ARPG czeka na CI i test użytkownika.
+- Następne: audyt próbkowania tekstur świata i dostępności mipmap; pierwszy kandydat to anizotropia dla kamery izometrycznej, tylko ARPG, z przełącznikiem `[DIATHIC] gfxAnisotropy`.
+- Jeśli próbkowanie nie wystarczy, przygotować narzędzie lub paczkę HD instalowaną przez gracza; tekstury gry ani ich przeróbki nie trafią do repozytorium ani paczki projektu.
