@@ -35,7 +35,7 @@ Pierwszy krok: jedno pytanie do użytkownika, od czego zacząć — przed kodem:
 ## Podział plików z agentem rozgrywki
 - Twoje: nowe `shader/arpg_*` (poza `arpg.glsl` i `arpg_dof.frag`), nowe `common/graphics/arpggfx.cpp` / `.h`, nowe pliki w `assets/diathic/`, sekcja „Faza 12 — grafika” w GOTHIC-DIABLO.md, sekcja „Faza 12” w docs/plan/decyzje.md, ten plik.
 - Wspólne — tylko punkt zaczepienia (wywołanie), wymienione w opisie PR: `common/graphics/renderer.cpp`, `shaders.cpp` / `.h`, `shader/CMakeLists.txt`, `common/resources.cpp`, `common/mainwindow.cpp`, `shader/arpg.glsl` (mgła wojny), `shader/materials/main.frag` (`arpgHidden`: wycięcia sufitów, prześwit, drzewa, podświetlenie wroga — nie przerabiać).
-- Nie ruszać: `common/game/*`, PlayerControl, Npc, ArpgMenu, ArpgSkills, ArpgStatus, tabela klawiszy ArpgKeys (potrzebny klawisz → zapytaj użytkownika; przełączniki przez Gothic.ini).
+- Nie ruszać: `common/game/*`, PlayerControl, Npc, ArpgMenu, GameMenu (stronę ustawień grafiki robi agent rozgrywki, Krok 5), ArpgSkills, ArpgStatus, tabela klawiszy ArpgKeys (potrzebny klawisz → zapytaj użytkownika; przełączniki przez Gothic.ini).
 
 ## Zasady grafiki
 - Każdy efekt do wyłączenia w Gothic.ini, sekcja [DIATHIC] (klucze `gfx…`); domyślnie włączone tylko tanie. W opisie PR koszt efektu (cel: karta zintegrowana, 1080p).
@@ -75,12 +75,31 @@ Pierwszy krok: jedno pytanie do użytkownika, od czego zacząć — przed kodem:
 - Krok 2: jeśli tor świata na to pozwala, dodać filtrowanie anizotropowe ograniczone do trybu ARPG, sterowane przez `[DIATHIC] gfxAnisotropy`; dobrać poziom według obsługi GPU i zmierzyć koszt na 1080p.
 - Krok 3: porównać te same ujęcia przed/po — targ w Khorinis, ziemia w lesie i jaskini. Jeśli tekstury nadal są zbyt miękkie, zaplanować osobną paczkę lub narzędzie HD uruchamiane u gracza.
 - Krok 4 (dodatkowy, po poprawie próbkowania): ocenić DLSS Super Resolution przez Streamline/Vulkan. Sprawdzić wymagane bufory obrazu, głębi i wektorów ruchu, obsługę GPU oraz koszt. DLSS skaluje obraz renderowany w niższej rozdzielczości — nie podnosi rozdzielczości źródłowych tekstur — więc traktować go jako opcjonalne ulepszenie jakości obrazu i wydajności; z fallbackiem, tylko w trybie ARPG.
-- Krok 5 (integracja ustawień): dodać zakładkę „Grafika” do istniejących opcji gry, początkowo z `gfxColorGrade`, a kolejne przełączniki i ustawienia dodawać wraz z ich wdrożeniem (np. anizotropia, ewentualnie DLSS). Zmiany zapisywać do `[DIATHIC]` w `Gothic.ini`; stosować od razu, jeśli dana funkcja na to pozwala, a przy konieczności restartu jasno to oznaczyć. Zakres UI uzgodnić z agentem rozgrywki; działanie tylko w ARPG.
+- Krok 5 (panel ustawień, uzgodnione z użytkownikiem 2026-10-17): własna strona „Grafika Diathic” w nowoczesnym menu głównym, zaraz po „Sterowanie” — nie w Opcjach Gothica (te pochodzą ze skryptów gry; ustawienia Gothica, np. rozdzielczość i zasięg widzenia, zostają tam, bez dublowania). Podział:
+  - Ty: tabela ustawień w `common/graphics/arpggfx.h` / `.cpp`. Wartości domyślne tylko w tabeli (nie „brak klucza = 0”). Nowy efekt = nowy wiersz, bez zmian w menu. Interfejs:
+    ```cpp
+    namespace ArpgGfx {
+    struct Option {
+      std::string_view              ini;     // klucz w [DIATHIC], np. "gfxColorGrade"
+      std::string_view              name;    // polska nazwa (UTF-8, menu przepuszcza przez gtxt)
+      std::string_view              info;    // opis jednym zdaniem
+      std::vector<std::string_view> levels;  // nazwy wartości 0..n-1, np. {"Wyłączone", "Włączone"}
+      int                           def;     // wartość domyślna
+      bool                          restart; // działa dopiero po restarcie gry
+      };
+    const std::vector<Option>& options();          // kolejność = kolejność na stronie
+    int value(std::string_view ini);               // z Gothic.ini, bez klucza: def
+    int levelsSupported(const Option& o);          // ile poziomów obsługuje karta (np. anizotropia), domyślnie levels.size()
+    }
+    ```
+  - Agent rozgrywki: raz robi stronę w `GameMenu`, która rysuje tę tabelę (poziom ponad `levelsSupported` niedostępny, przy `restart` dopisek „po restarcie”) i zapisuje przez `Gothic::settingsSetI` — to wywołuje `onSettingsChanged`.
+  - Renderer odświeża swoje wartości w `onSettingsChanged` (przez `ArpgGfx::value`), zamiast `settingsGetI` co klatkę (dziś `Renderer::drawArpgColorGrade`).
+  - Kiedy: tabela razem z anizotropią (przy jednym przełączniku strona nie ma sensu); stronę agent rozgrywki robi po scaleniu PR #10 do master. Ustawienia działają tylko w trybie ARPG.
 - Prawa: żadnych oryginalnych tekstur z VDF ani ich przeróbek w repozytorium lub paczce Diathic; ewentualna paczka pozostaje plikiem instalowanym przez gracza.
 
 ## Stan
 - 2026-10-17: PR #12 otwarty do `faza11-drzewka-broni`; korekcja koloru ARPG czeka na CI i test użytkownika.
 - Następne: audyt próbkowania tekstur świata i dostępności mipmap; pierwszy kandydat to anizotropia dla kamery izometrycznej, tylko ARPG, z przełącznikiem `[DIATHIC] gfxAnisotropy`.
 - Po tym kroku: ocena DLSS Super Resolution przez Streamline/Vulkan jako osobnego ulepszenia obrazu; DLSS nie zastępuje tekstur HD.
-- Integracja po wdrożeniu ustawień: zakładka „Grafika” w opcjach gry, aby zmieniać i zapisywać dostępne efekty bez ręcznej edycji `Gothic.ini`; UI do uzgodnienia z agentem rozgrywki.
+- Panel ustawień uzgodniony (Krok 5): tabela `ArpgGfx::options()` dodać razem z anizotropią; stronę „Grafika Diathic” w menu robi agent rozgrywki po scaleniu PR #10.
 - Jeśli próbkowanie nie wystarczy, przygotować narzędzie lub paczkę HD instalowaną przez gracza; tekstury gry ani ich przeróbki nie trafią do repozytorium ani paczki projektu.
