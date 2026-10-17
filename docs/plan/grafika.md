@@ -69,6 +69,6 @@ Pierwszy krok: jedno pytanie do użytkownika, od czego zacząć — przed kodem:
 - Paczki tekstur HD instalowane przez gracza: zgodność, kolejność archiwów, luźne pliki w _work
 
 ## Stan
-- 2026-10-17: utworzono `faza12-grafika` od `faza11-drzewka-broni`; PR jeszcze nie utworzono.
-- Kierunek użytkownika: mroczny Gothic — Gothic II na pierwszym planie, subtelne akcenty Diablo.
-- Następne: przygotować subtelną korekcję obrazu ARPG w shaderach; sprawdzić targ w Khorinis, las, jaskinię, noc z pochodnią i walkę z magią.
+- 2026-10-17: korekcja obrazu ARPG przygotowana na `faza12-grafika`; PR jeszcze nie utworzono.
+- Efekt jest domyślnie wyłączony; w `Gothic.ini` dodaj `[DIATHIC]` i `gfxColorGrade=1`, aby go włączyć.
+- Czeka na build i test użytkownika: `graj_lokalnie.bat -Branch faza12-grafika`; porównać targ, las, jaskinię, noc z pochodnią i walkę z magią.
