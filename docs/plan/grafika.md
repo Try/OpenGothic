@@ -69,4 +69,6 @@ Pierwszy krok: jedno pytanie do użytkownika, od czego zacząć — przed kodem:
 - Paczki tekstur HD instalowane przez gracza: zgodność, kolejność archiwów, luźne pliki w _work
 
 ## Stan
-- 2026-10-17: handoff gotowy, praca nie zaczęta.
+- 2026-10-17: utworzono `faza12-grafika` od `faza11-drzewka-broni`; PR jeszcze nie utworzono.
+- Kierunek użytkownika: mroczny Gothic — Gothic II na pierwszym planie, subtelne akcenty Diablo.
+- Następne: przygotować subtelną korekcję obrazu ARPG w shaderach; sprawdzić targ w Khorinis, las, jaskinię, noc z pochodnią i walkę z magią.
