@@ -15,7 +15,9 @@ using namespace Tempest;
 struct ConsoleWidget::Overlay : public Tempest::UiOverlay {
   ConsoleWidget& owner;
 
-  Overlay(ConsoleWidget& owner):owner(owner){}
+  Overlay(ConsoleWidget& owner):owner(owner){
+    setMargins(owner.mainWindow.margins());
+    }
 
   void mouseDownEvent(MouseEvent& e) override {
     e.accept();
@@ -29,8 +31,8 @@ struct ConsoleWidget::Overlay : public Tempest::UiOverlay {
     e.accept();
     }
 
-  void paintEvent(PaintEvent&) override {
-    setMargins(owner.mainWindow.margins());
+  void metricsEvent(DisplayMetricsEvent& event) override {
+    setMargins(event.safeAreaMargins);
     }
 
   void keyDownEvent(Tempest::KeyEvent& e) override {

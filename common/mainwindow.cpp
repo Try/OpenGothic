@@ -132,13 +132,7 @@ MainWindow::~MainWindow() {
   }
 
 float MainWindow::uiScale() const {
-#if defined(__IOS__)
-  const auto area = clientRect();
-  // Keep the default 800x600 UI inside the safe area on smaller screens.
-  return std::max(1.f, std::min({SystemApi::uiScale(hwnd()), float(area.w)/800.f, float(area.h)/600.f}));
-#else
   return SystemApi::uiScale(hwnd());
-#endif
   }
 
 void MainWindow::setupUi() {
