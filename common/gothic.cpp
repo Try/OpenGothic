@@ -439,8 +439,14 @@ float Gothic::interfaceScale(const Tempest::Widget* w) {
   while(w->owner()!=nullptr) {
     w = w->owner();
     }
-  if(auto window = dynamic_cast<const MainWindow*>(w))
-    return window->uiScale() * mul;
+  if(auto window = dynamic_cast<const MainWindow*>(w)) {
+    const float scale = window->uiScale() * mul;
+#if defined(__MOBILE_PLATFORM__)
+    return std::min(scale,std::min(float(window->w())/800.f,float(window->h())/600.f));
+#else
+    return scale;
+#endif
+    }
   return mul;
   }
 

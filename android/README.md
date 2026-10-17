@@ -1,6 +1,8 @@
 # Android
 
-An ARM64 NativeActivity APK using Tempest's Android backend and generated Gradle project. This is the basic platform integration; touch controls, controller input and game-file importing are not included yet. Android window destruction closes the application, including when backgrounding or locking destroys its surface.
+An ARM64 NativeActivity APK using Tempest's Android backend and generated Gradle project. This is the basic platform integration; gameplay touch controls, controller input and game-file importing are not included yet. Android window destruction closes the application, including when backgrounding or locking destroys its surface.
+
+Menus support direct touch input: tap entries to select them, tap choices to step through them, and drag sliders to adjust them. The UI scales to the device density and fits within the screen. Journal dialogs and text entry are not included yet.
 
 ## Build
 
