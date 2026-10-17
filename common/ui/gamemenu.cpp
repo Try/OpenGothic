@@ -652,7 +652,7 @@ void GameMenu::onDragTouch(Point pos) {
   if(stp<=1.f)
     stp = 1.f;
 
-  value = std::round(value/stp)*stp;
+  value = std::clamp(std::round(value/stp)*stp,0.f,100.f);
 
   Gothic::settingsSetF(sec,opt,value/100.f);
   update();
@@ -852,7 +852,7 @@ float GameMenu::sliderStep(const std::shared_ptr<zenkit::IMenuItem>& item) {
   float v = item->user_float[0];
   if(v==0.f)
     return 0.03f; // error?
-  return v/100.f;
+  return 1.f/v;
   }
 
 void GameMenu::exec(Item &p, int slideDx, KeyCodec::Action hint) {
