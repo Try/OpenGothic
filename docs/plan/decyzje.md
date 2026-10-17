@@ -82,3 +82,4 @@ Archiwum z dokumentów projektu claude.ai (02-plan, 03-faza6, 04-faza9), przenie
 
 ## Faza 12 — grafika (2026-10-17)
 - Użytkownik: drugi agent ulepsza tekstury i grafikę równolegle z pracą nad grą → gałąź faza12-grafika, zasady i podział plików w grafika.md
+- Agent grafiki to ChatGPT (bez skilli, pamięci i dokumentów projektu) → grafika.md samowystarczalny, stan w jego sekcji „Stan”

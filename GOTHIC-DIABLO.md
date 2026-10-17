@@ -222,7 +222,7 @@ Decyzje 2026-10-16: jedno drzewko na broń; łuk i kusza wspólnie; drzewko Blok
 
 ## Faza 12 — grafika (gałąź faza12-grafika, równolegle z rozgrywką)
 
-Drugi agent: tekstury, światło, obraz, efekty. Zasady i podział plików: [`docs/plan/grafika.md`](docs/plan/grafika.md).
+Agent grafiki (ChatGPT, bez dostępu do dokumentów projektu i skilli): tekstury, światło, obraz, efekty. Komplet zasad, podział plików i stan: [`docs/plan/grafika.md`](docs/plan/grafika.md).
 
 | Co | Gdzie w kodzie |
 |---|---|
