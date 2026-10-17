@@ -4,8 +4,10 @@
 
 class StackLayout : public Tempest::Layout {
   public:
-    StackLayout();
+    explicit StackLayout(Tempest::Widget& fullScreen);
 
   private:
     void applyLayout() override;
+
+    Tempest::Widget& fullScreen;
   };

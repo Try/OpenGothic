@@ -400,7 +400,11 @@ void InventoryMenu::mouseWheelEvent(MouseEvent &e) {
   }
 
 size_t InventoryMenu::rowsCount() const {
+#if defined(__IOS__)
+  int iy=30+int(34*Gothic::interfaceScale(this))+70;
+#else
   int iy=30+34+70;
+#endif
   return size_t((h()-iy-infoHeight()-20)/slotSize().h);
   }
 
@@ -418,6 +422,8 @@ void InventoryMenu::paintNumOverlay(PaintEvent& e) {
     return;
 
   Painter p(e);
+  const auto pos = mapToRoot(Point());
+  p.translate(pos.x,pos.y);
   drawAll(p,*player,DrawPass::Front);
   }
 
@@ -555,7 +561,11 @@ void InventoryMenu::adjustScroll() {
 void InventoryMenu::drawAll(Painter &p, Npc &player, DrawPass pass) {
   const int padd = 43;
 
+#if defined(__IOS__)
+  int iy=30+int(34*Gothic::interfaceScale(this))+70;
+#else
   int iy=30+34+70;
+#endif
 
   if(state==State::LockPicking)
     return;
@@ -643,7 +653,8 @@ void InventoryMenu::drawSlot(Painter &p, DrawPass pass, const Inventory::Iterato
       }
 
     const int dsz = (id==sel.sel ? 5 : 0);
-    renderer.drawItem(x-dsz, y-dsz, slotSize().w+2*dsz, slotSize().h+2*dsz, *it);
+    const auto pos = mapToRoot(Point(x-dsz,y-dsz));
+    renderer.drawItem(pos.x, pos.y, slotSize().w+2*dsz, slotSize().h+2*dsz, *it);
     } else {
     auto fnt = Resources::font(scale);
 
@@ -749,7 +760,8 @@ void InventoryMenu::drawInfo(Painter &p) {
     }
 
   const int sz = dh;
-  renderer.drawItem(x+dw-sz-sz/2,y,sz,sz,r);
+  const auto pos = mapToRoot(Point(x+dw-sz-sz/2,y));
+  renderer.drawItem(pos.x,pos.y,sz,sz,r);
   }
 
 void InventoryMenu::draw(Tempest::Encoder<CommandBuffer>& cmd) {

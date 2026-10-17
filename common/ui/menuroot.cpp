@@ -126,6 +126,13 @@ bool MenuRoot::hasVersionLine() const {
   return showVersionHint;
   }
 
+#if defined(__IOS__)
+void MenuRoot::resizeEvent(SizeEvent&) {
+  if(current!=nullptr)
+    current->onTick();
+  }
+#endif
+
 void MenuRoot::mouseDownEvent(MouseEvent& event) {
   // Only the first pointer interacts; ignoring others keeps their drag and up events away.
   if(current==nullptr || event.mouseID!=0) {

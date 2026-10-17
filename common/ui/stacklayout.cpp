@@ -2,7 +2,7 @@
 
 #include <Tempest/Widget>
 
-StackLayout::StackLayout() {  
+StackLayout::StackLayout(Tempest::Widget& fullScreen) : fullScreen(fullScreen) {
   }
 
 void StackLayout::applyLayout() {
@@ -11,6 +11,8 @@ void StackLayout::applyLayout() {
 
   for(size_t i=0;i<count;++i){
     auto& wx=w.widget(i);
-    wx.setGeometry(0,0,w.w(),w.h());
+    if(&wx==&fullScreen)
+      wx.setGeometry(0,0,w.w(),w.h()); else
+      wx.setGeometry(w.clientRect());
     }
   }
