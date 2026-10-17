@@ -36,6 +36,7 @@
 #include "ui/touchinput.h"
 
 #include "utils/keycodec.h"
+#include "utils/androidinput.h"
 #include "resources.h"
 
 class MenuRoot;
@@ -69,6 +70,10 @@ class MainWindow : public Tempest::Window {
     void paintFocus     (Tempest::Painter& p, Tempest::Rect rect);
 
     void drawBar(Tempest::Painter& p, const Tempest::Texture2d *bar, int x, int y, float v, Tempest::AlignFlag flg);
+    void drawBar(Tempest::Painter& p, const Tempest::Texture2d *bar, int x, int y, int width, float v, Tempest::AlignFlag flg);
+#ifdef OPENGOTHIC_TOUCH_UI
+    void drawTouchBars(Tempest::Painter& p, Npc& pl);
+#endif
     void drawMsg(Tempest::Painter& p);
     void drawProgress(Tempest::Painter& p, int x, int y, int w, int h, float v);
     void drawLoading (Tempest::Painter& p,int x,int y,int w,int h);
@@ -96,6 +101,17 @@ class MainWindow : public Tempest::Window {
 
     void render() override;
 
+#ifdef OPENGOTHIC_TOUCH_UI
+    Mobile::Mode mobileContext() const;
+    int      lastHitpoints = -1;
+    void     setupMobileControls();
+    void     onMobileAction(int id);
+    void     updateMobileControls();
+    void     updateMobileAvailability();
+    void     updateMobileOverlay();
+    void     updateHaptics();
+#endif
+
     uint64_t tick();
     void     updateAnimation(uint64_t dt);
     void     tickCamera(uint64_t dt);
@@ -118,6 +134,13 @@ class MainWindow : public Tempest::Window {
     Shaders               shaders;
     Renderer              renderer;
 
+#ifdef OPENGOTHIC_TOUCH_UI
+    AndroidInput::Controller   androidControls;
+    InventoryRenderer          mobileItems[Resources::MaxFramesInFlight];
+    std::string                mobileItemStamp[Resources::MaxFramesInFlight];
+    Tempest::VectorImage       touchLayer;
+    Tempest::VectorImage::Mesh touchMesh[Resources::MaxFramesInFlight];
+#endif
     Tempest::VectorImage  uiLayer, numOverlay;
     Tempest::VectorImage::Mesh uiMesh [Resources::MaxFramesInFlight];
     Tempest::VectorImage::Mesh numMesh[Resources::MaxFramesInFlight];
@@ -150,7 +173,7 @@ class MainWindow : public Tempest::Window {
     DocumentMenu              document;
     ChapterScreen             chapter;
     ConsoleWidget             console;
-#if defined(__MOBILE_PLATFORM__)
+#if defined(__MOBILE_PLATFORM__) && !defined(OPENGOTHIC_TOUCH_UI)
     TouchInput                mobileUi;
 #endif
     RuntimeMode               runtimeMode = R_Normal;

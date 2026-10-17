@@ -1,4 +1,5 @@
 #include "mainwindow.h"
+#include "ui/cursorshape.h"
 
 #include <Tempest/Except>
 #include <Tempest/Painter>
@@ -18,9 +19,11 @@
 #include "utils/string_frm.h"
 #include "world/triggers/abstracttrigger.h"
 #include "world/objects/npc.h"
+#include "world/objects/item.h"
 #include "game/serialize.h"
 #include "game/globaleffects.h"
 #include "utils/gthfont.h"
+#include "utils/haptics.h"
 #include "utils/dbgpainter.h"
 
 #include "commandline.h"
@@ -33,7 +36,7 @@ MainWindow::MainWindow(Device& device)
     atlas(device),rootMenu(keycodec),inventory(keycodec),
     dialogs(inventory),document(keycodec),
     console(*this),
-#if defined(__MOBILE_PLATFORM__)
+#if defined(__MOBILE_PLATFORM__) && !defined(OPENGOTHIC_TOUCH_UI)
     mobileUi(player),
 #endif
     player(dialogs,inventory) {
@@ -111,9 +114,15 @@ MainWindow::MainWindow(Device& device)
 
   displayPos = Shortcut(*this,Event::M_Alt,Event::K_P);
   displayPos.onActivated.bind(this, &MainWindow::onMarvinKey<Event::K_P>);
+#ifdef OPENGOTHIC_TOUCH_UI
+  setupMobileControls();
+#endif
   }
 
 MainWindow::~MainWindow() {
+#ifdef OPENGOTHIC_TOUCH_UI
+  androidControls.unbind();
+#endif
   GameMusic::inst().stopMusic();
   Gothic::inst().cancelLoading();
   device.waitIdle();
@@ -123,7 +132,7 @@ MainWindow::~MainWindow() {
   takeWidget(&document);
   takeWidget(&video);
   takeWidget(&rootMenu);
-#if defined(__MOBILE_PLATFORM__)
+#if defined(__MOBILE_PLATFORM__) && !defined(OPENGOTHIC_TOUCH_UI)
   takeWidget(&mobileUi);
 #endif
   removeAllWidgets();
@@ -143,7 +152,7 @@ void MainWindow::setupUi() {
   addWidget(&chapter);
   addWidget(&video);
   addWidget(&rootMenu);
-#if defined(__MOBILE_PLATFORM__)
+#if defined(__MOBILE_PLATFORM__) && !defined(OPENGOTHIC_TOUCH_UI)
   addWidget(&mobileUi);
 #endif
 
@@ -214,8 +223,16 @@ void MainWindow::paintEvent(PaintEvent& event) {
       auto focus = world->validateFocus(player.focus());
       paintFocus(p,focus,vp);
 
+#ifdef OPENGOTHIC_TOUCH_UI
+      constexpr bool screenBars = false;
+#else
+      const bool     screenBars = !Gothic::inst().isDesktop();
+#endif
       if(auto pl = Gothic::inst().player()){
-        if (!Gothic::inst().isDesktop()) {
+#ifdef OPENGOTHIC_TOUCH_UI
+        drawTouchBars(p,*pl);
+#endif
+        if (screenBars) {
           auto& opt = Gothic::options();
           float hp  = float(pl->attribute(ATR_HITPOINTS))/float(pl->attribute(ATR_HITPOINTSMAX));
           float mp  = float(pl->attribute(ATR_MANA))     /float(pl->attribute(ATR_MANAMAX));
@@ -304,6 +321,14 @@ void MainWindow::resizeEvent(SizeEvent&) {
   }
 
 void MainWindow::mouseDownEvent(MouseEvent &event) {
+#if defined(OPENGOTHIC_TOUCH_UI) && !defined(__ANDROID__)
+  // The mouse emulates a touch screen: left button is a finger, right button is "back"
+  if(event.button==Event::ButtonLeft)
+    androidControls.pointerDown(0,float(event.x),float(event.y)); else
+  if(event.button==Event::ButtonRight)
+    androidControls.physical(Mobile::Key::Escape,true);
+  return;
+#endif
   if(event.button<sizeof(mouseP))
     mouseP[event.button]=true;
   auto act     = keycodec.tr(event);
@@ -312,6 +337,13 @@ void MainWindow::mouseDownEvent(MouseEvent &event) {
   }
 
 void MainWindow::mouseUpEvent(MouseEvent &event) {
+#if defined(OPENGOTHIC_TOUCH_UI) && !defined(__ANDROID__)
+  if(event.button==Event::ButtonLeft)
+    androidControls.pointerUp(0,float(event.x),float(event.y)); else
+  if(event.button==Event::ButtonRight)
+    androidControls.physical(Mobile::Key::Escape,false);
+  return;
+#endif
   auto act     = keycodec.tr(event);
   auto mapping = keycodec.mapping(event);
   player.onKeyReleased(act,mapping);
@@ -320,6 +352,11 @@ void MainWindow::mouseUpEvent(MouseEvent &event) {
   }
 
 void MainWindow::mouseDragEvent(MouseEvent &event) {
+#if defined(OPENGOTHIC_TOUCH_UI) && !defined(__ANDROID__)
+  if(event.button==Event::ButtonLeft)
+    androidControls.pointerMove(0,float(event.x),float(event.y));
+  return;
+#endif
   const bool fs = SystemApi::isFullscreen(hwnd());
   if(!mouseP[Event::ButtonLeft] && !fs)
     return;
@@ -329,6 +366,10 @@ void MainWindow::mouseDragEvent(MouseEvent &event) {
   }
 
 void MainWindow::mouseMoveEvent(MouseEvent &event) {
+#if defined(OPENGOTHIC_TOUCH_UI) && !defined(__ANDROID__)
+  (void)event;
+  return;
+#endif
   processMouse(event,SystemApi::isFullscreen(hwnd()));
   }
 
@@ -387,6 +428,9 @@ void MainWindow::onSettings() {
   auto zMaxFps = Gothic::options().fpsLimit;
   if(zMaxFps<=0)
     zMaxFps = Gothic::inst().settingsGetI("ENGINE", "zMaxFps");
+#ifdef OPENGOTHIC_TOUCH_UI
+  zMaxFps = std::clamp(AndroidInput::preferences().fps,30,60);
+#endif
   if(zMaxFps>0)
     maxFpsInv = 1000u/uint64_t(zMaxFps); else
     maxFpsInv = 0;
@@ -558,6 +602,13 @@ void MainWindow::keyUpEvent(KeyEvent &event) {
   }
 
 void MainWindow::focusEvent(FocusEvent &event) {
+#ifdef OPENGOTHIC_TOUCH_UI
+  if(!event.in) {
+    androidControls.cancel();
+    clearInput();
+    dMouse = Point();
+    }
+#endif
   if(!event.in)
     return;
   dMouse = Point();
@@ -673,10 +724,14 @@ void MainWindow::paintFocus(Painter& p, Rect rect) {
   }
 
 void MainWindow::drawBar(Painter &p, const Tempest::Texture2d* bar, int x, int y, float v, AlignFlag flg) {
+  const float scale = Gothic::interfaceScale(this);
+  drawBar(p,bar,x,y,int(200.f*scale*float(std::min(w(),800))/800.f),v,flg);
+  }
+
+void MainWindow::drawBar(Painter &p, const Tempest::Texture2d* bar, int x, int y, int width, float v, AlignFlag flg) {
   if(barBack==nullptr || bar==nullptr)
     return;
-  const float scale   = Gothic::interfaceScale(this);
-  const float destW   = 200.f*scale*float(std::min(w(),800))/800.f;
+  const float destW   = float(width);
   const float k       = float(destW)/float(std::max(barBack->w(),1));
   const float destH   = float(barBack->h())*k;
   const float destHin = float(destH)*24.f/32.f;
@@ -699,6 +754,41 @@ void MainWindow::drawBar(Painter &p, const Tempest::Texture2d* bar, int x, int y
   p.drawRect(x+int(pd),y+dy,int(float(destW-pd*2)*v),int(destHin),
              0,0,bar->w(),bar->h());
   }
+
+#ifdef OPENGOTHIC_TOUCH_UI
+/// The bars of the original interface: life on the left above the hotbar, mana on the right, oxygen under water
+void MainWindow::drawTouchBars(Painter& p, Npc& pl) {
+  const auto mode = mobileContext();
+  const float hp  = float(pl.attribute(ATR_HITPOINTS))/float(std::max(1,pl.attribute(ATR_HITPOINTSMAX)));
+  const float mp  = float(pl.attribute(ATR_MANA))/float(std::max(1,pl.attribute(ATR_MANAMAX)));
+
+  if(mode==Mobile::Mode::Inventory) {
+    const int width = int(200.f*Gothic::interfaceScale(this)*float(std::min(w(),800))/800.f);
+    drawBar(p,barHp,10,10,width,hp,AlignLeft);
+    drawBar(p,barMana,10,10+int(float(width)*0.125f)+2,width,mp,AlignLeft);
+    return;
+    }
+  if(mode!=Mobile::Mode::Game)
+    return;
+
+  // above the hotbar of the controls, same units as the model
+  const float s     = std::min(float(w())/1000.f,float(h())/440.f);
+  const int   half  = int(Mobile::HotbarSlot*5*s);
+  const int   width = int(Mobile::HotbarSlot*3.2f*s);   // the frame keeps its proportions, so it is not too tall
+  const int   y     = h()-int((Mobile::HotbarBottom+Mobile::HotbarSlot+9)*s);
+
+  // the bars stand over the ends of the hotbar
+  drawBar(p,barHp,w()/2-half,y,width,hp,AlignLeft | AlignBottom);
+  const int xr = w()/2+half-width;
+  if(pl.isDive()) {
+    const float total = float(pl.world().script().guildVal().dive_time[pl.guild()]);
+    const float left  = total>0 ? (total-float(pl.diveTime())/1000.f)/total : 0.f;
+    drawBar(p,barMisc,xr,y,width,left,AlignLeft | AlignBottom);
+    } else {
+    drawBar(p,barMana,xr,y,width,mp,AlignLeft | AlignBottom);
+    }
+  }
+#endif
 
 void MainWindow::drawMsg(Tempest::Painter& p) {
   if(barBack==nullptr)
@@ -870,6 +960,9 @@ void MainWindow::onMarvinKey() {
   }
 
 uint64_t MainWindow::tick() {
+#ifdef OPENGOTHIC_TOUCH_UI
+  updateMobileControls();
+#endif
   auto time = Application::tickCount();
   auto dt   = time-lastTick;
   // NOTE: limit to ~200 FPS in game logic to avoid math issues
@@ -1214,7 +1307,7 @@ void MainWindow::clearInput() {
 
 void MainWindow::setFullscreen(bool fs) {
   SystemApi::setAsFullscreen(hwnd(),fs);
-  setCursorShape(fs ? CursorShape::Hidden : CursorShape::Arrow);
+  setCursorShape(fs ? HiddenCursor : CursorShape::Arrow);
   }
 
 void MainWindow::render(){
@@ -1268,10 +1361,23 @@ void MainWindow::render(){
     uiMesh [cmdId].update(device,uiLayer);
     numMesh[cmdId].update(device,numOverlay);
 
+#ifdef OPENGOTHIC_TOUCH_UI
+    updateMobileOverlay();
+#endif
+    // Models of the inventory are drawn over everything else, hide them below a document
+    inventory.setCovered(document.isActive() || chapter.isActive() || video.isActive());
+
     CommandBuffer& cmd = commands[cmdId];
     {
     auto enc = cmd.startEncoding(device);
     renderer.draw(swapchain[swapchain.currentImage()],enc,cmdId,uiMesh[cmdId],numMesh[cmdId],inventory,video);
+#ifdef OPENGOTHIC_TOUCH_UI
+    // The last pass: controls stay above menus, video and 3D inventory
+    enc.setViewport(0,0,w(),h());
+    touchMesh[cmdId].draw(enc);
+    if(mobileContext()==Mobile::Mode::Game && !androidControls.settingsVisible())
+      renderer.drawTouchItems(swapchain[swapchain.currentImage()],enc,mobileItems[cmdId]);
+#endif
     }
     sync = device.submit(cmd);
     device.present(swapchain);
@@ -1331,3 +1437,285 @@ void MainWindow::BenchmarkData::clear() {
   numFrames = 0;
   fpsSum = 0;
   }
+
+#ifdef OPENGOTHIC_TOUCH_UI
+static_assert(Mobile::CategoryCount==InventoryMenu::CatCount, "touch categories do not match the inventory");
+
+namespace {
+// Hotbar slots: melee weapon, ranged weapon and the magic slots
+const Item* hotbarItem(Npc& pl, int index) {
+  if(index==0)
+    return pl.currentMeleeWeapon();
+  if(index==1)
+    return pl.currentRangedWeapon();
+  return pl.inventory().currentSpell(uint8_t(index-2));
+  }
+
+void cycleSpell(Npc& pl) {
+  constexpr int count = 8; // magic slots 3..10
+  const int slot  = int(pl.inventory().currentSpellSlot());
+  const int start = (3<=slot && slot<=10) ? slot-3 : -1;
+  for(int n=1; n<=count; ++n) {
+    const int next = (start+n)%count;
+    if(pl.inventory().currentSpell(uint8_t(next))) {
+      pl.drawMage(uint8_t(next+3));
+      break;
+      }
+    }
+  }
+}
+
+Mobile::Mode MainWindow::mobileContext() const {
+  if(Gothic::inst().checkLoading()!=Gothic::LoadState::Idle)
+    return Mobile::Mode::Loading;
+  if(video.isActive() || chapter.isActive() || document.isActive())
+    return Mobile::Mode::Video;
+  if(rootMenu.isActive())
+    return rootMenu.isTouchMenu() ? Mobile::Mode::Menu : Mobile::Mode::Dialog;
+  if(inventory.isOpen()==InventoryMenu::State::LockPicking)
+    return Mobile::Mode::Lockpick;
+  if(inventory.isActive())
+    return Mobile::Mode::Inventory;
+  if(dialogs.isActive())
+    return Mobile::Mode::Dialog;
+  return Gothic::inst().isInGame() ? Mobile::Mode::Game : Mobile::Mode::Loading;
+  }
+
+void MainWindow::setupMobileControls() {
+  androidControls.update(*this,mobileContext());
+
+  androidControls.look = [this](float dx, float dy) {
+    auto camera = Gothic::inst().camera();
+    if(!hasFocus() || mobileContext()!=Mobile::Mode::Game || camera==nullptr ||
+       camera->isCutscene() || Gothic::inst().isPause())
+      return;
+    if(Gothic::inst().settingsGetI("GAME","camLookaroundInverse"))
+      dy = -dy;
+    camera->onRotateMouse(PointF(dy,-dx));
+    player.onRotateMouse(-dx,-dy);
+    };
+  androidControls.menuTouch = [this](float x, float y, int phase) {
+    if(rootMenu.isActive())
+      rootMenu.mobileTouch(x,y,phase); else
+    if(inventory.isActive())
+      inventory.mobileTouch(x,y,phase); else
+    if(dialogs.isActive())
+      dialogs.mobileTouch(x,y,phase);
+    };
+  androidControls.menuTap = [this](float x, float y) {
+    if(rootMenu.isActive())
+      rootMenu.mobileTap(x,y); else
+    if(inventory.isActive())
+      inventory.mobileTap(x,y); else
+    if(dialogs.isActive())
+      dialogs.mobileTap(x,y);
+    };
+  androidControls.menuScroll = [this](float dy) {
+    if(rootMenu.isActive())
+      rootMenu.mobileScroll(dy); else
+    if(inventory.isActive())
+      inventory.mobileScroll(dy);
+    };
+  androidControls.action = [this](int id) {
+    onMobileAction(id);
+    };
+
+  androidControls.loadIcons(atlas);
+  inventory.setTouchSprites(androidControls.icon(AndroidInput::IconInvSlot),
+                            androidControls.icon(AndroidInput::IconInvSlotSelected));
+  androidControls.bind();
+  }
+
+void MainWindow::onMobileAction(int id) {
+  const int category = id-Mobile::Special::FirstCategory;
+  if(0<=category && category<Mobile::CategoryCount) {
+    if(mobileContext()==Mobile::Mode::Inventory)
+      inventory.setCategory(category);
+    return;
+    }
+
+  if(mobileContext()!=Mobile::Mode::Game)
+    return;
+  if(id==Mobile::Special::Target)
+    player.cycleTarget();
+  if(id==Mobile::Special::Spell) {
+    if(auto pl = Gothic::inst().player())
+      cycleSpell(*pl);
+    }
+  }
+
+/// Damage is felt: the stronger the hit, the longer and stronger the vibration
+void MainWindow::updateHaptics() {
+  auto pl = Gothic::inst().player();
+  if(pl==nullptr) {
+    lastHitpoints = -1;
+    return;
+    }
+
+  const int hp = pl->attribute(ATR_HITPOINTS);
+  if(lastHitpoints>0 && hp<lastHitpoints && AndroidInput::preferences().vibration!=0) {
+    const int lost = lastHitpoints-hp;
+    if(hp<=0)
+      Haptics::vibrate(450,255); else
+      Haptics::vibrate(std::clamp(30+lost*2,30,160),std::clamp(90+lost*5,90,255));
+    }
+  lastHitpoints = hp;
+  }
+
+void MainWindow::updateMobileControls() {
+  updateHaptics();
+  updateMobileAvailability();
+  androidControls.inventoryLists(inventory.mobileTwoLists());
+  androidControls.gui(Gothic::interfaceScale(this));
+  if(androidControls.update(*this,mobileContext())) {
+    clearInput();
+    dMouse = Point();
+    }
+  }
+
+/// Controls of actions that are not possible at the moment are hidden or disabled
+void MainWindow::updateMobileAvailability() {
+  using Mobile::Key;
+  using Mobile::keyMask;
+
+  uint64_t allowed = keyMask(Key::Escape);
+  const auto mode  = mobileContext();
+
+  if(mode==Mobile::Mode::Game) {
+    bool target = false, spells = false, movement = false;
+    if(auto pl = Gothic::inst().player()) {
+      const auto camera = Gothic::inst().camera();
+      const bool alive  = !pl->isDead() && !pl->isDown();
+      const bool active = !Gothic::inst().isPause() && camera!=nullptr && !camera->isCutscene();
+      const bool free   = alive && pl->interactive()==nullptr && active;
+      const bool ground = free && !pl->isSwim() && !pl->isDive();
+
+      const auto ws     = pl->weaponState();
+      const bool armed  = ws!=WeaponState::NoWeapon;
+      const bool ranged = ws==WeaponState::Bow || ws==WeaponState::CBow;
+      const bool melee  = armed && !ranged && ws!=WeaponState::Mage;
+
+      movement = alive && active;
+      if(alive)
+        allowed |= keyMask(Key::Status) | keyMask(Key::Log) | keyMask(Key::Map);
+      if(ground) {
+        allowed |= keyMask(Key::Inventory) | keyMask(Key::Weapon) | keyMask(Key::Walk);
+        if(pl->canSneak())
+          allowed |= keyMask(Key::Sneak);
+
+        const bool canAttack = armed && (!ranged || pl->hasAmmunition()) &&
+                               (ws!=WeaponState::Mage || pl->attribute(ATR_MANA)>0);
+        if(canAttack || (!armed && bool(player.focus())))
+          allowed |= keyMask(Key::Action);
+        if(melee)
+          allowed |= keyMask(Key::AttackLeft) | keyMask(Key::AttackRight) | keyMask(Key::Block);
+
+        target = armed && player.focus().npc!=nullptr;
+
+        int spellCount = 0;
+        for(int i=0; i<10; ++i) {
+          if(hotbarItem(*pl,i)==nullptr)
+            continue;
+          allowed |= keyMask(Key(int(Key::One)+i));
+          if(i>=2)
+            ++spellCount;
+          }
+        spells = ws==WeaponState::Mage && spellCount>1;
+        }
+      if(free && !pl->isInAir() && !pl->isJump())
+        allowed |= keyMask(Key::Jump);
+      if(alive && pl->interactive()!=nullptr)
+        allowed |= keyMask(Key::Action);
+      }
+    androidControls.availability(allowed,target,spells,movement);
+    return;
+    }
+
+  if(mode==Mobile::Mode::Inventory) {
+    if(inventory.hasSelectedItem()) {
+      allowed |= keyMask(Key::Enter) | keyMask(Key::Weapon) |
+                 keyMask(Key::Up) | keyMask(Key::Down) | keyMask(Key::Left) | keyMask(Key::Right);
+      if(inventory.isOpen()!=InventoryMenu::State::Equip)
+        allowed |= keyMask(Key::Jump);
+      }
+    androidControls.availability(allowed,false,false,false);
+    }
+  }
+
+/// Prepares the touch HUD for rendering: status bars, hotbar models and the controls themselves
+void MainWindow::updateMobileOverlay() {
+  struct HotbarItem {
+    const Item*  item;
+    Mobile::Rect rect;
+    };
+  std::vector<HotbarItem> hotbar;
+  std::string             stamp;
+
+  auto& hud = androidControls.hud;
+  hud = {};
+  hud.inventoryCategory = inventory.category();
+  hud.inventoryTransfer = inventory.isOpen()!=InventoryMenu::State::Equip;
+  if(mobileContext()==Mobile::Mode::Inventory)
+    hud.useLabel = std::string(inventory.mobileActionLabel());
+
+  const auto mode = mobileContext();
+  auto       pl   = Gothic::inst().player();
+  if((mode==Mobile::Mode::Game || mode==Mobile::Mode::Inventory) && !androidControls.settingsVisible() && pl!=nullptr) {
+    const auto ws = pl->weaponState();
+    if(ws==WeaponState::NoWeapon) {
+      const auto focus = player.focus();
+      hud.actionIcon = focus.npc!=nullptr         ? AndroidInput::IconTalk    :
+                       focus.interactive!=nullptr ? AndroidInput::IconContext : AndroidInput::IconInteract;
+      } else
+    if(ws==WeaponState::Mage)
+      hud.actionIcon = AndroidInput::IconCast; else
+    if(ws==WeaponState::Bow || ws==WeaponState::CBow)
+      hud.actionIcon = AndroidInput::IconShoot; else
+      hud.actionIcon = AndroidInput::IconAttack;
+
+    hud.health      = float(pl->attribute(ATR_HITPOINTS))/float(std::max(1,pl->attribute(ATR_HITPOINTSMAX)));
+    hud.mana        = float(pl->attribute(ATR_MANA))/float(std::max(1,pl->attribute(ATR_MANAMAX)));
+    hud.hp          = pl->attribute(ATR_HITPOINTS);
+    hud.hpMax       = pl->attribute(ATR_HITPOINTSMAX);
+    hud.mp          = pl->attribute(ATR_MANA);
+    hud.mpMax       = pl->attribute(ATR_MANAMAX);
+    hud.diving      = pl->isDive();
+    hud.manaVisible = ws==WeaponState::Mage || pl->attribute(ATR_MANA)<pl->attribute(ATR_MANAMAX);
+
+    const auto diveTime = float(pl->world().script().guildVal().dive_time[pl->guild()]);
+    hud.oxygen = diveTime>0 ? 1.f-float(pl->diveTime())/(1000.f*diveTime) : 0.f;
+
+    for(const auto& b:androidControls.buttons()) {
+      if(!b.visible || b.key<Mobile::Key::One || b.key>Mobile::Key::Zero)
+        continue;
+      const int   index = int(b.key)-int(Mobile::Key::One);
+      const Item* item  = hotbarItem(*pl,index);
+      if(item==nullptr)
+        continue;
+      if(item==pl->activeWeapon())
+        hud.active = index;
+      hotbar.push_back({item,b.rect});
+      stamp += std::string(item->handle().visual)+":"+std::to_string(index)+":"+
+               std::to_string(b.rect.x)+":"+std::to_string(b.rect.y)+":"+
+               std::to_string(b.rect.w)+":"+std::to_string(b.rect.h)+";";
+      }
+    }
+
+  // Models are cached, and rebuilt only when the hotbar changes
+  if(stamp!=mobileItemStamp[cmdId]) {
+    mobileItems[cmdId].reset();
+    for(const auto& slot:hotbar) {
+      const auto& r = slot.rect;
+      mobileItems[cmdId].drawItem(int(r.x+r.w*0.12f),int(r.y+r.h*0.22f),int(r.w*0.76f),int(r.h*0.66f),*slot.item);
+      }
+    mobileItemStamp[cmdId] = std::move(stamp);
+    }
+
+  touchLayer.clear();
+  {
+    PaintEvent p(touchLayer,atlas,w(),h());
+    androidControls.paint(p);
+  }
+  touchMesh[cmdId].update(device,touchLayer);
+  }
+#endif

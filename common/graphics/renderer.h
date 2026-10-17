@@ -13,6 +13,7 @@
 
 class Camera;
 class InventoryMenu;
+class InventoryRenderer;
 class VideoWidget;
 
 class Renderer final {
@@ -31,6 +32,9 @@ class Renderer final {
               WorldView& view, const Camera& camera);
 
     void dbgDraw(Tempest::Painter& painter);
+#ifdef OPENGOTHIC_TOUCH_UI
+    void drawTouchItems(Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, InventoryRenderer& items);
+#endif
 
     Tempest::Attachment screenshoot(uint8_t frameId, Tempest::Size size);
 
@@ -124,7 +128,7 @@ class Renderer final {
     void togglePathtrace();
 
     struct Settings {
-      const uint32_t shadowResolution   = 2048;
+      uint32_t       shadowResolution   = 2048;
       bool           vsmEnabled         = false;
       bool           rtsmEnabled        = false;
       bool           swrEnabled         = false;

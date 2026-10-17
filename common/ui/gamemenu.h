@@ -8,7 +8,10 @@
 #include <zenkit/DaedalusVm.hh>
 #include <zenkit/addon/daedalus.hh>
 
+#include <array>
 #include <memory>
+#include <string>
+#include <vector>
 
 #include "game/savegameheader.h"
 #include "game/questlog.h"
@@ -29,6 +32,12 @@ class GameMenu : public Tempest::Widget {
 
     void onKeyboard(KeyCodec::Action k);
     void onTick();
+#ifdef OPENGOTHIC_TOUCH_UI
+    bool isTouchMenu() const { return touch.list || touch.log; }
+    void mobileTouch(float x, float y, int phase);
+    void mobileTap(float x, float y);
+    void mobileScroll(float dy);
+#endif
     void processMusicTheme();
 
     KeyCodec::Action keyClose() const { return kClose; }
@@ -76,10 +85,66 @@ class GameMenu : public Tempest::Widget {
     Item                                  hItems[zenkit::IMenu::item_count];
     Item*                                 ctrlInput = nullptr;
     uint32_t                              curItem=0;
+#ifdef OPENGOTHIC_TOUCH_UI
+    /// Script menus are shown as a scrollable list of rows on touch devices
+    struct TouchState {
+      bool                                list      = false;
+      bool                                log       = false;
+      int                                 offset    = 0;
+      int                                 slider    = -1;    // item of the slider under the finger
+      float                               startX    = 0;
+      float                               startY    = 0;
+      float                               preview   = 0;     // slider value, until the finger is released
+      bool                                dragging  = false;
+      bool                                consumed  = false; // the gesture was a slider drag, not a tap
+      };
+    TouchState                            touch;
+
+    /// The journal is a screen of its own
+    struct LogView {
+      Tempest::Rect                       frame;   // picture of the menu
+      Tempest::Rect                       tab[4];
+      Tempest::Rect                       area;    // list of the quests or the notes
+      Tempest::Rect                       back;    // from the notes to the list
+      };
+    struct TouchLog {
+      int                                 tab         = 0;
+      int                                 sel         = 0;
+      bool                                notes       = false;  // the notes of the quest are open
+      float                               listScroll  = 0;
+      float                               textScroll  = 0;
+      int                                 listMax     = 0;
+      int                                 textMax     = 0;
+      int                                 drag        = 0;     // 1 - list, 2 - text
+      float                               startY      = 0;
+      float                               startScroll = 0;
+      std::vector<std::pair<int,int>>     rows;                // position and height of the quests in the list
+      };
+    TouchLog                              touchLog;
+
+    Tempest::Rect                         touchFrameRect() const;
+    void                                  paintTouchFrame(Tempest::Painter& p, const Tempest::Rect& r);
+    LogView                               touchLogView() const;
+    std::vector<const QuestLog::Quest*>   touchLogQuests() const;
+    std::array<std::string,4>             touchLogTabNames() const;
+    void                                  mobileLogTouch(float x, float y, int phase);
+    void                                  mobileLogTap(float x, float y);
+    void                                  paintTouchLog(Tempest::Painter& p);
+
+    uint32_t                              touchControl(uint32_t row) const;
+    std::vector<uint32_t>                 touchRows() const;
+    int                                   touchRowAt(float x, float y) const;
+    void                                  paintTouch(Tempest::Painter& p);
+#endif
     bool                                  exitFlag=false;
     bool                                  closeFlag=false;
 
     KeyCodec::Action                      kClose = KeyCodec::Escape;
+
+    /// Scale of the texts. Menus of the original look are enlarged for a phone, texts follow them.
+    float                                 fontScale() const;
+    Tempest::Size                         originalSize() const;
+    float                                 touchK = 1.f;
 
     void                                  drawItem(Tempest::Painter& p, Item& it);
     void                                  drawSlider(Tempest::Painter& p, Item& it, int x, int y, int w, int h);

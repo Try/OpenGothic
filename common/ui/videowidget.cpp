@@ -1,4 +1,5 @@
 #include "videowidget.h"
+#include "ui/cursorshape.h"
 
 #include <Tempest/Painter>
 #include <Tempest/TextCodec>
@@ -249,7 +250,7 @@ struct VideoWidget::Context {
   };
 
 VideoWidget::VideoWidget() {
-  setCursorShape(CursorShape::Hidden);
+  setCursorShape(HiddenCursor);
   }
 
 VideoWidget::~VideoWidget() {
@@ -328,6 +329,10 @@ void VideoWidget::keyUpEvent(KeyEvent&) {
   }
 
 void VideoWidget::mouseDownEvent(Tempest::MouseEvent& event) {
+#ifdef OPENGOTHIC_TOUCH_UI
+  event.ignore();
+  return;
+#endif
   if(!active) {
     event.ignore();
     return;

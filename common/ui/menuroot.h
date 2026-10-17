@@ -25,6 +25,12 @@ class MenuRoot : public Tempest::Widget {
     void setPlayer(const Npc& pl);
     void processMusicTheme();
 
+#ifdef OPENGOTHIC_TOUCH_UI
+    bool isTouchMenu() const;
+    void mobileTouch(float x, float y, int phase);
+    void mobileTap(float x, float y);
+    void mobileScroll(float dy);
+#endif
     void showVersion(bool s);
     bool hasVersionLine() const;
 

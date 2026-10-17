@@ -16,7 +16,8 @@ class InventoryRenderer {
     void draw(Tempest::Encoder<Tempest::CommandBuffer>& cmd);
 
     void reset(bool full=false);
-    void drawItem(int x, int y, int w, int h, const Item &item);
+    /// clip: only this part of the screen is drawn
+    void drawItem(int x, int y, int w, int h, const Item &item, const Tempest::Rect* clip=nullptr);
 
   private:
     struct PerFrame {
@@ -27,6 +28,8 @@ class InventoryRenderer {
       MeshObjects::Mesh  mesh;
       Tempest::Matrix4x4 viewMat;
       int x=0, y=0, w=0, h=0;
+      bool           clipped=false;
+      Tempest::Rect  clip;
       };
 
     SceneGlobals     scene;

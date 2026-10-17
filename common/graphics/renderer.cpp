@@ -10,6 +10,7 @@
 #include "ui/videowidget.h"
 #include "camera.h"
 #include "gothic.h"
+#include "utils/androidinput.h"
 #include "utils/string_frm.h"
 
 using namespace Tempest;
@@ -139,6 +140,14 @@ void Renderer::setupSettings() {
     settings.moonSize = 400;
 
   settings.vidResIndex = Gothic::settingsGetF("INTERNAL","vidResIndex");
+#ifdef OPENGOTHIC_TOUCH_UI
+  {
+    const auto pref = AndroidInput::preferences();
+    settings.vidResIndex       = pref.resolution>=100 ? 0.f : pref.resolution>=75 ? 1.f : 2.f;
+    settings.shadowResolution  = uint32_t(std::clamp(pref.shadows,0,2048));
+    settings.zCloudShadowScale = pref.effects!=0;
+  }
+#endif
   settings.aaEnabled   = (Shaders::options().aaPreset>0) && (settings.vidResIndex==0);
 
   // direct lighting
@@ -557,7 +566,7 @@ void Renderer::draw(Attachment& result, Encoder<CommandBuffer>& cmd, uint8_t fId
   cmd.setDebugMarker("UI");
   uiLayer.draw(cmd);
 
-  if(inventory.isOpen()!=InventoryMenu::State::Closed) {
+  if(inventory.isOpen()!=InventoryMenu::State::Closed && !inventory.isCovered()) {
     auto& zb = (zbufferUi.isEmpty() ? zbuffer : zbufferUi);
     cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}},{zb, 1.f, Tempest::Preserve});
     cmd.setDebugMarker("Inventory");
@@ -568,6 +577,18 @@ void Renderer::draw(Attachment& result, Encoder<CommandBuffer>& cmd, uint8_t fId
     numOverlay.draw(cmd);
     }
   }
+
+#ifdef OPENGOTHIC_TOUCH_UI
+void Renderer::drawTouchItems(Attachment& result, Encoder<CommandBuffer>& cmd, InventoryRenderer& items) {
+  auto& zb = (zbufferUi.isEmpty() ? zbuffer : zbufferUi);
+  cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}},{zb, 1.f, Tempest::Preserve});
+  cmd.setDebugMarker("Touch-items");
+  items.draw(cmd);
+
+  cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}});
+  cmd.setViewport(0,0,result.w(),result.h());
+  }
+#endif
 
 void Renderer::dbgDraw(Tempest::Painter& p) {
   static bool dbg = false;

@@ -19,6 +19,7 @@
 #include "world/objects/npc.h"
 
 #include "utils/fileutil.h"
+#include "utils/androidinput.h"
 #include "utils/inifile.h"
 
 #include "commandline.h"
@@ -435,6 +436,9 @@ float Gothic::interfaceScale(const Tempest::Widget* w) {
   float mul = 1;
   if(instance->opts.interfaceScale>0.0)
     mul = instance->opts.interfaceScale;
+#ifdef OPENGOTHIC_TOUCH_UI
+  mul *= float(AndroidInput::preferences().gui)/100.f;
+#endif
 
   while(w->owner()!=nullptr) {
     w = w->owner();

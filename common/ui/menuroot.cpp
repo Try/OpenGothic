@@ -1,4 +1,5 @@
 #include "menuroot.h"
+#include "ui/cursorshape.h"
 
 #include <Tempest/Log>
 
@@ -9,7 +10,7 @@ using namespace Tempest;
 
 MenuRoot::MenuRoot(KeyCodec& keyCodec)
   :keyCodec(keyCodec) {
-  setCursorShape(CursorShape::Hidden);
+  setCursorShape(HiddenCursor);
 
   Gothic::inst().onSettingsChanged.bind(this,&MenuRoot::initSettings);
   initSettings();
@@ -127,6 +128,12 @@ bool MenuRoot::hasVersionLine() const {
   }
 
 void MenuRoot::mouseDownEvent(MouseEvent& event) {
+#ifdef OPENGOTHIC_TOUCH_UI
+  // Touch input is handled by AndroidInput (mouse clicks reach it through MainWindow on desktop),
+  // a menu is confirmed with the explicit button only
+  event.ignore();
+  return;
+#endif
   if(current!=nullptr) {
     if(event.button==Event::ButtonRight) {
       popMenu();
@@ -209,3 +216,24 @@ void MenuRoot::keyDownEvent(KeyEvent &e) {
       popMenu();
     }
   }
+
+#ifdef OPENGOTHIC_TOUCH_UI
+bool MenuRoot::isTouchMenu() const {
+  return current!=nullptr && current->isTouchMenu();
+  }
+
+void MenuRoot::mobileTouch(float x, float y, int phase) {
+  if(current!=nullptr)
+    current->mobileTouch(x-float(current->x()),y-float(current->y()),phase);
+  }
+
+void MenuRoot::mobileTap(float x, float y) {
+  if(current!=nullptr)
+    current->mobileTap(x-float(current->x()),y-float(current->y()));
+  }
+
+void MenuRoot::mobileScroll(float dy) {
+  if(current!=nullptr)
+    current->mobileScroll(dy);
+  }
+#endif

@@ -1,4 +1,5 @@
 #include "inventorymenu.h"
+#include "ui/cursorshape.h"
 
 #include <Tempest/Painter>
 #include <Tempest/SoundEffect>
@@ -20,21 +21,61 @@ struct InventoryMenu::Page {
   Page(const Page&)=delete;
   virtual ~Page()=default;
 
-  size_t                      size() const {
+  Category category = CatAll;
+
+  bool matches(const Item& item) const {
+    if(category==CatAll)
+      return true;
+
+    const uint32_t flags   = uint32_t(item.mainFlag());
+    const bool     weapons = (flags & (ITM_CAT_NF | ITM_CAT_FF | ITM_CAT_MUN))!=0;
+    const bool     armor   = item.isArmor();
+    const bool     jewelry = item.isRing() || (uint32_t(item.itemFlag()) & ITM_AMULET)!=0;
+    const bool     magic   = item.isSpellOrRune();
+    const bool     food    = (flags & ITM_CAT_FOOD)!=0;
+    const bool     potion  = (flags & ITM_CAT_POTION)!=0;
+    const bool     docs    = (flags & ITM_CAT_DOCS)!=0;
+    switch(category) {
+      case CatWeapons:   return weapons;
+      case CatArmor:     return armor;
+      case CatJewelry:   return jewelry;
+      case CatMagic:     return magic;
+      case CatFood:      return food;
+      case CatPotion:    return potion;
+      case CatDocuments: return docs;
+      case CatMisc:      return !weapons && !armor && !jewelry && !magic && !food && !potion && !docs;
+      default:           return true;
+      }
+    }
+
+  /// Iterators below skip items that do not belong to the current category
+  Inventory::Iterator first() const {
+    auto it = iterator();
+    while(it.isValid() && !matches(*it))
+      ++it;
+    return it;
+    }
+
+  void next(Inventory::Iterator& it) const {
+    if(it.isValid())
+      ++it;
+    while(it.isValid() && !matches(*it))
+      ++it;
+    }
+
+  size_t size() const {
     if(is(nullptr))
       return 0;
     size_t ret = 0;
-    auto it = iterator();
-    while(it.isValid()) {
+    for(auto it = first(); it.isValid(); next(it))
       ret++;
-      ++it;
-      }
     return ret;
     }
-  Inventory::Iterator         get(size_t id) const {
-    auto it = iterator();
+
+  Inventory::Iterator get(size_t id) const {
+    auto it = first();
     for(size_t i=0; i<id && it.isValid(); ++i)
-      ++it;
+      next(it);
     return it;
     }
 
@@ -86,9 +127,12 @@ InventoryMenu::InventoryMenu(const KeyCodec& key)
   if(invMaxColumns>0)
     columsCount = size_t(invMaxColumns); else
     columsCount = 5;
+#ifdef OPENGOTHIC_TOUCH_UI
+  columsCount = TouchColumns;
+#endif
 
   setFocusPolicy(NoFocus);
-  setCursorShape(CursorShape::Hidden);
+  setCursorShape(HiddenCursor);
   takeTimer.timeout.bind(this,&InventoryMenu::onTakeStuff);
   }
 
@@ -353,9 +397,15 @@ void InventoryMenu::keyRepeatEvent(KeyEvent& e) {
 void InventoryMenu::keyUpEvent(KeyEvent&) {
   takeTimer.stop();
   lootMode = LootMode::Normal;
+  takeCount = 0;
   }
 
 void InventoryMenu::mouseDownEvent(MouseEvent &e) {
+#ifdef OPENGOTHIC_TOUCH_UI
+  // Touches are taken by AndroidInput, see mobileTap
+  e.ignore();
+  return;
+#endif
   if(player==nullptr || state==State::Closed) {
     e.ignore();
     return;
@@ -400,8 +450,12 @@ void InventoryMenu::mouseWheelEvent(MouseEvent &e) {
   }
 
 size_t InventoryMenu::rowsCount() const {
+#ifdef OPENGOTHIC_TOUCH_UI
+  return size_t(Mobile::InventoryLayout::Rows);
+#else
   int iy=30+34+70;
   return size_t((h()-iy-infoHeight()-20)/slotSize().h);
+#endif
   }
 
 void InventoryMenu::paintEvent(PaintEvent &e) {
@@ -422,10 +476,29 @@ void InventoryMenu::paintNumOverlay(PaintEvent& e) {
   }
 
 Size InventoryMenu::slotSize() const {
+#ifdef OPENGOTHIC_TOUCH_UI
+  const int side = std::max(40,int(touchLayout().side));
+  return Size(side,side);
+#else
   const float scale = Gothic::interfaceScale(this);
   const float cell  = float(Gothic::options().inventoryCellSize);
   return Size(int(cell*scale),int(cell*scale));
+#endif
   }
+
+#ifdef OPENGOTHIC_TOUCH_UI
+float InventoryMenu::touchUnit() const {
+  return std::min(float(w())/1000.f,float(h())/500.f);
+  }
+
+float InventoryMenu::touchTextScale() const {
+  return std::max(0.8f,float(h())/720.f)*Gothic::interfaceScale(this);
+  }
+
+Mobile::InventoryLayout InventoryMenu::touchLayout() const {
+  return Mobile::inventoryLayout(float(w()),float(h()),pageOth!=nullptr,Gothic::interfaceScale(this));
+  }
+#endif
 
 int InventoryMenu::infoHeight() const {
   const float scale = Gothic::interfaceScale(this);
@@ -535,6 +608,17 @@ void InventoryMenu::onTakeStuff() {
   }
 
 void InventoryMenu::adjustScroll() {
+  adjustScrollRows();
+#ifdef OPENGOTHIC_TOUCH_UI
+  // the first visible row follows the selection, the list moves to it
+  auto&       sel  = activePageSel();
+  const float side = float(std::max(1,slotSize().h));
+  if(size_t(sel.scrollPx/side)!=sel.scroll)
+    sel.scrollPx = float(sel.scroll)*side;
+#endif
+  }
+
+void InventoryMenu::adjustScrollRows() {
   auto& page = activePage();
   auto& sel  = activePageSel();
   sel.sel = std::min(sel.sel, std::max<size_t>(page.size(),1)-1);
@@ -553,9 +637,14 @@ void InventoryMenu::adjustScroll() {
   }
 
 void InventoryMenu::drawAll(Painter &p, Npc &player, DrawPass pass) {
-  const int padd = 43;
-
-  int iy=30+34+70;
+#ifdef OPENGOTHIC_TOUCH_UI
+  drawAllTouch(p,player,pass);
+  return;
+#else
+  const int padd    = 43;
+  const int iy      = 30+34+70;
+  const int headerY = 70;
+  const int goldW   = 2*slotSize().w;
 
   if(state==State::LockPicking)
     return;
@@ -565,24 +654,25 @@ void InventoryMenu::drawAll(Painter &p, Npc &player, DrawPass pass) {
 
   if(chest!=nullptr){
     if(pass==DrawPass::Back)
-      drawHeader(p,chest->displayName(),padd,70);
+      drawHeader(p,chest->displayName(),padd,headerY);
     drawItems(p,pass,*pageOth,pageLocal[0],padd,iy,wcount,hcount);
     }
 
   if(trader!=nullptr) {
     if(pass==DrawPass::Back)
-      drawHeader(p,trader->displayName(),padd,70);
+      drawHeader(p,trader->displayName(),padd,headerY);
     drawItems(p,pass,*pageOth,pageLocal[0],padd,iy,wcount,hcount);
     }
 
   if(state!=State::Ransack) {
     if(pass==DrawPass::Back)
-      drawGold (p,player,w()-padd-2*slotSize().w,70);
+      drawGold (p,player,w()-padd-goldW,headerY);
     drawItems(p,pass,*pagePl,pageLocal[1],w()-padd-wcount*slotSize().w,iy,wcount,hcount);
     }
 
   if(pass==DrawPass::Back)
     drawInfo(p);
+#endif
   }
 
 void InventoryMenu::drawItems(Painter &p, DrawPass pass,
@@ -590,34 +680,57 @@ void InventoryMenu::drawItems(Painter &p, DrawPass pass,
   if(state==State::LockPicking)
     return;
 
+#ifndef OPENGOTHIC_TOUCH_UI
   if(tex!=nullptr && pass==DrawPass::Back) {
     p.setBrush(*tex);
     p.drawRect(x0,y,slotSize().w*wcount,slotSize().h*hcount,
                0,0,tex->w(),tex->h());
     }
+#endif
 
-  auto   it = inv.iterator();
+  int rowsToDraw = hcount;
+#ifdef OPENGOTHIC_TOUCH_UI
+  // the list is moved by pixels: the first row is cut, one more row shows below
+  const int firstRow = int(sel.scrollPx)/std::max(1,slotSize().h);
+  y -= int(sel.scrollPx)-firstRow*slotSize().h;
+  rowsToDraw = hcount+1;
+  touchClip  = Tempest::Rect(x0,y+(int(sel.scrollPx)-firstRow*slotSize().h),slotSize().w*wcount,slotSize().h*hcount);
+  p.setScissor(touchClip.x,touchClip.y,touchClip.w,touchClip.h);
+#else
+  const int firstRow = int(sel.scroll);
+#endif
+  auto   it = inv.first();
   size_t id = 0;
-  for(size_t i=0; it.isValid() && i<sel.scroll*size_t(wcount); ++i) {
-    ++it;
+  for(size_t i=0; it.isValid() && i<size_t(firstRow)*size_t(wcount); ++i) {
+    inv.next(it);
     ++id;
     }
-  for(int i=0;i<hcount;++i) {
+  for(int i=0;i<rowsToDraw;++i) {
     for(int r=0;r<wcount;++r) {
       const int x = x0 + r*slotSize().w;
       if(pass==DrawPass::Back) {
+#ifdef OPENGOTHIC_TOUCH_UI
+        p.setBrush(Brush(Color(0.01f,0.018f,0.025f,0.90f)));
+        p.drawRect(x+1,y+1,slotSize().w-2,slotSize().h-2);
+        p.setBrush(Brush(touchSlot));
+        p.drawRect(float(x),float(y),float(slotSize().w),float(slotSize().h),0.f,0.f,float(touchSlot.w()),float(touchSlot.h()));
+#else
         p.setBrush(*slot);
         p.drawRect(x,y,slotSize().w,slotSize().h,
                    0,0,slot->w(),slot->h());
+#endif
         }
       if(it.isValid()) {
         drawSlot(p,pass, it,inv,sel, x,y, id);
-        ++it;
+        inv.next(it);
         ++id;
         }
       }
     y += slotSize().h;
     }
+#ifdef OPENGOTHIC_TOUCH_UI
+  p.setScissor(0,0,w(),h());
+#endif
   }
 
 void InventoryMenu::drawSlot(Painter &p, DrawPass pass, const Inventory::Iterator &it,
@@ -627,13 +740,22 @@ void InventoryMenu::drawSlot(Painter &p, DrawPass pass, const Inventory::Iterato
     return;
 
   auto& active = activePage();
+#ifdef OPENGOTHIC_TOUCH_UI
+  const float scale = touchTextScale();
+#else
   const float scale = Gothic::interfaceScale(this);
+#endif
 
   if(pass==DrawPass::Back) {
     if((!it.isValid() && id==0) || (id==sel.sel && &page==&active)){
+#ifdef OPENGOTHIC_TOUCH_UI
+      p.setBrush(Brush(touchSelected));
+      p.drawRect(float(x),float(y),float(slotSize().w),float(slotSize().h),0.f,0.f,float(touchSelected.w()),float(touchSelected.h()));
+#else
       p.setBrush(*selT);
       p.drawRect(x,y,slotSize().w,slotSize().h,
                  0,0,selT->w(),selT->h());
+#endif
       }
 
     if(it.isEquipped() && selU!=nullptr) {
@@ -643,7 +765,11 @@ void InventoryMenu::drawSlot(Painter &p, DrawPass pass, const Inventory::Iterato
       }
 
     const int dsz = (id==sel.sel ? 5 : 0);
+#ifdef OPENGOTHIC_TOUCH_UI
+    renderer.drawItem(x-dsz, y-dsz, slotSize().w+2*dsz, slotSize().h+2*dsz, *it, &touchClip);
+#else
     renderer.drawItem(x-dsz, y-dsz, slotSize().w+2*dsz, slotSize().h+2*dsz, *it);
+#endif
     } else {
     auto fnt = Resources::font(scale);
 
@@ -677,11 +803,21 @@ void InventoryMenu::drawGold(Painter &p, Npc &player, int x, int y) {
     txt="Gold";
 
   string_frm vint(txt," : ",int(gold));
+#ifdef OPENGOTHIC_TOUCH_UI
+  (void)x;
+  (void)y;
+  drawTouchHeader(p,vint,touchLayout().header[1]);
+#else
   drawHeader(p,vint,x,y);
+#endif
   }
 
 void InventoryMenu::drawHeader(Painter &p, std::string_view title, int x, int y) {
+#ifdef OPENGOTHIC_TOUCH_UI
+  const float scale = touchUnit();
+#else
   const float scale = Gothic::interfaceScale(this);
+#endif
   auto&       fnt   = Resources::font(scale);
 
   const int   tw    = fnt.textSize(title).w;
@@ -703,9 +839,13 @@ void InventoryMenu::drawHeader(Painter &p, std::string_view title, int x, int y)
   }
 
 void InventoryMenu::drawInfo(Painter &p) {
+#ifdef OPENGOTHIC_TOUCH_UI
+  drawInfoTouch(p);
+  return;
+#else
   const float scale = Gothic::interfaceScale(this);
-  const int   dw    = std::min(w(), int(720*scale));
   const int   dh    = infoHeight();
+  const int   dw    = std::min(w(), int(720*scale));
   const int   x     = (w()-dw)/2;
   const int   y     = h()-dh-20;
 
@@ -750,8 +890,310 @@ void InventoryMenu::drawInfo(Painter &p) {
 
   const int sz = dh;
   renderer.drawItem(x+dw-sz-sz/2,y,sz,sz,r);
+#endif
   }
 
 void InventoryMenu::draw(Tempest::Encoder<CommandBuffer>& cmd) {
   renderer.draw(cmd);
+  }
+
+#ifdef OPENGOTHIC_TOUCH_UI
+bool InventoryMenu::touchHit(float px, float py, uint8_t& list, int& column, int& row) const {
+  const auto lay = touchLayout();
+  for(uint8_t i=0; i<2; ++i) {
+    if((i==1 && state==State::Ransack) || (i==0 && pageOth==nullptr))
+      continue;
+    const auto& r = lay.list[i];
+    if(!r.contains(px,py))
+      continue;
+    list   = i;
+    column = std::min(int((px-r.x)/lay.side),Mobile::InventoryLayout::Columns-1);
+    row    = int((py-r.y+pageLocal[i].scrollPx)/lay.side);   // of the whole list
+    return true;
+    }
+  return false;
+  }
+
+void InventoryMenu::mobileTap(float px, float py) {
+  if(player==nullptr || state==State::Closed || state==State::LockPicking)
+    return;
+
+  uint8_t list   = 0;
+  int     column = 0, row = 0;
+  if(!touchHit(px,py,list,column,row))
+    return;
+
+  Page*      selected = list==1 ? pagePl.get() : pageOth.get();
+  PageLocal* local    = &pageLocal[list];
+  page = list==1 ? (pageOth ? 1 : 0) : 0;
+
+  const size_t id = size_t(row)*TouchColumns+size_t(column);
+  if(selected==nullptr || id>=selected->size())
+    return;
+  local->sel = id;
+  adjustScroll();
+  update();
+  }
+
+InventoryMenu::PageLocal* InventoryMenu::touchList(float px, float py, const Page*& list, uint8_t& index) {
+  int column = 0, row = 0;
+  if(!touchHit(px,py,index,column,row))
+    return nullptr;
+  list = index==1 ? pagePl.get() : pageOth.get();
+  return &pageLocal[index];
+  }
+
+float InventoryMenu::touchMaxScroll(const Page& list) const {
+  const size_t rows = (list.size()+TouchColumns-1)/TouchColumns;
+  const size_t view = rowsCount();
+  return rows>view ? float(rows-view)*float(slotSize().h) : 0.f;
+  }
+
+/// The list under the finger follows it. Phases: 0 - down, 1 - move, 2 - up, 3 - cancelled.
+void InventoryMenu::mobileTouch(float x, float y, int phase) {
+  if(player==nullptr || state==State::Closed || state==State::LockPicking) {
+    touchDrag = TouchDrag();
+    return;
+    }
+
+  if(phase==0) {
+    const Page* list  = nullptr;
+    uint8_t     index = 0;
+    auto*       local = touchList(x,y,list,index);
+    touchDrag = TouchDrag();
+    if(local==nullptr)
+      return;
+    touchDrag.active      = true;
+    touchDrag.list        = index;
+    touchDrag.startY      = y;
+    touchDrag.startScroll = local->scrollPx;
+    return;
+    }
+
+  if(!touchDrag.active)
+    return;
+  if(phase>=2) {
+    touchDrag = TouchDrag();
+    return;
+    }
+
+  const Page* list = touchDrag.list==1 ? pagePl.get() : pageOth.get();
+  if(list==nullptr)
+    return;
+
+  // The list follows the finger, dragging up reveals the lower rows
+  auto&       local = pageLocal[touchDrag.list];
+  const float side  = float(std::max(1,slotSize().h));
+  local.scrollPx = std::clamp(touchDrag.startScroll+(touchDrag.startY-y),0.f,touchMaxScroll(*list));
+  local.scroll   = size_t(local.scrollPx/side);
+
+  // The selected item stays on the screen, so the buttons never act on a hidden one
+  const size_t first = local.scroll*TouchColumns;
+  const size_t last  = (local.scroll+rowsCount())*TouchColumns;
+  if(local.sel<first)
+    local.sel = first; else
+  if(local.sel>=last)
+    local.sel = last-1;
+  local.sel = std::min(local.sel,std::max<size_t>(list->size(),1)-1);
+  update();
+  }
+
+void InventoryMenu::drawAllTouch(Painter& p, Npc& player, DrawPass pass) {
+  if(state==State::LockPicking)
+    return;
+
+  const auto lay   = touchLayout();
+  const int  wcount = int(columsCount);
+  const int  hcount = int(rowsCount());
+
+  auto list = [&](const Page& inv, const PageLocal& sel, size_t index) {
+    const auto& r = lay.list[index];
+    drawItems(p,pass,inv,sel,int(r.x),int(r.y),wcount,hcount);
+    if(pass==DrawPass::Front)
+      drawScrollHints(p,inv,sel,r);
+    };
+
+  if(chest!=nullptr) {
+    if(pass==DrawPass::Back)
+      drawTouchHeader(p,chest->displayName(),lay.header[0]);
+    list(*pageOth,pageLocal[0],0);
+    }
+
+  if(trader!=nullptr) {
+    if(pass==DrawPass::Back)
+      drawTouchHeader(p,trader->displayName(),lay.header[0]);
+    list(*pageOth,pageLocal[0],0);
+    }
+
+  if(state!=State::Ransack) {
+    if(pass==DrawPass::Back)
+      drawGold(p,player,0,0);
+    list(*pagePl,pageLocal[1],1);
+    }
+
+  if(pass==DrawPass::Back)
+    drawInfo(p);
+  }
+
+void InventoryMenu::drawTouchHeader(Painter& p, std::string_view title, const Mobile::Rect& r) {
+  const int x = int(r.x), y = int(r.y), dw = int(r.w), dh = int(r.h);
+  const int border = std::max(2,dh/16);
+
+  p.setBrush(Brush(Color(0.50f,0.52f,0.55f,0.95f)));
+  p.drawRect(x,y,dw,dh);
+  p.setBrush(Brush(Color(0.03f,0.10f,0.19f,0.96f)));
+  p.drawRect(x+border,y+border,dw-2*border,dh-2*border);
+
+  auto& fnt = Resources::font(touchTextScale());
+  const auto sz = fnt.textSize(title);
+  fnt.drawText(p,x+(dw-sz.w)/2,y+dh/2+sz.h/2,title);
+  }
+
+/// Arrows over the lists, when there are items out of sight
+void InventoryMenu::drawScrollHints(Painter& p, const Page& inv, const PageLocal& sel, const Mobile::Rect& r) {
+  const float side = r.w/float(Mobile::InventoryLayout::Columns);
+  const float a    = side*0.14f;
+  const float cx   = r.x+r.w/2;
+
+  p.setBrush(Brush(Color(1.f,1.f,1.f,0.75f)));
+  if(sel.scrollPx<touchMaxScroll(inv)-1.f) {
+    const float y = r.y+r.h-side*0.16f;
+    p.drawTriangle(cx-a*1.4f,y-a*0.7f,0.f,0.f, cx+a*1.4f,y-a*0.7f,0.f,0.f, cx,y+a*0.7f,0.f,0.f);
+    }
+  if(sel.scrollPx>1.f) {
+    const float y = r.y+side*0.16f;
+    p.drawTriangle(cx-a*1.4f,y+a*0.7f,0.f,0.f, cx+a*1.4f,y+a*0.7f,0.f,0.f, cx,y-a*0.7f,0.f,0.f);
+    }
+  }
+
+void InventoryMenu::drawInfoTouch(Painter& p) {
+  auto& pg  = activePage();
+  auto& sel = activePageSel();
+  auto  it  = pg.get(sel.sel);
+  if(!it.isValid())
+    return;
+  auto& item = *pg.get(sel.sel);
+
+  const auto  lay = touchLayout();
+  const auto& r   = lay.info;
+  if(r.w<=0)
+    return;
+
+  const float H   = float(h());
+  const int   x   = int(r.x);
+  const int   y   = int(r.y);
+  const int   dw  = int(r.w);
+  const int   dh  = int(r.h);
+  const int   in  = int(float(w())*0.0126f);
+
+  p.setBrush(Brush(Color(0.01f,0.015f,0.02f,0.62f)));
+  p.drawRect(x,y,dw,dh);
+
+  auto& fnt = Resources::font(touchTextScale());
+  const int pix = fnt.pixelSize();
+
+  // title in the center
+  auto  desc  = item.description();
+  auto& title = Resources::font(touchTextScale()*1.05f);
+  title.drawText(p,x+(dw-title.textSize(desc).w)/2,y+int(H*0.05f)+title.pixelSize()/2,desc);
+
+  // The separator of the actions. Properties are packed above it.
+  const int sepY = int(lay.use.y-H*0.022f);
+  p.setBrush(Brush(Color(0.62f,0.58f,0.50f,0.85f)));
+  p.drawRect(x,sepY,dw,std::max(2,int(H*0.002f)));
+
+  int rows = 0;
+  for(size_t i=0; i<Item::MAX_UI_ROWS; ++i) {
+    if(!item.uiText(i).empty())
+      ++rows;
+    }
+  const int rowH = pix+pix/3;
+  int       ry   = sepY-int(H*0.016f)-(rows-1)*rowH;
+  const int propsTop = ry-rowH;
+  for(size_t i=0; i<Item::MAX_UI_ROWS; ++i) {
+    auto    txt = item.uiText(i);
+    int32_t val = item.uiValue(i);
+    if(txt.empty())
+      continue;
+    if(i+1==Item::MAX_UI_ROWS && state==State::Trade && player!=nullptr && pg.is(&player->inventory()))
+      val = item.sellCost();
+
+    fnt.drawText(p,x+in,ry,txt);
+    if(val!=0) {
+      string_frm vint(val);
+      fnt.drawText(p,x+dw-in-fnt.textSize(vint).w,ry,vint);
+      }
+    ry += rowH;
+    }
+
+  // The model fills the space between the title and the properties
+  const int top = y+title.pixelSize()*2;
+  const int sz  = std::min({propsTop-top,int(float(lay.info.h)*0.55f),dw/2});
+  if(sz>int(H*0.05f))
+    renderer.drawItem(x+(dw-sz)/2,top,sz,sz,item);
+  }
+
+std::string_view InventoryMenu::mobileActionLabel() {
+  if(player==nullptr || state==State::Closed || state==State::LockPicking)
+    return "";
+  auto& pg  = activePage();
+  auto& sel = activePageSel();
+  auto  it  = pg.get(sel.sel);
+  if(!it.isValid())
+    return "";
+
+  const bool own = pg.is(&player->inventory());
+  switch(state) {
+    case State::Chest:   return own ? "Store" : "Take";
+    case State::Trade:   return own ? "Sell"  : "Buy";
+    case State::Ransack: return "Take";
+    default:             break;
+    }
+
+  if(it.isEquipped())
+    return "Unequip";
+  const auto flag = it->mainFlag();
+  if(flag&(ITM_CAT_NF|ITM_CAT_FF|ITM_CAT_MUN|ITM_CAT_ARMOR|ITM_CAT_RUNE|ITM_CAT_LIGHT|ITM_CAT_MAGIC))
+    return "Equip";
+  if(flag&ITM_CAT_DOCS)
+    return "Read";
+  return "Use";
+  }
+#endif
+
+void InventoryMenu::mobileScroll(float dy) {
+  if(player==nullptr || state==State::Closed)
+    return;
+  if(dy<0)
+    moveDown(); else
+    moveUp();
+  adjustScroll();
+  update();
+  }
+
+bool InventoryMenu::hasSelectedItem() {
+  return player!=nullptr && state!=State::Closed && activePageSel().sel<activePage().size();
+  }
+
+void InventoryMenu::setCategory(int category) {
+  takeTimer.stop();
+  takeCount = 0;
+
+  const auto c = Category(std::clamp(category,0,int(CatCount)-1));
+  if(pagePl!=nullptr)
+    pagePl->category = c;
+  if(pageOth!=nullptr)
+    pageOth->category = c;
+  pageLocal[0] = PageLocal();
+  pageLocal[1] = PageLocal();
+  adjustScroll();
+  update();
+  }
+
+int InventoryMenu::category() const {
+  if(pagePl!=nullptr)
+    return pagePl->category;
+  if(pageOth!=nullptr)
+    return pageOth->category;
+  return CatAll;
   }

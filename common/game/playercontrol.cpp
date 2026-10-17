@@ -21,11 +21,16 @@ PlayerControl::~PlayerControl() {
   }
 
 void PlayerControl::setupSettings() {
+#ifdef OPENGOTHIC_TOUCH_UI
+  // Touch combat buttons use the single-action scheme of Gothic 2
+  g2Ctrl = true;
+#else
   if(Gothic::inst().version().game==2) {
     g2Ctrl = Gothic::inst().settingsGetI("GAME","USEGOTHIC1CONTROLS")==0;
     } else {
     g2Ctrl = false;
     }
+#endif
   }
 
 void PlayerControl::setTarget(Npc *other) {
@@ -1103,4 +1108,26 @@ void PlayerControl::processAutoRotate(Npc& pl, float& rot, uint64_t dt) {
       rot = pl.rotation();
       }
     }
+  }
+
+void PlayerControl::cycleTarget() {
+  auto w = Gothic::inst().world();
+  if(w==nullptr)
+    return;
+
+  if(currentFocus.npc==nullptr)
+    currentFocus = findFocus(nullptr);
+
+  const auto before = currentFocus.npc;
+  moveFocus(ActRight);
+  if(before==currentFocus.npc) {
+    // nobody on the right: wrap around to the leftmost npc
+    for(uint32_t i=0; i<w->npcCount(); ++i) {
+      const auto prev = currentFocus.npc;
+      moveFocus(ActLeft);
+      if(prev==currentFocus.npc)
+        break;
+      }
+    }
+  setTarget(currentFocus.npc);
   }

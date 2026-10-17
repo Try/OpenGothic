@@ -1,4 +1,5 @@
 #include "dialogmenu.h"
+#include "ui/cursorshape.h"
 
 #include <Tempest/Painter>
 #include <Tempest/Log>
@@ -43,7 +44,7 @@ DialogMenu::DialogMenu(InventoryMenu &trade)
   tex     = Resources::loadTexture("DLG_CHOICE.TGA");
   ambient = Resources::loadTexture("DLG_AMBIENT.TGA");
 
-  setCursorShape(CursorShape::Hidden);
+  setCursorShape(HiddenCursor);
   setFocusPolicy(NoFocus);
 
   Gothic::inst().onSettingsChanged.bind(this,&DialogMenu::setupSettings);
@@ -477,7 +478,140 @@ void DialogMenu::paintEvent(Tempest::PaintEvent &e) {
     }
   }
 
+#ifdef OPENGOTHIC_TOUCH_UI
+/// Answers are small cards at the bottom of the screen. When there are many of them, the list is scrolled with a finger.
+DialogMenu::TouchGeometry DialogMenu::touchGeometry() const {
+  TouchGeometry g;
+  if(choice.empty())
+    return g;
+
+  const float scale = Gothic::interfaceScale(this)*std::max(1.f,float(h())/700.f);
+  auto        fnt   = Resources::dialogFont(scale);
+  const int   padd  = std::max(6,int(float(fnt.pixelSize())*0.35f));
+  const int   gap   = std::max(4,int(float(h())*0.008f));
+  const int   cw    = int(float(w())*0.5f);
+  const int   minH  = int(float(fnt.pixelSize())*1.9f);
+
+  int y = 0;
+  for(auto& c:choice) {
+    const int th = fnt.textSize(cw-2*padd,c.title).h;
+    const int ch = std::max(minH,th+2*padd);
+    g.cards.push_back(Rect(0,y,cw,ch));
+    y += ch+gap;
+    }
+  g.content = std::max(0,y-gap);
+
+  const int viewH = std::min(g.content,int(float(h())*0.36f));
+  g.view      = Rect((w()-cw)/2,h()-int(float(h())*0.04f)-viewH,cw,viewH);
+  g.maxScroll = g.content-viewH;
+  g.padd      = padd;
+  g.scale     = scale;
+  return g;
+  }
+
+void DialogMenu::paintTouchChoice(PaintEvent& e) {
+  if(!isChoiceMenuActive())
+    return;
+
+  const auto geo = touchGeometry();
+  touchScroll = std::clamp(touchScroll,0.f,float(geo.maxScroll));
+
+  Painter p(e);
+  p.setScissor(geo.view.x,geo.view.y,geo.view.w,geo.view.h);
+  for(size_t i=0; i<choice.size() && i<geo.cards.size(); ++i) {
+    const int  x        = geo.view.x;
+    const int  y        = geo.view.y+geo.cards[i].y-int(touchScroll);
+    const int  cw       = geo.cards[i].w;
+    const int  ch       = geo.cards[i].h;
+    if(y+ch<geo.view.y || y>geo.view.y+geo.view.h)
+      continue;
+    const bool selected = i==dlgSel;
+    const int  border   = selected ? 2 : 1;
+
+    p.setBrush(Brush(selected ? Color(0.86f,0.68f,0.30f,0.95f) : Color(0.48f,0.44f,0.38f,0.70f)));
+    p.drawRect(x,y,cw,ch);
+    p.setBrush(Brush(selected ? Color(0.11f,0.085f,0.04f,0.92f) : Color(0.02f,0.025f,0.035f,0.80f)));
+    p.drawRect(x+border,y+border,cw-2*border,ch-2*border);
+
+    GthFont fnt = selected ? Resources::font(Resources::FontType::Hi,geo.scale) : Resources::dialogFont(geo.scale);
+    const int tw = cw-2*geo.padd;
+    const int th = fnt.textSize(tw,choice[i].title).h;
+    fnt.drawText(p,x+geo.padd,y+(ch-th)/2+fnt.pixelSize(),tw,0,choice[i].title,AlignLeft);
+    }
+
+  // the list can be scrolled
+  if(geo.maxScroll>0) {
+    const int   bw     = std::max(3,int(geo.scale*3));
+    const float k      = float(geo.view.h)/float(geo.content);
+    const int   th     = std::max(bw*4,int(float(geo.view.h)*k));
+    const int   ty     = geo.view.y+int(float(geo.view.h-th)*touchScroll/float(geo.maxScroll));
+    p.setBrush(Brush(Color(0.86f,0.68f,0.30f,0.75f)));
+    p.drawRect(geo.view.x+geo.view.w-bw-1,ty,bw,th);
+    }
+  p.setScissor(0,0,w(),h());
+  }
+
+void DialogMenu::mobileTouch(float x, float y, int phase) {
+  if(!isChoiceMenuActive()) {
+    touchDrag = false;
+    return;
+    }
+
+  const auto geo = touchGeometry();
+  if(phase==0) {
+    touchDrag        = geo.maxScroll>0 && geo.view.contains(int(x),int(y));
+    touchStartY      = y;
+    touchStartScroll = touchScroll;
+    return;
+    }
+  if(!touchDrag)
+    return;
+  if(phase>=2) {
+    touchDrag = false;
+    return;
+    }
+
+  // a tap that moves a little must not scroll the list
+  float dy = touchStartY-y;
+  const float dead = float(geo.padd);
+  dy = dy>dead ? dy-dead : dy<-dead ? dy+dead : 0.f;
+  touchScroll = std::clamp(touchStartScroll+dy,0.f,float(geo.maxScroll));
+  update();
+  }
+
+void DialogMenu::mobileTap(float x, float y) {
+  if(state==State::Idle || trade.isOpen()!=InventoryMenu::State::Closed)
+    return;
+
+  if(isChoiceMenuActive()) {
+    const auto geo = touchGeometry();
+    if(!geo.view.contains(int(x),int(y)))
+      return;
+    for(size_t i=0; i<geo.cards.size(); ++i) {
+      Rect r = geo.cards[i];
+      r.x += geo.view.x;
+      r.y += geo.view.y-int(touchScroll);
+      if(!r.contains(int(x),int(y)))
+        continue;
+      dlgSel = i;
+      onSelect();
+      update();
+      return;
+      }
+    return;
+    }
+
+  // somebody is talking
+  if(current.time>0)
+    skipPhrase();
+  }
+#endif
+
 void DialogMenu::paintChoice(PaintEvent &e) {
+#ifdef OPENGOTHIC_TOUCH_UI
+  paintTouchChoice(e);
+  return;
+#else
   if(choice.size()==0)
     return;
 
@@ -525,6 +659,7 @@ void DialogMenu::paintChoice(PaintEvent &e) {
     fnt.drawText(p,x+padd,y+padd+textHeightOffset,dw-padd,0,choice[i].title,AlignLeft);
     textHeightOffset += choiceTextSize.h;
     }
+#endif
   }
 
 bool DialogMenu::isChoiceMenuActive() const {
@@ -543,6 +678,11 @@ void DialogMenu::onSelect() {
   }
 
 void DialogMenu::mouseDownEvent(MouseEvent &event) {
+#ifdef OPENGOTHIC_TOUCH_UI
+  // Dialog is controlled by touch buttons
+  event.ignore();
+  return;
+#endif
   if(state==State::Idle || trade.isOpen()!=InventoryMenu::State::Closed){
     event.ignore();
     return;

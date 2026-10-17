@@ -1,17 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.VIBRATE" />
     <uses-feature android:name="android.hardware.vulkan.level" android:version="0" android:required="true" />
     <uses-feature android:name="android.hardware.vulkan.version" android:version="0x00401000" android:required="true" />
-    <application android:label="OpenGothic" android:hasCode="false" android:allowBackup="false"
+    <application android:label="OpenGothic" android:hasCode="true" android:allowBackup="false"
+        android:resizeableActivity="true"
         android:theme="@android:style/Theme.Material.NoActionBar.Fullscreen">
-        <activity android:name="android.app.NativeActivity" android:exported="true"
+        <!-- Imports the game files and starts the game -->
+        <activity android:name="org.opengothic.app.LauncherActivity" android:exported="true"
             android:screenOrientation="landscape"
-            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|density|uiMode">
-            <meta-data android:name="android.app.lib_name" android:value="Gothic2Notr" />
+            android:configChanges="orientation|screenSize|keyboardHidden">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+        </activity>
+        <!-- Runs in its own process, the launcher stays alive when the game exits -->
+        <activity android:name="org.opengothic.app.GameActivity" android:exported="false" android:process=":game"
+            android:screenOrientation="landscape"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|density|uiMode">
+            <meta-data android:name="android.app.lib_name" android:value="Gothic2Notr" />
         </activity>
     </application>
 </manifest>

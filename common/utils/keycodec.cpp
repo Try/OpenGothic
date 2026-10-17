@@ -1,5 +1,6 @@
 #include "keycodec.h"
 
+#include "ui/mobilecontrolsmodel.h"
 #include "gothic.h"
 #include <cstring>
 
@@ -110,7 +111,45 @@ KeyCodec::KeyCodec() {
   setupSettings();
   }
 
+#ifdef OPENGOTHIC_TOUCH_UI
+// Touch controls send game actions, independent of the key bindings
+static KeyCodec::Action touchAction(Mobile::Key key) {
+  using A = KeyCodec;
+  using K = Mobile::Key;
+  if(K::One<=key && key<=K::Zero)
+    return A::Action(int(A::Weapon)+1+int(key)-int(K::One));
+
+  switch(key) {
+    case K::Up:          return A::Forward;
+    case K::Down:        return A::Back;
+    case K::Left:        return A::RotateL;
+    case K::Right:       return A::RotateR;
+    case K::StrafeLeft:  return A::Left;
+    case K::StrafeRight: return A::Right;
+    case K::AttackLeft:  return A::ActionLeft;
+    case K::AttackRight: return A::ActionRight;
+    case K::Action:      return A::ActionGeneric;
+    case K::Jump:        return A::Jump;
+    case K::Weapon:      return A::Weapon;
+    case K::Inventory:   return A::Inventory;
+    case K::Enter:       return A::K_ENTER;
+    case K::Escape:      return A::Escape;
+    case K::Log:         return A::Log;
+    case K::Map:         return A::Map;
+    case K::Walk:        return A::Walk;
+    case K::Status:      return A::Status;
+    case K::Block:       return A::Parade;
+    case K::Sneak:       return A::Sneak;
+    default:             return A::Idle;
+    }
+  }
+#endif
+
 KeyCodec::Action KeyCodec::tr(Tempest::KeyEvent const& e) const {
+#ifdef OPENGOTHIC_TOUCH_UI
+  if(Mobile::isKeyCode(e.code))
+    return touchAction(Mobile::keyFromCode(e.code));
+#endif
   int32_t code = keyToCode(e.key);
   if(e.key==Tempest::KeyEvent::K_ESCAPE)
     return Escape;
@@ -139,6 +178,10 @@ KeyCodec::Action KeyCodec::tr(Tempest::MouseEvent const& e) const {
   }
 
 KeyCodec::Mapping KeyCodec::mapping(Tempest::KeyEvent const& e) const {
+#ifdef OPENGOTHIC_TOUCH_UI
+  if(Mobile::isKeyCode(e.code))
+    return Mapping::Primary;
+#endif
   return implTr(keyToCode(e.key)).mapping;
   }
 

@@ -33,6 +33,11 @@ class DialogMenu : public Tempest::Widget {
 
     bool isActive() const;
     bool hasContent() const;
+#ifdef OPENGOTHIC_TOUCH_UI
+    /// Answers are chosen with a tap, a tap during the phrase skips it
+    void mobileTap(float x, float y);
+    void mobileTouch(float x, float y, int phase);
+#endif
 
     void print      (std::string_view msg);
     void printScreen(std::string_view msg, int x, int y, int time, const GthFont &font);
@@ -49,6 +54,23 @@ class DialogMenu : public Tempest::Widget {
     void mouseWheelEvent(Tempest::MouseEvent& event) override;
 
     void onSelect();
+#ifdef OPENGOTHIC_TOUCH_UI
+    struct TouchGeometry {
+      std::vector<Tempest::Rect> cards;     // relative to the list
+      Tempest::Rect              view;      // visible part of the list
+      int                        content   = 0;
+      int                        maxScroll = 0;
+      int                        padd      = 0;
+      float                      scale     = 1;
+      };
+    TouchGeometry touchGeometry() const;
+    void paintTouchChoice(Tempest::PaintEvent& e);
+
+    float touchScroll      = 0;
+    float touchStartY      = 0;
+    float touchStartScroll = 0;
+    bool  touchDrag        = false;
+#endif
     void setupSettings();
     bool isChoiceMenuActive() const;
 

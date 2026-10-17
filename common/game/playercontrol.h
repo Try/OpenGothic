@@ -31,6 +31,7 @@ class PlayerControl final {
     void  changeZoom(int delta);
     void  tickFocus();
     void  clearFocus();
+    void  cycleTarget();
 
     bool  interact(Interactive& it);
     bool  interact(Npc&         other);

@@ -84,6 +84,17 @@ target_link_libraries(${PROJECT_NAME} GothicShaders)
 # editor icons and such
 add_subdirectory(spacer/assets)
 
+# touch controls: always on Android, optional on desktop (the mouse emulates the touch screen)
+option(OPENGOTHIC_TOUCH_UI "Use the touch screen user interface, the mouse emulates touches on desktop" OFF)
+if(ANDROID)
+  set(OPENGOTHIC_TOUCH_UI ON)
+endif()
+if(OPENGOTHIC_TOUCH_UI)
+  target_compile_definitions(${PROJECT_NAME} PUBLIC OPENGOTHIC_TOUCH_UI)
+  add_subdirectory(android/assets)
+  target_link_libraries(${PROJECT_NAME} TouchAssets)
+endif()
+
 include_directories("common")
 
 ## submodule dependencies
@@ -217,9 +228,10 @@ target_link_libraries(Spacer PRIVATE OpenGothic SpacerAssets)
 
 if(ANDROID)
   add_android_apk(OpenGothic-apk
-    PACKAGE_NAME org.opengothic.app
+    PACKAGE_NAME org.opengothic.mobile
     CODE Gothic2Notr
-    MANIFEST android/AndroidManifest.xml)
+    MANIFEST android/AndroidManifest.xml
+    JAVA_DIRS android/java)
 endif()
 
 # installation

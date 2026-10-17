@@ -22,8 +22,17 @@ void InventoryRenderer::draw(Tempest::Encoder<CommandBuffer>& cmd) {
   mv.scale(0.8f,1.f,1.f);
 
   auto& pso = Shaders::inst().inventory;
+  bool  scissored = false;
   for(auto& i:items) {
     cmd.setViewport(i.x,i.y,i.w,i.h);
+    if(i.clipped) {
+      cmd.setScissor(i.clip);
+      scissored = true;
+      } else
+    if(scissored) {
+      cmd.setScissor(0,0,16384,16384);
+      scissored = false;
+      }
     for(size_t r=0;r<i.mesh.nodesCount();++r) {
       auto  n = i.mesh.node(r);
       auto& m = n.material();
@@ -49,7 +58,7 @@ void InventoryRenderer::reset(bool full) {
   items.clear();
   }
 
-void InventoryRenderer::drawItem(int x, int y, int w, int h, const ::Item& item) {
+void InventoryRenderer::drawItem(int x, int y, int w, int h, const ::Item& item, const Tempest::Rect* clip) {
   auto& itData = item.handle();
   if(auto mesh = Resources::loadMesh(itData.visual)) {
     auto     bbox = mesh->bbox();
@@ -160,6 +169,10 @@ void InventoryRenderer::drawItem(int x, int y, int w, int h, const ::Item& item)
     itm.y    = y;
     itm.w    = w;
     itm.h    = h;
+    if(clip!=nullptr) {
+      itm.clipped = true;
+      itm.clip    = *clip;
+      }
     items.push_back(std::move(itm));
     }
   }
