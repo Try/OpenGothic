@@ -592,6 +592,23 @@ Rect GameMenu::itemRect(const Item& it) const {
               int(float(w()*dimx)/scriptDiv),int(float(h()*dimy)/scriptDiv));
   }
 
+GameMenu::Item* GameMenu::touchHitTest(Item& p, Point pos) {
+  auto* it = &p;
+  while(it!=nullptr) {
+    auto rect = itemRect(*it);
+    if(rect.contains(pos))
+      return it;
+    if(it->handle->flags & zenkit::MenuItemFlag::EFFECTS) {
+      auto next=selectedNextItem(it);
+      if(next!=&p)
+        it=next;
+      } else {
+      it=nullptr;
+      }
+    }
+  return nullptr;
+  }
+
 void GameMenu::onBeginTouch(Point pos) {
   touchSlider = nullptr;
   touchActive = false;
@@ -603,16 +620,18 @@ void GameMenu::onBeginTouch(Point pos) {
     auto& item = hItems[i].handle;
     if(!isEnabled(item) || isHidden(item))
       continue;
-    auto rect = itemRect(hItems[i]);
-    if(!rect.contains(pos))
+    if(!isSelectable(item))
+      continue;
+    auto hit = touchHitTest(hItems[i], pos);
+    if(hit==nullptr)
       continue;
     setSelection(int(i), -1);
     if(auto s = selectedItem()) {
       updateSavThumb(*s);
       touchActive = true;
       }
-    if(item->type==zenkit::MenuItemType::SLIDER) {
-      touchSlider = &hItems[i];
+    if(hit->handle->type==zenkit::MenuItemType::SLIDER) {
+      touchSlider = hit;
       break;
       }
     break;
@@ -627,8 +646,15 @@ void GameMenu::onDragTouch(Point pos) {
   const auto& opt  = touchSlider->handle->on_chg_set_option;
   if(rect.w<=0 || sec.empty() || opt.empty())
     return;
-  const float value = std::clamp(float(pos.x-rect.x)/float(rect.w),0.f,1.f);
-  Gothic::settingsSetF(sec,opt,std::round(value*100.f)/100.f);
+
+  float value = std::clamp(float(pos.x-rect.x)/float(rect.w),0.f,1.f) * 100.f;
+  float stp   = sliderStep(touchSlider->handle) * 100.f;
+  if(stp<=1.f)
+    stp = 1.f;
+
+  value = std::round(value/stp)*stp;
+
+  Gothic::settingsSetF(sec,opt,value/100.f);
   update();
   }
 
@@ -820,6 +846,15 @@ bool GameMenu::isHidden(const std::shared_ptr<zenkit::IMenuItem>& item) {
   return opt==item->hide_on_value;
   }
 
+float GameMenu::sliderStep(const std::shared_ptr<zenkit::IMenuItem>& item) {
+  if(item==nullptr || item->type!=zenkit::MenuItemType::SLIDER)
+    return 0;
+  float v = item->user_float[0];
+  if(v==0.f)
+    return 0.03f; // error?
+  return v/100.f;
+  }
+
 void GameMenu::exec(Item &p, int slideDx, KeyCodec::Action hint) {
   auto* it = &p;
   while(it!=nullptr) {
@@ -948,7 +983,8 @@ void GameMenu::execChgOption(Item &item, int slideDx) {
   if(item.handle->type==zenkit::MenuItemType::SLIDER && slideDx!=0) {
     updateItem(item);
     float v = Gothic::settingsGetF(sec, opt);
-    v  = std::max(0.f,std::min(v+float(slideDx)*0.03f,1.f));
+    float s = sliderStep(item.handle);
+    v  = std::max(0.f,std::min(v+float(slideDx)*s,1.f));
     Gothic::settingsSetF(sec, opt, v);
     }
   if(item.handle->type==zenkit::MenuItemType::CHOICEBOX) {

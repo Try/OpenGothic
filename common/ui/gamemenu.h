@@ -99,11 +99,13 @@ class GameMenu : public Tempest::Widget {
     void                                  initItems();
     void                                  getText(const Item &it, std::vector<char>& out);
     const GthFont&                        getTextFont(const Item &it);
+    Item*                                 touchHitTest(Item& p, Tempest::Point pos);
 
     static bool                           isSelectable(const std::shared_ptr<zenkit::IMenuItem>& item);
     static bool                           isHorSelectable(const std::shared_ptr<zenkit::IMenuItem>& item);
     static bool                           isEnabled(const std::shared_ptr<zenkit::IMenuItem>& item);
     static bool                           isHidden(const std::shared_ptr<zenkit::IMenuItem>& item);
+    static float                          sliderStep(const std::shared_ptr<zenkit::IMenuItem>& item);
 
     void                                  exec         (Item &item, int slideDx, KeyCodec::Action hint);
     void                                  execSingle   (Item &it,   int slideDx, KeyCodec::Action hint);
