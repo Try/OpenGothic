@@ -82,8 +82,8 @@ class Resources final {
 
     static Tempest::Device&          device() { return inst->dev; }
     static const char*               renderer();
+    static void                      mountVdfs(const std::vector<std::u16string>& vdfs);
     static void                      mountWork(const std::filesystem::path& path);
-    static void                      loadVdfs(const std::vector<std::u16string> &modvdfs, bool modFilter);
     static void                      unloadAll();
 
     static const Tempest::Sampler&   shadowSampler();
@@ -179,7 +179,7 @@ class Resources final {
 
     using TextureCache = std::unordered_map<std::string,std::unique_ptr<Tempest::Texture2d>>;
 
-    int64_t               vdfTimestamp(const std::u16string& name);
+    static int64_t        vdfTimestamp(const std::u16string& name);
     void                  detectVdf(std::vector<Archive>& ret, const std::u16string& root);
 
     Tempest::Texture2d*   implLoadTexture(std::string_view cname, bool forceMips);

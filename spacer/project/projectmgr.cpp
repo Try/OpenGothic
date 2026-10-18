@@ -3,6 +3,7 @@
 #include "workers/dataworker.h"
 #include "projectitem.h"
 #include "gothic.h"
+#include "utils/inifile.h"
 #include "resources.h"
 #include <cassert>
 
@@ -36,7 +37,11 @@ void ProjectMgr::unloadAll() {
 
 bool ProjectMgr::addProject(const std::filesystem::path& proj) {
   assert(gothic==nullptr);
-  gothic   = std::make_shared<Gothic>();
+  //TODO: handle various read exceptions
+  auto gothicPath = proj.parent_path().parent_path();
+  GameModDescriptor desc = {proj.u16string(), gothicPath.u16string() + u"/Data/"};
+
+  gothic = std::make_shared<Gothic>(std::move(desc));
   gothic->setupGlobalScripts();
   rootItem = mkIndex(Resources::vdfsIndex().root(), size_t(-1), "");
   return true;

@@ -19,6 +19,7 @@
 #include "world/objects/npc.h"
 
 #include "utils/fileutil.h"
+#include "utils/fileext.h"
 #include "utils/inifile.h"
 
 #include "commandline.h"
@@ -27,9 +28,81 @@
 using namespace Tempest;
 using namespace FileUtil;
 
+GameModDescriptor::GameModDescriptor()
+  : GameModDescriptor(CommandLine::inst().modPath(), CommandLine::inst().nestedPath({u"Data"},Dir::FT_Dir)) {
+  }
+
+GameModDescriptor::GameModDescriptor(std::u16string_view mod, std::u16string_view root) {
+  if(!mod.empty()){
+    modFile.reset(new IniFile(mod));
+    }
+
+  bool modFilter = true;
+  std::vector<std::u16string> modvdfs;
+  if(modFile!=nullptr) {
+    wrldDef = modFile->getS("SETTINGS","WORLD");
+    size_t split = wrldDef.rfind('\\');
+    if(split!=std::string::npos)
+      wrldDef = wrldDef.substr(split+1);
+    plDef      = modFile->getS("SETTINGS","PLAYER");
+    gameDatDef = modFile->getS("FILES","GAME");
+    ouDef      = modFile->getS("FILES","OUTPUTUNITS");
+
+    std::u16string vdf = TextCodec::toUtf16(modFile->getS("FILES","VDF"));
+    modFilter = modFile->has("FILES","VDF");
+    for(size_t start = 0, split = 0; split != std::string::npos; start = split+1) {
+      split = vdf.find(' ', start);
+      std::u16string mod = vdf.substr(start, split-start);
+      if(!mod.empty())
+        modvdfs.emplace_back(std::move(mod));
+      }
+    }
+
+  detectVdf(vdf, std::u16string(root), [&modvdfs, modFilter](std::u16string_view file) {
+      if(FileExt::hasExt(file, u"vdf")) {
+        return true;
+        }
+      if(FileExt::hasExt(file, u"mod")) {
+        // Remove all *.mod files, that are not listed in modvdfs
+        auto iter = std::find_if(modvdfs.begin(), modvdfs.end(),
+                                 [file](const std::u16string& modname) {
+            return modname==file;
+            });
+        return !modFilter || (modvdfs.end() != iter);
+        }
+      return false;
+      });
+  }
+
+GameModDescriptor::~GameModDescriptor() {
+  }
+
+void GameModDescriptor::detectVdf(std::vector<std::u16string>& ret, const std::u16string& root, const std::function<bool(std::u16string_view)>& filter) {
+  Dir::scan(root,[this,&root,&ret,&filter](const std::u16string& vdf, Dir::FileType t){
+    if(t==Dir::FT_File) {
+      auto file = root + vdf;
+      if(std::filesystem::file_size(file)==0)
+        return;
+      if(!filter(vdf))
+        return;
+      ret.emplace_back(std::move(file));
+      return;
+      }
+
+    // switch uses NX extension for language dependant stuff
+    if(vdf.find(u".NX.")!=std::string::npos)
+      return;
+
+    if(t==Dir::FT_Dir && vdf!=u".." && vdf!=u".") {
+      auto dir = root + vdf + u"/";
+      detectVdf(ret,dir,filter);
+      }
+    });
+  }
+
 Gothic* Gothic::instance = nullptr;
 
-Gothic::Gothic() {
+Gothic::Gothic(GameModDescriptor desc) {
   instance = this;
 
   systemPackIniFile.reset(new IniFile(nestedPath({u"system",u"SystemPack.ini"},Dir::FT_File)));
@@ -155,32 +228,20 @@ Gothic::Gothic() {
     modFile.reset(new IniFile(mod));
     }
 
-  std::vector<std::u16string> modvdfs;
-  bool                        modFilter = true;
-  if(modFile!=nullptr) {
-    wrldDef = modFile->getS("SETTINGS","WORLD");
-    size_t split = wrldDef.rfind('\\');
-    if(split!=std::string::npos)
-      wrldDef = wrldDef.substr(split+1);
-    plDef      = modFile->getS("SETTINGS","PLAYER");
-    gameDatDef = modFile->getS("FILES","GAME");
-    ouDef      = modFile->getS("FILES","OUTPUTUNITS");
+  modFile    = std::move(desc.modFile);
+  wrldDef    = std::move(desc.wrldDef);
+  plDef      = std::move(desc.plDef);
+  gameDatDef = std::move(desc.gameDatDef);
+  ouDef      = std::move(desc.ouDef);
 
-    std::u16string vdf = TextCodec::toUtf16(modFile->getS("FILES","VDF"));
-    modFilter = modFile->has("FILES","VDF");
-    for(size_t start = 0, split = 0; split != std::string::npos; start = split+1) {
-      split = vdf.find(' ', start);
-      std::u16string mod = vdf.substr(start, split-start);
-      if(!mod.empty())
-        modvdfs.emplace_back(std::move(mod));
-      }
-    }
   /*
    '/work' seem to have lowest priority
    load it last with zenkit::VfsOverwriteBehavior::NONE
    any other order will interact with time-stamp based override, resulting in inconsistent behaviour
   */
-  Resources::loadVdfs(modvdfs, modFilter);
+  // Resources::loadVdfs(modvdfs, modFilter);
+  Resources::mountVdfs(desc.vdf);
+  //TODO: -vdfs:physicalfirst
   Resources::mountWork(Gothic::nestedPath({u"_work"}, Dir::FT_Dir));
 
   if(wrldDef.empty()) {

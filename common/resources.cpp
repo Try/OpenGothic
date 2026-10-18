@@ -118,31 +118,20 @@ Resources::Resources(Tempest::Device &device)
       reader->read(bytes, *len);
 
       return bytes;
-  }, this);
+      }, this);
   }
 
-void Resources::mountWork(const std::filesystem::path& path) {
-  inst->gothicAssets.mkdir("/_work");
-  inst->gothicAssets.mount_host(path, "/_work", zenkit::VfsOverwriteBehavior::NONE);
-  }
-
-void Resources::loadVdfs(const std::vector<std::u16string>& modvdfs, bool modFilter) {
+void Resources::mountVdfs(const std::vector<std::u16string>& vdfs) {
   std::vector<Archive> archives;
-  inst->detectVdf(archives,Gothic::nestedPath({u"Data"},Dir::FT_Dir));
+  for(auto& file:vdfs) {
+    Archive ar;
+    ar.name  = file;
+    ar.time  = vdfTimestamp(ar.name);
+    ar.ord   = uint16_t(archives.size());
+    ar.isMod = FileExt::hasExt(file, u"mod");
 
-  // Remove all mod files, that are not listed in modvdfs
-  if(modFilter) {
-    // NOTE: apparently in CoM there is no mods list declaration. In such case - assume all modes
-    archives.erase(std::remove_if(archives.begin(), archives.end(),
-                  [&modvdfs](const Archive& a){
-                    return a.isMod && modvdfs.end() == std::find_if(modvdfs.begin(), modvdfs.end(),
-                          [&a](const std::u16string& modname) {
-                            const std::u16string_view& full_path = a.name;
-                            const std::u16string_view& file_name = modname;
-                            return (0 == full_path.compare(full_path.length() - file_name.length(),
-                                                           file_name.length(), file_name));
-                            });
-                    }), archives.end());
+    if(std::filesystem::file_size(ar.name)>0)
+      archives.emplace_back(std::move(ar));
     }
 
   // addon archives first!
@@ -169,13 +158,11 @@ void Resources::loadVdfs(const std::vector<std::u16string>& modvdfs, bool modFil
       Log::e("unable to load archive: \"", TextCodec::toUtf8(i.name), "\", reason: ", err.what());
       }
     }
+  }
 
-  //for(auto& i:inst->gothicAssets.getKnownFiles())
-  //  Log::i(i);
-
-  // auto v = getFileData("DRAGONISLAND.ZEN");
-  // Tempest::WFile f("../../internal/DRAGONISLAND.ZEN");
-  // f.write(v.data(),v.size());
+void Resources::mountWork(const std::filesystem::path& path) {
+  inst->gothicAssets.mkdir("/_work");
+  inst->gothicAssets.mount_host(path, "/_work", zenkit::VfsOverwriteBehavior::NONE);
   }
 
 void Resources::unloadAll() {
