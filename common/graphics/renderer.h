@@ -95,6 +95,7 @@ class Renderer final {
     void drawSky          (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& view);
     void drawAmbient      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& view);
     void drawArpgDof      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview, const Camera& camera);
+    void drawArpgColorGrade(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const Camera& camera);
     void drawTonemapping  (Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
     void drawCMAA2        (Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
     void drawReflections  (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
@@ -143,6 +144,7 @@ class Renderer final {
 
       GiMethod       giMethod           = GiMethod::None;
       bool           aaEnabled          = false;
+      bool           gfxColorGrade      = false;
 
       float          zVidBrightness     = 0.5;
       float          zVidContrast       = 0.5;

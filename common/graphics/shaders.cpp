@@ -79,7 +79,8 @@ void Shaders::compileShaders() noexcept {
   copyBuf   = computeShader("copy.comp.sprv");
   copyImg   = computeShader("copy_img.comp.sprv");
   copy      = postEffect("copy");
-  arpgDof   = postEffect("arpg_dof");
+  arpgDof         = postEffect("arpg_dof");
+  arpgColorGrade  = postEffect("arpg_color_grade");
 
   patch     = computeShader("patch.comp.sprv");
 

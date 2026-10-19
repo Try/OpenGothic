@@ -54,6 +54,7 @@ class Shaders {
     Tempest::ComputePipeline patch;
     Tempest::RenderPipeline  copy, downscale;
     Tempest::RenderPipeline  arpgDof; // gothic-diablo: depth of field of the dialog shots
+    Tempest::RenderPipeline  arpgColorGrade; // gothic-diablo: optional ARPG image grade
     Tempest::RenderPipeline  stash;
     Tempest::RenderPipeline  bink;
 
