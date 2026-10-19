@@ -12,7 +12,7 @@ int iniValue(std::string_view key, int def) {
   return Gothic::settingsGetI("DIATHIC", key);
   }
 
-bool cachedAnisotropy = true;
+bool cachedAnisotropy = false;
 }
 
 namespace ArpgGfx {
@@ -44,10 +44,6 @@ int value(std::string_view ini) {
 
 void refresh() {
   cachedAnisotropy = value("gfxAnisotropy") != 0;
-  }
-
-bool anisotropyEnabled() {
-  return cachedAnisotropy;
   }
 
 Tempest::Sampler worldSampler(bool arpgEnabled) {
