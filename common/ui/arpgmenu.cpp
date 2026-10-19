@@ -1261,6 +1261,21 @@ void ArpgMenu::paintStats(Painter& p, const Fonts& f, const Rect& cl, const Rect
     }
   }
 
+// the keys of a tree: its own text (LPM, PPM...) or the ArpgKeys of the skills its branches unlock (Q, E, F)
+static std::string treeKeys(const ArpgSkills::Tree& t) {
+  if(t.key!=nullptr && t.key[0]!='\0')
+    return t.key;
+  std::string ret;
+  for(auto& b:t.branches) {
+    if(b.skill<0)
+      continue;
+    if(!ret.empty())
+      ret += ", ";
+    ret += ArpgKeys::keyName(ArpgKeys::key(ArpgKeys::Action(b.skill)));
+    }
+  return ret;
+  }
+
 void ArpgMenu::paintTrees(Painter& p, const Fonts& f, const Rect& cl, const Rect& cr, InventoryRenderer& items, Npc& pl) {
   auto& trees = ArpgSkills::trees();
   tree = std::clamp(tree, 0, int(trees.size())-1);
@@ -1281,7 +1296,7 @@ void ArpgMenu::paintTrees(Painter& p, const Fonts& f, const Rect& cl, const Rect
   // ---- right page: the tree as a graph (root - trunk - branches - keystone) ----
   int y = cr.y;
   text(p, *f.title, cr.x, y, gtxt(t.name));
-  textRight(p, *f.red, cr.x+cr.w, y+(f.title->pixelSize()-f.red->pixelSize())/2, gtxt(t.key));
+  textRight(p, *f.red, cr.x+cr.w, y+(f.title->pixelSize()-f.red->pixelSize())/2, gtxt(treeKeys(t)));
   y += f.title->pixelSize()+int(2*k);
   y += wrap(p, *f.small, cr.x, y, cr.w, gtxt(t.root))+int(6*k);
   drawRule(p, cr.x, y, cr.w);
@@ -1409,9 +1424,14 @@ void ArpgMenu::paintTrees(Painter& p, const Fonts& f, const Rect& cl, const Rect
   y = cl.y;
   text(p, *f.title, cl.x, y, gtxt("Umiejętności"));
   y += f.title->pixelSize()+int(8*k);
-  const int eh = trees.size()>3 ? int(70*k) : int(84*k);
+  // Diathic: more than 4 trees - two columns, shorter entries
+  const int cols = trees.size()>4 ? 2 : 1;
+  const int gap  = int(8*k);
+  const int ew   = cols>1 ? (cl.w-gap)/2 : cl.w;
+  const int eh   = cols>1 ? int(62*k) : (trees.size()>3 ? int(70*k) : int(84*k));
   for(size_t i=0; i<trees.size(); ++i) {
-    const Rect r(cl.x, y, cl.w, eh);
+    const int  col = int(i)%cols;
+    const Rect r(cl.x+col*(ew+gap), y, ew, eh);
     const bool on = (int(i)==tree), hv = r.contains(mouse);
     if(on) {
       fill(p, r.x, r.y, r.w, r.h, Color(0.55f, 0.09f, 0.05f, 0.08f));
@@ -1428,17 +1448,21 @@ void ArpgMenu::paintTrees(Painter& p, const Fonts& f, const Rect& cl, const Rect
     int32_t inTree = 0;
     if(pr!=nullptr)
       inTree = pr->treePoints(i)+pr->rank(ArpgSkills::NodeId{i,-1,0});
-    char buf[96] = {};
-    if(trees[i].key[0]=='\0')
+    char buf[128] = {};
+    const std::string keys = treeKeys(trees[i]);
+    if(cols>1)
+      std::snprintf(buf, sizeof(buf), "%s,  punkty: %d", keys.empty() ? "zawsze" : keys.c_str(), int(inTree)); else
+    if(keys.empty())
       std::snprintf(buf, sizeof(buf), "zawsze działa,  punkty w drzewku: %d", int(inTree)); else
-      std::snprintf(buf, sizeof(buf), "klawisz %s,  punkty w drzewku: %d", trees[i].key, int(inTree));
+      std::snprintf(buf, sizeof(buf), "klawisz %s,  punkty w drzewku: %d", keys.c_str(), int(inTree));
     auto& fn = on ? *f.red : *f.ink;
     const int tx = ic.x+ic.w+int(12*k);
     text(p, fn,       tx, r.y+int(12*k), gtxt(trees[i].name));
     text(p, *f.small, tx, r.y+int(16*k)+fn.pixelSize(), gtxt(buf));
     Hit h; h.r = r; h.kind = H_Tree; h.id = int(i);
     hits.push_back(h);
-    y += eh+int(6*k);
+    if(col==cols-1 || i+1==trees.size())
+      y += eh+int(6*k);
     }
   y += int(6*k);
   drawRule(p, cl.x, y, cl.w);
@@ -1485,6 +1509,10 @@ void ArpgMenu::paintTrees(Painter& p, const Fonts& f, const Rect& cl, const Rect
       desc    = nd.desc;
       maxRank = nd.max;
       branch  = std::string("Gałąź: ")+br.name;
+      if(selN==0 && br.skill>=0)
+        branch += ", umiejętność pod "+ArpgKeys::keyName(ArpgKeys::key(ArpgKeys::Action(br.skill)));
+      if(selN==0 && br.pct>0)
+        branch += ", od "+std::to_string(br.pct)+"% biegłości";
       id      = ArpgSkills::NodeId{size_t(tree), selB, selN};
       isNode  = true;
       break;
@@ -1500,7 +1528,7 @@ void ArpgMenu::paintTrees(Painter& p, const Fonts& f, const Rect& cl, const Rect
     default:
       name   = t.name;
       desc   = t.root;
-      branch = t.key[0]!='\0' ? std::string("Klawisz: ")+t.key : std::string("Działa zawsze (bez klawisza)");
+      branch = !treeKeys(t).empty() ? std::string("Klawisz: ")+treeKeys(t) : std::string("Działa zawsze (bez klawisza)");
       break;
     }
   if(isNode && pr!=nullptr)

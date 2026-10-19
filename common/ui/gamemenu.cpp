@@ -710,6 +710,7 @@ void GameMenu::paintModernKeys(Painter& p, GthFont& fItem, GthFont& fSel, GthFon
   const int rowW  = int(float(W)*0.46f);
   const int keyX  = x0 + int(float(rowW)*0.62f);
   const int count = int(ArpgKeys::Count);
+  const int yTop  = y;
   for(int i=0; i<count+2; ++i) {
     const Rect r(x0-int(14.f*k), y, rowW, rowH);
     keysRows.push_back(r);
@@ -733,8 +734,9 @@ void GameMenu::paintModernKeys(Painter& p, GthFont& fItem, GthFont& fSel, GthFon
     y += rowH;
     }
 
-  // the fixed ones
-  y += int(18.f*k);
+  // the fixed ones: in the right column (the list of keys is long)
+  y = yTop;
+  const int x1 = x0 + rowW + int(float(W)*0.05f);
   static const char* fixed[] = {
     "Lewy przycisk myszy - ruch, rozmowa, podnoszenie, atak",
     "Prawy przycisk - atak ładowany (przytrzymaj)",
@@ -742,10 +744,10 @@ void GameMenu::paintModernKeys(Painter& p, GthFont& fItem, GthFont& fSel, GthFon
     "Ctrl + lewy przycisk - atak w miejscu / na każdego",
     "Kółko myszy - przybliżenie kamery",
     "3 - 0 - runy i zwoje (przypisanie w ekwipunku)",
-    "Ruch klawiaturą, obrót kamery, skok - z ustawień Gothica (Opcje)",
+    "Ruch klawiaturą i skok - z ustawień Gothica (Opcje)",
     };
   for(auto t:fixed) {
-    fInfo.drawText(p, x0, y+fInfo.pixelSize(), ArpgMenu::gtxt(t));
+    fInfo.drawText(p, x1, y+fInfo.pixelSize(), ArpgMenu::gtxt(t));
     y += fInfo.pixelSize() + int(8.f*k);
     }
   (void)fItem;

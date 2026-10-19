@@ -12,6 +12,9 @@ namespace ArpgKeys {
     Dodge,          // fikołek
     Weapon,         // dobycie / schowanie broni
     SwapWeapon,     // broń biała <-> łuk / kusza
+    SkillA,         // pierwsza umiejętność broni w ręku (drzewko broni)
+    SkillB,         // druga umiejętność broni w ręku
+    SkillBlock,     // umiejętność drzewka Blok
     Walk,           // chód / bieg
     Sneak,          // skradanie
     PotionHealth,
@@ -23,6 +26,8 @@ namespace ArpgKeys {
     Minimap,        // minimapa -> mapa na grze -> nic
     Labels,         // przytrzymany: etykiety
     Log,            // dziennik (Gothic's MENU_LOG)
+    CamLeft,        // obrót kamery (trzymany)
+    CamRight,
     Count
     };
 

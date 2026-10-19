@@ -38,6 +38,8 @@ class ArpgMenu final {
       };
 
     bool   isOpen()  const { return page!=P_Closed; }
+    // Diathic: the model of an item instance as an icon (the skill bar shows the nodes of the weapon trees)
+    const Item* skillIcon(const char* instance) { return iconItem(instance); }
     Page   current() const { return page; }
     void   open(Page p);
     void   close();

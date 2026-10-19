@@ -159,21 +159,27 @@ DamageCalculator::Val DamageCalculator::swordDamage(Npc& nsrc, Npc& nother) {
       }
 
     bool invincible = true;
+    bool full       = false;
     for(unsigned int i=0; i<zenkit::DamageType::NUM; ++i) {
       if((dtype & (1<<i))==0)
         continue;
       int vd = std::max(str + src.damage[i] - other.protection[i],0);
-      // gothic-diablo: Słaby punkt: a better chance of the full damage
-      const int crit = src.hitchance[tal] + (nsrc.arpgPerks()!=nullptr ? nsrc.arpgPerks()->critAdd : 0);
+      // gothic-diablo: Słaby punkt: a better chance of the full damage; Diathic: Celny sztych with a 1H weapon
+      int crit = src.hitchance[tal];
+      if(auto pk = nsrc.arpgPerks())
+        crit += pk->critAdd + (nsrc.weaponState()==WeaponState::W1H ? pk->crit1H : 0);
       if(crit<=critChance)
-        vd = (vd-1)/10;
+        vd = (vd-1)/10; else
+        full = true;
       if(other.protection[i]>=0) { // Filter immune
         value += vd;
         invincible = false;
         }
       }
 
-    return Val(value,true,invincible);
+    Val ret(value,true,invincible);
+    ret.arpgFull = full;
+    return ret;
     } else {
     bool invincible = true;
     const int32_t mul = script.criticalDamageMultiplyer();

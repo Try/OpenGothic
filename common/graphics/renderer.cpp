@@ -11,6 +11,7 @@
 #include "ui/videowidget.h"
 #include "camera.h"
 #include "gothic.h"
+#include "graphics/arpggfx.h"
 #include "utils/string_frm.h"
 
 using namespace Tempest;
@@ -112,6 +113,8 @@ Renderer::~Renderer() {
   }
 
 void Renderer::setupSettings() {
+  ArpgGfx::refresh();
+  settings.gfxColorGrade      = ArpgGfx::value("gfxColorGrade")!=0;
   settings.zEnvMappingEnabled = Gothic::settingsGetI("ENGINE","zEnvMappingEnabled")!=0;
   settings.zCloudShadowScale  = Gothic::settingsGetI("ENGINE","zCloudShadowScale") !=0;
   settings.zFogRadial         = Gothic::settingsGetI("RENDERER_D3D","zFogRadial")!=0;
@@ -745,6 +748,7 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
     }
 
   drawArpgDof(cmd, wview, camera);
+  drawArpgColorGrade(cmd, camera);
 
   if(settings.aaEnabled) {
     cmd.setDebugMarker("CMAA2 & Tonemapping");
@@ -791,6 +795,57 @@ void Renderer::drawArpgDof(Encoder<CommandBuffer>& cmd, const WorldView& wview, 
   cmd.setBinding(2, zbuffer,     Sampler::nearest());
   cmd.setPushData(push);
   cmd.setPipeline(shaders.arpgDof);
+  cmd.draw(nullptr, 0, 3);
+  }
+
+void Renderer::drawArpgColorGrade(Encoder<CommandBuffer>& cmd, const Camera& camera) {
+  // Opt-in: the extra full-screen copy and grade pass has a small but measurable bandwidth cost.
+  if(!camera.isArpgActive() || !settings.gfxColorGrade)
+    return;
+
+  struct Push {
+    float strength;
+    float shadowStart;
+    float shadowEnd;
+    float highlightStart;
+    float highlightEnd;
+    float shadowR;
+    float shadowG;
+    float shadowB;
+    float highlightR;
+    float highlightG;
+    float highlightB;
+    float vignette;
+    float vignetteStart;
+    float vignetteEnd;
+    } push = {
+      ArpgGfx::colorGradeStrength,
+      ArpgGfx::colorGradeShadowStart,
+      ArpgGfx::colorGradeShadowEnd,
+      ArpgGfx::colorGradeHighlightStart,
+      ArpgGfx::colorGradeHighlightEnd,
+      ArpgGfx::colorGradeShadowR,
+      ArpgGfx::colorGradeShadowG,
+      ArpgGfx::colorGradeShadowB,
+      ArpgGfx::colorGradeHighlightR,
+      ArpgGfx::colorGradeHighlightG,
+      ArpgGfx::colorGradeHighlightB,
+      ArpgGfx::colorGradeVignette,
+      ArpgGfx::colorGradeVignetteStart,
+      ArpgGfx::colorGradeVignetteEnd
+      };
+
+  // SceneLinear cannot be sampled while it is the active color attachment.
+  cmd.setDebugMarker("ARPG color grade");
+  cmd.setFramebuffer({{sceneOpaque, Tempest::Discard, Tempest::Preserve}});
+  cmd.setBinding(0, sceneLinear, Sampler::nearest());
+  cmd.setPipeline(shaders.copy);
+  cmd.draw(nullptr, 0, 3);
+
+  cmd.setFramebuffer({{sceneLinear, Tempest::Discard, Tempest::Preserve}});
+  cmd.setBinding(0, sceneOpaque, Sampler::nearest());
+  cmd.setPushData(push);
+  cmd.setPipeline(shaders.arpgColorGrade);
   cmd.draw(nullptr, 0, 3);
   }
 
