@@ -757,8 +757,15 @@ void Camera::tick(uint64_t dt) {
     auto  pl     = isFree() ? nullptr : world->player();
     auto& physic = *world->physic();
 
-    if(pl!=nullptr && (pl->isSwim() || pl->isDive())) {
-      inWater = physic.waterRay(origin,0.f).hasCol;
+    if(pl!=nullptr && pl->isSwim()) {
+      // The swimmer stays at the surface while the orbit camera can dip below it at any pitch.
+      auto to = origin;
+      to.y = std::max(origin.y, world->view()->bbox().second.y);
+      auto cave = physic.ray(origin, to);
+      if(cave.hasCol) {
+        to = cave.v;
+        }
+      inWater = physic.cameraRay(origin, to).waterCol % 2;
       }
     else if(pl!=nullptr && (pl->isInAir() || pl->isJump()) && !pl->isDead()) {
       // NOTE: not quite correct
