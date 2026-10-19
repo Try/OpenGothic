@@ -113,6 +113,8 @@ Renderer::~Renderer() {
   }
 
 void Renderer::setupSettings() {
+  ArpgGfx::refresh();
+  settings.gfxColorGrade      = ArpgGfx::value("gfxColorGrade")!=0;
   settings.zEnvMappingEnabled = Gothic::settingsGetI("ENGINE","zEnvMappingEnabled")!=0;
   settings.zCloudShadowScale  = Gothic::settingsGetI("ENGINE","zCloudShadowScale") !=0;
   settings.zFogRadial         = Gothic::settingsGetI("RENDERER_D3D","zFogRadial")!=0;
@@ -798,7 +800,7 @@ void Renderer::drawArpgDof(Encoder<CommandBuffer>& cmd, const WorldView& wview, 
 
 void Renderer::drawArpgColorGrade(Encoder<CommandBuffer>& cmd, const Camera& camera) {
   // Opt-in: the extra full-screen copy and grade pass has a small but measurable bandwidth cost.
-  if(!camera.isArpgActive() || Gothic::settingsGetI("DIATHIC", "gfxColorGrade")==0)
+  if(!camera.isArpgActive() || !settings.gfxColorGrade)
     return;
 
   struct Push {
