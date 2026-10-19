@@ -19,7 +19,6 @@ const std::vector<Option>& options();
 int value(std::string_view ini);
 int levelsSupported(const Option& o);
 void refresh();
-bool anisotropyEnabled();
 Tempest::Sampler worldSampler(bool arpgEnabled);
 constexpr float colorGradeStrength      = 0.35f;
 constexpr float colorGradeShadowStart   = 0.08f;
