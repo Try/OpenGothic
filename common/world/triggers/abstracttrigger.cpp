@@ -133,6 +133,13 @@ void AbstractTrigger::onTrigger(const TriggerEvent&) {
 void AbstractTrigger::onUntrigger(const TriggerEvent&) {
   }
 
+void AbstractTrigger::emitTargetTriggerEvent() const {
+  if(target.empty())
+    return;
+  TriggerEvent e(target,vobName,TriggerEvent::T_Trigger);
+  world.triggerEvent(e);
+  }
+
 void AbstractTrigger::onGotoMsg(const TriggerEvent&) {
   }
 
