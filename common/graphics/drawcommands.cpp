@@ -9,6 +9,8 @@
 #include "shaders.h"
 
 #include "gothic.h"
+#include "camera.h"
+#include "graphics/arpggfx.h"
 
 using namespace Tempest;
 
@@ -112,7 +114,7 @@ void DrawCommands::setBindings(Tempest::Encoder<CommandBuffer>& cmd, const DrawC
     else {
       cmd.setBinding(L_Diffuse, *bx.mat.tex);
       }
-    auto smp = SceneGlobals::isShadowView(v) ? Sampler::trillinear() : Sampler::anisotrophy();
+    auto smp = SceneGlobals::isShadowView(v) ? Sampler::trillinear() : ArpgGfx::worldSampler(Camera::isArpgEnabled());
     cmd.setBinding(L_Sampler, smp);
     }
 
