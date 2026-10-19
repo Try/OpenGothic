@@ -3,7 +3,7 @@
 #include <string_view>
 #include <vector>
 
-#include <Tempest/Sampler>
+#include <Tempest/AbstractGraphicsApi>
 
 namespace ArpgGfx {
 struct Option {
