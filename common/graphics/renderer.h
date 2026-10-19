@@ -144,6 +144,7 @@ class Renderer final {
 
       GiMethod       giMethod           = GiMethod::None;
       bool           aaEnabled          = false;
+      bool           gfxColorGrade      = false;
 
       float          zVidBrightness     = 0.5;
       float          zVidContrast       = 0.5;
