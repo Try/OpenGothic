@@ -1,6 +1,26 @@
 #pragma once
 
+#include <string_view>
+#include <vector>
+
+#include <Tempest/Sampler>
+
 namespace ArpgGfx {
+struct Option {
+  std::string_view              ini;
+  std::string_view              name;
+  std::string_view              info;
+  std::vector<std::string_view> levels;
+  int                           def = 0;
+  bool                          restart = false;
+  };
+
+const std::vector<Option>& options();
+int value(std::string_view ini);
+int levelsSupported(const Option& o);
+void refresh();
+bool anisotropyEnabled();
+Tempest::Sampler worldSampler(bool arpgEnabled);
 constexpr float colorGradeStrength      = 0.35f;
 constexpr float colorGradeShadowStart   = 0.08f;
 constexpr float colorGradeShadowEnd     = 0.48f;
