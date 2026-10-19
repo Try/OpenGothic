@@ -98,8 +98,8 @@ Pierwszy krok: jedno pytanie do użytkownika, od czego zacząć — przed kodem:
 - Prawa: żadnych oryginalnych tekstur z VDF ani ich przeróbek w repozytorium lub paczce Diathic; ewentualna paczka pozostaje plikiem instalowanym przez gracza.
 
 ## Stan
-- 2026-10-19: implementuję na `faza12-grafika` tabelę `ArpgGfx::options()` dla panelu agenta rozgrywki oraz przełącznik `gfxAnisotropy` działający tylko w ARPG; tryb klasyczny zachowuje dotychczasowy sampler.
+- 2026-10-19: dodano tabelę `ArpgGfx::options()` dla panelu agenta rozgrywki i przełącznik `gfxAnisotropy` działający tylko w ARPG; tryb klasyczny zachowuje dotychczasowy sampler.
 - Tabela zawiera `gfxColorGrade` i `gfxAnisotropy`; anizotropia ogranicza dostępne poziomy możliwościami GPU. Renderer odświeża ustawienia przez `onSettingsChanged`, bez odczytu INI co klatkę.
-- Do sprawdzenia: build/clang i test użytkownika w tych samych lokacjach przed/po; PR #12 z korekcją koloru nadal czeka na CI i test użytkownika.
-- Następne po teście: ocena mipmap i jakości tekstur, potem DLSS Super Resolution jako opcjonalny krok; stronę „Grafika Diathic” implementuje agent rozgrywki po scaleniu PR #10.
+- Build/clang nieuruchomione w tym środowisku; PR #12 i nowy kod czekają na build oraz test użytkownika w tych samych lokacjach przed/po.
+- Następne: porównanie próbkowania tekstur i mipmap; potem DLSS Super Resolution jako opcjonalny krok. Stronę „Grafika Diathic” implementuje agent rozgrywki po scaleniu PR #10.
 - Jeśli próbkowanie nie wystarczy, przygotować narzędzie lub paczkę HD instalowaną przez gracza; tekstury gry ani ich przeróbki nie trafią do repozytorium ani paczki projektu.
