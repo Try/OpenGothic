@@ -34,7 +34,7 @@ Pierwszy krok: jedno pytanie do użytkownika, od czego zacząć — przed kodem:
 
 ## Podział plików z agentem rozgrywki
 - Twoje: nowe `shader/arpg_*` (poza `arpg.glsl` i `arpg_dof.frag`), nowe `common/graphics/arpggfx.cpp` / `.h`, nowe pliki w `assets/diathic/`, sekcja „Faza 12 — grafika” w GOTHIC-DIABLO.md, sekcja „Faza 12” w docs/plan/decyzje.md, ten plik.
-- Wspólne — tylko punkt zaczepienia (wywołanie), wymienione w opisie PR: `common/graphics/renderer.cpp`, `shaders.cpp` / `.h`, `shader/CMakeLists.txt`, `common/resources.cpp`, `common/mainwindow.cpp`, `shader/arpg.glsl` (mgła wojny), `shader/materials/main.frag` (`arpgHidden`: wycięcia sufitów, prześwit, drzewa, podświetlenie wroga — nie przerabiać).
+- Wspólne — tylko punkt zaczepienia (wywołanie), wymienione w opisie PR: `common/graphics/renderer.cpp`, `common/graphics/drawcommands.cpp` (punkt próbnika tekstur), `shaders.cpp` / `.h`, `shader/CMakeLists.txt`, `common/resources.cpp`, `common/mainwindow.cpp`, `shader/arpg.glsl` (mgła wojny), `shader/materials/main.frag` (`arpgHidden`: wycięcia sufitów, prześwit, drzewa, podświetlenie wroga — nie przerabiać).
 - Nie ruszać: `common/game/*`, PlayerControl, Npc, ArpgMenu, GameMenu (stronę ustawień grafiki robi agent rozgrywki, Krok 5), ArpgSkills, ArpgStatus, tabela klawiszy ArpgKeys (potrzebny klawisz → zapytaj użytkownika; przełączniki przez Gothic.ini).
 
 ## Zasady grafiki
