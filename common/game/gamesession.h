@@ -9,6 +9,7 @@
 #include "gametime.h"
 
 class World;
+struct WorldLand;
 class WorldView;
 class Npc;
 class Serialize;
@@ -25,7 +26,7 @@ class GameSession final {
     GameSession()=delete;
     GameSession(const GameSession&)=delete;
     GameSession(std::string file);
-    GameSession(Serialize&  fin);
+    GameSession(Serialize&  fin, WorldLand&& land);
     ~GameSession();
 
     void         save(Serialize& fout, std::string_view name, const Tempest::Pixmap &screen);
@@ -33,6 +34,7 @@ class GameSession final {
 
     void         setWorld(std::unique_ptr<World> &&w);
     auto         clearWorld() -> std::unique_ptr<World>;
+    auto         takeLand() -> WorldLand;
 
     void         changeWorld(std::string_view world, std::string_view wayPoint);
     void         exitSession();
