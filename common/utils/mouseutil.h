@@ -2,5 +2,6 @@
 
 namespace MouseUtil {
   float mouseSysSpeed();
+  bool  isPointerEnabled();
   };
 
