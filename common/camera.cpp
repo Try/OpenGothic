@@ -766,6 +766,14 @@ void Camera::tick(uint64_t dt) {
         to = cave.v;
         }
       inWater = physic.cameraRay(origin, to).waterCol % 2;
+      if(!inWater) {
+        // The water surface mesh has gaps under overhangs, so a camera below the swimmer's surface is still
+        // underwater when it shares the swimmer's water: no rock and no water surface in between.
+        const auto from  = pl->position();
+        const auto water = physic.waterRay(from, 0.f);
+        inWater = water.hasCol && origin.y<water.wdepth &&
+                  !physic.ray(from, origin).hasCol && physic.cameraRay(from, origin).waterCol==0;
+        }
       }
     else if(pl!=nullptr && (pl->isInAir() || pl->isJump()) && !pl->isDead()) {
       // NOTE: not quite correct
