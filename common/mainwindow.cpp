@@ -111,6 +111,10 @@ MainWindow::MainWindow(Device& device)
 
   displayPos = Shortcut(*this,Event::M_Alt,Event::K_P);
   displayPos.onActivated.bind(this, &MainWindow::onMarvinKey<Event::K_P>);
+
+  // The usual desktop fullscreen toggle, same as F3
+  altEnter = Shortcut(*this,Event::M_Alt,Event::K_Return);
+  altEnter.onActivated.bind(this, &MainWindow::onMarvinKey<Event::K_F3>);
   }
 
 MainWindow::~MainWindow() {
