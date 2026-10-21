@@ -15,6 +15,7 @@
 #include "utils/gthfont.h"
 #include "utils/fileutil.h"
 #include "utils/keycodec.h"
+#include "utils/mouseutil.h"
 #include "game/definitions/musicdefinitions.h"
 #include "game/serialize.h"
 #include "game/savegameheader.h"
@@ -77,18 +78,38 @@ struct GameMenu::ListContentDialog : Dialog {
 struct GameMenu::ListViewDialog : Dialog {
   ListViewDialog(GameMenu& owner, Item& list):owner(owner),list(list){
     setFocusPolicy(ClickFocus);
-    setCursorShape(CursorShape::Hidden);
+    setCursorShape(MouseUtil::isPointerEnabled() ? CursorShape::Arrow : CursorShape::Hidden);
     setFocus(true);
     status = toStatus(list.handle->user_string[0]);
     }
 
   void mouseDownEvent(MouseEvent& e) override {
     if(e.button==Event::ButtonLeft) {
+      // With the pointer, a click opens the quest under it; clicking beside the list does nothing.
+      if(MouseUtil::isPointerEnabled() && !selectAt(e.pos()))
+        return;
       showQuest();
       }
     if(e.button==Event::ButtonRight) {
       close();
       }
+    }
+
+  void mouseMoveEvent(MouseEvent& e) override {
+    if(MouseUtil::isPointerEnabled())
+      selectAt(e.pos());
+    }
+
+  bool selectAt(Point pos) {
+    // The list is drawn by the menu; this dialog only covers it.
+    const int32_t id = owner.questAt(list, pos+mapToRoot(Point())-owner.mapToRoot(Point()));
+    if(id<0)
+      return false;
+    if(list.value!=id) {
+      list.value = id;
+      update();
+      }
+    return true;
     }
 
   void showQuest() {
@@ -527,6 +548,40 @@ void GameMenu::drawSlider(Painter& p, Item& it, int x, int y, int sw, int sh) {
              0,0,p.brush().w(),p.brush().h());
   }
 
+int32_t GameMenu::questAt(const Item& list, Point pos) const {
+  auto* log = Gothic::inst().questLog();
+  if(log==nullptr)
+    return -1;
+  // Same layout as drawItem and drawQuestList
+  const auto& item = *list.handle;
+  const auto  rect = itemRect(list);
+  const int   px   = int(float(w()*item.frame_sizex)/scriptDiv);
+  const int   py   = int(float(h()*item.frame_sizey)/scriptDiv);
+  const int   x    = rect.x+px, y = rect.y+py, lw = rect.w-2*px, lh = rect.h-2*py;
+  if(pos.x<x || pos.x>=x+lw || pos.y<y)
+    return -1;
+
+  const auto  st    = toStatus(item.user_string[0]);
+  const float scale = Gothic::interfaceScale(this);
+  auto&       fnt   = Resources::font(item.fontname,Resources::FontType::Normal,scale);
+  int32_t     id    = -1;
+  int         top   = y;
+  for(size_t i=0; i<log->questCount(); ++i) {
+    auto& quest = log->quest(log->questCount()-i-1);
+    if(!isCompatible(quest,st))
+      continue;
+    if(++id<list.scroll)
+      continue;
+    const int rowH = fnt.textSize(lw,quest.name).h;
+    if(top+rowH>y+lh)
+      break;
+    if(pos.y<top+rowH)
+      return id;
+    top += rowH;
+    }
+  return -1;
+  }
+
 void GameMenu::drawQuestList(Painter& p, Item& it, int x, int y, int w, int h,
                              const QuestLog& log, QuestStat st) {
   int     itY       = y;
@@ -592,10 +647,30 @@ Rect GameMenu::itemRect(const Item& it) const {
               int(float(w()*dimx)/scriptDiv),int(float(h()*dimy)/scriptDiv));
   }
 
-GameMenu::Item* GameMenu::touchHitTest(Item& p, Point pos) {
+Rect GameMenu::hitRect(const Item& it, bool textOnly) {
+  auto rect = itemRect(it);
+  if(it.handle->type==zenkit::MenuItemType::SLIDER)
+    return rect;
+  // Without an explicit height the script box spans several rows, so only the text line counts.
+  const auto& fnt = getTextFont(it);
+  if(textOnly || it.handle->dim_y==-1)
+    rect.h = fnt.pixelSize();
+  if(!textOnly || it.handle->type==zenkit::MenuItemType::INPUT || (it.handle->flags & zenkit::MenuItemFlag::MULTILINE))
+    return rect;
+  getText(it,textBuf);
+  const int tw = fnt.textSize(std::string_view(textBuf.data())).w;
+  if(tw>0 && tw<rect.w) {
+    if(it.handle->flags & zenkit::MenuItemFlag::CENTERED)
+      rect.x += (rect.w-tw)/2;
+    rect.w = tw;
+    }
+  return rect;
+  }
+
+GameMenu::Item* GameMenu::touchHitTest(Item& p, Point pos, bool textOnly) {
   auto* it = &p;
   while(it!=nullptr) {
-    auto rect = itemRect(*it);
+    auto rect = hitRect(*it,textOnly);
     if(rect.contains(pos))
       return it;
     if(it->handle->flags & zenkit::MenuItemFlag::EFFECTS) {
@@ -609,10 +684,14 @@ GameMenu::Item* GameMenu::touchHitTest(Item& p, Point pos) {
   return nullptr;
   }
 
-void GameMenu::onBeginTouch(Point pos) {
-  touchSlider = nullptr;
-  touchActive = false;
+GameMenu::Item* GameMenu::hitTest(Point pos, uint32_t& index) {
+  // Drawn text wins on shared rows such as Back and "More keys"; the script box still makes short entries easy to hit.
+  if(auto hit = hitTest(pos,index,true))
+    return hit;
+  return hitTest(pos,index,false);
+  }
 
+GameMenu::Item* GameMenu::hitTest(Point pos, uint32_t& index, bool textOnly) {
   // reverse of draw order
   for(uint32_t i = zenkit::IMenu::item_count; i-- > 0;) {
     if(hItems[i].handle==nullptr)
@@ -622,20 +701,40 @@ void GameMenu::onBeginTouch(Point pos) {
       continue;
     if(!isSelectable(item))
       continue;
-    auto hit = touchHitTest(hItems[i], pos);
-    if(hit==nullptr)
-      continue;
-    setSelection(int(i), -1);
-    if(auto s = selectedItem()) {
-      updateSavThumb(*s);
-      touchActive = true;
+    if(auto hit = touchHitTest(hItems[i], pos, textOnly)) {
+      index = i;
+      return hit;
       }
-    if(hit->handle->type==zenkit::MenuItemType::SLIDER) {
-      touchSlider = hit;
-      break;
-      }
-    break;
     }
+  return nullptr;
+  }
+
+void GameMenu::onBeginTouch(Point pos) {
+  touchSlider = nullptr;
+  touchActive = false;
+
+  uint32_t index = 0;
+  auto     hit   = hitTest(pos, index);
+  if(hit==nullptr)
+    return;
+  setSelection(int(index), -1);
+  if(auto s = selectedItem()) {
+    updateSavThumb(*s);
+    touchActive = true;
+    }
+  if(hit->handle->type==zenkit::MenuItemType::SLIDER)
+    touchSlider = hit;
+  }
+
+void GameMenu::onHover(Point pos) {
+  uint32_t index = 0;
+  if(hitTest(pos, index)==nullptr || index==curItem)
+    return;
+  // Selection runs the item's select commands, so only change it when another item is hovered.
+  setSelection(int(index), -1);
+  if(auto s = selectedItem())
+    updateSavThumb(*s);
+  update();
   }
 
 void GameMenu::onDragTouch(Point pos) {

@@ -157,6 +157,7 @@ class MainWindow : public Tempest::Window {
 
     Tempest::Widget*          uiKeyUp=nullptr;
     Tempest::Point            dMouse;
+    bool                      uiPointer=false;
     PlayerControl             player;
     uint64_t                  lastTick=0;
 
