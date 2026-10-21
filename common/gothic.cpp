@@ -229,7 +229,8 @@ Gothic::Gothic(GameModDescriptor desc) {
     }
 
   modFile    = std::move(desc.modFile);
-  wrldDef    = std::move(desc.wrldDef);
+  if(!desc.wrldDef.empty())
+    wrldDef = std::move(desc.wrldDef);
   plDef      = std::move(desc.plDef);
   gameDatDef = std::move(desc.gameDatDef);
   ouDef      = std::move(desc.ouDef);
