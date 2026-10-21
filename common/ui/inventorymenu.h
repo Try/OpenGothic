@@ -62,6 +62,7 @@ class InventoryMenu : public Tempest::Widget {
 
     void  mouseDownEvent (Tempest::MouseEvent& event) override;
     void  mouseUpEvent   (Tempest::MouseEvent& event) override;
+    void  mouseMoveEvent (Tempest::MouseEvent& event) override;
     void  mouseWheelEvent(Tempest::MouseEvent& event) override;
 
   private:
@@ -96,6 +97,8 @@ class InventoryMenu : public Tempest::Widget {
     LootMode                  lootMode   =LootMode::Normal;
     InventoryRenderer         renderer;
 
+    static constexpr int      gridPadd   = 43;
+
     size_t                    columsCount = 5;
     int32_t                   scrollDelta = 0;
 
@@ -103,11 +106,14 @@ class InventoryMenu : public Tempest::Widget {
 
     Tempest::Size             slotSize() const;
     int                       headerHeight() const;
+    int                       gridTop() const;
     int                       infoHeight() const;
     size_t                    pagesCount() const;
 
     const Page&               activePage();
     PageLocal&                activePageSel();
+    bool                      selectCellAt(Tempest::Point pos);
+    bool                      hasPointer() const;
 
     void          processMove(Tempest::KeyEvent& e);
     void          moveLeft(bool usePage);
