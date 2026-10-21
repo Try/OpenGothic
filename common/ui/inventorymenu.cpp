@@ -11,6 +11,7 @@
 #include "world/world.h"
 #include "utils/gthfont.h"
 #include "utils/keycodec.h"
+#include "utils/mouseutil.h"
 #include "gothic.h"
 #include "resources.h"
 
@@ -206,6 +207,9 @@ void InventoryMenu::onWorldChanged() {
   }
 
 void InventoryMenu::tick(uint64_t /*dt*/) {
+  const auto cursor = hasPointer() ? CursorShape::Arrow : CursorShape::Hidden;
+  if(cursorShape()!=cursor)
+    setCursorShape(cursor);
   if(player!=nullptr && (player->isDown() || player->bodyStateMasked()==BS_UNCONSCIOUS)) {
     close();
     return;
@@ -368,6 +372,26 @@ void InventoryMenu::mouseDownEvent(MouseEvent &e) {
   if(state==State::LockPicking)
     return;
 
+  if(hasPointer()) {
+    // Clicking beside the grids must not use or take the selected item.
+    if(e.button==MouseEvent::ButtonLeft && !selectCellAt(e.pos()))
+      return;
+    // In the player's own inventory, right click on an item drops one (repeating while held), with Shift the stack.
+    if(e.button==MouseEvent::ButtonRight && state==State::Equip && selectCellAt(e.pos())) {
+      if(e.modifier & Event::M_Shift) {
+        lootMode = LootMode::Stack;
+        onTakeStuff();
+        lootMode = LootMode::Normal;
+        } else {
+        lootMode = LootMode::Normal;
+        takeTimer.start(200);
+        onTakeStuff();
+        }
+      adjustScroll();
+      return;
+      }
+    }
+
   if (e.button==MouseEvent::ButtonLeft)
     onItemAction(Item::NSLOT);
   else if (e.button==MouseEvent::ButtonRight)
@@ -379,6 +403,54 @@ void InventoryMenu::mouseDownEvent(MouseEvent &e) {
 void InventoryMenu::mouseUpEvent(MouseEvent&) {
   takeTimer.stop();
   takeCount=0;
+  }
+
+void InventoryMenu::mouseMoveEvent(MouseEvent& e) {
+  if(player==nullptr || !hasPointer()) {
+    e.ignore();
+    return;
+    }
+  // Moves are accepted while open, so the game does not see them as mouse look.
+  selectCellAt(e.pos());
+  }
+
+bool InventoryMenu::hasPointer() const {
+  return state!=State::Closed && state!=State::LockPicking && MouseUtil::isPointerEnabled();
+  }
+
+bool InventoryMenu::selectCellAt(Point pos) {
+  // Same layout as drawAll: the chest or trader grid on the left, the player grid on the right.
+  const int  wcount = int(columsCount);
+  const int  hcount = int(rowsCount());
+  const auto cell   = slotSize();
+  const int  top    = gridTop();
+  if(cell.w<=0 || cell.h<=0 || pos.y<top || pos.y>=top+hcount*cell.h)
+    return false;
+
+  const int  xOth   = std::max(gridPadd,margins().left);
+  const int  xPl    = w()-std::max(gridPadd,margins().right)-wcount*cell.w;
+  auto       inGrid = [&](int x0) { return pos.x>=x0 && pos.x<x0+wcount*cell.w; };
+  uint8_t    pg     = 0;
+  if(pageOth!=nullptr && inGrid(xOth))
+    pg = 0;
+  else if(state!=State::Ransack && inGrid(xPl))
+    pg = 1;
+  else
+    return false;
+
+  auto&        sel = pageOth!=nullptr ? pageLocal[pg] : pageLocal[1];
+  const Page*  inv = (pageOth!=nullptr && pg==0) ? pageOth.get() : pagePl.get();
+  const size_t id  = (sel.scroll+size_t((pos.y-top)/cell.h))*columsCount + size_t((pos.x-(pg==0 ? xOth : xPl))/cell.w);
+  if(inv==nullptr || id>=inv->size())
+    return false;
+
+  if(pageOth!=nullptr)
+    page = pg;
+  if(sel.sel!=id) {
+    sel.sel = id;
+    update();
+    }
+  return true;
   }
 
 void InventoryMenu::mouseWheelEvent(MouseEvent &e) {
@@ -404,8 +476,11 @@ void InventoryMenu::mouseWheelEvent(MouseEvent &e) {
   }
 
 size_t InventoryMenu::rowsCount() const {
-  const int iy=std::max(headerTop,margins().top)+headerHeight()+headerSpacing;
-  return size_t((h()-iy-infoHeight()-std::max(20,margins().bottom))/slotSize().h);
+  return size_t((h()-gridTop()-infoHeight()-std::max(20,margins().bottom))/slotSize().h);
+  }
+
+int InventoryMenu::gridTop() const {
+  return std::max(headerTop,margins().top)+headerHeight()+headerSpacing;
   }
 
 int InventoryMenu::headerHeight() const {
@@ -561,12 +636,12 @@ void InventoryMenu::adjustScroll() {
   }
 
 void InventoryMenu::drawAll(Painter &p, Npc &player, DrawPass pass) {
-  const int padd = 43;
+  const int padd = gridPadd;
 
   const int top   = std::max(headerTop,margins().top);
   const int left  = std::max(padd,margins().left);
   const int right = w() - std::max(padd,margins().right);
-  const int iy    = top + headerHeight() + headerSpacing;
+  const int iy    = gridTop();
 
   if(state==State::LockPicking)
     return;
