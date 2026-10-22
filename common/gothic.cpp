@@ -48,6 +48,9 @@ GameModDescriptor::GameModDescriptor(std::u16string_view mod, std::u16string_vie
     gameDatDef = modFile->getS("FILES","GAME");
     ouDef      = modFile->getS("FILES","OUTPUTUNITS");
 
+    if(!gameDatDef.empty())
+      gameDatDef += ".DAT";
+
     std::u16string vdf = TextCodec::toUtf16(modFile->getS("FILES","VDF"));
     modFilter = modFile->has("FILES","VDF");
     for(size_t start = 0, split = 0; split != std::string::npos; start = split+1) {
@@ -56,6 +59,11 @@ GameModDescriptor::GameModDescriptor(std::u16string_view mod, std::u16string_vie
       if(!mod.empty())
         modvdfs.emplace_back(std::move(mod));
       }
+    }
+
+  if(!CommandLine::inst().wrldDef.empty()) {
+    // commandline override
+    wrldDef = CommandLine::inst().wrldDef;
     }
 
   detectVdf(vdf, std::u16string(root), [&modvdfs, modFilter](std::u16string_view file) {
@@ -141,8 +149,6 @@ Gothic::Gothic(GameModDescriptor desc) {
 
   auto& gpu = Resources::device().properties();
 
-  wrldDef = CommandLine::inst().wrldDef;
-
   baseIniFile.reset(new IniFile(nestedPath({u"system",u"Gothic.ini"},Dir::FT_File)));
   iniFile    .reset(new IniFile(u"Gothic.ini"));
   if(!iniFile->has("INTERNAL", "vidResIndex")) {
@@ -223,11 +229,6 @@ Gothic::Gothic(GameModDescriptor desc) {
 
   detectGothicVersion();
 
-  std::u16string_view mod = CommandLine::inst().modPath();
-  if(!mod.empty()){
-    modFile.reset(new IniFile(mod));
-    }
-
   modFile    = std::move(desc.modFile);
   wrldDef    = std::move(desc.wrldDef);
   plDef      = std::move(desc.plDef);
@@ -254,8 +255,7 @@ Gothic::Gothic(GameModDescriptor desc) {
     plDef = "PC_HERO";
 
   if(gameDatDef.empty())
-    gameDatDef  = "GOTHIC.DAT"; else
-    gameDatDef += ".DAT";
+    gameDatDef = "GOTHIC.DAT";
 
   if(ouDef.empty()) {
     // suffixes added later in GameScript::loadDialogOU()
