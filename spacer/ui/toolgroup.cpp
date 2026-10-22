@@ -14,9 +14,10 @@ using namespace Tempest;
 
 struct ToolGroup::Tab : Label {
   Tab(ToolGroup& owner, size_t id) : owner(owner), id(id) {
-    setMargins(Margin(4,0,0,0));
+    setMargins(Margin(4));
     auto f = font();
     f.setBold(true);
+    f.setPixelSize(f.pixelSize()+2);
     setFont(f);
     setSizePolicy(Preferred,Preferred);
     }

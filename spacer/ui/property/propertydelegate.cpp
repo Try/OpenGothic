@@ -41,6 +41,17 @@ static const T variantCast(const Variant& v) {
   return T();
   }
 
+struct PropertyDelegate::TypeHeader : WidgetHeader {
+  TypeHeader(zenkit::VirtualObjectType c):cat(c){}
+
+  void emitClick() override {
+    onChanged(cat);
+    }
+
+  Tempest::Signal<void(zenkit::VirtualObjectType)> onChanged;
+  zenkit::VirtualObjectType                        cat = {};
+  };
+
 PropertyDelegate::PropertyDelegate() {
   }
 
@@ -64,25 +75,39 @@ void PropertyDelegate::onProperty(size_t id, const Variant& v, bool commit) {
   index[id].set(vob, v, commit);
   }
 
+void PropertyDelegate::onCategory(zenkit::VirtualObjectType cat) {
+  if(isClosed(cat))
+    closed.erase(cat); else
+    closed.insert(cat);
+  update();
+  }
+
 Widget* PropertyDelegate::createView(size_t i) {
   if(index[i].slt.type==nullptr) {
-    auto ret = new WidgetHeader();
+    auto ret = new TypeHeader(index[i].cat);
     ret->setSizePolicy(Preferred,Fixed);
     ret->setText(index[i].slt.name);
-    ret->setClosed(false);
+    ret->setClosed(isClosed(index[i].cat));
+    ret->onChanged.bind(this, &PropertyDelegate::onCategory);
     return ret;
     }
   auto var = index[i].get(vob);
-  auto ed  =  ParameterWidget::createEditor(index[i].slt, var, i);
+  auto ed  = ParameterWidget::createEditor(index[i].slt, var, i);
   ed->onChanged.bind(this, &PropertyDelegate::onProperty);
   return ed;
   }
 
-void PropertyDelegate::addHeader(std::string_view name) {
+bool PropertyDelegate::addHeader(std::string_view name, zenkit::VirtualObjectType type) {
   Index id;
   id.slt.name = name;
   id.slt.type = nullptr;
+  id.cat      = type;
   index.push_back(id);
+  return isClosed(type);
+  }
+
+bool PropertyDelegate::isClosed(zenkit::VirtualObjectType type) const {
+  return closed.find(type)!=closed.end();
   }
 
 template<class T, class F>
@@ -229,7 +254,8 @@ void PropertyDelegate::mkIndex(zenkit::VirtualObjectType type, const zenkit::Vir
   }
 
 void PropertyDelegate::mkIndex_zCVob(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob) {
-  addHeader("zCVob");
+  if(addHeader("zCVob", zenkit::VirtualObjectType::zCVob))
+    return;
   addView("vobName",               &zenkit::VirtualObject::vob_name);
   addView("visual",                &zenkit::VirtualObject::visual_name);
   addView("showVisual",            &zenkit::VirtualObject::show_visual);
@@ -247,18 +273,20 @@ void PropertyDelegate::mkIndex_zCVob(zenkit::VirtualObjectType type, const zenki
 
 void PropertyDelegate::mkIndex_zCVobLevelCompo(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob) {
   mkIndex_zCVob(type, vob);
-  addHeader("zCVobLevelCompo");
+  addHeader("zCVobLevelCompo", type);
   }
 
 void PropertyDelegate::mkIndex_oCItem(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob) {
   mkIndex_zCVob(type, vob);
-  addHeader("oCItem");
+  if(addHeader("oCItem", zenkit::VirtualObjectType::oCItem))
+    return;
   addView("itemInstance", &zenkit::VItem::instance);
   }
 
 void PropertyDelegate::mkIndex_zCMoverController(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob) {
   mkIndex_zCVob(type, vob);
-  addHeader("zCMoverController");
+  if(addHeader("zCMoverController", zenkit::VirtualObjectType::zCMoverController))
+    return;
   addView("target",  &zenkit::VMoverController::target);
   addView("message", &zenkit::VMoverController::message);
   addView("key",     &zenkit::VMoverController::key);
@@ -266,17 +294,18 @@ void PropertyDelegate::mkIndex_zCMoverController(zenkit::VirtualObjectType type,
 
 void PropertyDelegate::mkIndex_zCVobScreenFX(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob) {
   mkIndex_zCVob(type, vob);
-  addHeader("VScreenEffect");
+  addHeader("VScreenEffect", type);
   }
 
 void PropertyDelegate::mkIndex_zCVobStair(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob) {
   mkIndex_zCVob(type, vob);
-  addHeader("VStair");
+  addHeader("VStair", type);
   }
 
 void PropertyDelegate::mkIndex_zCPFXController(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob) {
   mkIndex_zCVob(type, vob);
-  addHeader("zCPFXController");
+  if(addHeader("zCPFXController", zenkit::VirtualObjectType::zCPFXController))
+    return;
   addView("pfxName",         &zenkit::VParticleEffectController::pfx_name);
   addView("killVobWhenDone", &zenkit::VParticleEffectController::kill_when_done);
   addView("pfxStartOn",      &zenkit::VParticleEffectController::initially_running);
@@ -284,24 +313,28 @@ void PropertyDelegate::mkIndex_zCPFXController(zenkit::VirtualObjectType type, c
 
 void PropertyDelegate::mkIndex_zCEffect(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob) {
   mkIndex_zCVob(type, vob);
-  addHeader("zCEffect");
+  addHeader("zCEffect", type);
   }
 
 void PropertyDelegate::mkIndex_zCVobAnimate(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob) {
   mkIndex_zCEffect(type, vob);
-  addHeader("zCVobAnimate");
+  addHeader("zCVobAnimate", zenkit::VirtualObjectType::zCVobAnimate);
+  if(isClosed(type))
+    return;
   addView("startOn", &zenkit::VAnimate::start_on);
   }
 
 void PropertyDelegate::mkIndex_zCVobLensFlare(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob) {
   mkIndex_zCEffect(type, vob);
-  addHeader("zCVobLensFlare");
+  if(addHeader("zCVobLensFlare", zenkit::VirtualObjectType::zCVobLensFlare))
+    return;
   addView("lensflareFX", &zenkit::VLensFlare::fx);
   }
 
 void PropertyDelegate::mkIndex_zCVobLight(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob) {
   mkIndex_zCVob(type, vob);
-  addHeader("zCVobLight");
+  if(addHeader("zCVobLight", zenkit::VirtualObjectType::zCVobLight))
+    return;
   addView("lightPresetInUse", &zenkit::VLight::preset);
   addView("lightType",        &zenkit::VLight::light_type);
   addView("range",            &zenkit::VLight::range, 0.f, 2000.f);

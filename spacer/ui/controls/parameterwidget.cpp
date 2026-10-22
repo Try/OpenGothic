@@ -10,6 +10,7 @@
 #include "stringwidget.h"
 
 #include "ui/uihelper.h"
+#include "assets.h"
 
 using namespace Tempest;
 
@@ -17,9 +18,12 @@ template<class Editor>
 struct ParameterWidget::Base : ParameterWidget {
   template<class ... Args>
   Base(size_t pos, Args...a):ParameterWidget(), pos(pos) {
+    auto& ic = Assets::inst().ic.up;
+    auto& sp = ic.sprite(w(),h(),Icon::ST_Normal);
+
     this->setSizePolicy(Preferred,Fixed);
     this->setLayout(Vertical);
-    this->setMargins(Margin(0));
+    this->setMargins(Margin(sp.w()+8,0,0,0));
     edit = &addWidget(new Editor(a...));
     adjustSize();
     setupCallbacks(edit);
@@ -92,7 +96,6 @@ struct ParameterWidget::Base : ParameterWidget {
 
 struct ParameterWidget::EditEnum    : Base<EnumWidget> {
   EditEnum(size_t pos, std::string_view name):Base(pos,name) {
-    this->setMargins(Margin(4,0,0,0));
     edit->onItemSelected.bind(this, &EditEnum::commit);
     }
 

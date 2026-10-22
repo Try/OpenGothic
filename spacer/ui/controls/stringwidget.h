@@ -3,20 +3,20 @@
 #include <Tempest/LineEdit>
 #include <Tempest/Widget>
 
-class StringWidget  : public Tempest::Widget {
-public:
-  StringWidget();
-  StringWidget(std::string_view name);
+class StringWidget : public Tempest::Widget {
+  public:
+    StringWidget();
+    StringWidget(std::string_view name);
 
-  void setValue(std::string_view v);
-  auto value() const -> std::string_view;
+    void setValue(std::string_view v);
+    auto value() const -> std::string_view;
 
-  Tempest::Signal<void(std::string_view)> onValueChanged;
-  Tempest::Signal<void(std::string_view,bool commit)> onValueModifyed;
+    Tempest::Signal<void(std::string_view)> onValueChanged;
+    Tempest::Signal<void(std::string_view,bool commit)> onValueModifyed;
 
-private:
-  Tempest::Label*    lbl = nullptr;
-  Tempest::LineEdit* txt = nullptr;
+  private:
+    Tempest::Label*    lbl = nullptr;
+    Tempest::LineEdit* txt = nullptr;
 
-  void               onModifyed(const Tempest::TextModel& txt);
-};
+    void               onModifyed(const Tempest::TextModel& txt);
+  };

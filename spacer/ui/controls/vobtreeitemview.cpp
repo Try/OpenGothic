@@ -100,15 +100,15 @@ void VobTreeItemView::paintEvent(Tempest::PaintEvent& e) {
       p.drawLine(w()-1,1,w()-1,h()-1);
       }
   }
-  int  dx = 4+int(depth)*8;
+  auto& ic = closed ? Assets::inst().ic.down : Assets::inst().ic.up;
+  auto  sp = ic.sprite(w(),h(),Icon::ST_Normal);
+  int   dx = 4 + int(depth)*(sp.w());
 
   if(group) {
     // icon placeholder
-    auto& ic = closed ? Assets::inst().ic.tri_close : Assets::inst().ic.tri_open;
-    auto  sp = ic.sprite(w(),h(),Icon::ST_Normal);
     p.setBrush(sp);
     p.drawRect(dx,(h()-sp.h())/2,sp.w(),sp.h());
-    dx += sp.w()+4;
+    dx += sp.w() + 4;
     }
 
   auto fnt = Assets::inst().fntSmall;

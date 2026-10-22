@@ -18,20 +18,25 @@ class PropertyDelegate : public Tempest::ListDelegate {
     Tempest::Widget* createView(size_t position) override;
 
   private:
+    struct TypeHeader;
     struct Index {
-      Property::Slot slt;
+      Property::Slot            slt;
+      zenkit::VirtualObjectType cat = {};
+
       std::function<Variant(const WorldEdit::Vob*)> get;
       std::function<void(WorldEdit::Vob*,const Variant&,bool)>  set;
       };
 
     void onProperty(size_t id, const Variant& v, bool commit);
+    void onCategory(zenkit::VirtualObjectType cat);
 
-    void addHeader(std::string_view name);
+    bool addHeader(std::string_view name, zenkit::VirtualObjectType type);
     template<class T, class F>
     auto addView(std::string_view name, F T::*) -> Index&;
     template<class T, class F>
     auto addView(std::string_view name, F T::*, F min, F max) -> Index&;
 
+    bool isClosed(zenkit::VirtualObjectType type) const;
     void mkIndex(const zenkit::VirtualObject* vob);
     void mkIndex(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob);
 
@@ -47,6 +52,7 @@ class PropertyDelegate : public Tempest::ListDelegate {
     void mkIndex_zCVobLensFlare(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob);
     void mkIndex_zCVobLight(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob);
 
-    std::vector<Index> index;
-    WorldEdit::Vob*    vob = nullptr;
+    std::unordered_set<zenkit::VirtualObjectType> closed;
+    std::vector<Index>                            index;
+    WorldEdit::Vob*                               vob = nullptr;
   };
