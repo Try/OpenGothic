@@ -1,4 +1,5 @@
 #include "chapterscreen.h"
+#include "safearea.h"
 
 #include <Tempest/Painter>
 #include <Tempest/SoundEffect>
@@ -36,9 +37,8 @@ void ChapterScreen::paintEvent(Tempest::PaintEvent &e) {
   const int32_t offset = int32_t(50*scale);
 
   Painter p(e);
-  const auto area = clientRect();
-  int x = area.x+(area.w-width )/2;
-  int y = area.y+(area.h-height)/2;
+  int x = safeAreaCenter(w(),width, margins().left,margins().right);
+  int y = safeAreaCenter(h(),height,margins().top, margins().bottom);
   p.setBrush(*back);
   p.drawRect(x,y,width,height,
              0,0,back->w(),back->h());

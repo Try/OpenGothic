@@ -13,13 +13,11 @@ void TouchInput::paintEvent(Tempest::PaintEvent& e) {
   Painter p(e);
 
   p.setBrush(Color(1,1,1, 0.2f));
-  const auto area = clientRect();
-  p.drawRect(area.x+10, area.y+area.h-10 - 100, 100, 100);
+  p.drawRect(std::max(10,margins().left), h()-std::max(10,margins().bottom)-100, 100, 100);
   }
 
 void TouchInput::mouseDownEvent(Tempest::MouseEvent& e) {
-  const auto area = clientRect();
-  auto r = Rect(area.x+10, area.y+area.h-10-100, 100, 100);
+  auto r = Rect(std::max(10,margins().left), h()-std::max(10,margins().bottom)-100, 100, 100);
   if(!r.contains(e.pos())) {
     e.ignore();
     return;

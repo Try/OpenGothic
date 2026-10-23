@@ -1,4 +1,5 @@
 #include "inventorymenu.h"
+#include "safearea.h"
 
 #include <Tempest/Painter>
 #include <Tempest/SoundEffect>
@@ -400,8 +401,8 @@ void InventoryMenu::mouseWheelEvent(MouseEvent &e) {
   }
 
 size_t InventoryMenu::rowsCount() const {
-  const int iy=headerTop+headerHeight()+headerSpacing;
-  return size_t((clientRect().h-iy-infoHeight()-20)/slotSize().h);
+  const int iy=std::max(headerTop,margins().top)+headerHeight()+headerSpacing;
+  return size_t((h()-iy-infoHeight()-std::max(20,margins().bottom))/slotSize().h);
   }
 
 int InventoryMenu::headerHeight() const {
@@ -559,8 +560,10 @@ void InventoryMenu::adjustScroll() {
 void InventoryMenu::drawAll(Painter &p, Npc &player, DrawPass pass) {
   const int padd = 43;
 
-  const auto area = clientRect();
-  const int iy=area.y+headerTop+headerHeight()+headerSpacing;
+  const int top=std::max(headerTop,margins().top);
+  const int left=std::max(padd,margins().left);
+  const int right=w()-std::max(padd,margins().right);
+  const int iy=top+headerHeight()+headerSpacing;
 
   if(state==State::LockPicking)
     return;
@@ -570,20 +573,20 @@ void InventoryMenu::drawAll(Painter &p, Npc &player, DrawPass pass) {
 
   if(chest!=nullptr){
     if(pass==DrawPass::Back)
-      drawHeader(p,chest->displayName(),area.x+padd,area.y+headerTop);
-    drawItems(p,pass,*pageOth,pageLocal[0],area.x+padd,iy,wcount,hcount);
+      drawHeader(p,chest->displayName(),left,top);
+    drawItems(p,pass,*pageOth,pageLocal[0],left,iy,wcount,hcount);
     }
 
   if(trader!=nullptr) {
     if(pass==DrawPass::Back)
-      drawHeader(p,trader->displayName(),area.x+padd,area.y+headerTop);
-    drawItems(p,pass,*pageOth,pageLocal[0],area.x+padd,iy,wcount,hcount);
+      drawHeader(p,trader->displayName(),left,top);
+    drawItems(p,pass,*pageOth,pageLocal[0],left,iy,wcount,hcount);
     }
 
   if(state!=State::Ransack) {
     if(pass==DrawPass::Back)
-      drawGold (p,player,area.x+area.w-padd-2*slotSize().w,area.y+headerTop);
-    drawItems(p,pass,*pagePl,pageLocal[1],area.x+area.w-padd-wcount*slotSize().w,iy,wcount,hcount);
+      drawGold (p,player,right-2*slotSize().w,top);
+    drawItems(p,pass,*pagePl,pageLocal[1],right-wcount*slotSize().w,iy,wcount,hcount);
     }
 
   if(pass==DrawPass::Back)
@@ -712,8 +715,8 @@ void InventoryMenu::drawInfo(Painter &p) {
   const auto  area  = clientRect();
   const int   dw    = std::min(area.w, int(720*scale));
   const int   dh    = infoHeight();
-  const int   x     = area.x+(area.w-dw)/2;
-  const int   y     = area.y+area.h-dh-20;
+  const int   x     = safeAreaCenter(w(),dw,margins().left,margins().right);
+  const int   y     = h()-dh-std::max(20,margins().bottom);
 
   auto& pg  = activePage();
   auto& sel = activePageSel();

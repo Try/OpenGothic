@@ -1,4 +1,5 @@
 #include "dialogmenu.h"
+#include "safearea.h"
 
 #include <Tempest/Painter>
 #include <Tempest/Log>
@@ -306,7 +307,6 @@ void DialogMenu::printScreen(std::string_view msg, int x, int y, int time, const
   }
 
 void DialogMenu::drawMsg(Tempest::Painter& p, int offsetY) {
-  const auto area = clientRect();
   for(size_t i=0;i<MAX_PRINT;++i){
     auto& sc  = printMsg[i];
     if(sc.font==nullptr)
@@ -314,8 +314,8 @@ void DialogMenu::drawMsg(Tempest::Painter& p, int offsetY) {
 
     auto& fnt = *sc.font;
     auto  sz  = fnt.textSize(sc.txt);
-    int   x   = area.x+(area.w-sz.w)/2;
-    fnt.drawText(p, x, area.y+offsetY + int(i*2+1)*sz.h, sc.txt);
+    int   x   = safeAreaCenter(w(),sz.w,margins().left,margins().right);
+    fnt.drawText(p, x, offsetY + int(i*2+1)*sz.h, sc.txt);
     }
   }
 
@@ -427,6 +427,8 @@ void DialogMenu::paintEvent(Tempest::PaintEvent &e) {
   const uint64_t da = dlgAnimation ? ANIM_TIME : 0;
   const int      dw = std::min(area.w,int(600*scale));
   const int      dh = int(100*scale);
+  const int      dx = safeAreaCenter(w(),dw,margins().left,margins().right);
+  const int      dy = std::max(20,margins().top);
 
   if(current.time>0 && trade.isOpen()==InventoryMenu::State::Closed && haveToShowSubtitles(curentIsPl)) {
     if(ambient!=nullptr) {
@@ -445,12 +447,12 @@ void DialogMenu::paintEvent(Tempest::PaintEvent &e) {
         }
 
       p.setBrush(*ambient);
-      p.drawRect(area.x+(area.w-dlgW)/2, area.y+20+(dh-dlgH)/2, dlgW, dlgH,
+      p.drawRect(dx+(dw-dlgW)/2, dy+(dh-dlgH)/2, dlgW, dlgH,
                  0,0,ambient->w(),ambient->h());
       }
 
     if(current.time>da && current.time<current.msgTime+da)
-      drawTextMultiline(p,area.x+(area.w-dw)/2,area.y+20,dw,dh,current.txt,curentIsPl);
+      drawTextMultiline(p,dx,dy,dw,dh,current.txt,curentIsPl);
     }
 
   paintChoice(e);
@@ -465,16 +467,17 @@ void DialogMenu::paintEvent(Tempest::PaintEvent &e) {
     int x = sc.x;
     int y = sc.y;
     if(x<0){
-      x = (area.w-sz.w)/2;
+      x = safeAreaCenter(w(),sz.w,margins().left,margins().right);
       } else {
-      x = (area.w*x)/100;
+      x = area.x+(area.w*x)/100;
       }
     if(y<0){
-      y = (area.h-sz.h)/2;
+      const int baseline = fnt.pixelSize();
+      y = safeAreaPosition((h()-sz.h)/2-baseline,sz.h,margins().top,h()-margins().bottom)+baseline;
       } else {
-      y = ((area.h-sz.h)*y)/100+sz.h;
+      y = area.y+((area.h-sz.h)*y)/100+sz.h;
       }
-    fnt.drawText(p, area.x+x, area.y+y, sc.txt);
+    fnt.drawText(p, x, y, sc.txt);
     }
   }
 
@@ -495,7 +498,8 @@ void DialogMenu::paintChoice(PaintEvent &e) {
     dh += choiceTextSize.h;
     }
 
-  const int  y        = area.y+area.h-dh-int(20*scale);
+  const int  x        = safeAreaCenter(w(),dw,margins().left,margins().right);
+  const int  y        = h()-dh-std::max(int(20*scale),margins().bottom);
 
   if(tex!=nullptr && (choiceAnimTime>0 || isActive)) {
     float k    = dlgAnimation ? (float(choiceAnimTime)/float(ANIM_TIME)) : 1.f;
@@ -504,7 +508,7 @@ void DialogMenu::paintChoice(PaintEvent &e) {
 
     Painter p(e);
     p.setBrush(*tex);
-    p.drawRect(area.x+(area.w-dlgW)/2,y+(dh-dlgH)/2,dlgW,dlgH,
+    p.drawRect(x+(dw-dlgW)/2,y+(dh-dlgH)/2,dlgW,dlgH,
                0,0,tex->w(),tex->h());
     }
 
@@ -522,7 +526,6 @@ void DialogMenu::paintChoice(PaintEvent &e) {
       fnt = Resources::font(Resources::FontType::Hi, scale); else
       fnt = Resources::dialogFont(scale);
 
-    int x = area.x+(area.w-dw)/2;
     Size choiceTextSize = fnt.textSize(dw-padd, choice[i].title);
     fnt.drawText(p,x+padd,y+padd+textHeightOffset,dw-padd,0,choice[i].title,AlignLeft);
     textHeightOffset += choiceTextSize.h;

@@ -1,4 +1,5 @@
 #include "gamemenu.h"
+#include "safearea.h"
 
 #include <Tempest/Painter>
 #include <Tempest/Log>
@@ -720,7 +721,9 @@ void GameMenu::onTick() {
   resize(size);
 
   if(menu->flags & zenkit::MenuFlag::ALIGN_CENTER) {
-    setPosition(area.x+(area.w-w())/2, area.y+(area.h-h())/2);
+    const auto& margin = owner.margins();
+    setPosition(safeAreaCenter(owner.w(),w(),margin.left,margin.right),
+                safeAreaCenter(owner.h(),h(),margin.top,margin.bottom));
     } else {
     setPosition(area.x+int(float(menu->pos_x)/scriptDiv*fx), area.y+int(float(menu->pos_y)/scriptDiv*fy));
     }
