@@ -147,8 +147,8 @@ DamageCalculator::Val DamageCalculator::swordDamage(Npc& nsrc, Npc& nother) {
     }
 
   if(Gothic::inst().version().game==2) {
-    if(nsrc.isMonster() && tal==TALENT_UNKNOWN) {
-      // regular monsters always do critical damage
+    if(nsrc.isMonster()) {
+      // monsters always do critical damage, even with a weapon (skeletons, goblins)
       critChance = -1;
       }
 
