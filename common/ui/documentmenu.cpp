@@ -1,4 +1,5 @@
 #include "documentmenu.h"
+#include "safearea.h"
 
 #include "world/objects/interactive.h"
 #include "world/objects/npc.h"
@@ -61,7 +62,8 @@ void DocumentMenu::paintEvent(PaintEvent &e) {
 
   float k  = std::min(1.f,float(800.f+float(document.margins.xMargin()))*scale/std::max(mw,1.f));
 
-  int   x  = (w()-int(k*mw))/2, y = (h()-int(mh))/2;
+  int   x  = safeAreaCenter(w(),int(k*mw),margins().left,margins().right);
+  int   y  = safeAreaCenter(h(),int(mh),margins().top,margins().bottom);
   auto  pl = Gothic::inst().player();
 
   Painter p(e);

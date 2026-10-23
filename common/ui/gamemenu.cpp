@@ -1,4 +1,5 @@
 #include "gamemenu.h"
+#include "safearea.h"
 
 #include <Tempest/Painter>
 #include <Tempest/Log>
@@ -380,7 +381,8 @@ void GameMenu::paintEvent(PaintEvent &e) {
   const float scale = Gothic::interfaceScale(this);
 
   Painter p(e);
-  p.setScissor(-x(),-y(),owner.w(),owner.h());
+  const auto area = owner.clientRect();
+  p.setScissor(area.x-x(),area.y-y(),area.w,area.h);
 
   if(back) {
     p.setBrush(*back);
@@ -706,8 +708,9 @@ void GameMenu::onTick() {
   const float fx    = 640.0f * scale;
   const float fy    = 480.0f * scale;
 
-  const float wx = float(owner.w());
-  const float wy = float(owner.h());
+  const auto  area = owner.clientRect();
+  const float wx   = float(area.w);
+  const float wy   = float(area.h);
 
   Size size = {0, 0};
   if(menu->flags & zenkit::MenuFlag::DONT_SCALE_DIMENSION) {
@@ -718,9 +721,11 @@ void GameMenu::onTick() {
   resize(size);
 
   if(menu->flags & zenkit::MenuFlag::ALIGN_CENTER) {
-    setPosition((owner.w()-w())/2, (owner.h()-h())/2);
+    const auto& margin = owner.margins();
+    setPosition(safeAreaCenter(owner.w(),w(),margin.left,margin.right),
+                safeAreaCenter(owner.h(),h(),margin.top,margin.bottom));
     } else {
-    setPosition(int(float(menu->pos_x)/scriptDiv*fx), int(float(menu->pos_y)/scriptDiv*fy));
+    setPosition(area.x+int(float(menu->pos_x)/scriptDiv*fx), area.y+int(float(menu->pos_y)/scriptDiv*fy));
     }
   }
 
