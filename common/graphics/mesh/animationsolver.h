@@ -97,6 +97,7 @@ class AnimationSolver final {
 
     const Animation::Sequence*     solveNext(const Animation::Sequence& sq) const;
     const Animation::Sequence*     solveFrm (std::string_view format) const;
+    uint64_t                       solveBlend(std::string_view name) const;
     const Animation::Sequence*     solveAnim(Anim a, WeaponState st, WalkBit wlk, const Pose &pose) const;
     const Animation::Sequence*     solveAnim(WeaponState st, WeaponState cur, bool run) const;
     const Animation::Sequence*     solveAnim(std::string_view scheme, bool run, bool invest) const;

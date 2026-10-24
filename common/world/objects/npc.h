@@ -183,6 +183,7 @@ class Npc final {
     bool       isFinishingMove() const;
 
     auto       animMoveSpeed(uint64_t dt) const -> Tempest::Vec3;
+    uint64_t   animMoveStart() const;
 
     bool       isJumpAnim() const;
     bool       isFlyAnim() const;
@@ -193,6 +194,7 @@ class Npc final {
     bool       isJump() const;
     bool       isJumpUp() const;
     bool       isStanding() const;
+    int        footPos();
     bool       isSwim() const;
     bool       isInWater() const;
     bool       isDive() const;

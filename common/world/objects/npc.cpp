@@ -886,6 +886,10 @@ Tempest::Vec3 Npc::animMoveSpeed(uint64_t dt) const {
   return visual.pose().animMoveSpeed(owner.tickCount(),dt);
   }
 
+uint64_t Npc::animMoveStart() const {
+  return visual.pose().animMoveStart(owner.tickCount());
+  }
+
 void Npc::setVisual(const Skeleton* v) {
   if(visual.visualSkeleton()==v)
     return;
@@ -1060,6 +1064,10 @@ bool Npc::isFinishingMove() const {
 
 bool Npc::isStanding() const {
   return visual.isStanding();
+  }
+
+int Npc::footPos() {
+  return visual.footPos(*this);
   }
 
 bool Npc::isSwim() const {

@@ -114,6 +114,7 @@ class MoveAlgo final {
     void    applyRotation(Tempest::Vec3& out, const Tempest::Vec3& in, float radians) const;
     auto    animMoveSpeed(uint64_t dt) const -> Tempest::Vec3;
     auto    npcMoveSpeed (uint64_t dt, MvFlags moveFlg) -> Tempest::Vec3;
+    auto    smoothMoveSpeed(const Tempest::Vec3& dp, uint64_t dt) -> Tempest::Vec3;
     auto    npcFallSpeed (uint64_t dt) -> Tempest::Vec3;
     auto    go2NpcMoveSpeed (const Tempest::Vec3& dp, const Npc &tg) -> Tempest::Vec3;
     auto    go2WpMoveSpeed  (Tempest::Vec3 dp, const Tempest::Vec3& to) -> Tempest::Vec3;
@@ -158,6 +159,10 @@ class MoveAlgo final {
 
     uint64_t            diveStart  = 0;
     uint64_t            lastBounce = 0;
+
+    Tempest::Vec3       smoothSpeed = {};
+    float               smoothW     = 0.f;
+    uint64_t            smoothStart = 0;
 
     static const float   gravity;
     static const float   eps;

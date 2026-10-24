@@ -588,6 +588,22 @@ bool MdlVisual::isStanding() const {
   return skInst->isStanding();
   }
 
+int MdlVisual::footPos(Npc& npc) const {
+  // same as oCAniCtrl_Human::GetFootPos: -1 - not moving, 0 - mid-step, 1 - left, 2 - right
+  const auto wlk = npc.walkMode();
+  if(bool(wlk & (WalkBit::WM_Swim | WalkBit::WM_Dive)))
+    return -1;
+  const auto  sq = solver.solveAnim(AnimationSolver::Anim::Move,npc.weaponState(),wlk,*skInst);
+  const float p  = skInst->animProgress(sq,npc.world().tickCount());
+  if(p<0.f)
+    return -1;
+  if(p<0.15f || p>0.85f)
+    return 1;
+  if(0.35f<p && p<0.65f)
+    return 2;
+  return 0;
+  }
+
 bool MdlVisual::hasAnim(std::string_view scheme) const {
   return solver.solveFrm(scheme)!=nullptr;
   }
@@ -639,6 +655,10 @@ const Animation::Sequence* MdlVisual::startAnimAndGet(Npc& npc, AnimationSolver:
     skInst->stopAllAnim();
     return nullptr;
     }
+  if(a==AnimationSolver::Anim::MoveBack && skInst->isInAnim("S_JUMP")) {
+    // land first, jump-back only from stand
+    a = AnimationSolver::Anim::Idle;
+    }
 
   const Animation::Sequence *sq = solver.solveAnim(a,st,wlk,*skInst);
   if(sq==nullptr)
@@ -652,6 +672,10 @@ const Animation::Sequence* MdlVisual::startAnimAndGet(Npc& npc, AnimationSolver:
     forceAnim = true;
     }
   if(a==AnimationSolver::Anim::JumpHang) {
+    forceAnim = true;
+    }
+  if((a==AnimationSolver::Anim::MoveL || a==AnimationSolver::Anim::MoveR) && skInst->isInAnim("T_JUMP_2_STAND")) {
+    // strafe interrupts landing
     forceAnim = true;
     }
 
@@ -752,9 +776,26 @@ const Animation::Sequence* MdlVisual::startAnimAndGet(Npc& npc, AnimationSolver:
   else if(bool(wlk & WalkBit::WM_Sneak) && (st!=WeaponState::Bow && st!=WeaponState::CBow))
     bs = BS_SNEAK;
 
-  Pose::StartHint hint = (forceAnim ? Pose::Force : Pose::NoHint);
+  Pose::StartHint hint  = (forceAnim ? Pose::Force : Pose::NoHint);
+  uint64_t        blend = 0;
+  if(a==AnimationSolver::Anim::Idle) {
+    // stop from run: T_RUNL_2_RUN only from left foot, from right foot T_RUNR_2_RUN blend, with weapon no transition
+    const int foot = footPos(npc);
+    if(foot==2 || (foot>=0 && st!=WeaponState::NoWeapon))
+      hint = Pose::NoTransition;
+    if(foot==2 && st==WeaponState::NoWeapon) {
+      auto mv = solver.solveAnim(AnimationSolver::Anim::Move,st,wlk,*skInst);
+      if(mv!=nullptr && mv->shortName!=nullptr && sq->shortName!=nullptr) {
+        std::string r = mv->shortName;
+        if(!r.empty() && r.back()=='L')
+          r.back() = 'R';
+        string_frm name("T_",r,"_2_",sq->shortName);
+        blend = solver.solveBlend(name);
+        }
+      }
+    }
 
-  if(skInst->startAnim(solver,sq,comb,bs,hint,npc.world().tickCount()))
+  if(skInst->startAnim(solver,sq,comb,bs,hint,npc.world().tickCount(),blend))
     return sq;
   return nullptr;
   }

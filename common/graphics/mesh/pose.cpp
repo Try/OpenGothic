@@ -159,7 +159,7 @@ void Pose::setSkeleton(const Skeleton* sk) {
   }
 
 bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *sq, uint8_t comb, BodyState bs,
-                     StartHint hint, uint64_t tickCount) {
+                     StartHint hint, uint64_t tickCount, uint64_t blend) {
   if(sq==nullptr)
     return false;
   // NOTE: zero stands for no-comb, other numbers are comb-index+1
@@ -184,24 +184,31 @@ bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *s
         }
       //WA: Emulate behaviour of vanilla: lurker skips transition animations when entering the water
       const bool swimFix = (i.sAnim==tickCount && i.bs==BS_SWIM && bs==BS_SWIM);
+      const bool noTr    = (hint&NoTransition);
       const Animation::Sequence* tr=nullptr;
-      if(i.seq->shortName!=nullptr && sq->shortName!=nullptr && !swimFix) {
+      if(i.seq->shortName!=nullptr && sq->shortName!=nullptr && !swimFix && !noTr) {
         string_frm tansition("T_",i.seq->shortName,"_2_",sq->shortName);
         tr = solver.solveFrm(tansition);
+        if(tr==nullptr && blend==0)
+          blend = solver.solveBlend(tansition); // aniBlend, example: T_JUMP_2_RUNL
         }
-      if(tr==nullptr && sq->shortName!=nullptr && i.bs==BS_STAND) {
+      if(tr==nullptr && sq->shortName!=nullptr && i.bs==BS_STAND && !noTr) {
         string_frm tansition("T_STAND_2_",sq->shortName);
         tr = solver.solveFrm(tansition);
         }
-      if(tr==nullptr && i.seq->shortName!=nullptr && bs==BS_STAND) {
+      if(tr==nullptr && i.seq->shortName!=nullptr && bs==BS_STAND && !noTr) {
         string_frm tansition("T_",i.seq->shortName,"_2_STAND");
         tr = solver.solveFrm(tansition);
         bs = tr ? i.bs : bs;
         }
       onRemoveLayer(i);
+      // mobsi and climb have own positioning, no need for fading translation
+      i.prev     = (bs==BS_MOBINTERACT || bs==BS_CLIMB) ? nullptr : i.seq;
+      i.prevAnim = i.sAnim;
       i.seq      = tr ? tr : sq;
       i.sAnim    = tickCount;
       i.sBlend   = 0;
+      i.blend    = tr ? 0 : blend;
       i.comb     = comb;
       i.bs       = bs;
       onAddLayer(i);
@@ -295,6 +302,8 @@ void Pose::processLayers(AnimationSolver& solver, uint64_t tickCount) {
             l.bs = BS_NONE;
           l.seq   = next;
           l.sAnim = tickCount;
+          l.blend = 0;
+          l.prev  = nullptr;
           onAddLayer(l);
           ret++;
           }
@@ -338,7 +347,7 @@ bool Pose::update(uint64_t tickCount, bool force) {
       if(numFrames==1 && !needToUpdate)
         continue; //mobsi
 
-      needMkSkeleton |= updateFrame(*seq,i.bs,i.sBlend,lastUpdate,i.sAnim,tickCount);
+      needMkSkeleton |= updateFrame(*seq,i.bs,i.sBlend,i.blend,lastUpdate,i.sAnim,tickCount);
       }
     lastUpdate   = tickCount;
     needToUpdate = needMkSkeleton;
@@ -351,7 +360,7 @@ bool Pose::update(uint64_t tickCount, bool force) {
   return false;
   }
 
-bool Pose::updateFrame(const Animation::Sequence &s, BodyState bs, uint64_t sBlend,
+bool Pose::updateFrame(const Animation::Sequence &s, BodyState bs, uint64_t sBlend, uint64_t blendOverride,
                        uint64_t barrier, uint64_t sTime, uint64_t now) {
   auto&        d         = *s.data;
   const size_t idSize    = d.nodeIndex.size();
@@ -385,7 +394,7 @@ bool Pose::updateFrame(const Animation::Sequence &s, BodyState bs, uint64_t sBle
   auto* sampleA = &d.samples[size_t(frameA*idSize)];
   auto* sampleB = &d.samples[size_t(frameB*idSize)];
 
-  const uint64_t blendMax = std::max(s.blendOut,s.blendIn);
+  const uint64_t blendMax = blendOverride>0 ? blendOverride : std::max(s.blendOut,s.blendIn);
   const uint64_t blend    = std::max<uint64_t>(0, now-sBlend);
 
   for(size_t i=0; i<idSize; ++i) {
@@ -599,13 +608,48 @@ void Pose::setObjectMatrix(const Tempest::Matrix4x4& obj, bool sync) {
     needToUpdate = true;
   }
 
-Tempest::Vec3 Pose::animMoveSpeed(uint64_t tickCount, uint64_t dt) const {
+uint64_t Pose::blendTime(const Layer& l) {
+  if(l.blend>0)
+    return l.blend;
+  return std::max(l.seq->blendOut,l.seq->blendIn);
+  }
+
+uint64_t Pose::animMoveStart(uint64_t tickCount) const {
   for(size_t i=lay.size(); i>0; ) {
     --i;
     auto& lx = lay[i];
-    if(!lx.seq->data->hasMoveTr)
+    if(lx.seq->data->hasMoveTr)
+      return lx.sAnim;
+    if(lx.prev!=nullptr && lx.prev->data->hasMoveTr && tickCount-lx.sAnim<blendTime(lx))
+      return lx.sAnim;
+    }
+  return 0;
+  }
+
+Tempest::Vec3 Pose::animMoveSpeed(uint64_t tickCount, uint64_t dt) const {
+  for(size_t i=lay.size(); i>0; ) {
+    --i;
+    auto&          lx    = lay[i];
+    const uint64_t blend = blendTime(lx);
+    const bool     fade  = lx.prev!=nullptr && lx.prev->data->hasMoveTr && tickCount-lx.sAnim<blend;
+    if(!lx.seq->data->hasMoveTr && !fade)
       continue;
-    return lx.seq->speed(tickCount-lx.sAnim,dt);
+
+    auto ret = Tempest::Vec3();
+    if(lx.seq->data->hasMoveTr)
+      ret = lx.seq->speed(tickCount-lx.sAnim,dt);
+    if(!fade)
+      return ret;
+
+    // fading animation still moves npc, same as zCModel::CalcTransBlending
+    auto prv = lx.prev->speed(tickCount-lx.prevAnim,dt);
+    if(ret==Tempest::Vec3())
+      return prv;
+    if(prv==Tempest::Vec3())
+      return ret;
+    float a = float(tickCount-lx.sAnim)/float(blend);
+    a = (1.f-std::cos(a*float(M_PI)))*0.5f;
+    return prv + (ret-prv)*a;
     }
   return Tempest::Vec3();
   }
@@ -704,6 +748,18 @@ bool Pose::isInAnim(const Animation::Sequence *sq) const {
     if(i.seq==sq)
       return true;
   return false;
+  }
+
+float Pose::animProgress(const Animation::Sequence* sq, uint64_t tickCount) const {
+  for(auto& i:lay) {
+    if(i.seq!=sq)
+      continue;
+    const float total = sq->totalTime();
+    if(total<=0.f)
+      return 0.f;
+    return std::fmod(float(tickCount-i.sAnim),total)/total;
+    }
+  return -1.f;
   }
 
 bool Pose::hasAnim() const {
