@@ -1056,6 +1056,17 @@ void GameScript::printMobMissingLockpick(Npc& npc) {
   vm.call_function<void>(id);
   }
 
+void GameScript::printMobNeverOpen(Npc& npc) {
+  auto id = vm.find_symbol_by_name("player_mob_never_open");
+  if(id==nullptr) {
+    if(owner.version().game==1)
+      owner.player()->playAnimByName("T_DONTKNOW", BS_NONE);
+    return;
+    }
+  ScopeVar self(*vm.global_self(), npc.handlePtr());
+  vm.call_function<void>(id);
+  }
+
 void GameScript::printMobTooFar(Npc& npc) {
   auto id = vm.find_symbol_by_name("player_mob_too_far_away");
   if(id==nullptr) {

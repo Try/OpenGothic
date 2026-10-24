@@ -129,6 +129,7 @@ class GameScript final {
     void  printMobMissingKey          (Npc &npc);
     void  printMobMissingKeyOrLockpick(Npc &npc);
     void  printMobMissingLockpick     (Npc &npc);
+    void  printMobNeverOpen           (Npc &npc);
     void  printMobTooFar              (Npc &npc);
 
     void invokeState(const std::shared_ptr<zenkit::INpc>& hnpc, const std::shared_ptr<zenkit::INpc>& hother, const char* name);
