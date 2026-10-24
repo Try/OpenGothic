@@ -126,6 +126,7 @@ class Animation final {
 
     const Sequence*    sequence(std::string_view name) const;
     const Sequence*    sequenceAsc(std::string_view name) const;
+    uint64_t           blendTime(std::string_view name) const;
     void               debug() const;
     std::string_view   defaultMesh() const;
 
@@ -136,6 +137,7 @@ class Animation final {
     mutable const Sequence*                  sqHot = nullptr;
     std::vector<Sequence>                    sequences;
     std::vector<zenkit::MdsAnimationAlias>   ref;
+    std::vector<zenkit::MdsAnimationBlend>   blends;
     std::vector<std::string>                 mesh;
     zenkit::MdsSkeleton                      meshDef;
   };
