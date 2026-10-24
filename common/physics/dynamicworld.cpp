@@ -557,6 +557,10 @@ struct DynamicWorld::BBoxList final {
 DynamicWorld::DynamicWorld(World* owner, const zenkit::Mesh& worldMesh) {
   world.reset(new CollisionWorld());
 
+  for(auto& m:worldMesh.materials)
+    if(m.disable_collision)
+      noCollMaterials.insert(m.name);
+
   {
   PackedMesh pkg(worldMesh,PackedMesh::PK_Physic);
   sectors.resize(pkg.subMeshes.size());
@@ -866,15 +870,27 @@ DynamicWorld::NpcItem DynamicWorld::addGhostObj(const Skeleton* src) {
   }
 
 DynamicWorld::Item DynamicWorld::addStaticObj(const PhysicMeshShape *shape, const Tempest::Matrix4x4 &m) {
+  shape = worldShape(shape);
   if(shape==nullptr)
     return Item();
   return createObj(&shape->shape,false,m,0,shape->friction(),IT_Static);
   }
 
 DynamicWorld::Item DynamicWorld::addMovableObj(const PhysicMeshShape* shape, const Tempest::Matrix4x4& m) {
+  shape = worldShape(shape);
   if(shape==nullptr)
     return Item();
   return createObj(&shape->shape,false,m,0,shape->friction(),IT_Movable);
+  }
+
+const PhysicMeshShape* DynamicWorld::worldShape(const PhysicMeshShape* shape) {
+  // vanilla shares materials by name, so noCollDet of world mesh material applies to vob meshes too
+  if(shape==nullptr || !shape->hasMaterial(noCollMaterials))
+    return shape;
+  auto& ret = worldShapes[shape];
+  if(ret==nullptr)
+    ret.reset(PhysicMeshShape::load(*shape,noCollMaterials));
+  return ret.get();
   }
 
 DynamicWorld::Item DynamicWorld::addDynamicObj(const Tempest::Matrix4x4& pos, const Bounds& b, zenkit::MaterialGroup mat) {

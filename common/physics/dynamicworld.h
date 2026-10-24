@@ -5,6 +5,8 @@
 #include <Tempest/Matrix4x4>
 #include <memory>
 #include <limits>
+#include <unordered_map>
+#include <unordered_set>
 
 class btTriangleIndexVertexArray;
 class btCollisionShape;
@@ -296,6 +298,7 @@ class DynamicWorld final {
       };
     Item           createObj(btCollisionShape* shape, bool ownShape, const Tempest::Matrix4x4& m,
                              float mass, float friction, ItemType type);
+    auto           worldShape(const PhysicMeshShape* shape) -> const PhysicMeshShape*;
 
 
     void           moveBullet(BulletBody& b, const Tempest::Vec3& dir, uint64_t dt);
@@ -305,6 +308,8 @@ class DynamicWorld final {
     std::unique_ptr<CollisionWorld>    world;
 
     std::vector<std::string>           sectors;
+    std::unordered_set<std::string>    noCollMaterials;
+    std::unordered_map<const PhysicMeshShape*,std::unique_ptr<PhysicMeshShape>> worldShapes;
 
     std::vector<btVector3>             landVbo;
     std::unique_ptr<PhysicVbo>         landMesh;

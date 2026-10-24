@@ -27,6 +27,19 @@ PhysicVbo::PhysicVbo(const std::vector<btVector3>* v)
   :vert(*v) {
   }
 
+PhysicVbo::PhysicVbo(const PhysicVbo& src, const std::vector<bool>& keep)
+  :vStorage(src.vert), vert(vStorage) {
+  for(size_t i=0; i<src.segments.size(); ++i) {
+    if(!keep[i])
+      continue;
+    auto&  sg  = src.segments[i];
+    size_t off = id.size();
+    id.insert(id.end(), src.id.begin()+ptrdiff_t(sg.off), src.id.begin()+ptrdiff_t(sg.off+size_t(sg.size)*3));
+    addSegment(size_t(sg.size)*3,off,sg.mat,sg.sector);
+    }
+  adjustMesh();
+  }
+
 void PhysicVbo::addIndex(const std::vector<uint32_t>& index, size_t iboOff, size_t iboLen, zenkit::MaterialGroup material) {
   addIndex(index,iboOff,iboLen,material,nullptr);
   }
