@@ -88,6 +88,7 @@ Npc *Bullet::origin() const {
   }
 
 void Bullet::setTarget(const Npc* n) {
+  target = n;
   vfx.setTarget(n);
   }
 
@@ -139,7 +140,7 @@ void Bullet::onCollide(zenkit::MaterialGroup matId) {
   }
 
 bool Bullet::onCollide(Npc& npc) {
-  if(&npc==origin() || isFinished())
+  if(&npc==origin() || isFinished() || !canCollide(npc))
     return false;
 
   if(ow!=nullptr) {
@@ -157,6 +158,13 @@ bool Bullet::onCollide(Npc& npc) {
   wrld->runEffect(std::move(vfx));
 
   return true;
+  }
+
+bool Bullet::canCollide(const Npc& npc) const {
+  // npc arrows fly through humans, except the target
+  if(isSpell() || ow==nullptr || ow->isPlayer() || target==nullptr)
+    return true;
+  return &npc==target || npc.isMonster();
   }
 
 void Bullet::updateMatrix() {
