@@ -159,7 +159,7 @@ void Pose::setSkeleton(const Skeleton* sk) {
   }
 
 bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *sq, uint8_t comb, BodyState bs,
-                     StartHint hint, uint64_t tickCount) {
+                     StartHint hint, uint64_t tickCount, uint64_t blend) {
   if(sq==nullptr)
     return false;
   // NOTE: zero stands for no-comb, other numbers are comb-index+1
@@ -184,16 +184,17 @@ bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *s
         }
       //WA: Emulate behaviour of vanilla: lurker skips transition animations when entering the water
       const bool swimFix = (i.sAnim==tickCount && i.bs==BS_SWIM && bs==BS_SWIM);
+      const bool noTr    = (hint&NoTransition);
       const Animation::Sequence* tr=nullptr;
-      if(i.seq->shortName!=nullptr && sq->shortName!=nullptr && !swimFix) {
+      if(i.seq->shortName!=nullptr && sq->shortName!=nullptr && !swimFix && !noTr) {
         string_frm tansition("T_",i.seq->shortName,"_2_",sq->shortName);
         tr = solver.solveFrm(tansition);
         }
-      if(tr==nullptr && sq->shortName!=nullptr && i.bs==BS_STAND) {
+      if(tr==nullptr && sq->shortName!=nullptr && i.bs==BS_STAND && !noTr) {
         string_frm tansition("T_STAND_2_",sq->shortName);
         tr = solver.solveFrm(tansition);
         }
-      if(tr==nullptr && i.seq->shortName!=nullptr && bs==BS_STAND) {
+      if(tr==nullptr && i.seq->shortName!=nullptr && bs==BS_STAND && !noTr) {
         string_frm tansition("T_",i.seq->shortName,"_2_STAND");
         tr = solver.solveFrm(tansition);
         bs = tr ? i.bs : bs;
@@ -202,6 +203,7 @@ bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *s
       i.seq      = tr ? tr : sq;
       i.sAnim    = tickCount;
       i.sBlend   = 0;
+      i.blend    = tr ? 0 : blend;
       i.comb     = comb;
       i.bs       = bs;
       onAddLayer(i);
@@ -295,6 +297,7 @@ void Pose::processLayers(AnimationSolver& solver, uint64_t tickCount) {
             l.bs = BS_NONE;
           l.seq   = next;
           l.sAnim = tickCount;
+          l.blend = 0;
           onAddLayer(l);
           ret++;
           }
@@ -338,7 +341,7 @@ bool Pose::update(uint64_t tickCount, bool force) {
       if(numFrames==1 && !needToUpdate)
         continue; //mobsi
 
-      needMkSkeleton |= updateFrame(*seq,i.bs,i.sBlend,lastUpdate,i.sAnim,tickCount);
+      needMkSkeleton |= updateFrame(*seq,i.bs,i.sBlend,i.blend,lastUpdate,i.sAnim,tickCount);
       }
     lastUpdate   = tickCount;
     needToUpdate = needMkSkeleton;
@@ -351,7 +354,7 @@ bool Pose::update(uint64_t tickCount, bool force) {
   return false;
   }
 
-bool Pose::updateFrame(const Animation::Sequence &s, BodyState bs, uint64_t sBlend,
+bool Pose::updateFrame(const Animation::Sequence &s, BodyState bs, uint64_t sBlend, uint64_t blendOverride,
                        uint64_t barrier, uint64_t sTime, uint64_t now) {
   auto&        d         = *s.data;
   const size_t idSize    = d.nodeIndex.size();
@@ -385,7 +388,7 @@ bool Pose::updateFrame(const Animation::Sequence &s, BodyState bs, uint64_t sBle
   auto* sampleA = &d.samples[size_t(frameA*idSize)];
   auto* sampleB = &d.samples[size_t(frameB*idSize)];
 
-  const uint64_t blendMax = std::max(s.blendOut,s.blendIn);
+  const uint64_t blendMax = blendOverride>0 ? blendOverride : std::max(s.blendOut,s.blendIn);
   const uint64_t blend    = std::max<uint64_t>(0, now-sBlend);
 
   for(size_t i=0; i<idSize; ++i) {
@@ -704,6 +707,18 @@ bool Pose::isInAnim(const Animation::Sequence *sq) const {
     if(i.seq==sq)
       return true;
   return false;
+  }
+
+float Pose::animProgress(const Animation::Sequence* sq, uint64_t tickCount) const {
+  for(auto& i:lay) {
+    if(i.seq!=sq)
+      continue;
+    const float total = sq->totalTime();
+    if(total<=0.f)
+      return 0.f;
+    return std::fmod(float(tickCount-i.sAnim),total)/total;
+    }
+  return -1.f;
   }
 
 bool Pose::hasAnim() const {

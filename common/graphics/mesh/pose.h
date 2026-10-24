@@ -23,8 +23,9 @@ class Pose final {
       };
 
     enum StartHint : uint8_t {
-      NoHint     = 0x0,
-      Force      = 0x1,
+      NoHint       = 0x0,
+      Force        = 0x1,
+      NoTransition = 0x2,
       };
 
     static uint8_t     calcAniComb(const Tempest::Vec3& dpos, float rotation);
@@ -40,7 +41,7 @@ class Pose final {
     void               setSkeleton(const Skeleton *sk);
     bool               startAnim(const AnimationSolver &solver, const Animation::Sequence* sq,
                                  uint8_t comb, BodyState bs,
-                                 StartHint hint, uint64_t tickCount);
+                                 StartHint hint, uint64_t tickCount, uint64_t blend = 0);
     bool               stopAnim(std::string_view name);
     bool               stopWalkAnim();
     void               interrupt();
@@ -68,6 +69,7 @@ class Pose final {
     bool               isIdle() const;
     bool               isInAnim(std::string_view           sq) const;
     bool               isInAnim(const Animation::Sequence* sq) const;
+    float              animProgress(const Animation::Sequence* sq, uint64_t tickCount) const;
     bool               hasAnim() const;
     uint64_t           animationTotalTime() const;
     uint64_t           atkTotalTime() const;
@@ -101,6 +103,7 @@ class Pose final {
       const Animation::Sequence* seq      = nullptr;
       uint64_t                   sAnim    = 0;
       uint64_t                   sBlend   = 0;
+      uint64_t                   blend    = 0;
       uint8_t                    comb     = 0;
       BodyState                  bs       = BS_NONE;
       };
@@ -118,7 +121,7 @@ class Pose final {
     void implMkSkeleton(const Tempest::Matrix4x4 &mt);
     void implMkSkeleton(const Tempest::Matrix4x4 &mt, size_t parent);
 
-    bool updateFrame(const Animation::Sequence &s, BodyState bs, uint64_t sBlend, uint64_t barrier, uint64_t sTime, uint64_t now);
+    bool updateFrame(const Animation::Sequence &s, BodyState bs, uint64_t sBlend, uint64_t blend, uint64_t barrier, uint64_t sTime, uint64_t now);
 
     const Animation::Sequence* solveNext(const AnimationSolver& solver, const Layer& lay);
 

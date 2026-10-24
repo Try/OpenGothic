@@ -82,6 +82,7 @@ class MdlVisual final {
     auto                           mapHeadBone() const -> Tempest::Vec3;
 
     bool                           isStanding() const;
+    int                            footPos(Npc& npc) const;
 
     bool                           hasAnim(AnimationSolver::Anim a, WeaponState st, WalkBit wlk) const;
     bool                           hasAnim(std::string_view scheme) const;

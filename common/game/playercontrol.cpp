@@ -940,6 +940,11 @@ void PlayerControl::implMove(uint64_t dt) {
       rot = pl.rotation();
       }
 
+    if(ani==Npc::Anim::Idle && ws==WeaponState::NoWeapon && pl.footPos()==0) {
+      // original game keeps running until next step
+      ani = Npc::Anim::NoAnim;
+      }
+
     if(ani!=Npc::Anim::NoAnim)
       pl.setAnim(ani);
     }
