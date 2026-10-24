@@ -272,4 +272,6 @@ void Vob::load(Serialize& fin) {
       throw std::logic_error("inconsistent *.sav vs world");
     }
   moveEvent();
+  for(auto& i:child)
+    i->recalculateTransform();
   }
