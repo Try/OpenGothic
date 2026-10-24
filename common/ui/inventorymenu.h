@@ -88,7 +88,14 @@ class InventoryMenu : public Tempest::Widget {
     Interactive*              chest      =nullptr;
 
     std::unique_ptr<Page>     pageOth, pagePl;
-    PageLocal                 pageLocal[2];
+    PageLocal                 pageLocal[4];
+
+    // gothic1 barter
+    bool                      barter     =false;
+    bool                      choice     =false;
+    uint8_t                   choiceSel  =0;
+    Inventory                 offerOth, offerPl;
+    std::unique_ptr<Page>     pageOfferOth, pageOfferPl;
 
     uint8_t                   page       =0;
     Tempest::Timer            takeTimer;
@@ -100,6 +107,8 @@ class InventoryMenu : public Tempest::Widget {
     int32_t                   scrollDelta = 0;
 
     size_t                    rowsCount() const;
+    size_t                    colsCount() const;
+    size_t                    barterColsCount() const;
 
     Tempest::Size             slotSize() const;
     int                       infoHeight() const;
@@ -115,6 +124,9 @@ class InventoryMenu : public Tempest::Widget {
     void          moveDown();
 
     void          onItemAction(uint8_t slotHint);
+    void          onChoice();
+    void          resetOffers();
+    static int64_t offerValue(const Inventory& inv);
     void          onTakeStuff();
     void          adjustScroll();
     void          drawAll   (Tempest::Painter& p, Npc& player, DrawPass pass);
@@ -122,6 +134,7 @@ class InventoryMenu : public Tempest::Widget {
     void          drawSlot  (Tempest::Painter& p, DrawPass pass, const Inventory::Iterator& it,
                              const Page& page, const PageLocal &sel, int x, int y, size_t id);
     void          drawGold  (Tempest::Painter& p, Npc &player, int x, int y);
-    void          drawHeader(Tempest::Painter& p, std::string_view title, int x, int y);
+    void          drawHeader(Tempest::Painter& p, std::string_view title, int x, int y, int minW = 0);
     void          drawInfo  (Tempest::Painter& p);
+    void          drawChoice(Tempest::Painter& p);
   };

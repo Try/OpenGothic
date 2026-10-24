@@ -101,6 +101,9 @@ void InventoryMenu::close() {
       Gothic::inst().emitGlobalSound("TRADE_CLOSE"); else
       Gothic::inst().emitGlobalSound("INV_CLOSE");
     }
+  resetOffers();
+  barter = false;
+  choice = false;
   renderer.reset(true);
   takeTimer.stop();
   state  = State::Closed;
@@ -132,13 +135,20 @@ void InventoryMenu::open(Npc &pl) {
 void InventoryMenu::trade(Npc &pl, Npc &tr) {
   if(pl.isDown())
     return;
+  resetOffers();
   state  = State::Trade;
   player = &pl;
   trader = &tr;
   chest  = nullptr;
   page   = 0;
+  barter = Gothic::inst().version().game==1;
+  choice = false;
   pagePl .reset(new InvPage  (pl.inventory()));
   pageOth.reset(new TradePage(tr.inventory()));
+  if(barter) {
+    pageOfferOth.reset(new InvPage(offerOth));
+    pageOfferPl .reset(new InvPage(offerPl));
+    }
   adjustScroll();
   update();
   Gothic::inst().emitGlobalSound("TRADE_OPEN");
@@ -242,6 +252,8 @@ void InventoryMenu::tick(uint64_t /*dt*/) {
     renderer.reset();
     pagePl .reset();
     pageOth.reset();
+    pageOfferOth.reset();
+    pageOfferPl .reset();
     update();
     }
   }
@@ -261,7 +273,7 @@ void InventoryMenu::processMove(KeyEvent& e) {
 void InventoryMenu::moveLeft(bool usePage) {
   auto& sel = activePageSel();
 
-  if(usePage && sel.sel%columsCount==0 && page>0)
+  if(usePage && sel.sel%colsCount()==0 && page>0)
     page--;
   else if(sel.sel>0)
     sel.sel--;
@@ -272,7 +284,7 @@ void InventoryMenu::moveRight(bool usePage) {
   auto&        sel    = activePageSel();
   const size_t pCount = pagesCount();
 
-  if(usePage && ((sel.sel+1u)%columsCount==0 || sel.sel+1u==pg.size() || pg.size()==0) && page+1u<pCount)
+  if(usePage && ((sel.sel+1u)%colsCount()==0 || sel.sel+1u==pg.size() || pg.size()==0) && page+1u<pCount)
     page++;
   else if(sel.sel+1<pg.size())
     sel.sel++;
@@ -281,8 +293,8 @@ void InventoryMenu::moveRight(bool usePage) {
 void InventoryMenu::moveUp() {
   auto& sel = activePageSel();
 
-  if(sel.sel>=columsCount)
-    sel.sel -= columsCount;
+  if(sel.sel>=colsCount())
+    sel.sel -= colsCount();
   else
     moveLeft(false);
   }
@@ -291,8 +303,8 @@ void InventoryMenu::moveDown() {
   auto& pg  = activePage();
   auto& sel = activePageSel();
 
-  if(sel.sel+columsCount<pg.size())
-    sel.sel += columsCount;
+  if(sel.sel+colsCount()<pg.size())
+    sel.sel += colsCount();
   else
     moveRight(false);
   }
@@ -300,6 +312,27 @@ void InventoryMenu::moveDown() {
 void InventoryMenu::keyDownEvent(KeyEvent &e) {
   if(state==State::Closed || state==State::LockPicking){
     e.ignore();
+    return;
+    }
+
+  if(choice) {
+    auto key = keycodec.tr(e);
+    if(key==KeyCodec::Forward && choiceSel>0)
+      choiceSel--;
+    else if(key==KeyCodec::Back && choiceSel<2)
+      choiceSel++;
+    else if(key==KeyCodec::ActionGeneric || e.key==KeyEvent::K_Return)
+      onChoice();
+    else if(e.key==KeyEvent::K_ESCAPE || key==KeyCodec::Inventory)
+      choice = false;
+    update();
+    return;
+    }
+
+  if(barter && e.key==KeyEvent::K_Return) {
+    choice    = true;
+    choiceSel = 0;
+    update();
     return;
     }
 
@@ -343,7 +376,7 @@ void InventoryMenu::keyDownEvent(KeyEvent &e) {
   }
 
 void InventoryMenu::keyRepeatEvent(KeyEvent& e) {
-  if(state==State::LockPicking || state==State::Closed)
+  if(state==State::LockPicking || state==State::Closed || choice)
     return;
   processMove(e);
   adjustScroll();
@@ -364,6 +397,14 @@ void InventoryMenu::mouseDownEvent(MouseEvent &e) {
   if(state==State::LockPicking)
     return;
 
+  if(choice) {
+    if(e.button==MouseEvent::ButtonLeft)
+      onChoice(); else
+      choice = false;
+    update();
+    return;
+    }
+
   if (e.button==MouseEvent::ButtonLeft)
     onItemAction(Item::NSLOT);
   else if (e.button==MouseEvent::ButtonRight)
@@ -383,7 +424,7 @@ void InventoryMenu::mouseWheelEvent(MouseEvent &e) {
     return;
     }
 
-  if(state==State::LockPicking)
+  if(state==State::LockPicking || choice)
     return;
 
   scrollDelta += e.delta;
@@ -402,6 +443,22 @@ void InventoryMenu::mouseWheelEvent(MouseEvent &e) {
 size_t InventoryMenu::rowsCount() const {
   int iy=30+34+70;
   return size_t((h()-iy-infoHeight()-20)/slotSize().h);
+  }
+
+size_t InventoryMenu::colsCount() const {
+  if(!barter)
+    return columsCount;
+  if(page==1 || page==2)
+    return 1; // offers
+  return barterColsCount();
+  }
+
+size_t InventoryMenu::barterColsCount() const {
+  // trader and player panels, two one-column offers in the middle
+  const int padd = 43;
+  const int sw   = slotSize().w;
+  const int cnt  = (w()-2*padd-2*sw-2*(sw/4))/(2*sw);
+  return std::min(size_t(std::max(cnt,1)),columsCount);
   }
 
 void InventoryMenu::paintEvent(PaintEvent &e) {
@@ -433,12 +490,22 @@ int InventoryMenu::infoHeight() const {
   }
 
 size_t InventoryMenu::pagesCount() const {
+  if(barter)
+    return 4;
   if(state==State::Chest || state==State::Trade)
     return 2;
   return 1;
   }
 
 const InventoryMenu::Page &InventoryMenu::activePage() {
+  if(barter) {
+    switch(page) {
+      case 0:  return *pageOth;
+      case 1:  return *pageOfferOth;
+      case 2:  return *pageOfferPl;
+      default: return *pagePl;
+      }
+    }
   if(pageOth!=nullptr)
     return *(page==0 ? pageOth : pagePl);
   if(pagePl)
@@ -449,6 +516,10 @@ const InventoryMenu::Page &InventoryMenu::activePage() {
   }
 
 InventoryMenu::PageLocal &InventoryMenu::activePageSel() {
+  if(barter) {
+    static const uint8_t id[] = {0,2,3,1};
+    return pageLocal[id[page]];
+    }
   if(pageOth!=nullptr)
     return (page==0 ? pageLocal[0] : pageLocal[1]);
   return pageLocal[1];
@@ -516,6 +587,17 @@ void InventoryMenu::onTakeStuff() {
       player->addItem (it->clsId(),*chest,itemCount);
       }
     }
+  else if(state==State::Trade && barter) {
+    const size_t cls = it->clsId();
+    if(page.is(&trader->inventory()))
+      trader->moveItem(cls,offerOth,itemCount);
+    else if(page.is(&offerOth))
+      trader->addItem(cls,offerOth,itemCount);
+    else if(page.is(&offerPl))
+      player->addItem(cls,offerPl,itemCount);
+    else
+      player->moveItem(cls,offerPl,itemCount);
+    }
   else if(state==State::Trade) {
     if(page.is(&player->inventory())) {
       player->sellItem(it->clsId(),*trader,itemCount);
@@ -534,11 +616,47 @@ void InventoryMenu::onTakeStuff() {
   adjustScroll();
   }
 
+void InventoryMenu::onChoice() {
+  choice = false;
+  if(choiceSel==0) {
+    // accept, if player offers at least the same value
+    if(offerValue(offerPl)<offerValue(offerOth))
+      return;
+    for(auto it=offerOth.iterator(Inventory::T_Inventory); it.isValid(); it=offerOth.iterator(Inventory::T_Inventory))
+      player->addItem(it->clsId(),offerOth,it->count());
+    for(auto it=offerPl.iterator(Inventory::T_Inventory); it.isValid(); it=offerPl.iterator(Inventory::T_Inventory))
+      trader->addItem(it->clsId(),offerPl,it->count());
+    close();
+    }
+  else if(choiceSel==1) {
+    resetOffers();
+    }
+  else {
+    close();
+    }
+  }
+
+void InventoryMenu::resetOffers() {
+  if(!barter || player==nullptr || trader==nullptr)
+    return;
+  for(auto it=offerOth.iterator(Inventory::T_Inventory); it.isValid(); it=offerOth.iterator(Inventory::T_Inventory))
+    trader->addItem(it->clsId(),offerOth,it->count());
+  for(auto it=offerPl.iterator(Inventory::T_Inventory); it.isValid(); it=offerPl.iterator(Inventory::T_Inventory))
+    player->addItem(it->clsId(),offerPl,it->count());
+  }
+
+int64_t InventoryMenu::offerValue(const Inventory& inv) {
+  int64_t ret = 0;
+  for(auto it=inv.iterator(Inventory::T_Inventory); it.isValid(); ++it)
+    ret += int64_t(it->cost())*int64_t(it.count());
+  return ret;
+  }
+
 void InventoryMenu::adjustScroll() {
   auto& page = activePage();
   auto& sel  = activePageSel();
   sel.sel = std::min(sel.sel, std::max<size_t>(page.size(),1)-1);
-  while(sel.sel<sel.scroll*columsCount) {
+  while(sel.sel<sel.scroll*colsCount()) {
     if(sel.scroll<=1){
       sel.scroll=0;
       return;
@@ -547,7 +665,7 @@ void InventoryMenu::adjustScroll() {
     }
 
   const size_t hcount=rowsCount();
-  while(sel.sel>=(sel.scroll+hcount)*columsCount) {
+  while(sel.sel>=(sel.scroll+hcount)*colsCount()) {
     sel.scroll+=1;
     }
   }
@@ -560,8 +678,33 @@ void InventoryMenu::drawAll(Painter &p, Npc &player, DrawPass pass) {
   if(state==State::LockPicking)
     return;
 
-  const int wcount = int(columsCount);
+  const int wcount = int(colsCount());
   const int hcount = int(rowsCount());
+
+  if(barter) {
+    const int sw = slotSize().w;
+    const int wc = int(barterColsCount());
+    // like vanilla: trader on the left, player on the right, offers next to each other in the middle
+    const int x3 = w()-padd-wc*sw;
+    const int x1 = w()/2-sw;
+    const int x2 = w()/2;
+    if(pass==DrawPass::Back) {
+      drawHeader(p,trader->displayName(),padd,70);
+      drawHeader(p,string_frm(int(offerValue(offerOth))),x1,70,sw);
+      drawHeader(p,string_frm(int(offerValue(offerPl))), x2,70,sw);
+      drawGold  (p,player,w()-padd-2*sw,70);
+      }
+    drawItems(p,pass,*pageOth,     pageLocal[0],padd,iy,wc,hcount);
+    drawItems(p,pass,*pageOfferOth,pageLocal[2],x1,  iy,1, hcount);
+    drawItems(p,pass,*pageOfferPl, pageLocal[3],x2,  iy,1, hcount);
+    drawItems(p,pass,*pagePl,      pageLocal[1],x3,  iy,wc,hcount);
+    if(pass==DrawPass::Back) {
+      if(choice)
+        drawChoice(p); else
+        drawInfo(p);
+      }
+    return;
+    }
 
   if(chest!=nullptr){
     if(pass==DrawPass::Back)
@@ -680,14 +823,14 @@ void InventoryMenu::drawGold(Painter &p, Npc &player, int x, int y) {
   drawHeader(p,vint,x,y);
   }
 
-void InventoryMenu::drawHeader(Painter &p, std::string_view title, int x, int y) {
+void InventoryMenu::drawHeader(Painter &p, std::string_view title, int x, int y, int minW) {
   const float scale = Gothic::interfaceScale(this);
   auto&       fnt   = Resources::font(scale);
 
   const int   tw    = fnt.textSize(title).w;
   const int   th    = fnt.textSize(title).h;
   const int   padd  = int(8*scale);
-  const int   dw    = std::max(slotSize().w*2, tw+padd*2);
+  const int   dw    = std::max(minW>0 ? minW : slotSize().w*2, tw+padd*2);
   const int   dh    = int(34*scale);
 
   if(tex) {
@@ -750,6 +893,32 @@ void InventoryMenu::drawInfo(Painter &p) {
 
   const int sz = dh;
   renderer.drawItem(x+dw-sz-sz/2,y,sz,sz,r);
+  }
+
+void InventoryMenu::drawChoice(Painter& p) {
+  const float scale = Gothic::interfaceScale(this);
+  const int   dw    = std::min(w(), int(720*scale));
+  const int   dh    = infoHeight();
+  const int   x     = (w()-dw)/2;
+  const int   y     = h()-dh-20;
+
+  if(tex) {
+    p.setBrush(*tex);
+    p.drawRect(x,y,dw,dh,
+               0,0,tex->w(),tex->h());
+    }
+
+  static const char* name[] = {"STR_INFO_TRADE_ACCEPT", "STR_INFO_TRADE_RESET", "STR_INFO_TRADE_EXIT"};
+  static const char* def [] = {"Accept", "Reset", "Exit"};
+  auto world = Gothic::inst().world();
+  for(uint8_t i=0; i<3; ++i) {
+    std::string_view txt = def[i];
+    if(auto sym = world!=nullptr ? world->script().findSymbol(name[i]) : nullptr)
+      txt = sym->get_string();
+    auto& fnt = Resources::font(i==choiceSel ? Resources::FontType::Hi : Resources::FontType::Normal, scale);
+    int   tw  = fnt.textSize(txt).w;
+    fnt.drawText(p,x+(dw-tw)/2,y+int(i+2)*int(fnt.pixelSize()),txt);
+    }
   }
 
 void InventoryMenu::draw(Tempest::Encoder<CommandBuffer>& cmd) {
