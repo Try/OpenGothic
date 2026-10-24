@@ -69,7 +69,12 @@ Inventory::Iterator::Iterator(Inventory::IteratorType t, const Inventory* owner)
 
 void Inventory::Iterator::skipHidden() {
   auto& it = owner->items;
-  if(type==T_Trade) {
+  if(type==T_Trade && Gothic::inst().version().game==1) {
+    // gothic1 is barter, ore is a regular item
+    while(at<it.size() && (it[at]->isEquipped() || it[at]->isArmor()))
+      ++at;
+    }
+  else if(type==T_Trade) {
     while(at<it.size() && (it[at]->isEquipped() || it[at]->isGold()))
       ++at;
     }

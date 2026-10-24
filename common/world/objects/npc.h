@@ -351,7 +351,9 @@ class Npc final {
     void      unequipItem(size_t item);
     void      addItem    (size_t id, Interactive& chest, size_t count=1);
     void      addItem    (size_t id, Npc& from,          size_t count=1);
+    void      addItem    (size_t id, Inventory& from,    size_t count=1);
     void      moveItem   (size_t id, Interactive& to,    size_t count=1);
+    void      moveItem   (size_t id, Inventory& to,      size_t count=1);
     void      sellItem   (size_t id, Npc& to,            size_t count=1);
     void      buyItem    (size_t id, Npc& from,          size_t count=1);
     void      dropItem   (size_t id,                     size_t count=1);
