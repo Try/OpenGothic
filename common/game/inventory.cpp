@@ -74,7 +74,9 @@ void Inventory::Iterator::skipHidden() {
       ++at;
     }
   if(type==T_Ransack) {
-    while(at<it.size() && it[at]->isEquipped()) {
+    // gothic1 allows to loot equipped items, except armor
+    const bool g1 = Gothic::inst().version().game==1;
+    while(at<it.size() && (it[at]->isArmor() || (it[at]->isEquipped() && !g1))) {
       ++at;
       }
     }
