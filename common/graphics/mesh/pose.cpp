@@ -202,7 +202,7 @@ bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *s
       i.seq      = tr ? tr : sq;
       i.sAnim    = tickCount;
       i.sBlend   = 0;
-      i.comb     = comb;
+      i.comb     = (tr!=nullptr && sq->comb.empty()) ? i.comb : comb; // T_IGET_2_STAND keeps comb of S_IGET
       i.bs       = bs;
       onAddLayer(i);
       return true;
@@ -295,6 +295,7 @@ void Pose::processLayers(AnimationSolver& solver, uint64_t tickCount) {
             l.bs = BS_NONE;
           l.seq   = next;
           l.sAnim = tickCount;
+          l.comb  = std::min<uint8_t>(l.comb, uint8_t(next->comb.size()));
           onAddLayer(l);
           ret++;
           }

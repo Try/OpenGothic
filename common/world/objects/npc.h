@@ -342,6 +342,7 @@ class Npc final {
     Item*     getItem    (size_t id);
     Item*     addItem    (size_t id, size_t amount);
     Item*     addItem    (std::unique_ptr<Item>&& i);
+    bool      canTakeItem(const Item& i) const;
     Item*     takeItem   (Item& i);
     void      onWldItemRemoved(const Item& itm);
     void      delItem    (size_t id, uint32_t amount);
