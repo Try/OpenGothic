@@ -364,9 +364,10 @@ bool PlayerControl::interact(Item &item) {
     return false;
   if(pl->isDown())
     return true;
-  if(!canInteract())
+  if(!canInteract() || !pl->canTakeItem(item))
     return false;
-  return pl->takeItem(item)!=nullptr;
+  pl->aiPush(AiQueue::aiTakeItem(item));
+  return true;
   }
 
 void PlayerControl::moveFocus(FocusAction act) {
