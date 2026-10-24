@@ -22,6 +22,8 @@ const Item* Inventory::Iterator::operator ->() const {
 
 bool Inventory::Iterator::isEquipped() const {
   auto& cur = *owner->items[at];
+  if(!cur.isMulti())
+    return subId<cur.equipCount();
   return subId==0 && cur.isEquipped();
   }
 
@@ -33,11 +35,10 @@ uint8_t Inventory::Iterator::slot() const {
 size_t Inventory::Iterator::count() const {
   auto& cur = *owner->items[at];
   if(!cur.isMulti()) {
-    if(cur.isEquipped() && subId==0)
-      return cur.equipCount();
-    if(cur.isEquipped())
-      return cur.count()-cur.equipCount();
-    return cur.count();
+    // each equipped item is shown separately
+    if(subId<cur.equipCount())
+      return 1;
+    return cur.count()-cur.equipCount();
     }
   return cur.count();
   }
@@ -46,7 +47,8 @@ Inventory::Iterator& Inventory::Iterator::operator++() {
   auto& it  = owner->items;
   auto& cur = *it[at];
   if(!cur.isMulti()) {
-    if(cur.isEquipped() && cur.count()>1 && subId==0) {
+    const size_t cnt = cur.equipCount() + (cur.count()>cur.equipCount() ? 1 : 0);
+    if(subId+1<cnt) {
       ++subId;
       return *this;
       }
