@@ -695,6 +695,10 @@ bool Interactive::checkUseConditions(Npc& npc) {
       sc.printMobMissingLockpick(npc);
       return false;
       }
+    else if(locked && !isLockCracked) { // locked, but no key or lockpick
+      sc.printMobNeverOpen(npc);
+      return false;
+      }
 
     if(!conditionFunc.empty()) {
       const int check = sc.invokeCond(npc,conditionFunc);
