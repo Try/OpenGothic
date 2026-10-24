@@ -54,6 +54,7 @@ class Pose final {
     bool               processEvents(uint64_t& barrier, uint64_t now, Animation::EvCount &ev) const;
 
     Tempest::Vec3      animMoveSpeed(uint64_t tickCount, uint64_t dt) const;
+    uint64_t           animMoveStart(uint64_t tickCount) const;
     void               processSfx(Npc &npc, uint64_t tickCount);
     void               processSfx(Interactive& mob, uint64_t tickCount);
     void               processPfx(MdlVisual& visual, World& world, uint64_t tickCount);
@@ -104,6 +105,8 @@ class Pose final {
       uint64_t                   sAnim    = 0;
       uint64_t                   sBlend   = 0;
       uint64_t                   blend    = 0;
+      const Animation::Sequence* prev     = nullptr;
+      uint64_t                   prevAnim = 0;
       uint8_t                    comb     = 0;
       BodyState                  bs       = BS_NONE;
       };
@@ -121,6 +124,7 @@ class Pose final {
     void implMkSkeleton(const Tempest::Matrix4x4 &mt);
     void implMkSkeleton(const Tempest::Matrix4x4 &mt, size_t parent);
 
+    static uint64_t blendTime(const Layer& l);
     bool updateFrame(const Animation::Sequence &s, BodyState bs, uint64_t sBlend, uint64_t blend, uint64_t barrier, uint64_t sTime, uint64_t now);
 
     const Animation::Sequence* solveNext(const AnimationSolver& solver, const Layer& lay);

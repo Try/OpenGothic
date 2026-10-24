@@ -549,8 +549,29 @@ Tempest::Vec3 MoveAlgo::animMoveSpeed(uint64_t dt) const {
   return ret;
   }
 
+Tempest::Vec3 MoveAlgo::smoothMoveSpeed(const Tempest::Vec3& dp, uint64_t dt) {
+  // smooth root translation, same as zCModel::AdvanceAnis with zSmoothModelRootNode
+  const uint64_t start = npc.animMoveStart();
+  if(start!=smoothStart) {
+    smoothStart = start;
+    smoothW     = 0.1f;
+    }
+  if(dt==0)
+    return dp;
+  const float t    = float(dt)/1000.f;
+  smoothW = std::min(smoothW + t*1.25f, 2.5f);
+
+  const auto  prev = smoothSpeed*float(dt);
+  const float q    = (dp-prev).quadLength()*0.00001f;
+  const float k    = (t/(smoothW*0.025f)) * (1.f+4.f*q)/(1.f+q);
+  const auto  ret  = (prev + dp*k)*(1.f/(1.f+k));
+  smoothSpeed = ret*(1.f/float(dt));
+  return ret;
+  }
+
 Tempest::Vec3 MoveAlgo::npcMoveSpeed(uint64_t dt, MvFlags moveFlg) {
-  auto dp = animMoveSpeed(dt);
+  Tempest::Vec3 dp;
+  applyRotation(dp,smoothMoveSpeed(npc.animMoveSpeed(dt),dt));
   if(moveFlg!=WaitMove) {
     if(npc.go2.npc)
       return go2NpcMoveSpeed(dp,*npc.go2.npc);

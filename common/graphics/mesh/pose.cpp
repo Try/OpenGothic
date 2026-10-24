@@ -202,6 +202,9 @@ bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *s
         bs = tr ? i.bs : bs;
         }
       onRemoveLayer(i);
+      // mobsi and climb have own positioning, no need for fading translation
+      i.prev     = (bs==BS_MOBINTERACT || bs==BS_CLIMB) ? nullptr : i.seq;
+      i.prevAnim = i.sAnim;
       i.seq      = tr ? tr : sq;
       i.sAnim    = tickCount;
       i.sBlend   = 0;
@@ -300,6 +303,7 @@ void Pose::processLayers(AnimationSolver& solver, uint64_t tickCount) {
           l.seq   = next;
           l.sAnim = tickCount;
           l.blend = 0;
+          l.prev  = nullptr;
           onAddLayer(l);
           ret++;
           }
@@ -604,13 +608,48 @@ void Pose::setObjectMatrix(const Tempest::Matrix4x4& obj, bool sync) {
     needToUpdate = true;
   }
 
-Tempest::Vec3 Pose::animMoveSpeed(uint64_t tickCount, uint64_t dt) const {
+uint64_t Pose::blendTime(const Layer& l) {
+  if(l.blend>0)
+    return l.blend;
+  return std::max(l.seq->blendOut,l.seq->blendIn);
+  }
+
+uint64_t Pose::animMoveStart(uint64_t tickCount) const {
   for(size_t i=lay.size(); i>0; ) {
     --i;
     auto& lx = lay[i];
-    if(!lx.seq->data->hasMoveTr)
+    if(lx.seq->data->hasMoveTr)
+      return lx.sAnim;
+    if(lx.prev!=nullptr && lx.prev->data->hasMoveTr && tickCount-lx.sAnim<blendTime(lx))
+      return lx.sAnim;
+    }
+  return 0;
+  }
+
+Tempest::Vec3 Pose::animMoveSpeed(uint64_t tickCount, uint64_t dt) const {
+  for(size_t i=lay.size(); i>0; ) {
+    --i;
+    auto&          lx    = lay[i];
+    const uint64_t blend = blendTime(lx);
+    const bool     fade  = lx.prev!=nullptr && lx.prev->data->hasMoveTr && tickCount-lx.sAnim<blend;
+    if(!lx.seq->data->hasMoveTr && !fade)
       continue;
-    return lx.seq->speed(tickCount-lx.sAnim,dt);
+
+    auto ret = Tempest::Vec3();
+    if(lx.seq->data->hasMoveTr)
+      ret = lx.seq->speed(tickCount-lx.sAnim,dt);
+    if(!fade)
+      return ret;
+
+    // fading animation still moves npc, same as zCModel::CalcTransBlending
+    auto prv = lx.prev->speed(tickCount-lx.prevAnim,dt);
+    if(ret==Tempest::Vec3())
+      return prv;
+    if(prv==Tempest::Vec3())
+      return ret;
+    float a = float(tickCount-lx.sAnim)/float(blend);
+    a = (1.f-std::cos(a*float(M_PI)))*0.5f;
+    return prv + (ret-prv)*a;
     }
   return Tempest::Vec3();
   }
