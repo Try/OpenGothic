@@ -1186,6 +1186,13 @@ int GameScript::invokeCond(Npc& npc, std::string_view func) {
   return vm.call_function<int>(fn);
   }
 
+void GameScript::invokeTrigger(Npc* npc, std::string_view func) {
+  ScopeVar self (*vm.global_self(),  npc!=nullptr ? npc->handlePtr() : nullptr);
+  ScopeVar other(*vm.global_other(), std::shared_ptr<zenkit::INpc>());
+  ScopeVar item (*vm.global_item(),  std::shared_ptr<zenkit::IItem>());
+  vm.call_function(func);
+  }
+
 void GameScript::invokePickLock(Npc& npc, int bSuccess, int bBrokenOpen) {
   auto fn   = vm.find_symbol_by_name("G_PickLock");
   if(fn==nullptr)

@@ -13,7 +13,7 @@ TriggerList::TriggerList(Vob* parent, World &world, const zenkit::VTriggerList& 
   listProcess = list.mode;
   }
 
-void TriggerList::onTrigger(const TriggerEvent&) {
+void TriggerList::onTrigger(const TriggerEvent& evt) {
   if(targets.empty())
     return;
 
@@ -24,6 +24,7 @@ void TriggerList::onTrigger(const TriggerEvent&) {
         offset += uint64_t(i.delay*1000);
         uint64_t time = world.tickCount()+offset;
         TriggerEvent ex(i.name,vobName,time,TriggerEvent::T_Trigger);
+        ex.instigator = evt.instigator;
         world.execTriggerEvent(ex);
         }
       break;
@@ -34,6 +35,7 @@ void TriggerList::onTrigger(const TriggerEvent&) {
 
       uint64_t time = world.tickCount()+uint64_t(i.delay*1000);
       TriggerEvent ex(i.name,vobName,time,TriggerEvent::T_Trigger);
+      ex.instigator = evt.instigator;
       world.execTriggerEvent(ex);
       break;
       }
@@ -42,6 +44,7 @@ void TriggerList::onTrigger(const TriggerEvent&) {
 
       uint64_t time = world.tickCount()+uint64_t(i.delay*1000);
       TriggerEvent ex(i.name,vobName,time,TriggerEvent::T_Trigger);
+      ex.instigator = evt.instigator;
       world.execTriggerEvent(ex);
       break;
       }
