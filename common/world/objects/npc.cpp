@@ -1062,6 +1062,10 @@ bool Npc::isStanding() const {
   return visual.isStanding();
   }
 
+int Npc::footPos() {
+  return visual.footPos(*this);
+  }
+
 bool Npc::isSwim() const {
   return mvAlgo.isSwim();
   }

@@ -30,7 +30,8 @@ static uint64_t frameClamp(int32_t frame,uint32_t first,uint32_t numFrames,uint3
   }
 
 Animation::Animation(zenkit::ModelScript& p, std::string_view name, const bool ignoreErrChunks) {
-  ref = std::move(p.aliases);
+  ref    = std::move(p.aliases);
+  blends = std::move(p.blends);
 
   for(auto& ani : p.animations) {
     auto& data = loadMAN(ani, std::string(name) + '-' + ani.name + ".MAN");
@@ -104,6 +105,13 @@ const Animation::Sequence* Animation::sequence(std::string_view name) const {
   return nullptr;
   }
 
+uint64_t Animation::blendTime(std::string_view name) const {
+  for(auto& i:blends)
+    if(i.name==name)
+      return uint64_t(1000*i.blend_in);
+  return 0;
+  }
+
 const Animation::Sequence *Animation::sequenceAsc(std::string_view name) const {
   for(auto& i:sequences)
     if(i.askName==name)
@@ -157,6 +165,10 @@ void Animation::setupIndex() {
     sequences.emplace_back(std::move(ani));
     }
   ref.clear();
+
+  for(auto& i:blends)
+    for(auto& c:i.name)
+      c = char(std::toupper(c));
 
   for(auto& sq:sequences) {
     for(auto& i:sq.name)

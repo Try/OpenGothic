@@ -512,6 +512,18 @@ const Animation::Sequence* AnimationSolver::solveNext(const Animation::Sequence&
   return baseSk ? baseSk->sequence(name) : nullptr;
   }
 
+uint64_t AnimationSolver::solveBlend(std::string_view name) const {
+  for(size_t i=overlay.size();i>0;){
+    --i;
+    if(auto a = overlay[i].skeleton->animation())
+      if(auto t = a->blendTime(name))
+        return t;
+    }
+  if(baseSk==nullptr || baseSk->animation()==nullptr)
+    return 0;
+  return baseSk->animation()->blendTime(name);
+  }
+
 const Animation::Sequence *AnimationSolver::solveFrm(std::string_view name) const {
   if(name.empty())
     return nullptr;
