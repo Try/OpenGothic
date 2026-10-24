@@ -16,6 +16,7 @@ class PhysicVbo : public btTriangleIndexVertexArray {
 
     PhysicVbo(PackedMesh&& packed);
     PhysicVbo(const std::vector<btVector3>* v);
+    PhysicVbo(const PhysicVbo& src, const std::vector<bool>& keep);
 
     PhysicVbo(const PhysicVbo&)=delete;
     PhysicVbo(PhysicVbo&&)=delete;
