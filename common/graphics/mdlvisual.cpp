@@ -655,6 +655,10 @@ const Animation::Sequence* MdlVisual::startAnimAndGet(Npc& npc, AnimationSolver:
     skInst->stopAllAnim();
     return nullptr;
     }
+  if(a==AnimationSolver::Anim::MoveBack && skInst->isInAnim("S_JUMP")) {
+    // land first, jump-back only from stand
+    a = AnimationSolver::Anim::Idle;
+    }
 
   const Animation::Sequence *sq = solver.solveAnim(a,st,wlk,*skInst);
   if(sq==nullptr)
@@ -668,6 +672,10 @@ const Animation::Sequence* MdlVisual::startAnimAndGet(Npc& npc, AnimationSolver:
     forceAnim = true;
     }
   if(a==AnimationSolver::Anim::JumpHang) {
+    forceAnim = true;
+    }
+  if((a==AnimationSolver::Anim::MoveL || a==AnimationSolver::Anim::MoveR) && skInst->isInAnim("T_JUMP_2_STAND")) {
+    // strafe interrupts landing
     forceAnim = true;
     }
 

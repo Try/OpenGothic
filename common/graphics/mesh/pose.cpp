@@ -189,6 +189,8 @@ bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *s
       if(i.seq->shortName!=nullptr && sq->shortName!=nullptr && !swimFix && !noTr) {
         string_frm tansition("T_",i.seq->shortName,"_2_",sq->shortName);
         tr = solver.solveFrm(tansition);
+        if(tr==nullptr && blend==0)
+          blend = solver.solveBlend(tansition); // aniBlend, example: T_JUMP_2_RUNL
         }
       if(tr==nullptr && sq->shortName!=nullptr && i.bs==BS_STAND && !noTr) {
         string_frm tansition("T_STAND_2_",sq->shortName);
