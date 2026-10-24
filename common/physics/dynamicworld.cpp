@@ -313,7 +313,7 @@ struct DynamicWorld::NpcBodyList final {
     return true;
     }
 
-  auto rayTest(const Tempest::Vec3& s, const Tempest::Vec3& e, float extR, const Npc* except) {
+  auto rayTest(const Tempest::Vec3& s, const Tempest::Vec3& e, float extR, const Npc* except, const BulletCallback* cb = nullptr) {
     NpcBody* ret     = nullptr;
     auto     dir     = Tempest::Vec3::normalize(e-s);
     auto     tMax    = (e-s).length();
@@ -321,7 +321,7 @@ struct DynamicWorld::NpcBodyList final {
 
     for(auto i:body) {
       float proj = 0;
-      if(i.body->toNpc()!=except && rayTest(*i.body, s, dir, tMax, extR, proj)) {
+      if(i.body->toNpc()!=except && (cb==nullptr || cb->canCollide(*i.body->toNpc())) && rayTest(*i.body, s, dir, tMax, extR, proj)) {
         if(proj<tHit) {
           ret  = i.body;
           tHit = proj;
@@ -330,7 +330,7 @@ struct DynamicWorld::NpcBodyList final {
       }
     for(auto i:frozen) {
       float proj = 0;
-      if(i.body!=nullptr && i.body->toNpc()!=except && rayTest(*i.body, s, dir, tMax, extR, proj)) {
+      if(i.body!=nullptr && i.body->toNpc()!=except && (cb==nullptr || cb->canCollide(*i.body->toNpc())) && rayTest(*i.body, s, dir, tMax, extR, proj)) {
         if(proj<tHit) {
           ret  = i.body;
           tHit = proj;
@@ -1003,7 +1003,7 @@ void DynamicWorld::moveBullet(BulletBody &b, const Tempest::Vec3& dir, uint64_t 
         }
       }
     } else {
-    if(auto ptr = npcList->rayTest(pos,to,b.targetRange(),nullptr)) {
+    if(auto ptr = npcList->rayTest(pos,to,b.targetRange(),nullptr,b.cb)) {
       if(b.cb!=nullptr)
         stopBullet |= b.cb->onCollide(*ptr->toNpc()); else
         stopBullet  = true;

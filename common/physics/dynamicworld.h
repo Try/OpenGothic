@@ -183,6 +183,7 @@ class DynamicWorld final {
       virtual void onMove(){}
       virtual void onCollide(zenkit::MaterialGroup matId){(void)matId;}
       virtual bool onCollide(Npc& other){(void)other; return true; }
+      virtual bool canCollide(const Npc& other) const {(void)other; return true; }
       };
 
     struct BulletBody final {

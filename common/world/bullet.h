@@ -63,11 +63,13 @@ class Bullet final : public DynamicWorld::BulletCallback {
     void     onMove() override;
     void     onCollide(zenkit::MaterialGroup matId) override;
     bool     onCollide(Npc& other) override;
+    bool     canCollide(const Npc& other) const override;
 
   private:
     DynamicWorld::BulletBody* obj=nullptr;
     World*                    wrld=nullptr;
     Npc*                      ow=nullptr;
+    const Npc*                target=nullptr;
 
     DamageCalculator::Damage  dmg        = {};
     float                     hitCh      = 1.f;
