@@ -152,11 +152,43 @@ DamageCalculator::Val DamageCalculator::swordDamage(Npc& nsrc, Npc& nother) {
       critChance = -1;
       }
 
+    int dmg[zenkit::DamageType::NUM] = {};
+    int cnt = 0, total = 0;
+    for(unsigned int i=0; i<zenkit::DamageType::NUM; ++i) {
+      if((dtype & (1<<i))==0)
+        continue;
+      dmg[i] = src.damage[i];
+      total += dmg[i];
+      cnt++;
+      }
+
+    const auto gil = nsrc.guild();
+    if(nsrc.isHuman() || gil>=GIL_SEPERATOR_ORC || (GIL_GOBBO<=gil && gil<=GIL_SUMMONED_GOBBO_SKELETON) ||
+       gil==GIL_SKELETON || gil==GIL_SUMMONED_SKELETON) {
+      // strength is split between blunt and edge, dexterity goes to point
+      using namespace zenkit;
+      const int n = ((dtype>>DamageType::BLUNT)&1) + ((dtype>>DamageType::EDGE)&1) + ((dtype>>DamageType::POINT)&1);
+      if(n>0) {
+        if(dtype & (1<<DamageType::BLUNT))
+          dmg[DamageType::BLUNT] += str/n;
+        if(dtype & (1<<DamageType::EDGE))
+          dmg[DamageType::EDGE]  += str/n;
+        if(dtype & (1<<DamageType::POINT))
+          dmg[DamageType::POINT] += nsrc.attribute(Attribute::ATR_DEXTERITY)/n;
+        }
+      }
+    else if(total==0 && cnt>0) {
+      // other monsters use strength only if they have no damage set, split between all types
+      for(unsigned int i=0; i<zenkit::DamageType::NUM; ++i)
+        if(dtype & (1<<i))
+          dmg[i] = int(float(str)/float(cnt) + 0.5f);
+      }
+
     bool invincible = true;
     for(unsigned int i=0; i<zenkit::DamageType::NUM; ++i) {
       if((dtype & (1<<i))==0)
         continue;
-      int vd = std::max(str + src.damage[i] - other.protection[i],0);
+      int vd = std::max(dmg[i] - other.protection[i],0);
       if(src.hitchance[tal]<=critChance)
         vd = (vd-1)/10;
       if(other.protection[i]>=0) { // Filter immune
