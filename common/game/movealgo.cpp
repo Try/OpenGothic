@@ -493,6 +493,12 @@ void MoveAlgo::clearSpeed() {
   fallCount   = 0;
   }
 
+void MoveAlgo::startFall(const Tempest::Vec3& speed) {
+  fallSpeed = speed;
+  fallCount = 0;
+  setState(InAir);
+  }
+
 bool MoveAlgo::accessDamFly(float dx, float dz, char hitType) {
   if(flags!=Run && flags!=Falling && flags!=InAir)
     return false;
@@ -984,7 +990,11 @@ void MoveAlgo::onMoveFailed(const Tempest::Vec3& dp, const DynamicWorld::Collisi
     case Npc::GT_EnemyG:
     case Npc::GT_Way:
     case Npc::GT_Point: {
-      if(info.npc!=nullptr || info.preFall) {
+      if(npc.moveHint()==Npc::GT_Point && npc.isPlayer()) {
+        // marvin 'Y': give up on obstacle
+        npc.clearGoTo();
+        }
+      else if(info.npc!=nullptr || info.preFall) {
         npc.setDirection(npc.rotation()+stp);
         } else {
         auto jc = npc.tryJump();

@@ -127,6 +127,8 @@ KeyCodec::Action KeyCodec::tr(Tempest::KeyEvent const& e) const {
     return K_K;
   if(e.key == Tempest::Event::K_O)
     return K_O;
+  if(e.key == Tempest::Event::K_Y)
+    return K_Y;
   return Idle;
   }
 
