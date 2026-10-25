@@ -2326,7 +2326,8 @@ void Npc::tickAnimationTags() {
 
   for(auto& i:ev.morph)
     visual.startMMAnim(*this,i.anim,i.node);
-  if(ev.groundSounds>0 && isPlayer() && bodyStateMasked()!=BodyState::BS_SNEAK)
+  const auto bs = bodyStateMasked();
+  if(ev.groundSounds>0 && isPlayer() && (bs==BS_WALK || bs==BS_RUN || bs==BS_SPRINT))
     world().sendImmediatePerc(*this,*this,*this,PERC_ASSESSQUIETSOUND);
   if(ev.def_opt_frame>0)
     commitDamage();
