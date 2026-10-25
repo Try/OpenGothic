@@ -232,6 +232,23 @@ bool Pose::stopAnim(std::string_view name) {
   return done;
   }
 
+const Animation::Sequence* Pose::startStandUp(const AnimationSolver& solver, uint64_t tickCount) {
+  // vanilla: S_X goes to T_X_2_STAND, anything else stops immediately
+  const Animation::Sequence* tr = nullptr;
+  for(auto& i:lay) {
+    if(i.seq->layer==1 && i.seq->shortName!=nullptr && i.bs!=BS_ITEMINTERACT) {
+      string_frm name("T_",i.seq->shortName,"_2_STAND");
+      tr = solver.solveFrm(name);
+      break;
+      }
+    }
+  if(tr==nullptr)
+    return nullptr;
+  stopAllAnim();
+  addLayer(tr,BS_STAND,0,tickCount);
+  return tr;
+  }
+
 bool Pose::stopWalkAnim() {
   bool done=false;
   size_t ret=0;
@@ -542,6 +559,8 @@ void Pose::onRemoveLayer(const Pose::Layer &l) {
     hasTransitions--;
   if(l.seq->isFly())
     isFlyCombined--;
+  // vanilla: stopped animation still emits events till the end
+  l.seq->pendingPfxStop(lastUpdate,l.sAnim,pfxStop);
 
   for(auto id:l.seq->data->nodeIndex)
     if(hasSamples[id]==S_Valid)
@@ -574,6 +593,9 @@ void Pose::processSfx(Interactive& mob, uint64_t tickCount) {
   }
 
 void Pose::processPfx(MdlVisual& visual, World& world, uint64_t tickCount) {
+  for(auto id:pfxStop)
+    visual.stopEffect(id);
+  pfxStop.clear();
   for(auto& i:lay)
     i.seq->processPfx(lastUpdate,i.sAnim,tickCount,visual,world);
   }
