@@ -263,8 +263,11 @@ bool MoveAlgo::implTick(uint64_t dt, MvFlags moveFlg) {
       }
 
     if(npc.isJumpAnim()) {
-      fallSpeed += dp;
-      fallCount += float(dt);
+      // keep current speed, not average over whole jump arc
+      if(dt>0) {
+        fallSpeed = dp;
+        fallCount = float(dt);
+        }
       }
     else if(!dead) {
       setState(InAir);
