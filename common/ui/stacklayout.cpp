@@ -2,7 +2,7 @@
 
 #include <Tempest/Widget>
 
-StackLayout::StackLayout() {  
+StackLayout::StackLayout() {
   }
 
 void StackLayout::applyLayout() {
