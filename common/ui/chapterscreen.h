@@ -1,11 +1,15 @@
 #pragma once
 
+#include "utils/keycodec.h"
+
 #include <Tempest/Widget>
 #include <Tempest/Texture2d>
 #include <Tempest/Timer>
 
 class ChapterScreen : public Tempest::Widget {
   public:
+    void onGamepad(KeyCodec::Action action);
+    uint64_t inputRevision() const { return inputRevisionCounter; }
     ChapterScreen();
 
     struct Show {
@@ -26,6 +30,7 @@ class ChapterScreen : public Tempest::Widget {
     void paintEvent(Tempest::PaintEvent& e);
 
   private:
+    uint64_t inputRevisionCounter = 0;
     const Tempest::Texture2d* back=nullptr;
     bool                      active=false;
     Tempest::Timer            timer;

@@ -1,4 +1,5 @@
 #include "playercontrol.h"
+#include "gamepadplayerinput.h"
 
 #include <cmath>
 
@@ -45,17 +46,66 @@ void PlayerControl::setTarget(Npc *other) {
     }
   }
 
-void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType key, KeyCodec::Mapping mapping) {
+void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType key, KeyCodec::Mapping mapping, InputSource source) {
   auto       w    = Gothic::inst().world();
   auto       c    = Gothic::inst().camera();
   auto       pl   = w  ? w->player() : nullptr;
   auto       ws   = pl ? pl->weaponState() : WeaponState::NoWeapon;
   uint8_t    slot = pl ? pl->inventory().currentSpellSlot() : Item::NSLOT;
 
-  if(w!=nullptr && w->isCutsceneLock())
+  const auto owner = InputState::owner(source, mapping==KeyCodec::Mapping::Secondary);
+  if(w!=nullptr && w->isCutsceneLock()) {
+    // Menus are dispatched by the release handler even during cutscenes;
+    // retain their owners without activating any gameplay commands.
+    if(a==Action::Escape || a==Action::Inventory || a==Action::Log || a==Action::Status)
+      input.press(a, owner);
     return;
+    }
 
-  handleMovementAction(KeyCodec::ActionMapping{a,mapping}, true);
+  if(input.held(a, owner))
+    return;
+  auto equivalent = InputState::Mask(0xff);
+  const auto inter = pl!=nullptr ? pl->interactive() : nullptr;
+  const bool interacting = inter!=nullptr && c!=nullptr && !c->isFree() &&
+                           (inter->needToLockpick(*pl) || inter->isLadder());
+  if(!g2Ctrl && ws!=WeaponState::NoWeapon && !interacting &&
+     (a==Action::ActionGeneric || a==Action::Parade || a==Action::ActionLeft || a==Action::ActionRight ||
+      a==Action::Forward || a==Action::Back || a==Action::Left || a==Action::Right ||
+      a==Action::RotateL || a==Action::RotateR)) {
+    const auto pad = InputState::sourceMask(InputSource::Gamepad);
+    equivalent = source==InputSource::Gamepad ? pad : InputState::Mask(~pad);
+    }
+  const bool first = (input.owners(a) & equivalent)==0;
+  const bool firstRaw = input.press(a, owner);
+  for(auto& command : actrl)
+    command.share(a, owner, equivalent);
+  if(!first && a!=Action::Idle) {
+    if(source==InputSource::Gamepad &&
+       (a==Action::Weapon || a==Action::WeaponMele || a==Action::WeaponBow ||
+        (a>=Action::WeaponMage3 && a<=Action::WeaponMageNext)))
+      GamepadPlayerInput::cancelWeaponRequests(wctrl, InputState::sourceMask(source));
+    // A new owner shares an existing pending command, but cannot replay a
+    // command already consumed by the gameplay tick.
+    for(auto& command : ctrl)
+      command.share(a, owner);
+    for(auto& command : wctrl)
+      command.share(a, owner);
+    handleMovementAction(KeyCodec::ActionMapping{a,mapping}, true, source);
+    // Return also has a raw-key command. Sharing a mapped action must not
+    // suppress it, while the original interaction/weapon blockers still apply.
+    if(key==Tempest::KeyEvent::K_Return && pl!=nullptr) {
+      auto inter = pl->interactive();
+      const bool interacting = inter!=nullptr && c!=nullptr && !c->isFree() &&
+                               (inter->needToLockpick(*pl) || inter->isLadder());
+      const bool weaponKey = a==Action::Weapon || a==Action::WeaponMele || a==Action::WeaponBow ||
+                             (a>=Action::WeaponMage3 && a<=Action::WeaponMageNext);
+      if(!interacting && !weaponKey)
+        ctrl[Action::K_ENTER].issue(Action::K_ENTER, owner);
+      }
+    return;
+    }
+
+  handleMovementAction(KeyCodec::ActionMapping{a,mapping}, true, source);
 
   if(pl!=nullptr && pl->interactive()!=nullptr && c!=nullptr && !c->isFree()) {
     auto inter = pl->interactive();
@@ -64,57 +114,83 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
       return;
       }
     if(inter->isLadder()) {
-      ctrl[a] = true;
+      ctrl[a].issue(a, owner);
       return;
       }
     }
 
   if(pl!=nullptr) {
+    const auto replaceMask = source==InputSource::Gamepad ? InputState::sourceMask(source) : InputState::Mask(0);
+    const auto requestWeapon = [&](size_t weapon) {
+      if(!g2Ctrl && (ws==WeaponState::Bow || ws==WeaponState::CBow))
+        actrl[ActForward].cancel(InputState::sourceMask(InputSource::Gamepad));
+      GamepadPlayerInput::requestWeapon(wctrl, weapon, a, owner, replaceMask);
+      };
     if(a==Action::Weapon) {
       if(ws!=WeaponState::NoWeapon) //Currently a weapon is active
-        wctrl[WeaponClose] = true;
+        requestWeapon(WeaponClose);
       else {
         if(wctrlLast>=WeaponAction::Weapon3 && pl->inventory().currentSpell(static_cast<uint8_t>(wctrlLast-3))==nullptr)
           wctrlLast=WeaponAction::WeaponBow;  //Spell no longer available -> fallback to Bow.
         if(wctrlLast==WeaponAction::WeaponBow && pl->currentRangedWeapon()==nullptr)
           wctrlLast=WeaponAction::WeaponMele; //Bow no longer available -> fallback to Mele.
-        wctrl[wctrlLast] = true;
+        requestWeapon(wctrlLast);
         }
       return;
       }
 
     if(a==Action::WeaponMele) {
       if(ws==WeaponState::Fist || ws==WeaponState::W1H || ws==WeaponState::W2H)
-        wctrl[WeaponClose] = true; else
-        wctrl[WeaponMele ] = true;
+        requestWeapon(WeaponClose); else
+        requestWeapon(WeaponMele);
       return;
       }
 
     if(a==Action::WeaponBow) {
       if(ws==WeaponState::Bow || ws==WeaponState::CBow)
-        wctrl[WeaponClose] = true; else
-        wctrl[WeaponBow  ] = true;
+        requestWeapon(WeaponClose); else
+        requestWeapon(WeaponBow);
+      return;
+      }
+
+    if(a==Action::WeaponMagePrev || a==Action::WeaponMageNext) {
+      uint8_t occupied = 0;
+      for(uint8_t i=0; i<8; ++i)
+        if(pl->inventory().currentSpell(i)!=nullptr)
+          occupied |= uint8_t(1u<<i);
+      // A second edge may arrive before the first draw request is ticked.
+      const uint8_t pivot = GamepadPlayerInput::pendingSpell(wctrl, Weapon3, InputState::sourceMask(source), slot);
+      const auto next = GamepadPlayerInput::nextSpell(occupied, pivot, a==Action::WeaponMagePrev);
+      if(next==0)
+        return;
+      requestWeapon(Weapon3+next-3);
       return;
       }
 
     if(a>=Action::WeaponMage3 && a<=Action::WeaponMage10) {
       int id = (a-Action::WeaponMage3+3);
       if(ws==WeaponState::Mage && slot==id)
-        wctrl[WeaponClose] = true; else
-        wctrl[id         ] = true;
+        requestWeapon(WeaponClose); else
+        requestWeapon(size_t(id));
       return;
       }
 
     if(key==Tempest::KeyEvent::K_Return)
-      ctrl[Action::K_ENTER] = true;
+      ctrl[Action::K_ENTER].issue(Action::K_ENTER, owner);
     }
 
   // this odd behaviour is from original game, seem more like a bug
   // const bool actTunneling = (pl!=nullptr && pl->isAttackAnim());
   const bool actTunneling = false;
 
+  const bool directCombat = source==InputSource::Gamepad;
   int fk = -1;
-  if((ctrl[KeyCodec::ActionGeneric] || actTunneling) && !g2Ctrl) {
+  if(directCombat) {
+    const bool finish = pl!=nullptr && pl->target()!=nullptr && pl->canFinish(*pl->target()) && !pl->isAttackAnim();
+    const bool bowShot = !g2Ctrl && (ws==WeaponState::Bow || ws==WeaponState::CBow);
+    fk = GamepadPlayerInput::combat(a, ws, !bowShot && wantsToMoveForward(), finish, pl!=nullptr && pl->hasState(BS_RUN));
+    }
+  if((ctrl[KeyCodec::ActionGeneric] || actTunneling) && !g2Ctrl && !directCombat) {
     if(a==Action::Forward) {
       if(pl!=nullptr && pl->target()!=nullptr && pl->canFinish(*pl->target()) && !pl->isAttackAnim()) {
         fk = ActKill;
@@ -134,7 +210,7 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
       }
     }
 
-  if(g2Ctrl) {
+  if(g2Ctrl && !directCombat) {
     if(ws!=WeaponState::NoWeapon) {
       if(a==Action::ActionGeneric) {
         if(pl!=nullptr && pl->target()!=nullptr && pl->canFinish(*pl->target()) && !pl->isAttackAnim()) {
@@ -159,21 +235,36 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
     }
 
   if(fk>=0) {
-    std::memset(actrl,0,sizeof(actrl));
-    actrl[ActGeneric] = ctrl[KeyCodec::ActionGeneric];
-    actrl[fk]         = true;
+    for(auto& command : actrl)
+      command.cancel(owner);
+    if(ctrl[KeyCodec::ActionGeneric])
+      actrl[ActGeneric].merge(ctrl[KeyCodec::ActionGeneric]);
+    actrl[fk].issue(a, owner);
+    if(!g2Ctrl && !directCombat)
+      actrl[fk].require(Action::ActionGeneric, input.owners(Action::ActionGeneric), owner);
+    if(fk==ActMove)
+      actrl[fk].require(Action::Forward, input.owners(Action::Forward), owner);
 
-    ctrl[a] = true;
+    ctrl[a].issue(a, owner);
     return;
     }
 
   if(a==KeyCodec::ActionGeneric) {
+    // Adding a keyboard modifier to a held direct pad action must not replace
+    // that keyboard owner's already pending G1 direction combination.
+    if(!firstRaw && !g2Ctrl && !directCombat) {
+      ctrl[a].share(a, owner);
+      return;
+      }
     FocusAction fk = ActGeneric;
     if(this->wantsToMoveForward())
       fk = ActMove;
-    std::memset(actrl,0,sizeof(actrl));
-    actrl[fk] = true;
-    ctrl[a]   = true;
+    for(auto& command : actrl)
+      command.cancel(owner);
+    actrl[fk].issue(a, owner);
+    if(fk==ActMove)
+      actrl[fk].require(Action::Forward, input.owners(Action::Forward), owner);
+    ctrl[a].issue(a, owner);
     return;
     }
 
@@ -196,39 +287,46 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
   if(a==Action::K_O && Gothic::inst().isMarvinEnabled())
     marvinO();
 
-  ctrl[a] = true;
+  if(a!=Action::Idle)
+    ctrl[a].issue(a, owner);
   }
 
-void PlayerControl::onKeyReleased(KeyCodec::Action a, KeyCodec::Mapping mapping) {
-  ctrl[a] = false;
-
-  handleMovementAction(KeyCodec::ActionMapping{a, mapping}, false);
+bool PlayerControl::onKeyReleased(KeyCodec::Action a, KeyCodec::Mapping mapping, InputSource source) {
+  const auto owner = InputState::owner(source, mapping==KeyCodec::Mapping::Secondary);
+  if(!input.held(a, owner))
+    return false;
+  handleMovementAction(KeyCodec::ActionMapping{a, mapping}, false, source);
+  const bool last = input.release(a, owner);
+  ctrl[a].release(a, owner);
 
   auto w  = Gothic::inst().world();
   auto pl = w ? w->player() : nullptr;
 
-  if(a==KeyCodec::Map && pl!=nullptr) {
+  if(last && a==KeyCodec::Map && pl!=nullptr) {
     w->script().playerHotKeyScreenMap(*pl);
     }
-  if(a==KeyCodec::Heal && pl!=nullptr) {
+  if(last && a==KeyCodec::Heal && pl!=nullptr) {
     w->script().playerHotLameHeal(*pl);
     }
-  if(a==KeyCodec::Potion && pl!=nullptr) {
+  if(last && a==KeyCodec::Potion && pl!=nullptr) {
     w->script().playerHotLamePotion(*pl);
     }
 
   auto ws = pl==nullptr ? WeaponState::NoWeapon : pl->weaponState();
   if(ws==WeaponState::Bow || ws==WeaponState::CBow || ws==WeaponState::Mage) {
     if(a==KeyCodec::ActionGeneric || (!g2Ctrl && ws==WeaponState::Mage && a==KeyCodec::Forward))
-      std::memset(actrl,0,sizeof(actrl));
+      for(auto& command : actrl)
+        command.release(a, owner);
     } else {
-    std::memset(actrl,0,sizeof(actrl));
+    for(auto& command : actrl)
+      command.release(a, owner);
     }
+  return last;
   }
 
-auto PlayerControl::handleMovementAction(KeyCodec::ActionMapping actionMapping, bool pressed) -> void {
+auto PlayerControl::handleMovementAction(KeyCodec::ActionMapping actionMapping, bool pressed, InputSource source) -> void {
   auto[action, mapping] = actionMapping;
-  auto mappingIndex = (mapping == KeyCodec::Mapping::Primary ? size_t(0) : size_t(1));
+  auto mappingIndex = InputState::ownerIndex(source, mapping==KeyCodec::Mapping::Secondary);
   if (action == Action::Forward)
     movement.forwardBackward.main[mappingIndex] = pressed;
   else if (action == Action::Back)
@@ -278,13 +376,13 @@ void PlayerControl::tickFocus() {
 
   auto focus = currentFocus;
   if(focus.interactive!=nullptr && interact(*focus.interactive)) {
-    clearInput();
+    clearCommands();
     }
   else if(focus.npc!=nullptr && interact(*focus.npc)) {
-    clearInput();
+    clearCommands();
     }
   else if(focus.item!=nullptr && interact(*focus.item)) {
-    clearInput();
+    clearCommands();
     }
 
   if(focus.npc)
@@ -440,10 +538,35 @@ bool PlayerControl::canInteract() const {
   }
 
 void PlayerControl::clearInput() {
+  input.clear();
+  clearCommands();
+  }
+
+void PlayerControl::clearCommands() {
+  // Gameplay consumes commands without ending the physical Down/Up pair.
+  // In particular, cutscenes must still permit release-triggered menus.
   movement.reset();
-  std::memset(ctrl, 0,sizeof(ctrl));
-  std::memset(actrl,0,sizeof(actrl));
-  std::memset(wctrl,0,sizeof(wctrl));
+  for(auto& command : ctrl)
+    command = false;
+  for(auto& command : actrl)
+    command = false;
+  for(auto& command : wctrl)
+    command = false;
+  }
+
+void PlayerControl::cancelInput(InputSource source) {
+  const auto mask = InputState::sourceMask(source);
+  input.cancel(mask);
+  for(auto& command : ctrl)
+    command.cancel(mask);
+  for(auto& command : actrl)
+    command.cancel(mask);
+  for(auto& command : wctrl)
+    command.cancel(mask);
+  for(size_t a=0; a<Action::Last; ++a) {
+    handleMovementAction({Action(a), KeyCodec::Mapping::Primary}, false, source);
+    handleMovementAction({Action(a), KeyCodec::Mapping::Secondary}, false, source);
+    }
   }
 
 void PlayerControl::marvinF8(uint64_t dt) {
@@ -553,7 +676,7 @@ bool PlayerControl::tickCameraMove(uint64_t dt) {
   return true;
   }
 
-bool PlayerControl::tickMove(uint64_t dt) {
+bool PlayerControl::tickMove(uint64_t dt, float gamepadYaw, float gamepadPitch) {
   auto w = Gothic::inst().world();
   if(w==nullptr)
     return false;
@@ -562,8 +685,11 @@ bool PlayerControl::tickMove(uint64_t dt) {
   Npc*  pl     = w->player();
   auto  camera = Gothic::inst().camera();
 
-  if(w->isCutsceneLock())
-    clearInput();
+  if(w->isCutsceneLock()) {
+    clearCommands();
+    gamepadYaw = 0.f;
+    gamepadPitch = 0.f;
+    }
 
   if(tickCameraMove(dt))
     return true;
@@ -579,7 +705,7 @@ bool PlayerControl::tickMove(uint64_t dt) {
   if(pl==nullptr)
     return true;
 
-  implMove(dt);
+  implMove(dt, gamepadYaw, gamepadPitch);
 
   float runAngle = pl->runAngle();
   if(runAngle!=0.f || std::fabs(runAngleDest)>0.01f) {
@@ -602,7 +728,7 @@ bool PlayerControl::tickMove(uint64_t dt) {
   return true;
   }
 
-void PlayerControl::implMove(uint64_t dt) {
+void PlayerControl::implMove(uint64_t dt, float gamepadYaw, float gamepadPitch) {
   auto  w         = Gothic::inst().world();
   Npc&  pl        = *w->player();
   float rot       = pl.rotation();
@@ -699,7 +825,10 @@ void PlayerControl::implMove(uint64_t dt) {
       rot += rotMouse;
       rotMouse  = 0;
       }
-    rotY+=rotMouseY;
+    rot += gamepadYaw;
+    if(gamepadYaw!=0.f)
+      rotation = gamepadYaw>0.f ? -1 : 1;
+    rotY += rotMouseY + gamepadPitch;
     } else {
     rotMouse  = 0;
     rotMouseY = 0;
@@ -726,7 +855,8 @@ void PlayerControl::implMove(uint64_t dt) {
     }
 
   if((ws==WeaponState::Bow || ws==WeaponState::CBow) && pl.hasAmmunition()) {
-    if(actrl[ActGeneric] || actrl[ActForward]) {
+    if(actrl[ActGeneric] || actrl[ActForward] ||
+       (!g2Ctrl && ctrl[KeyCodec::ActionGeneric].hasOrigin(InputState::sourceMask(InputSource::Gamepad)))) {
       if(auto other = pl.target()) {
         auto dp = other->position()-pl.position();
         pl.turnTo(dp.x,dp.z,true,dt);
@@ -781,10 +911,16 @@ void PlayerControl::implMove(uint64_t dt) {
     }
 
   if(actrl[ActForward] || actrl[ActMove]) {
+    const auto pad = InputState::sourceMask(InputSource::Gamepad);
+    const bool pendingBow = !g2Ctrl && (ws==WeaponState::Bow || ws==WeaponState::CBow) &&
+                            pl.hasAmmunition() && actrl[ActForward].hasOrigin(pad);
     ctrl [Action::Forward] = actrl[ActMove];
     actrl[ActMove]         = false;
     if(ws!=WeaponState::Mage && !(g2Ctrl && (ws==WeaponState::Bow || ws==WeaponState::CBow))) {
-      actrl[ActForward] = false;
+      if(pendingBow)
+        actrl[ActForward].cancel(InputState::Mask(~pad));
+      else
+        actrl[ActForward] = false;
       if(!ctrl[Action::Forward])
         movement.reset();
       }
@@ -801,7 +937,16 @@ void PlayerControl::implMove(uint64_t dt) {
         }
       case WeaponState::Bow:
       case WeaponState::CBow: {
-        pl.shootBow(currentFocus.interactive);
+        if(pendingBow) {
+          // aimBow can start a non-interruptible transition. shootBow also
+          // returns true for an invalid body state without emitting a bullet.
+          const auto aiming = pl.bodyStateMasked();
+          if((aiming==BS_AIMNEAR || aiming==BS_AIMFAR) && pl.shootBow(currentFocus.interactive))
+            actrl[ActForward].cancel(pad);
+          }
+        else {
+          pl.shootBow(currentFocus.interactive);
+          }
         return;
         }
       case WeaponState::Mage: {
@@ -1038,14 +1183,6 @@ void PlayerControl::processPickLock(Npc& pl, Interactive& inter, KeyCodec::Actio
       script.invokePickLock(pl,1,0);
       }
     }
-  }
-
-void PlayerControl::processLadder(Npc& pl, Interactive& inter, KeyCodec::Action key) {
-  if(key!=KeyCodec::ActionGeneric && key!=KeyCodec::Forward && key!=KeyCodec::Back)
-    return;
-
-  ctrl[key] = true;
-  inter.onKeyInput(key);
   }
 
 void PlayerControl::quitPicklock(Npc& pl) {

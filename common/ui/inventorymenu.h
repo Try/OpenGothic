@@ -1,11 +1,14 @@
 #pragma once
 
+#include "utils/keycodec.h"
+
 #include <Tempest/Widget>
 #include <Tempest/Texture2d>
 #include <Tempest/Timer>
 
 #include "graphics/inventoryrenderer.h"
 #include "game/inventory.h"
+#include "gamepadinventoryinput.h"
 
 class Npc;
 class Item;
@@ -16,6 +19,10 @@ class KeyCodec;
 
 class InventoryMenu : public Tempest::Widget {
   public:
+    void onGamepad(KeyCodec::Action action);
+    void cancelGamepadInput();
+    uint64_t inputRevision() const { return inputRevisionCounter; }
+    bool hasGamepadModal() const { return gamepadInput.mode()!=GamepadInventoryInput::Mode::Browse; }
     InventoryMenu(const KeyCodec& key);
     ~InventoryMenu();
 
@@ -65,6 +72,8 @@ class InventoryMenu : public Tempest::Widget {
     void  mouseWheelEvent(Tempest::MouseEvent& event) override;
 
   private:
+    uint64_t inputRevisionCounter = 0;
+    GamepadInventoryInput gamepadInput;
     struct Page;
     struct InvPage;
     struct TradePage;
@@ -109,13 +118,17 @@ class InventoryMenu : public Tempest::Widget {
     PageLocal&                activePageSel();
 
     void          processMove(Tempest::KeyEvent& e);
+    bool          gamepadSelection(GamepadInventoryInput::Selection& selection);
+    void          processGamepadModal(KeyCodec::Action action);
+    void          drawGamepadModal(Tempest::Painter& p);
     void          moveLeft(bool usePage);
     void          moveRight(bool usePage);
     void          moveUp();
     void          moveDown();
 
-    void          onItemAction(uint8_t slotHint);
+    void          onItemAction(uint8_t slotHint, bool repeat = true);
     void          onTakeStuff();
+    void          transferItems(size_t itemCount);
     void          adjustScroll();
     void          drawAll   (Tempest::Painter& p, Npc& player, DrawPass pass);
     void          drawItems (Tempest::Painter& p, DrawPass pass, const Page &inv, const PageLocal &sel, int x, int y, int wcount, int hcount);

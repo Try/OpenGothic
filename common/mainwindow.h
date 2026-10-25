@@ -32,10 +32,12 @@
 #include "ui/documentmenu.h"
 #include "ui/videowidget.h"
 #include "ui/menuroot.h"
+#include "ui/gamepadmenuinput.h"
 #include "ui/consolewidget.h"
 #include "ui/touchinput.h"
 
 #include "utils/keycodec.h"
+#include "utils/gamepadinput.h"
 #include "resources.h"
 
 class MenuRoot;
@@ -90,6 +92,12 @@ class MainWindow : public Tempest::Window {
 
     void processMouse(Tempest::MouseEvent& event, bool enable);
     void tickMouse(uint64_t dt);
+    GamepadInput::Screen gamepadContext() const;
+    void processGamepad();
+    void processGamepadMenu();
+    void dispatchGamepad(const GamepadInput::Command& command);
+    void drawGamepadHints(Tempest::Painter& p);
+    bool openGameMenu(KeyCodec::Action action);
     void onSettings();
 
     void setupUi();
@@ -142,6 +150,9 @@ class MainWindow : public Tempest::Window {
     bool                      mouseP[Tempest::MouseEvent::ButtonBack]={};
 
     KeyCodec                  keycodec;
+    GamepadInput              gamepad;
+    GamepadMenuInput          gamepadMenu;
+    uint64_t                  gamepadEpoch = 0;
 
     MenuRoot                  rootMenu;
     VideoWidget               video;

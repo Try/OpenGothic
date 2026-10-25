@@ -2,6 +2,7 @@
 
 #include "world/focus.h"
 #include "utils/keycodec.h"
+#include "utils/actioninput.h"
 #include "constants.h"
 
 #include <array>
@@ -18,11 +19,14 @@ class Gothic;
 
 class PlayerControl final {
   public:
+    using InputState = ActionInput<KeyCodec::Last, KeyCodec::Idle>;
+    using InputSource = InputState::Source;
+
     PlayerControl(DialogMenu& dlg, InventoryMenu& inv);
     ~PlayerControl();
 
-    void  onKeyPressed (KeyCodec::Action a, Tempest::Event::KeyType key, KeyCodec::Mapping mapping);
-    void  onKeyReleased(KeyCodec::Action a, KeyCodec::Mapping mapping);
+    void  onKeyPressed (KeyCodec::Action a, Tempest::Event::KeyType key, KeyCodec::Mapping mapping, InputSource source = InputSource::Keyboard);
+    bool  onKeyReleased(KeyCodec::Action a, KeyCodec::Mapping mapping, InputSource source = InputSource::Keyboard);
     bool  isPressed(KeyCodec::Action a) const;
     void  onRotateMouse(float dAngleX, float dAngleY);
 
@@ -37,6 +41,7 @@ class PlayerControl final {
     bool  interact(Item&        item);
 
     void  clearInput();
+    void  cancelInput(InputSource source);
 
     void  setTarget(Npc* other);
     void  actionFocus(Npc& other);
@@ -45,7 +50,7 @@ class PlayerControl final {
     Focus focus() const;
     bool  hasActionFocus() const;
 
-    bool  tickMove(uint64_t dt);
+    bool  tickMove(uint64_t dt, float gamepadYaw=0.f, float gamepadPitch=0.f);
     bool  tickCameraMove(uint64_t dt);
 
   private:
@@ -79,10 +84,10 @@ class PlayerControl final {
 
     struct AxisStatus { 
         /// Main direction (e.g. W or Up arrow)
-        std::array<bool, KeyCodec::NumMappings> main;
+        std::array<bool, InputState::NumOwners> main = {};
         
         /// Reverse direction (e.g. S or Down arrow)
-        std::array<bool, KeyCodec::NumMappings> reverse;
+        std::array<bool, InputState::NumOwners> reverse = {};
 
         /// Current axis value (scale from -1 to 1)
         auto value() const -> float {
@@ -135,9 +140,10 @@ class PlayerControl final {
         }
       } movement;
     
-    bool           ctrl[Action::Last]={};
-    bool           wctrl[WeaponAction::Last]={};
-    bool           actrl[7]={};
+    InputState     input;
+    InputState::Command ctrl[Action::Last];
+    InputState::Command wctrl[WeaponAction::Last];
+    InputState::Command actrl[7];
 
     WeaponAction   wctrlLast = WeaponAction::WeaponMele; //!< Reminder for weapon toggle.
 
@@ -157,6 +163,7 @@ class PlayerControl final {
     InventoryMenu& inv;
 
     void           setupSettings();
+    void           clearCommands();
     bool           canInteract() const;
     void           marvinF8(uint64_t dt);
     void           marvinK(uint64_t dt);
@@ -167,10 +174,9 @@ class PlayerControl final {
     Focus          findFocus(const Focus* prev) const;
 
     void           clrDraw();
-    void           implMove(uint64_t dt);
+    void           implMove(uint64_t dt, float gamepadYaw, float gamepadPitch);
     void           implMoveMobsi(Npc& pl, uint64_t dt);
     void           processPickLock(Npc& pl, Interactive& inter, KeyCodec::Action key);
-    void           processLadder(Npc& pl, Interactive& inter, KeyCodec::Action key);
     void           quitPicklock(Npc& pl);
     void           setPos(std::array<float,3> a, uint64_t dt, float speed);
     void           assignRunAngle(Npc& pl, float rotation, uint64_t dt);
@@ -207,5 +213,5 @@ class PlayerControl final {
     ///        Meant to be used when key is pressed or released.
     /// @param actionMapping - the pressed/released action
     /// @param pressed - true if the key was pressed, false if it was released
-    auto handleMovementAction(KeyCodec::ActionMapping actionMapping, bool pressed) -> void;
+    auto handleMovementAction(KeyCodec::ActionMapping actionMapping, bool pressed, InputSource source) -> void;
   };

@@ -95,6 +95,8 @@ void DialogMenu::tick(uint64_t dt) {
     }
 
   if(current.time<=dt){
+    if(current.time>0)
+      ++inputRevisionCounter;
     current.time = 0;
     if(dlgTrade && !haveToWaitOutput()) {
       startTrade();
@@ -198,6 +200,7 @@ void DialogMenu::dialogCamera(Camera& camera) {
   }
 
 void DialogMenu::openPipe(Npc &player, Npc &npc, AiOuputPipe *&out) {
+  ++inputRevisionCounter;
   out    = &pipe;
   pl     = &player;
   other  = &npc;
@@ -227,6 +230,7 @@ bool DialogMenu::aiOutput(Npc &npc, std::string_view msg) {
       pl->stopDlgAnim();
     }
 
+  ++inputRevisionCounter;
   current.txt     = Gothic::inst().messageByName(msg);
   current.msgTime = Gothic::inst().messageTime(msg);
   current.time    = current.msgTime + (dlgAnimation ? ANIM_TIME*2 : 0);
@@ -268,6 +272,7 @@ bool DialogMenu::hasContent() const {
   }
 
 bool DialogMenu::onStart(Npc &p, Npc &ot) {
+  ++inputRevisionCounter;
   choice         = ot.dialogChoices(p,except,state==State::PreStart);
   state          = State::Active;
   depth          = 0;
@@ -337,6 +342,7 @@ void DialogMenu::print(std::string_view msg) {
   }
 
 void DialogMenu::onDoneText() {
+  ++inputRevisionCounter;
   choice = Gothic::inst().updateDialog(selected,*pl,*other);
   dlgSel = 0;
   if(choice.size()==0){
@@ -349,6 +355,8 @@ void DialogMenu::onDoneText() {
   }
 
 void DialogMenu::close() {
+  if(isActive())
+    ++inputRevisionCounter;
   auto prevPl  = pl;
   auto prevNpc = other;
 
@@ -397,6 +405,7 @@ void DialogMenu::startTrade() {
 
 void DialogMenu::skipPhrase() {
   if(current.time>0) {
+    ++inputRevisionCounter;
     if(pl!=nullptr)
       pl->setAiOutputBarrier(0,false);
     if(other!=nullptr)
@@ -408,6 +417,7 @@ void DialogMenu::skipPhrase() {
 
 void DialogMenu::onEntry(const GameScript::DlgChoice &e) {
   if(pl && other) {
+    ++inputRevisionCounter;
     selected = e;
     depth    = 1;
     dlgTrade = e.isTrade;
@@ -604,3 +614,26 @@ void DialogMenu::keyUpEvent(KeyEvent &event) {
     }
   }
 
+
+void DialogMenu::onGamepad(KeyCodec::Action action) {
+  if(state==State::Idle || trade.isOpen()!=InventoryMenu::State::Closed)
+    return;
+  if(action==KeyCodec::ActionGeneric) {
+    onSelect();
+    return;
+    }
+  if(action==KeyCodec::Escape) {
+    skipPhrase();
+    return;
+    }
+  if(action!=KeyCodec::Forward && action!=KeyCodec::Back)
+    return;
+  const size_t count = choice.size();
+  if(count==0)
+    return;
+  if(action==KeyCodec::Forward)
+    dlgSel = (dlgSel+count-1)%count;
+  else
+    dlgSel = (dlgSel+1)%count;
+  update();
+  }

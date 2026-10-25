@@ -62,12 +62,20 @@ class KeyCodec final {
       WeaponMage8,
       WeaponMage9,
       WeaponMage10,
+      WeaponMagePrev,
+      WeaponMageNext,
 
       K_ENTER, // transform back
       K_F8,    // Marvin Mode's F8
       K_K,     // Marvin Mode's K
       K_O,     // Marvin Mode's O
       K_Del, // Settings menu
+
+      UiPrevious,
+      UiNext,
+      UiAmount,
+      UiAssign,
+      UiSettings,
 
       Last
       };

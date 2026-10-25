@@ -290,6 +290,8 @@ void VideoWidget::tick() {
     hasPendingVideo.store(false);
   }
 
+  // Queue callbacks may run off-thread; revisions belong to main-thread playback.
+  ++inputRevisionCounter;
   std::unique_ptr<zenkit::Read> read;
   if(auto* entry = Resources::vdfsIndex().find(filename)) {
     read = entry->open_read();
@@ -338,6 +340,8 @@ void VideoWidget::mouseDownEvent(Tempest::MouseEvent& event) {
   }
 
 void VideoWidget::stopVideo() {
+  if(ctx!=nullptr || active)
+    ++inputRevisionCounter;
   ctx.reset();
   if(!hasPendingVideo) {
     if(restoreMusic && !GameMusic::inst().isEnabled())
@@ -377,4 +381,9 @@ void VideoWidget::paintEvent(PaintEvent& e) {
   p.setBrush(Brush(*frame,Painter::NoBlend,ClampMode::ClampToEdge));
   p.drawRect(0,(h()-vh)/2,w(),vh,
              0,0,p.brush().w(),p.brush().h());
+  }
+
+void VideoWidget::onGamepad(KeyCodec::Action action) {
+  if(isActive() && action==KeyCodec::Escape)
+    stopVideo();
   }

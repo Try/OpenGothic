@@ -1,5 +1,7 @@
 #pragma once
 
+#include "utils/keycodec.h"
+
 #include <Tempest/Font>
 #include <Tempest/Texture2d>
 #include <Tempest/Timer>
@@ -17,6 +19,8 @@ class GthFont;
 
 class DialogMenu : public Tempest::Widget {
   public:
+    void onGamepad(KeyCodec::Action action);
+    uint64_t inputRevision() const { return inputRevisionCounter; }
     DialogMenu(InventoryMenu& trade);
     ~DialogMenu();
 
@@ -53,6 +57,7 @@ class DialogMenu : public Tempest::Widget {
     bool isChoiceMenuActive() const;
 
   private:
+    uint64_t inputRevisionCounter = 0;
     const Tempest::Texture2d* tex    =nullptr;
     const Tempest::Texture2d* ambient=nullptr;
 

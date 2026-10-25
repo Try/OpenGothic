@@ -13,6 +13,7 @@ ChapterScreen::ChapterScreen() {
   }
 
 void ChapterScreen::show(const Show& s) {
+  ++inputRevisionCounter;
   back = Resources::loadTexture(s.img);
   if(!active)
     Gothic::inst().pushPause();
@@ -58,6 +59,7 @@ void ChapterScreen::paintEvent(Tempest::PaintEvent &e) {
 void ChapterScreen::close() {
   if(!active)
     return;
+  ++inputRevisionCounter;
   Gothic::inst().popPause();
   active=false;
   }
@@ -76,4 +78,9 @@ void ChapterScreen::keyDownEvent(KeyEvent &e) {
   }
 
 void ChapterScreen::keyUpEvent(KeyEvent&) {
+  }
+
+void ChapterScreen::onGamepad(KeyCodec::Action action) {
+  if(active && action==KeyCodec::Escape)
+    close();
   }

@@ -96,6 +96,7 @@ InventoryMenu::~InventoryMenu() {
   }
 
 void InventoryMenu::close() {
+  cancelGamepadInput();
   if(state!=State::Closed) {
     if(state==State::Trade)
       Gothic::inst().emitGlobalSound("TRADE_CLOSE"); else
@@ -103,6 +104,8 @@ void InventoryMenu::close() {
     }
   renderer.reset(true);
   takeTimer.stop();
+  if(state!=State::Closed)
+    ++inputRevisionCounter;
   state  = State::Closed;
   }
 
@@ -111,10 +114,12 @@ void InventoryMenu::open(Npc &pl) {
     return;
   if(pl.bodyStateMasked()==BS_UNCONSCIOUS || pl.bodyStateMasked()==BS_LIE)
     return;
+  cancelGamepadInput();
   if(pl.weaponState()!=WeaponState::NoWeapon) {
     pl.stopAnim("");
     pl.closeWeapon(false);
     }
+  ++inputRevisionCounter;
   state  = State::Equip;
   player = &pl;
   trader = nullptr;
@@ -132,6 +137,8 @@ void InventoryMenu::open(Npc &pl) {
 void InventoryMenu::trade(Npc &pl, Npc &tr) {
   if(pl.isDown())
     return;
+  cancelGamepadInput();
+  ++inputRevisionCounter;
   state  = State::Trade;
   player = &pl;
   trader = &tr;
@@ -150,6 +157,8 @@ bool InventoryMenu::ransack(Npc &pl, Npc &tr) {
   auto it = tr.inventory().iterator(Inventory::T_Ransack);
   if(!it.isValid())
     return false;
+  cancelGamepadInput();
+  ++inputRevisionCounter;
   state  = State::Ransack;
   player = &pl;
   trader = &tr;
@@ -169,7 +178,9 @@ void InventoryMenu::open(Npc &pl, Interactive &ch) {
   const bool needToPicklock = ch.needToLockpick(pl);
   if(!pl.setInteraction(&ch))
     return;
+  cancelGamepadInput();
 
+  ++inputRevisionCounter;
   if(needToPicklock && !ch.isCracked()) {
     state = State::LockPicking;
     } else {
@@ -209,6 +220,7 @@ void InventoryMenu::tick(uint64_t /*dt*/) {
 
   if(state==State::LockPicking) {
     if(chest->isCracked()) {
+      ++inputRevisionCounter;
       state = State::Chest;
       return;
       }
@@ -303,6 +315,16 @@ void InventoryMenu::keyDownEvent(KeyEvent &e) {
     return;
     }
 
+  if(gamepadInput.mode()!=GamepadInventoryInput::Mode::Browse) {
+    auto action = keycodec.tr(e);
+    if(e.key==KeyEvent::K_Return)
+      action = KeyCodec::ActionGeneric;
+    if(e.key==KeyEvent::K_ESCAPE || action==KeyCodec::Inventory)
+      action = KeyCodec::Escape;
+    processGamepadModal(action);
+    return;
+    }
+
   processMove(e);
 
   if(keycodec.tr(e)==KeyCodec::Jump) {
@@ -345,6 +367,12 @@ void InventoryMenu::keyDownEvent(KeyEvent &e) {
 void InventoryMenu::keyRepeatEvent(KeyEvent& e) {
   if(state==State::LockPicking || state==State::Closed)
     return;
+  if(gamepadInput.mode()!=GamepadInventoryInput::Mode::Browse) {
+    const auto action = keycodec.tr(e);
+    if(action==KeyCodec::Forward || action==KeyCodec::Back || action==KeyCodec::Left || action==KeyCodec::Right)
+      processGamepadModal(action);
+    return;
+    }
   processMove(e);
   adjustScroll();
   update();
@@ -363,6 +391,14 @@ void InventoryMenu::mouseDownEvent(MouseEvent &e) {
 
   if(state==State::LockPicking)
     return;
+
+  if(gamepadInput.mode()!=GamepadInventoryInput::Mode::Browse) {
+    if(e.button==MouseEvent::ButtonLeft)
+      processGamepadModal(KeyCodec::ActionGeneric);
+    else if(e.button==MouseEvent::ButtonRight)
+      processGamepadModal(KeyCodec::Escape);
+    return;
+    }
 
   if (e.button==MouseEvent::ButtonLeft)
     onItemAction(Item::NSLOT);
@@ -386,6 +422,12 @@ void InventoryMenu::mouseWheelEvent(MouseEvent &e) {
   if(state==State::LockPicking)
     return;
 
+  if(gamepadInput.mode()!=GamepadInventoryInput::Mode::Browse) {
+    if(e.delta!=0)
+      processGamepadModal(e.delta>0 ? KeyCodec::Forward : KeyCodec::Back);
+    return;
+    }
+
   scrollDelta += e.delta;
   if(scrollDelta>0) {
     for(int i=0;i<scrollDelta/120;++i)
@@ -401,7 +443,7 @@ void InventoryMenu::mouseWheelEvent(MouseEvent &e) {
 
 size_t InventoryMenu::rowsCount() const {
   int iy=30+34+70;
-  return size_t((h()-iy-infoHeight()-20)/slotSize().h);
+  return size_t(std::max(1,(h()-iy-infoHeight()-20)/std::max(1,slotSize().h)));
   }
 
 void InventoryMenu::paintEvent(PaintEvent &e) {
@@ -419,6 +461,7 @@ void InventoryMenu::paintNumOverlay(PaintEvent& e) {
 
   Painter p(e);
   drawAll(p,*player,DrawPass::Front);
+  drawGamepadModal(p);
   }
 
 Size InventoryMenu::slotSize() const {
@@ -454,7 +497,7 @@ InventoryMenu::PageLocal &InventoryMenu::activePageSel() {
   return pageLocal[1];
   }
   
-void InventoryMenu::onItemAction(uint8_t slotHint) {
+void InventoryMenu::onItemAction(uint8_t slotHint, bool repeat) {
   auto& page = activePage();
   auto& sel  = activePageSel();
 
@@ -474,9 +517,13 @@ void InventoryMenu::onItemAction(uint8_t slotHint) {
       }
     }
   else if(state==State::Chest || state==State::Trade || state==State::Ransack) {
-    lootMode = LootMode::Normal;
-    takeTimer.start(200);
-    onTakeStuff();
+    if(repeat) {
+      lootMode = LootMode::Normal;
+      takeTimer.start(200);
+      onTakeStuff();
+      } else {
+      transferItems(1);
+      }
     }
   }
 
@@ -505,9 +552,17 @@ void InventoryMenu::onTakeStuff() {
     itemCount = 100;
     }
 
-  if(it.count() < itemCount) {
+  transferItems(itemCount);
+  }
+
+void InventoryMenu::transferItems(size_t itemCount) {
+  auto& page = activePage();
+  auto& sel = activePageSel();
+  auto it = page.get(sel.sel);
+  if(!it.isValid())
+    return;
+  if(it.count() < itemCount)
     itemCount = it.count();
-    }
 
   if(state==State::Chest) {
     if(page.is(&player->inventory())) {
@@ -754,4 +809,147 @@ void InventoryMenu::drawInfo(Painter &p) {
 
 void InventoryMenu::draw(Tempest::Encoder<CommandBuffer>& cmd) {
   renderer.draw(cmd);
+  }
+
+void InventoryMenu::onGamepad(KeyCodec::Action action) {
+  if(state==State::Closed || state==State::LockPicking)
+    return;
+  if(gamepadInput.mode()!=GamepadInventoryInput::Mode::Browse) {
+    processGamepadModal(action);
+    return;
+    }
+  // A controller command must not leave a keyboard transfer timer acting on
+  // the newly selected item or panel.
+  takeTimer.stop();
+  takeCount = 0;
+  switch(action) {
+    case KeyCodec::Forward: moveUp(); break;
+    case KeyCodec::Back: moveDown(); break;
+    case KeyCodec::Left: moveLeft(true); break;
+    case KeyCodec::Right: moveRight(true); break;
+    case KeyCodec::ActionGeneric: onItemAction(Item::NSLOT, false); break;
+    case KeyCodec::UiPrevious: page = 0; break;
+    case KeyCodec::UiNext: page = uint8_t(pagesCount()-1); break;
+    case KeyCodec::UiAmount:
+    case KeyCodec::UiAssign: {
+      GamepadInventoryInput::Selection selection;
+      if(!gamepadSelection(selection))
+        return;
+      if(action==KeyCodec::UiAssign) {
+        const auto it = activePage().get(selection.index);
+        if(state!=State::Equip || !it->isSpellOrRune())
+          return;
+        gamepadInput.beginSpell(selection);
+        } else if(!gamepadInput.beginQuantity(selection)) {
+        return;
+        }
+      takeTimer.stop();
+      takeCount = 0;
+      lootMode = LootMode::Normal;
+      ++inputRevisionCounter;
+      break;
+      }
+    case KeyCodec::Escape: close(); break;
+    default: return;
+    }
+  adjustScroll();
+  update();
+  }
+
+void InventoryMenu::cancelGamepadInput() {
+  takeTimer.stop();
+  takeCount = 0;
+  lootMode = LootMode::Normal;
+  if(gamepadInput.mode()==GamepadInventoryInput::Mode::Browse)
+    return;
+  gamepadInput.reset();
+  ++inputRevisionCounter;
+  update();
+  }
+
+bool InventoryMenu::gamepadSelection(GamepadInventoryInput::Selection& selection) {
+  if(player==nullptr || state==State::Closed || state==State::LockPicking)
+    return false;
+  const auto& sel = activePageSel();
+  const auto it = activePage().get(sel.sel);
+  if(!it.isValid())
+    return false;
+  selection = {uint8_t(state),page,sel.sel,it->clsId(),it.count(),it.slot(),it.isEquipped()};
+  return true;
+  }
+
+void InventoryMenu::processGamepadModal(KeyCodec::Action action) {
+  GamepadInventoryInput::Selection selection;
+  if(!gamepadSelection(selection) || !gamepadInput.matches(selection)) {
+    cancelGamepadInput();
+    return;
+    }
+  const auto result = gamepadInput.process(action);
+  if(result==GamepadInventoryInput::Result::Cancel) {
+    cancelGamepadInput();
+    return;
+    }
+  if(result==GamepadInventoryInput::Result::Confirm) {
+    const auto mode = gamepadInput.mode();
+    const auto amount = gamepadInput.quantity();
+    const auto slot = gamepadInput.slot();
+    cancelGamepadInput();
+    if(mode==GamepadInventoryInput::Mode::Quantity)
+      transferItems(amount);
+    else
+      onItemAction(slot,false);
+    adjustScroll();
+    }
+  update();
+  }
+
+void InventoryMenu::drawGamepadModal(Painter& p) {
+  if(gamepadInput.mode()==GamepadInventoryInput::Mode::Browse)
+    return;
+  GamepadInventoryInput::Selection selection;
+  if(!gamepadSelection(selection) || !gamepadInput.matches(selection)) {
+    cancelGamepadInput();
+    return;
+    }
+  const float scale = Gothic::interfaceScale(this);
+  auto fnt = Resources::font(scale);
+  const bool russian = Gothic::settingsGetI("GAME","language")==int32_t(ScriptLang::RU);
+  // Gothic's bitmap fonts consume game-codepage bytes, not UTF-8.
+  const auto local = [russian](const char* en, const char* ru) { return russian ? ru : en; };
+  const char* operation = local("Assign slot","\xcd\xe0\xe7\xed\xe0\xf7\xe8\xf2\xfc \xf1\xeb\xee\xf2");
+  if(gamepadInput.mode()==GamepadInventoryInput::Mode::Quantity) {
+    if(state==State::Equip)
+      operation = local("Drop items","\xc2\xfb\xe1\xf0\xee\xf1\xe8\xf2\xfc \xef\xf0\xe5\xe4\xec\xe5\xf2\xfb");
+    else if(state==State::Trade)
+      operation = activePage().is(&player->inventory()) ? local("Sell items","\xcf\xf0\xee\xe4\xe0\xf2\xfc \xef\xf0\xe5\xe4\xec\xe5\xf2\xfb") : local("Buy items","\xca\xf3\xef\xe8\xf2\xfc \xef\xf0\xe5\xe4\xec\xe5\xf2\xfb");
+    else
+      operation = activePage().is(&player->inventory()) ? local("Store items","\xcf\xee\xeb\xee\xe6\xe8\xf2\xfc \xef\xf0\xe5\xe4\xec\xe5\xf2\xfb") : local("Take items","\xc2\xe7\xff\xf2\xfc \xef\xf0\xe5\xe4\xec\xe5\xf2\xfb");
+    }
+  const auto item = activePage().get(selection.index);
+  const auto value = gamepadInput.mode()==GamepadInventoryInput::Mode::Quantity ?
+                     gamepadInput.quantity() : size_t(gamepadInput.slot());
+  const char* controls = local("Confirm: Cross / Enter\nCancel: Circle / Esc","\xcf\xf0\xe8\xed\xff\xf2\xfc: Cross / Enter\n\xce\xf2\xec\xe5\xed\xe0: Circle / Esc");
+  const char* change = gamepadInput.mode()==GamepadInventoryInput::Mode::Quantity ?
+                      local("Left/Right: 1   Up/Down: 10\nL1: 1   R1: All","\xc2\xeb\xe5\xe2\xee/\xe2\xef\xf0\xe0\xe2\xee: 1   \xc2\xe2\xe5\xf0\xf5/\xe2\xed\xe8\xe7: 10\nL1: 1   R1: \xe2\xe5\xf1\xfc \xf1\xf2\xe5\xea") :
+                      local("Arrows / L1 / R1: slot 3-10","\xd1\xf2\xf0\xe5\xeb\xea\xe8 / L1 / R1: \xf1\xeb\xee\xf2 3-10");
+  const string_frm body(operation,": ",value,"\n",item->displayName(),"\n",change,"\n",controls);
+  const int width = std::max(1,std::min(w()-20,fnt.textSize(body).w+40));
+  const int padding = std::min(20,width/4);
+  const int textWidth = std::max(1,width-2*padding);
+  const int maxHeight = std::max(1,h()-20);
+  int textHeight = fnt.textSize(textWidth,body).h;
+  if(textHeight+2*padding>maxHeight) {
+    const float fit = float(std::max(1,maxHeight-2*padding))/float(std::max(1,textHeight));
+    fnt.setScale(scale*fit);
+    textHeight = fnt.textSize(textWidth,body).h;
+    }
+  const int height = std::min(maxHeight,textHeight+2*padding);
+  const int x = (w()-width)/2, y = (h()-height)/2;
+  p.pushState();
+  p.setScissor(x,y,width,height);
+  p.setBrush(Color(0.04f,0.04f,0.04f,1));
+  p.drawRect(x,y,width,height);
+  fnt.drawText(p,x+padding,y+padding+fnt.pixelSize(),textWidth,
+               std::max(1,height-2*padding),body,Tempest::NoAlign);
+  p.popState();
   }

@@ -10,6 +10,8 @@ class MainWindow;
 
 class ConsoleWidget : public Tempest::Widget {
   public:
+    bool isActive() const { return overlay!=nullptr; }
+    uint64_t inputRevision() const { return inputRevisionCounter; }
     ConsoleWidget(const MainWindow& owner);
     ~ConsoleWidget();
 
@@ -26,6 +28,7 @@ class ConsoleWidget : public Tempest::Widget {
     void updateSizeHint();
 
   private:
+    uint64_t inputRevisionCounter = 0;
     struct Overlay;
 
     const MainWindow&         mainWindow;

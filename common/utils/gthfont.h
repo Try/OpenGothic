@@ -16,6 +16,7 @@ class GthFont final {
 
     int  pixelSize() const;
     void setScale(float s);
+    void enableCyrillicFallback() { cyrillicFallback = true; }
 
     void drawText(Tempest::Painter& p, int x, int y, int w, int h, std::string_view txt, Tempest::AlignFlag align, int firstLine=0) const;
     void drawText(Tempest::Painter& p, int x, int y, std::string_view txt) const;
@@ -32,6 +33,11 @@ class GthFont final {
     uint32_t                       fntHeight = 0;
     float                          scale     = 0;
     Tempest::Color                 color;
+    bool                           cyrillicFallback = false;
+
+    uint8_t effectiveGlyph(uint8_t id) const;
+    int glyphAdvance(uint8_t id) const;
+    int drawGlyph(Tempest::Painter& p, int x, int y, uint8_t id) const;
 
     const uint8_t* getLine(const uint8_t* txt, int bw, int &width) const;
     const uint8_t* getWord(const uint8_t* txt, int &width, int &space) const;

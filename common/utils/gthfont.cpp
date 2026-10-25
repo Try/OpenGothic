@@ -38,12 +38,9 @@ void GthFont::drawText(Painter &p, int bx, int by, int bw, int bh,
 Size GthFont::processText(Painter* p, int bx, int by, int bw, int bh,
                           std::string_view txtView, AlignFlag align, int firstLine) const {
   const uint8_t* txt = reinterpret_cast<const uint8_t*>(txtView.data());
-  const auto&    fnt = *pfnt;
 
   int   h  = pixelSize();
   int   x  = bx, y=by-h;
-  float tw = float(tex->w());
-  float th = float(tex->h());
 
   int   lwidth = 0;
 
@@ -80,16 +77,10 @@ Size GthFont::processText(Painter* p, int bx, int by, int bw, int bh,
       }
 
     for(auto i=txt; i!=t; ++i) {
-      uint8_t id  = *i;
-      auto&   uv1 = fnt.glyphs[id].uv[0];
-      auto&   uv2 = fnt.glyphs[id].uv[1];
-      int     w   = int(fnt.glyphs[id].width * scale);
-
-      if(p!=nullptr) {
-        p->drawRect(x,y, w,h,
-                    tw*uv1.x,th*uv1.y, tw*uv2.x,th*uv2.y);
-        }
-      x += w;
+      if(p!=nullptr)
+        x += drawGlyph(*p,x,y,*i);
+      else
+        x += glyphAdvance(*i);
       }
 
     txt = next;
@@ -105,26 +96,15 @@ void GthFont::drawText(Tempest::Painter &p, int bx, int by, std::string_view txt
     return;
 
   const uint8_t* txt = reinterpret_cast<const uint8_t*>(txtChar.data());
-  const auto&    fnt = *pfnt;
 
   auto b = p.brush();
   p.setBrush(Brush(*tex,color));
 
   int   h  = pixelSize();
   int   x  = bx, y=by-h;
-  float tw = float(tex->w());
-  float th = float(tex->h());
 
-  for(size_t i=0;txt[i];++i) {
-    uint8_t id  = txt[i];
-    auto&   uv1 = fnt.glyphs[id].uv[0];
-    auto&   uv2 = fnt.glyphs[id].uv[1];
-    int     w   = int(fnt.glyphs[id].width * scale);
-
-    p.drawRect(x,y, w,h,
-               tw*uv1.x,th*uv1.y, tw*uv2.x,th*uv2.y);
-    x += w;
-    }
+  for(size_t i=0;txt[i];++i)
+    x += drawGlyph(p,x,y,txt[i]);
   p.setBrush(b);
   }
 
@@ -166,8 +146,7 @@ Size GthFont::textSize(const uint8_t* b, const uint8_t* e) const {
       ++i;
       }
     else {
-      int w = int(fnt.glyphs[id].width * scale);
-      x += w;
+      x += glyphAdvance(id);
       ++i;
       }
     }
@@ -216,14 +195,13 @@ const uint8_t* GthFont::getWord(const uint8_t *txt, int& width, int& space) cons
   width = 0;
   space = 0;
 
-  const auto& fnt = *pfnt;
   while(true) {
     uint8_t id = *txt;
     if(id=='\0' || id=='\n')
       return txt;
     if(id!=' ')
       break;
-    space += int(fnt.glyphs[id].width * scale);
+    space += glyphAdvance(id);
     ++txt;
     }
 
@@ -232,9 +210,51 @@ const uint8_t* GthFont::getWord(const uint8_t *txt, int& width, int& space) cons
     if(id=='\0' || id=='\n' || id==' ')
       return txt;
 
-    width += int(fnt.glyphs[id].width * scale);
+    width += glyphAdvance(id);
     ++txt;
     }
+  }
+
+uint8_t GthFont::effectiveGlyph(uint8_t id) const {
+  // CP1252 uses these bytes differently; only save-name copies opt into CP1251.
+  if(!cyrillicFallback || (id!=0xa8 && id!=0xb8))
+    return id;
+  const uint8_t base = id==0xa8 ? 0xc5 : 0xe5;
+  if(id<pfnt->glyphs.size() && pfnt->glyphs[id].width==0 &&
+     base<pfnt->glyphs.size() && pfnt->glyphs[base].width!=0)
+    return base;
+  return id;
+  }
+
+int GthFont::glyphAdvance(uint8_t id) const {
+  id = effectiveGlyph(id);
+  if(id>=pfnt->glyphs.size())
+    return 10;
+  return int(pfnt->glyphs[id].width*scale);
+  }
+
+int GthFont::drawGlyph(Painter& p, int x, int y, uint8_t id) const {
+  const auto glyph = effectiveGlyph(id);
+  const int width = glyphAdvance(id);
+  if(glyph>=pfnt->glyphs.size())
+    return width;
+  const auto& uv = pfnt->glyphs[glyph].uv;
+  const int height = pixelSize();
+  p.drawRect(x,y,width,height,
+             float(tex->w())*uv[0].x,float(tex->h())*uv[0].y,
+             float(tex->w())*uv[1].x,float(tex->h())*uv[1].y);
+  if(glyph!=id && width>0) {
+    // Two dots fit the existing E/e top padding. Solid color avoids dependence
+    // on quotation-mark shapes and UV placement in different Gothic fonts.
+    const int dot = std::max(1,std::min(height/12,width/3));
+    const int top = y+(id==0xa8 ? 0 : height/5);
+    auto brush = p.brush();
+    p.setBrush(color);
+    p.drawRect(x+std::max(0,width/3-dot/2),top,dot,dot);
+    p.drawRect(x+std::min(width-dot,2*width/3-dot/2),top,dot,dot);
+    p.setBrush(brush);
+    }
+  return width;
   }
 
 bool GthFont::isSpace(uint8_t ch) {

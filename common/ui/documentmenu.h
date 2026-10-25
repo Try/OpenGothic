@@ -8,6 +8,7 @@ class KeyCodec;
 
 class DocumentMenu : public Tempest::Widget {
   public:
+    uint64_t inputRevision() const { return inputRevisionCounter; }
     DocumentMenu(const KeyCodec& key);
 
     enum Flags : uint8_t {
@@ -48,6 +49,7 @@ class DocumentMenu : public Tempest::Widget {
     void paintEvent(Tempest::PaintEvent& e);
 
   private:
+    uint64_t inputRevisionCounter = 0;
     DocumentMenu::Show        document;
     const KeyCodec&           keycodec;
     const Tempest::Texture2d* cursor = nullptr;

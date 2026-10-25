@@ -15,6 +15,7 @@ DocumentMenu::DocumentMenu(const KeyCodec& key)
   }
 
 void DocumentMenu::show(const DocumentMenu::Show &doc) {
+  ++inputRevisionCounter;
   document = doc;
   active   = true;
   update();
@@ -23,6 +24,7 @@ void DocumentMenu::show(const DocumentMenu::Show &doc) {
 void DocumentMenu::close() {
   if(!active)
     return;
+  ++inputRevisionCounter;
   active=false;
 
   if(auto pl = Gothic::inst().player())

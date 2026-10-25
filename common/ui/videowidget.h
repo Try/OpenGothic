@@ -1,5 +1,7 @@
 #pragma once
 
+#include "utils/keycodec.h"
+
 #include <Tempest/Widget>
 
 #include <queue>
@@ -8,6 +10,8 @@
 
 class VideoWidget : public Tempest::Widget {
   public:
+    void onGamepad(KeyCodec::Action action);
+    uint64_t inputRevision() const { return inputRevisionCounter; }
     VideoWidget();
     ~VideoWidget();
 
@@ -24,6 +28,7 @@ class VideoWidget : public Tempest::Widget {
     void mouseDownEvent(Tempest::MouseEvent& event) override;
 
   private:
+    uint64_t inputRevisionCounter = 0;
     struct Input;
     struct Sound;
     struct SoundContext;

@@ -28,6 +28,7 @@ class GameMenu : public Tempest::Widget {
     void setPlayer(const Npc& pl);
 
     void onKeyboard(KeyCodec::Action k);
+    void onGamepad(KeyCodec::Action k);
     void onBeginTouch(Tempest::Point pos);
     void onDragTouch(Tempest::Point pos);
     void onEndTouch(bool activate);

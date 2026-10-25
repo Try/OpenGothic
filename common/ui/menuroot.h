@@ -6,12 +6,28 @@
 #include <zenkit/addon/daedalus.hh>
 
 #include "utils/keycodec.h"
+#include "menuinput.h"
 
 class GameMenu;
 class Npc;
 
 class MenuRoot : public Tempest::Widget {
   public:
+    void onGamepad(KeyCodec::Action action);
+    uint64_t inputRevision() const { return inputRevisionCounter; }
+    class ModalInputScope final {
+      public:
+        explicit ModalInputScope(MenuRoot& root, MenuModalInput::Handler handler = {});
+        ~ModalInputScope();
+        ModalInputScope(const ModalInputScope&) = delete;
+        ModalInputScope& operator=(const ModalInputScope&) = delete;
+      private:
+        ModalInputScope(Tempest::Widget& repaintRoot, MenuModalInput& input, MenuModalInput::Handler handler);
+        MenuModalInput::Scope scope;
+      };
+
+    bool hasModalInput() const { return modalInput.active(); }
+    bool blocksGamepadInput() const { return modalInput.blocked(); }
     MenuRoot(KeyCodec& keyCodec);
     ~MenuRoot() override;
 
@@ -38,7 +54,10 @@ class MenuRoot : public Tempest::Widget {
     void mouseDragEvent (Tempest::MouseEvent& event) override;
 
   private:
+    uint64_t inputRevisionCounter = 0;
+    MenuModalInput modalInput{inputRevisionCounter};
     void initSettings();
+    void showGamepadSettings();
 
     std::unique_ptr<zenkit::DaedalusVm>    vm;
     int32_t                                vmLang = -1;

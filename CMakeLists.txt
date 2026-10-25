@@ -215,6 +215,178 @@ target_sources(Spacer PRIVATE ${SPACER_SOURCES} spacer/main.cpp)
 target_include_directories(Spacer PRIVATE "spacer")
 target_link_libraries(Spacer PRIVATE OpenGothic SpacerAssets)
 
+# Optional controller diagnostics and portable regression tests (no game assets).
+option(OPENGOTHIC_GAMEPAD_TOOLS "Build gamepad diagnostics and tests" OFF)
+if(OPENGOTHIC_GAMEPAD_TOOLS)
+  enable_testing()
+  set(GAMEPAD_GTEST_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib/Tempest/Tests/googletest/googletest")
+  add_executable(GamepadStateTests
+    lib/Tempest/Tests/tests/gamepad_test.cpp
+    lib/Tempest/Engine/system/gamepadstate.cpp
+    "${GAMEPAD_GTEST_DIR}/src/gtest-all.cc"
+    "${GAMEPAD_GTEST_DIR}/src/gtest_main.cc")
+  target_include_directories(GamepadStateTests PRIVATE
+    lib/Tempest/Engine lib/Tempest/Engine/include
+    "${GAMEPAD_GTEST_DIR}" "${GAMEPAD_GTEST_DIR}/include")
+  find_package(Threads REQUIRED)
+  target_link_libraries(GamepadStateTests PRIVATE Threads::Threads)
+  add_test(NAME gamepad-state COMMAND GamepadStateTests)
+
+  add_executable(GamepadInputTests
+    tests/gamepadinput_test.cpp
+    tests/gamepadsettings_test.cpp
+    tests/gamepadsettingsmenu_test.cpp
+    tests/gamepadtextinput_test.cpp
+    tests/gamepadplayerinput_test.cpp
+    tests/actioninput_test.cpp
+    tests/gamepadinventoryinput_test.cpp
+    tests/gamepadmenuinput_test.cpp
+    tests/menuinput_test.cpp
+    tests/string_frm_test.cpp
+    common/utils/gamepadinput.cpp
+    common/utils/gamepadsettings.cpp
+    "${GAMEPAD_GTEST_DIR}/src/gtest-all.cc"
+    "${GAMEPAD_GTEST_DIR}/src/gtest_main.cc")
+  target_include_directories(GamepadInputTests PRIVATE
+    common lib/Tempest/Engine/include
+    "${GAMEPAD_GTEST_DIR}" "${GAMEPAD_GTEST_DIR}/include")
+  target_link_libraries(GamepadInputTests PRIVATE Threads::Threads)
+  add_test(NAME gamepad-input COMMAND GamepadInputTests)
+
+  if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+    # Compile the real input methods against a small world boundary fixture.
+    # Extract from the source so the regression cannot drift into a copied
+    # routing implementation; changing that source regenerates this include.
+    set(PLAYER_CONTROL_INPUT_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/common/game/playercontrol.cpp")
+    set(PLAYER_CONTROL_NPC_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/common/world/objects/npc.cpp")
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+      "${PLAYER_CONTROL_INPUT_SOURCE}" "${PLAYER_CONTROL_NPC_SOURCE}")
+    file(READ "${PLAYER_CONTROL_INPUT_SOURCE}" PLAYER_CONTROL_INPUT_TEXT)
+    file(READ "${PLAYER_CONTROL_NPC_SOURCE}" PLAYER_CONTROL_NPC_TEXT)
+    set(PLAYER_CONTROL_INPUT_BODIES "")
+    set(PLAYER_CONTROL_BOW_BODIES "")
+    foreach(PART IN ITEMS input reset movement bow)
+      set(METHOD_SOURCE "${PLAYER_CONTROL_INPUT_TEXT}")
+      if(PART STREQUAL "input")
+        set(BEGIN_MARKER "void PlayerControl::onKeyPressed(")
+        set(END_MARKER "bool PlayerControl::isPressed(")
+      elseif(PART STREQUAL "reset")
+        set(BEGIN_MARKER "void PlayerControl::clearInput(")
+        set(END_MARKER "void PlayerControl::marvinF8(")
+      elseif(PART STREQUAL "movement")
+        set(BEGIN_MARKER "void PlayerControl::implMove(")
+        set(END_MARKER "void PlayerControl::implMoveMobsi(")
+      else()
+        set(METHOD_SOURCE "${PLAYER_CONTROL_NPC_TEXT}")
+        set(BEGIN_MARKER "bool Npc::aimBow(")
+        set(END_MARKER "bool Npc::isEnemy(")
+      endif()
+      string(FIND "${METHOD_SOURCE}" "${BEGIN_MARKER}" BEGIN_OFFSET)
+      string(FIND "${METHOD_SOURCE}" "${END_MARKER}" END_OFFSET)
+      if(BEGIN_OFFSET LESS 0 OR END_OFFSET LESS BEGIN_OFFSET)
+        message(FATAL_ERROR "Cannot locate PlayerControl ${PART} methods for regression fixture")
+      endif()
+      math(EXPR METHOD_LENGTH "${END_OFFSET} - ${BEGIN_OFFSET}")
+      string(SUBSTRING "${METHOD_SOURCE}" ${BEGIN_OFFSET} ${METHOD_LENGTH} METHOD_TEXT)
+      if(PART STREQUAL "input" OR PART STREQUAL "reset")
+        string(APPEND PLAYER_CONTROL_INPUT_BODIES "${METHOD_TEXT}\n")
+      endif()
+      string(APPEND PLAYER_CONTROL_BOW_BODIES "${METHOD_TEXT}\n")
+    endforeach()
+    file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/generated")
+    file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/generated/playercontrol-input-bodies.inc" "${PLAYER_CONTROL_INPUT_BODIES}")
+    file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/generated/playercontrol-bow-bodies.inc" "${PLAYER_CONTROL_BOW_BODIES}")
+    add_executable(PlayerControlInputTests
+      tests/playercontrolinput_test.cpp
+      "${GAMEPAD_GTEST_DIR}/src/gtest-all.cc"
+      "${GAMEPAD_GTEST_DIR}/src/gtest_main.cc")
+    target_include_directories(PlayerControlInputTests PRIVATE
+      "${CMAKE_CURRENT_BINARY_DIR}/generated"
+      "${GAMEPAD_GTEST_DIR}" "${GAMEPAD_GTEST_DIR}/include")
+    target_compile_options(PlayerControlInputTests PRIVATE -fno-access-control)
+    target_link_libraries(PlayerControlInputTests PRIVATE Threads::Threads)
+    add_test(NAME gamepad-player-control COMMAND PlayerControlInputTests)
+
+    add_executable(PlayerControlBowTests
+      tests/playercontrolbow_test.cpp
+      "${GAMEPAD_GTEST_DIR}/src/gtest-all.cc"
+      "${GAMEPAD_GTEST_DIR}/src/gtest_main.cc")
+    target_include_directories(PlayerControlBowTests PRIVATE
+      "${CMAKE_CURRENT_BINARY_DIR}/generated"
+      "${GAMEPAD_GTEST_DIR}" "${GAMEPAD_GTEST_DIR}/include")
+    target_compile_options(PlayerControlBowTests PRIVATE -fno-access-control)
+    target_link_libraries(PlayerControlBowTests PRIVATE Threads::Threads)
+    add_test(NAME gamepad-player-bow COMMAND PlayerControlBowTests)
+
+    # Include the actual private dialogs and exercise close/queued input before
+    # Dialog::exec unwinds. Access relaxation applies only to this test target.
+    add_executable(GamepadDialogTests
+      tests/gamepaddialog_test.cpp
+      tests/gamepadsettingsdialog_test.cpp
+      tests/gthfont_test.cpp
+      tests/gamepadmodalredraw_test.cpp
+      "${GAMEPAD_GTEST_DIR}/src/gtest-all.cc")
+    target_include_directories(GamepadDialogTests PRIVATE
+      "${GAMEPAD_GTEST_DIR}" "${GAMEPAD_GTEST_DIR}/include")
+    target_compile_options(GamepadDialogTests PRIVATE -fno-access-control)
+    target_link_libraries(GamepadDialogTests PRIVATE OpenGothic Threads::Threads)
+    add_test(NAME gamepad-dialog-lifecycle COMMAND GamepadDialogTests)
+    set_tests_properties(gamepad-dialog-lifecycle PROPERTIES TIMEOUT 20)
+  endif()
+
+  # Exercise the actual upload thread with deterministic scheduling, without
+  # constructing a GPU device. Normal builds omit the scheduling hook.
+  add_executable(InstanceStorageTests
+    tests/instancestorage_test.cpp
+    common/graphics/instancestorage.cpp
+    "${GAMEPAD_GTEST_DIR}/src/gtest-all.cc"
+    "${GAMEPAD_GTEST_DIR}/src/gtest_main.cc")
+  target_compile_definitions(InstanceStorageTests PRIVATE OPENGOTHIC_INSTANCE_STORAGE_TEST_HOOK)
+  target_include_directories(InstanceStorageTests PRIVATE
+    "${GAMEPAD_GTEST_DIR}" "${GAMEPAD_GTEST_DIR}/include")
+  target_link_libraries(InstanceStorageTests PRIVATE OpenGothic Threads::Threads)
+  add_test(NAME instance-upload COMMAND InstanceStorageTests)
+  set_tests_properties(instance-upload PROPERTIES TIMEOUT 20)
+
+  if(APPLE AND NOT IOS)
+    # Exercise synchronous menu dialogs entered after a real native/GCD frame
+    # callback returns. The watchdog bounds regressions in main-queue liveness.
+    add_executable(GamepadMenuLoopTests
+      tests/gamepadmenuloop_test.mm
+      tests/gamepadmenuloop_native.mm)
+    target_compile_options(GamepadMenuLoopTests PRIVATE -fno-access-control)
+    target_link_libraries(GamepadMenuLoopTests PRIVATE OpenGothic
+      "-framework AppKit" "-framework CoreFoundation")
+    add_test(NAME gamepad-menu-native-loop COMMAND GamepadMenuLoopTests)
+    set_tests_properties(gamepad-menu-native-loop PROPERTIES TIMEOUT 20)
+
+    # This fixture includes the real backend and exercises saved ObjC blocks
+    # after their registration scope and backend lifetime have both ended.
+    add_executable(MacOSGamepadTests
+      lib/Tempest/Tests/tests/macosgamepad_test.mm
+      lib/Tempest/Engine/system/gamepadstate.cpp)
+    target_include_directories(MacOSGamepadTests PRIVATE lib/Tempest/Engine/include)
+    target_link_libraries(MacOSGamepadTests PRIVATE
+      "-framework AppKit" "-framework GameController")
+    target_compile_options(MacOSGamepadTests PRIVATE -Wall -Wextra -Werror)
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+      target_compile_options(MacOSGamepadTests PRIVATE -fsanitize=address -fno-omit-frame-pointer)
+      target_link_options(MacOSGamepadTests PRIVATE -fsanitize=address)
+    endif()
+    add_test(NAME gamepad-macos-lifetime COMMAND MacOSGamepadTests)
+    set_tests_properties(gamepad-macos-lifetime PROPERTIES
+      ENVIRONMENT "ASAN_OPTIONS=detect_stack_use_after_return=1")
+  endif()
+
+  if(NOT IOS AND NOT ANDROID)
+    add_executable(TempestGamepadProbe scripts/tempest-gamepad-probe.cpp)
+    target_link_libraries(TempestGamepadProbe PRIVATE Tempest)
+    if(NOT MSVC)
+      target_compile_options(TempestGamepadProbe PRIVATE -Wall -Wextra -Werror)
+    endif()
+  endif()
+endif()
+
 if(ANDROID)
   add_android_apk(OpenGothic-apk
     PACKAGE_NAME org.opengothic.app

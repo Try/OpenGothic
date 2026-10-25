@@ -111,9 +111,13 @@ MainWindow::MainWindow(Device& device)
 
   displayPos = Shortcut(*this,Event::M_Alt,Event::K_P);
   displayPos.onActivated.bind(this, &MainWindow::onMarvinKey<Event::K_P>);
+
+  Application::onEventLoop().bind(this,&MainWindow::processGamepadMenu);
   }
 
 MainWindow::~MainWindow() {
+  Application::onEventLoop().ubind(this,&MainWindow::processGamepadMenu);
+  gamepadMenu.clear();
   GameMusic::inst().stopMusic();
   Gothic::inst().cancelLoading();
   device.waitIdle();
@@ -308,13 +312,13 @@ void MainWindow::mouseDownEvent(MouseEvent &event) {
     mouseP[event.button]=true;
   auto act     = keycodec.tr(event);
   auto mapping = keycodec.mapping(event);
-  player.onKeyPressed(act,KeyEvent::K_NoKey,mapping);
+  player.onKeyPressed(act,KeyEvent::K_NoKey,mapping,PlayerControl::InputSource::Mouse);
   }
 
 void MainWindow::mouseUpEvent(MouseEvent &event) {
   auto act     = keycodec.tr(event);
   auto mapping = keycodec.mapping(event);
-  player.onKeyReleased(act,mapping);
+  player.onKeyReleased(act,mapping,PlayerControl::InputSource::Mouse);
   if(event.button<sizeof(mouseP))
     mouseP[event.button]=false;
   }
@@ -384,6 +388,14 @@ void MainWindow::tickMouse(uint64_t dt) {
   }
 
 void MainWindow::onSettings() {
+  Tempest::Gamepad::State state;
+  Tempest::Gamepad::state(gamepad.device(),state);
+  const auto cancellation = gamepad.configure(GamepadSettings::parse(Gothic::settingsGetS("GAMEPAD","profile")),state);
+  if(cancellation.type!=GamepadInput::Command::Type::None) {
+    ++gamepadEpoch;
+    dispatchGamepad(cancellation);
+    update();
+    }
   auto zMaxFps = Gothic::options().fpsLimit;
   if(zMaxFps<=0)
     zMaxFps = Gothic::inst().settingsGetI("ENGINE", "zMaxFps");
@@ -529,22 +541,12 @@ void MainWindow::keyUpEvent(KeyEvent &event) {
   auto act     = keycodec.tr(event);
   auto mapping = keycodec.mapping(event);
 
-  std::string_view menuEv;
-  if(act==KeyCodec::Escape)
-    menuEv = Gothic::inst().menuMain();
-  else if(act==KeyCodec::Log)
-    menuEv = "MENU_LOG";
-  else if(act==KeyCodec::Status)
-    menuEv = "MENU_STATUS";
+  if(!player.onKeyReleased(act, mapping))
+    return;
 
-  if(!menuEv.empty()) {
-    rootMenu.setMenu(menuEv,act);
-    rootMenu.showVersion(act==KeyCodec::Escape);
-    if(auto pl = Gothic::inst().player())
-      rootMenu.setPlayer(*pl);
-    clearInput();
-    }
-  else if(act==KeyCodec::Inventory && !dialogs.isActive()) {
+  if(openGameMenu(act))
+    return;
+  if(act==KeyCodec::Inventory && !dialogs.isActive()) {
     if(inventory.isActive()) {
       inventory.close();
       } else {
@@ -554,12 +556,35 @@ void MainWindow::keyUpEvent(KeyEvent &event) {
       }
     clearInput();
     }
-  player.onKeyReleased(act, mapping);
+  }
+
+bool MainWindow::openGameMenu(KeyCodec::Action act) {
+  std::string_view menuEv;
+  if(act==KeyCodec::Escape)
+    menuEv = Gothic::inst().menuMain();
+  else if(act==KeyCodec::Log)
+    menuEv = "MENU_LOG";
+  else if(act==KeyCodec::Status)
+    menuEv = "MENU_STATUS";
+
+  if(menuEv.empty())
+    return false;
+  rootMenu.setMenu(menuEv,act);
+  rootMenu.showVersion(act==KeyCodec::Escape);
+  if(auto pl = Gothic::inst().player())
+    rootMenu.setPlayer(*pl);
+  clearInput();
+  return true;
   }
 
 void MainWindow::focusEvent(FocusEvent &event) {
-  if(!event.in)
+  ++gamepadEpoch;
+  if(!event.in) {
+    gamepadMenu.clear();
+    clearInput();
+    inventory.cancelGamepadInput();
     return;
+    }
   dMouse = Point();
 
   if(SystemApi::isFullscreen(hwnd()))
@@ -870,6 +895,7 @@ void MainWindow::onMarvinKey() {
   }
 
 uint64_t MainWindow::tick() {
+  processGamepad();
   auto time = Application::tickCount();
   auto dt   = time-lastTick;
   // NOTE: limit to ~200 FPS in game logic to avoid math issues
@@ -921,13 +947,18 @@ uint64_t MainWindow::tick() {
   inventory.tick(dt);
   Gothic::inst().tick(dt);
   player.tickFocus();
+  // Script callbacks and interactions may have opened UI during this tick.
+  processGamepad();
 
   if(dialogs.isActive())
     ;//clearInput();
   if(document.isActive())
     clearInput();
   tickMouse(dt);
-  player.tickMove(dt);
+  const auto look = gamepad.look(dt);
+  if(auto camera = Gothic::inst().camera())
+    camera->onRotateMouse(PointF(-look.pitch, look.yaw));
+  player.tickMove(dt, look.yaw, look.pitch);
   update();
   return dt;
   }
@@ -1127,12 +1158,14 @@ void MainWindow::onVideo(std::string_view fname) {
   }
 
 void MainWindow::onStartLoading() {
+  ++gamepadEpoch;
   player   .clearInput();
   inventory.onWorldChanged();
   dialogs  .onWorldChanged();
   }
 
 void MainWindow::onWorldLoaded() {
+  ++gamepadEpoch;
   dMouse = Point();
 
   if(Gothic::inst().isBenchmarkMode()) {
@@ -1201,6 +1234,7 @@ void MainWindow::onBenchmarkFinished() {
   }
 
 void MainWindow::setGameImpl(std::unique_ptr<GameSession> &&w) {
+  ++gamepadEpoch;
   // clear pointers to outdated game-state
   inventory.onWorldChanged();
   dialogs  .onWorldChanged();
@@ -1212,9 +1246,256 @@ void MainWindow::clearInput() {
   std::memset(mouseP,0,sizeof(mouseP));
   }
 
+GamepadInput::Screen MainWindow::gamepadContext() const {
+  using Context = GamepadInput::Context;
+  const auto loading = Gothic::inst().checkLoading()!=Gothic::LoadState::Idle;
+  if(!hasFocus() || loading || console.isActive() || rootMenu.blocksGamepadInput())
+    return {Context::Blocked, gamepadEpoch+console.inputRevision()+rootMenu.inputRevision()};
+  if(video.isActive())
+    return {Context::Video, gamepadEpoch+video.inputRevision()};
+  if(rootMenu.isActive())
+    return {Context::Menu, gamepadEpoch+rootMenu.inputRevision()};
+  if(chapter.isActive())
+    return {Context::Chapter, gamepadEpoch+chapter.inputRevision()};
+  if(document.isActive())
+    return {Context::Document, gamepadEpoch+document.inputRevision()};
+  if(inventory.isActive() && inventory.isOpen()!=InventoryMenu::State::LockPicking)
+    return {Context::Inventory, gamepadEpoch+inventory.inputRevision()};
+  if(dialogs.isActive())
+    return {Context::Dialog, gamepadEpoch+dialogs.inputRevision()};
+  const auto world = Gothic::inst().world();
+  const auto camera = Gothic::inst().camera();
+  if(Gothic::inst().isPause() || !Gothic::inst().isInGame() || runtimeMode==R_Suspended)
+    return {Context::Blocked, gamepadEpoch};
+  if((world!=nullptr && world->isCutsceneLock()) || (camera!=nullptr && camera->isCutscene()))
+    return {Context::Cutscene, gamepadEpoch};
+  return {Context::Gameplay, gamepadEpoch+inventory.inputRevision()};
+  }
+
+void MainWindow::processGamepad() {
+  using Pad = Tempest::Gamepad;
+  const auto refreshDevice = [this] {
+    const auto devices = Pad::devices();
+    auto id = gamepad.device();
+    const bool present = std::any_of(devices.begin(), devices.end(), [id](const auto& d) { return d.id==id; });
+    if(!present)
+      id = devices.empty() ? 0 : devices.front().id;
+    if(id!=gamepad.device()) {
+      gamepadMenu.clear();
+      player.cancelInput(PlayerControl::InputSource::Gamepad);
+      inventory.cancelGamepadInput();
+      Pad::State state;
+      Pad::state(id, state);
+      gamepad.selectDevice(id, state);
+      }
+    };
+  if(gamepad.device()==0)
+    refreshDevice();
+
+  const auto syncContext = [this, &refreshDevice] {
+    if(gamepad.screen().context==GamepadInput::Context::Inventory &&
+       gamepadContext().context!=GamepadInput::Context::Inventory)
+      inventory.cancelGamepadInput();
+    Pad::State state;
+    Pad::state(gamepad.device(), state);
+    const auto cancellation = gamepad.setContext(gamepadContext(), state);
+    if(cancellation.type==GamepadInput::Command::Type::None)
+      return false;
+    dispatchGamepad(cancellation);
+    dMouse = Point();
+    // These edges were queued for the old screen. In particular, a second
+    // Confirm must not reach a submenu opened by the first one in this batch.
+    Pad::Event discarded;
+    while(Pad::pollEvent(discarded)) {}
+    refreshDevice();
+    Pad::state(gamepad.device(), state);
+    gamepad.reset(state);
+    return true;
+    };
+  syncContext();
+
+  Pad::Event event;
+  while(Pad::pollEvent(event)) {
+    const auto command = gamepad.process(event, Application::tickCount());
+    // process() updates ownership before dispatch or deferred menu delivery.
+    dispatchGamepad(command);
+    if(event.type==Pad::Event::Type::Connected || event.type==Pad::Event::Type::Disconnected ||
+       (event.type==Pad::Event::Type::Reset && event.device==0))
+      refreshDevice();
+    syncContext();
+    }
+
+  Pad::State state;
+  if(Pad::state(gamepad.device(), state)) {
+    dispatchGamepad(gamepad.update(state, Application::tickCount()));
+    if(!syncContext()) {
+      for(const auto& command : gamepad.movement()) {
+        dispatchGamepad(command);
+        if(syncContext())
+          break;
+        }
+      }
+    }
+  }
+
+void MainWindow::processGamepadMenu() {
+  if(gamepadMenu.empty() && !gamepadMenu.overflowed())
+    return;
+  if(!Application::isRunning()) {
+    gamepadMenu.clear();
+    return;
+    }
+  // A reset/disconnect may have arrived after the frame queued this command.
+  processGamepad();
+  if(!Application::isRunning()) {
+    gamepadMenu.clear();
+    return;
+    }
+  if(gamepadMenu.overflowed()) {
+    gamepadMenu.clear();
+    Tempest::Gamepad::State state;
+    Tempest::Gamepad::state(gamepad.device(),state);
+    gamepad.reset(state);
+    return;
+    }
+  const auto command = gamepadMenu.pop(gamepadContext(),gamepad.device());
+  if(command.type==GamepadInput::Command::Type::None)
+    return;
+  // Pop before invoking UI: Dialog::exec can re-enter this pump. Deliver only
+  // one command per boundary so auto-repeat cannot starve native releases.
+  rootMenu.onGamepad(command.action);
+  }
+
+void MainWindow::dispatchGamepad(const GamepadInput::Command& command) {
+  using Type = GamepadInput::Command::Type;
+  using Context = GamepadInput::Context;
+  const auto source = PlayerControl::InputSource::Gamepad;
+  const auto action = command.action;
+  if(command.type==Type::None)
+    return;
+  if(command.type==Type::Cancel) {
+    gamepadMenu.clear();
+    player.cancelInput(source);
+    inventory.cancelGamepadInput();
+    return;
+    }
+  if(command.type==Type::CancelAll) {
+    gamepadMenu.clear();
+    clearInput();
+    return;
+    }
+  if(command.type==Type::Press) {
+    player.onKeyPressed(action, Event::K_NoKey, command.mapping, source);
+    return;
+    }
+  if(command.type==Type::Release) {
+    if(!player.onKeyReleased(action, command.mapping, source))
+      return;
+    if(openGameMenu(action))
+      return;
+    if(action==KeyCodec::Inventory) {
+      if(auto pl = Gothic::inst().player())
+        inventory.open(*pl);
+      }
+    return;
+    }
+
+  switch(gamepad.screen().context) {
+    case Context::Menu:      gamepadMenu.push(command,gamepad.screen(),gamepad.device()); break;
+    case Context::Dialog:    dialogs.onGamepad(action);   break;
+    case Context::Inventory: inventory.onGamepad(action); break;
+    case Context::Chapter:   chapter.onGamepad(action);   break;
+    case Context::Video:     video.onGamepad(action);     break;
+    case Context::Document:
+      if(action==KeyCodec::Escape)
+        document.close();
+      break;
+    case Context::Blocked:
+    case Context::Gameplay:
+    case Context::Cutscene:
+      break;
+    }
+  }
+
 void MainWindow::setFullscreen(bool fs) {
   SystemApi::setAsFullscreen(hwnd(),fs);
   setCursorShape(fs ? CursorShape::Hidden : CursorShape::Arrow);
+  }
+
+void MainWindow::drawGamepadHints(Painter& p) {
+  using Context = GamepadInput::Context;
+  const auto context = gamepadContext().context;
+  if(rootMenu.hasModalInput() || inventory.hasGamepadModal())
+    return;
+  const auto& settings = gamepad.settings();
+  std::string text;
+  if(context==Context::Menu) {
+    text = "Square / F1: Controller settings";
+    if(gamepad.device()!=0 && settings.hints)
+      text += "   Cross: Confirm   Circle / Options: Back";
+    }
+  else if(gamepad.device()!=0 && settings.hints) {
+    switch(context) {
+      case Context::Gameplay: {
+        const auto add = [&](KeyCodec::Action action) {
+          std::string buttons;
+          for(auto button : GamepadSettings::remappableButtons) {
+            if(settings.bindings[size_t(button)]!=action)
+              continue;
+            if(!buttons.empty())
+              buttons += '/';
+            buttons += GamepadSettings::buttonName(button);
+            }
+          if(buttons.empty())
+            return;
+          if(!text.empty())
+            text += "   ";
+          text += buttons+": ";
+          text += GamepadSettings::actionName(action);
+          };
+        add(KeyCodec::ActionGeneric);
+        add(KeyCodec::Jump);
+        add(KeyCodec::Weapon);
+        add(KeyCodec::Inventory);
+        add(KeyCodec::Log);
+        text += "\nLeft stick: Move   Right stick: Camera   Options: Menu";
+        break;
+        }
+      case Context::Inventory:
+        text = "Cross: Use / Transfer 1   Square: Quantity / Drop   Triangle: Spell slot\nL1 / R1: Panel   Circle / Options: Back";
+        break;
+      case Context::Dialog:
+        text = "Up / Down: Reply   Cross: Confirm   Circle / Options: Skip phrase";
+        break;
+      case Context::Document:
+        text = "Circle / Options: Close document";
+        break;
+      case Context::Chapter:
+        text = "Circle / Options: Close chapter";
+        break;
+      default:
+        break;
+      }
+    }
+  if(text.empty() || w()<=20 || h()<=20)
+    return;
+  auto font = Resources::font(Gothic::interfaceScale(this));
+  const int width = w()-20;
+  const int padding = std::min(8,width/4);
+  const int textWidth = std::max(1,width-2*padding);
+  const int maxHeight = std::max(1,h()/4-2*padding);
+  auto height = font.textSize(textWidth,text).h;
+  if(height>maxHeight) {
+    font.setScale(Gothic::interfaceScale(this)*float(maxHeight)/float(std::max(1,height)));
+    height = font.textSize(textWidth,text).h;
+    }
+  p.pushState();
+  p.setScissor(10,10,width,height+2*padding);
+  p.setBrush(Color(0.04f,0.04f,0.04f,0.9f));
+  p.drawRect(10,10,width,height+2*padding);
+  font.drawText(p,10+padding,10+padding+font.pixelSize(),textWidth,
+                std::max(1,height),text,NoAlign);
+  p.popState();
   }
 
 void MainWindow::render(){
@@ -1260,6 +1541,10 @@ void MainWindow::render(){
       }
     else if(needToUpdate() || Gothic::inst().checkLoading()!=Gothic::LoadState::Idle) {
       dispatchPaintEvent(uiLayer,atlas);
+
+      PaintEvent hints(uiLayer,atlas,this->w(),this->h());
+      Painter hintPainter(hints);
+      drawGamepadHints(hintPainter);
 
       numOverlay.clear();
       PaintEvent p(numOverlay,atlas,this->w(),this->h());

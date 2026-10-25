@@ -8,6 +8,10 @@
 
 using namespace Tempest;
 
+#ifdef OPENGOTHIC_INSTANCE_STORAGE_TEST_HOOK
+void instanceStorageBeforeWait(InstanceStorage& storage);
+#endif
+
 static uint32_t nextPot(uint32_t v) {
   v--;
   v |= v >> 1;
@@ -207,11 +211,8 @@ bool InstanceStorage::commit(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   }
 
 void InstanceStorage::join() {
-  while(true) {
-    std::unique_lock<std::mutex> lck(sync);
-    if(uploadFId<0)
-      break;
-    }
+  std::unique_lock<std::mutex> lck(sync);
+  uploadDoneCnd.wait(lck, [this] { return uploadFId<0; });
   }
 
 InstanceStorage::Id InstanceStorage::alloc(const size_t size) {
@@ -306,8 +307,11 @@ void InstanceStorage::free(const Range& r) {
 void InstanceStorage::uploadMain() {
   Workers::setThreadName("InstanceStorage upload");
   while(true) {
+#ifdef OPENGOTHIC_INSTANCE_STORAGE_TEST_HOOK
+    instanceStorageBeforeWait(*this);
+#endif
     std::unique_lock<std::mutex> lck(sync);
-    uploadCnd.wait(lck);
+    uploadCnd.wait(lck, [this] { return uploadFId>=0; });
     if(uploadFId==Resources::MaxFramesInFlight)
       break;
     if(uploadFId<0)
@@ -315,5 +319,6 @@ void InstanceStorage::uploadMain() {
 
     patchGpu[uploadFId].update(patchCpu);
     uploadFId = -1;
+    uploadDoneCnd.notify_all();
     }
   }

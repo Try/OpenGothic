@@ -79,5 +79,8 @@ class InstanceStorage {
     std::thread             uploadTh;
     std::mutex              sync;
     std::condition_variable uploadCnd;
+    std::condition_variable uploadDoneCnd;
     int32_t                 uploadFId = -1;
+
+  friend class InstanceStorageTest;
   };

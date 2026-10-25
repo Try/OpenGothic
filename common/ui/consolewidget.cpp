@@ -79,6 +79,7 @@ void ConsoleWidget::close() {
     return;
   Tempest::UiOverlay* ov = overlay;
   overlay = nullptr;
+  ++inputRevisionCounter;
 
   setVisible(false);
   CloseEvent e;
@@ -90,6 +91,7 @@ void ConsoleWidget::close() {
 
 int ConsoleWidget::exec() {
   if(overlay==nullptr){
+    ++inputRevisionCounter;
     overlay = new Overlay(*this);
 
     SystemApi::addOverlay(std::move(overlay));

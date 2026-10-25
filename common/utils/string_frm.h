@@ -109,12 +109,7 @@ class alignas(64) string_frm {
       }
 
     void implWrite(char* out, size_t maxSz, size_t& at, const char* arg) {
-      for(size_t i=0; arg[i]; ++i) {
-        if(at>=maxSz)
-          break;
-        out[at] = arg[i];
-        at++;
-        }
+      implWrite(out, maxSz, at, std::string_view(arg));
       }
 
     void implWrite(char* out, size_t maxSz, size_t& at, char arg) {

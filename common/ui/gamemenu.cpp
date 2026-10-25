@@ -12,6 +12,7 @@
 #include "world/objects/npc.h"
 #include "world/world.h"
 #include "ui/menuroot.h"
+#include "ui/gamepadtextinput.h"
 #include "utils/gthfont.h"
 #include "utils/fileutil.h"
 #include "utils/keycodec.h"
@@ -55,6 +56,18 @@ struct GameMenu::ListContentDialog : Dialog {
     if(e.key==Event::K_S || e.key==Event::K_Down) {
       onMove(+1);
       }
+    }
+
+  void onGamepad(KeyCodec::Action action) {
+    // close() removes the overlay before the nested event loop returns.
+    if(!isOpen())
+      return;
+    if(action==KeyCodec::Escape)
+      close();
+    else if(action==KeyCodec::Forward)
+      onMove(-1);
+    else if(action==KeyCodec::Back)
+      onMove(+1);
     }
 
   void onMove(int dy) {
@@ -118,9 +131,26 @@ struct GameMenu::ListViewDialog : Dialog {
 
     ListContentDialog dlg(*next);
     dlg.resize(owner.owner.size());
+    {
+    MenuRoot::ModalInputScope modal(owner.owner,[&dlg](KeyCodec::Action action) { dlg.onGamepad(action); });
     dlg.exec();
+    }
     next->visible = vis;
     owner.curItem = prev;
+    }
+
+  void onGamepad(KeyCodec::Action action) {
+    // close() removes the overlay before the nested event loop returns.
+    if(!isOpen())
+      return;
+    if(action==KeyCodec::Escape)
+      close();
+    else if(action==KeyCodec::ActionGeneric)
+      showQuest();
+    else if(action==KeyCodec::Forward)
+      onMove(-1);
+    else if(action==KeyCodec::Back)
+      onMove(+1);
     }
 
   void keyDownEvent(KeyEvent &e) override { e.accept(); }
@@ -196,6 +226,14 @@ struct GameMenu::KeyEditDialog : Dialog {
     setCursorShape(CursorShape::Hidden);
     setFocus(true);
     }
+  void onGamepad(KeyCodec::Action action) {
+    // close() removes the overlay before the nested event loop returns.
+    if(!isOpen())
+      return;
+    if(action==KeyCodec::Escape)
+      close();
+    }
+
   void keyDownEvent(KeyEvent &e) override { e.accept(); }
   void keyUpEvent  (KeyEvent &e) override {
     close();
@@ -216,53 +254,156 @@ struct GameMenu::KeyEditDialog : Dialog {
   };
 
 struct GameMenu::SavNameDialog : Dialog {
-  SavNameDialog(std::string& text):text(text), text0(text) {
+  SavNameDialog(std::string& text, bool russian = false, float uiScale = 1.f)
+    :text(text), decision(text), input(russian), russian(russian), uiScale(uiScale) {
     setFocusPolicy(ClickFocus);
-    setCursorShape(CursorShape::Hidden);
+    setCursorShape(CursorShape::Arrow);
     setFocus(true);
     }
 
-  void mouseDownEvent(MouseEvent& e) override { e.accept(); }
-  void mouseUpEvent  (MouseEvent&) override {
+  bool pending() const { return isOpen() && decision.isPending(); }
+
+  void finish(bool accept, bool gamepad = false) {
+    if(!pending())
+      return;
+    if(accept)
+      decision.accept(gamepad);
+    else
+      decision.cancel();
     close();
-    accepted = true;
+    }
+
+  void activate() {
+    if(!pending())
+      return;
+    const auto result = input.activate(text);
+    if(result==GamepadTextInput::Result::Accept)
+      finish(true,true);
+    else if(result==GamepadTextInput::Result::Cancel)
+      finish(false);
+    update();
+    }
+
+  void mouseDownEvent(MouseEvent& e) override {
+    e.accept();
+    pressedCell = GamepadTextInput::Cells;
+    if(!pending() || e.button!=Event::ButtonLeft)
+      return;
+    for(size_t i=0;i<GamepadTextInput::Cells;++i)
+      if(input.enabled(i) && cells[i].contains(e.pos())) {
+        pressedCell = i;
+        break;
+        }
+    }
+  void mouseUpEvent(MouseEvent& e) override {
+    if(!pending())
+      return;
+    const auto pressed = pressedCell;
+    pressedCell = GamepadTextInput::Cells;
+    if(e.button!=Event::ButtonLeft || pressed>=GamepadTextInput::Cells || !input.enabled(pressed) || !cells[pressed].contains(e.pos()))
+      return;
+    // A click must begin and end on the same key; outside clicks never save.
+    while(input.selection()!=pressed)
+      input.move(KeyCodec::Right);
+    if(pressed==GamepadTextInput::Save)
+      finish(true); // Preserve the keyboard/mouse empty-name contract.
+    else
+      activate();
+    }
+
+  void onGamepad(KeyCodec::Action action) {
+    // close() removes the overlay before the nested event loop returns.
+    if(!pending())
+      return;
+    if(action==KeyCodec::Escape)
+      finish(false);
+    else if(action==KeyCodec::ActionGeneric)
+      activate();
+    else {
+      input.move(action);
+      update();
+      }
     }
 
   void keyDownEvent(KeyEvent &e) override { e.accept(); }
   void keyUpEvent  (KeyEvent &e) override {
+    if(!pending())
+      return;
     update();
-
     if(e.key==Event::K_ESCAPE) {
-      text = text0;
-      close();
+      finish(false);
       return;
       }
     if(e.key==Event::K_Return) {
-      accepted = true;
-      close();
+      finish(true);
       return;
       }
-    if(e.key==Event::K_Back && text.size()>0) {
+    if(e.key==Event::K_Back && !text.empty()) {
       text.pop_back();
       return;
       }
-
-    char ch[2] = {'\0','\0'};
-    if(('a'<=e.code && e.code<='z') || ('A'<=e.code && e.code<='Z')  ||
+    if(('a'<=e.code && e.code<='z') || ('A'<=e.code && e.code<='Z') ||
        ('0'<=e.code && e.code<='9') || e.code==' ' || e.code=='.')
-      ch[0] = char(e.code);
-    if(ch[0]=='\0')
-      return;
-    text = text + ch;
+      text += char(e.code);
     }
 
-  void paintEvent (PaintEvent&) override {}
+  void paintEvent(PaintEvent& e) override {
+    Painter p(e);
+    const float scale = uiScale;
+    auto font = Resources::font(scale);
+    font.enableCyrillicFallback();
+    // Dialog's initial size survives native window resizing; fit its visible viewport.
+    const int canvasW = std::max(1,std::min(w(),owner()!=nullptr ? owner()->w()-this->x() : w()));
+    const int canvasH = std::max(1,std::min(h(),owner()!=nullptr ? owner()->h()-this->y() : h()));
+    const int width = std::max(1,std::min(canvasW-20,int(800*scale)));
+    const int height = std::max(1,std::min(canvasH-20,int(320*scale)));
+    const int x = (canvasW-width)/2, y = (canvasH-height)/2;
+    const int cellW = std::max(1,width/int(GamepadTextInput::Columns));
+    const int lineH = std::max(1,height/9);
+    int labelW = 1;
+    for(size_t i=0;i<GamepadTextInput::Cells;++i)
+      labelW = std::max(labelW,font.textSize(input.label(i,russian)).w);
+    const float fit = std::min({1.f,float(std::max(1,cellW-4))/float(labelW),
+                               float(std::max(1,lineH-2))/float(std::max(1,font.pixelSize()))});
+    font.setScale(scale*fit);
+    p.setScissor(x,y,width,height);
+    p.setBrush(Color(0.04f,0.04f,0.04f,1));
+    p.drawRect(x,y,width,height);
+    const auto title = russian ? "\xc8\xec\xff \xf1\xee\xf5\xf0\xe0\xed\xe5\xed\xe8\xff" : "Save name";
+    font.drawText(p,x+2,y+font.pixelSize(),title);
+    // Preview the tail without changing the actual name or existing long saves.
+    size_t begin = 0;
+    int previewWidth = font.textSize(text).w+font.textSize("_").w;
+    while(begin<text.size() && previewWidth>width-4) {
+      previewWidth -= font.textSize(text.c_str()+begin,text.c_str()+begin+1).w;
+      ++begin;
+      }
+    const auto preview = text.substr(begin)+"_";
+    font.drawText(p,x+2,y+lineH+font.pixelSize(),preview);
+    for(size_t i=0;i<GamepadTextInput::Cells;++i) {
+      cells[i] = Rect(x+int(i%GamepadTextInput::Columns)*cellW,
+                      y+(2+int(i/GamepadTextInput::Columns))*lineH,cellW,lineH);
+      if(!input.enabled(i))
+        continue;
+      const auto& r = cells[i];
+      if(i==input.selection()) {
+        p.setBrush(Color(0.25f,0.25f,0.4f,1));
+        p.drawRect(r.x,r.y,r.w,r.h);
+        }
+      font.drawText(p,r.x+2,r.y+font.pixelSize(),input.label(i,russian));
+      }
+    const auto hint = russian ? "Cross: \xe2\xfb\xe1\xee\xf0   Circle/Esc: \xee\xf2\xec\xe5\xed\xe0" : "Cross: select   Circle/Esc: cancel";
+    font.drawText(p,x+2,y+8*lineH+font.pixelSize(),hint);
+    }
   void paintShadow(PaintEvent&) override {}
 
   std::string& text;
-  std::string  text0;
-
-  bool         accepted = false;
+  MenuInput::SaveName decision;
+  GamepadTextInput input;
+  bool russian = false;
+  float uiScale = 1.f;
+  std::array<Rect,GamepadTextInput::Cells> cells = {};
+  size_t pressedCell = GamepadTextInput::Cells;
   };
 
 GameMenu::GameMenu(MenuRoot &owner, KeyCodec& keyCodec, zenkit::DaedalusVm& vm, std::string_view menuSection, KeyCodec::Action kClose)
@@ -430,6 +571,8 @@ void GameMenu::drawItem(Painter& p, Item& hItem) {
     }
 
   auto fnt = getTextFont(hItem);
+  if(saveSlotId(hItem)!=size_t(-1))
+    fnt.enableCyrillicFallback();
   int  tw  = szX;
   int  th  = szY;
 
@@ -666,6 +809,23 @@ void GameMenu::onEndTouch(bool activate) {
     onKeyboard(KeyCodec::ActionGeneric);
   }
 
+void GameMenu::onGamepad(KeyCodec::Action key) {
+  auto* sel = selectedItem();
+  if(sel==nullptr || sel->handle==nullptr)
+    return;
+  const auto type = sel->handle->type;
+  auto item = MenuInput::Item::Command;
+  if(isHorSelectable(sel->handle))
+    item = MenuInput::Item::Horizontal;
+  else if(type==zenkit::MenuItemType::SLIDER || type==zenkit::MenuItemType::CHOICEBOX)
+    item = MenuInput::Item::Value;
+  // Directional input must never run a script command or bypass the save
+  // confirmation. Keyboard input retains its existing script contract.
+  const auto action = MenuInput::action(key,item);
+  if(action!=KeyCodec::Idle)
+    onKeyboard(action);
+  }
+
 void GameMenu::onKeyboard(KeyCodec::Action key) {
   auto sel = selectedItem();
   if(sel!=nullptr && isHorSelectable(sel->handle)) {
@@ -885,13 +1045,16 @@ void GameMenu::execSingle(Item &it, int slideDx, KeyCodec::Action hint) {
   if(item->type==zenkit::MenuItemType::INPUT && slideDx==0) {
     ctrlInput = &it;
     if(item->on_chg_set_option.empty()) {
-      SavNameDialog dlg{item->text[0]};
+      SavNameDialog dlg{item->text[0], Gothic::settingsGetI("GAME","language")==int32_t(ScriptLang::RU), Gothic::interfaceScale(&owner)};
       if(it.savHdr.version==0)
         dlg.text = "";
       dlg.resize(owner.size());
+      {
+      MenuRoot::ModalInputScope modal(owner,[&dlg](KeyCodec::Action action) { dlg.onGamepad(action); });
       dlg.exec();
+      }
       ctrlInput = nullptr;
-      if(!dlg.accepted)
+      if(!dlg.decision.isAccepted())
         return;
       }
     else if(hint==KeyCodec::K_Del) {
@@ -903,7 +1066,10 @@ void GameMenu::execSingle(Item &it, int slideDx, KeyCodec::Action hint) {
     else {
       KeyEditDialog dlg;
       dlg.resize(owner.size());
+      {
+      MenuRoot::ModalInputScope modal(owner,[&dlg](KeyCodec::Action action) { dlg.onGamepad(action); });
       dlg.exec();
+      }
       ctrlInput = nullptr;
 
       if(dlg.key==Event::K_ESCAPE && dlg.mkey==Event::ButtonNone)
@@ -1044,7 +1210,10 @@ void GameMenu::execCommands(std::string str, bool isClick, KeyCodec::Action hint
             return;
             }
           dlg.resize(owner.size());
+          {
+          MenuRoot::ModalInputScope modal(owner,[&dlg](KeyCodec::Action action) { dlg.onGamepad(action); });
           dlg.exec();
+          }
           curItem = prev;
           }
         }
