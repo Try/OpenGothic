@@ -680,6 +680,12 @@ void PlayerControl::implMove(uint64_t dt) {
     return;
     }
 
+  if(pl.isDive()) {
+    // up/down to pitch, action or jump to swim forward
+    allowRot = pl.isRotationAllowed();
+    std::memset(actrl,0,sizeof(actrl));
+    }
+
   int rotation = 0;
   if(allowRot) {
     if(this->wantsToTurnLeft()) {
@@ -707,6 +713,19 @@ void PlayerControl::implMove(uint64_t dt) {
 
   pl.setDirectionY(rotY);
   if(pl.isFalling() || pl.isSlide() || pl.isInAir() || pl.isJump() || pl.isJumpUp()){
+    pl.setDirection(rot);
+    runAngleDest = 0;
+    return;
+    }
+
+  if(pl.isDive()) {
+    const float pitch = 100.f*(float(dt)/1000.f);
+    if(this->wantsToMoveForward())
+      rotY -= pitch;
+    else if(this->wantsToMoveBackward())
+      rotY += pitch;
+    pl.setDirectionY(std::clamp(rotY,-80.f,80.f));
+    pl.setAnim(ctrl[Action::Jump] || ctrl[KeyCodec::ActionGeneric] ? Npc::Anim::Move : Npc::Anim::Idle);
     pl.setDirection(rot);
     runAngleDest = 0;
     return;
@@ -861,30 +880,16 @@ void PlayerControl::implMove(uint64_t dt) {
     ani = Npc::Anim::MoveR;
     }
   else if(this->wantsToMoveForward()) {
-    if((pl.walkMode()&WalkBit::WM_Dive)!=WalkBit::WM_Dive) {
-      ani = Npc::Anim::Move;
-      }
-    else if(pl.isDive()) {
-      pl.setDirectionY(rotY - rspeed);
-      return;
-      }
+    ani = Npc::Anim::Move;
     }
   else if(this->wantsToMoveBackward()) {
-    if((pl.walkMode()&WalkBit::WM_Dive)!=WalkBit::WM_Dive) {
-      ani = Npc::Anim::MoveBack;
-      } else if(pl.isDive()) {
-      pl.setDirectionY(rotY + rspeed);
-      return;
-      }
+    ani = Npc::Anim::MoveBack;
     }
 
 
   if(ctrl[Action::Jump]) {
     if(pl.bodyStateMasked()==BS_JUMP) {
       ani = Npc::Anim::Idle;
-      }
-    else if(pl.isDive()) {
-      ani = Npc::Anim::Move;
       }
     else if(pl.isSwim()) {
       pl.startDive();
