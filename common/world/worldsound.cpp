@@ -204,11 +204,52 @@ void WorldSound::tick(Npc& player) {
       i.active = false;
     }
 
+  tickRain();
   tickSlot(effect);
   tickSlot(effect3d);
   for(auto& i:freeSlot)
     tickSlot(*i.second);
   tickSoundZone(player);
+  }
+
+void WorldSound::tickRain() {
+  const uint64_t dt = owner.tickCount()-rainTick;
+  rainTick = owner.tickCount();
+
+  // zCSkyControler_Outdoor::ProcessRainFX
+  float target = owner.rainWeight();
+  auto sector = owner.physic()->landRay(plPos).sector;
+  if(game.camera().isInWater() || (sector!=nullptr && sector[0]!='\0'))
+    target *= 0.25f;
+  if(rainVol<target)
+    rainVol = std::min(rainVol + float(dt)*0.0005f, target);
+  else if(rainVol>target)
+    rainVol = std::max(rainVol - float(dt)*0.0005f, target);
+
+  if(rainVol<=0) {
+    if(rainEff!=nullptr) {
+      rainEff->loop = false;
+      rainEff->setVolume(0);
+      rainEff = nullptr;
+      }
+    return;
+    }
+
+  if(rainEff==nullptr) {
+    auto snd = Gothic::inst().loadSoundWavFx("RAIN_01.WAV");
+    if(snd==nullptr)
+      return;
+    auto s = implAddSound(*snd,plPos,maxDist);
+    if(s.isEmpty())
+      return;
+    rainEff          = s.val;
+    rainEff->loop    = true;
+    rainEff->ambient = true;
+    effect.emplace_back(rainEff);
+    rainEff->eff.play();
+    }
+  rainEff->eff.setPosition(plPos);
+  rainEff->setVolume(rainVol);
   }
 
 bool WorldSound::execTriggerEvent(const TriggerEvent& e) {

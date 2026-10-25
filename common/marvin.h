@@ -58,6 +58,7 @@ class Marvin {
       C_GoToCamera,
 
       C_SetTime,
+      C_StartRain,
 
       C_Insert,
       C_PlayAni,

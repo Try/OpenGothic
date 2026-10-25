@@ -3,6 +3,7 @@
 #include <functional>
 #include <future>
 #include <cctype>
+#include <cmath>
 
 #include <Tempest/Log>
 #include <Tempest/Painter>
@@ -184,6 +185,10 @@ void World::load(Serialize &fin) {
 
   wobj.load(fin);
   npcPlayer = wobj.findHero();
+
+  if(fin.setEntry("worlds/",wname,"/weather"))
+    fin.read(weather.rainStart,weather.rainStop);
+  weather.prevTime = -1;
   }
 
 void World::save(Serialize &fout) {
@@ -196,6 +201,9 @@ void World::save(Serialize &fout) {
     }
 
   wobj.save(fout);
+
+  fout.setEntry("worlds/",wname,"/weather");
+  fout.write(weather.rainStart,weather.rainStop);
   }
 
 uint32_t World::npcId(const Npc *ptr) const {
@@ -379,6 +387,7 @@ void World::tick(uint64_t dt) {
     return;
   wobj.tick(dt,dt);
   wdynamic->tick(dt);
+  tickWeather();
   if(auto pl = player())
     wsound.tick(*pl);
   globFx->tick(dt);
@@ -404,6 +413,49 @@ void World::setDayTime(int32_t h, int32_t min) {
 
 gtime World::time() const {
   return game.time();
+  }
+
+float World::skyTime() const {
+  // 0 is noon, as in zCSkyControler_Outdoor
+  const float t = float(time().timeInDay().toInt())/float(gtime(24,0).toInt());
+  return std::fmod(t+0.5f, 1.f);
+  }
+
+bool World::isRaining() const {
+  return weather.weight>0.3f;
+  }
+
+void World::setRainWeight(float pos, float len) {
+  // zSTARTRAIN: put current time at 'pos' of rain period
+  const float t = skyTime();
+  pos = std::clamp(pos, 0.f, 1.f);
+  len = std::clamp(len, 0.f, 1.f);
+  weather.rainStart = std::clamp(t - pos*len,       0.f, 1.f);
+  weather.rainStop  = std::clamp(t + (1.f-pos)*len, 0.f, 1.f);
+  }
+
+void World::tickWeather() {
+  const float t = skyTime();
+  if(weather.prevTime-t>0.95f && t<0.02f) {
+    // new day - roll the dice
+    const float r0 = float(std::rand())/float(RAND_MAX);
+    const float r1 = float(std::rand())/float(RAND_MAX);
+    weather.rainStart = std::min(r0, 0.958f);
+    weather.rainStop  = std::min(weather.rainStart + 0.042f + r1*0.06f, 1.f);
+    }
+  weather.prevTime = t;
+
+  if(t<weather.rainStart || t>weather.rainStop || weather.rainStart>=weather.rainStop) {
+    weather.weight = 0;
+    return;
+    }
+  const float k = (t-weather.rainStart)/(weather.rainStop-weather.rainStart);
+  if(k<0.2f)
+    weather.weight = k*5.f;
+  else if(k>0.8f)
+    weather.weight = (1.f-k)*5.f;
+  else
+    weather.weight = 1.f;
   }
 
 Focus World::validateFocus(const Focus &def) {

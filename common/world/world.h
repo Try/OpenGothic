@@ -118,6 +118,9 @@ class World final {
     uint64_t             tickCount() const;
     void                 setDayTime(int32_t h,int32_t min);
     gtime                time() const;
+    bool                 isRaining() const;
+    float                rainWeight() const { return weather.weight; }
+    void                 setRainWeight(float pos, float len);
 
     Focus                validateFocus(const Focus& def);
     Focus                findFocus(const Npc& pl, const Focus &def);
@@ -212,6 +215,13 @@ class World final {
 
     Npc*                                  npcPlayer=nullptr;
 
+    struct Weather final {
+      float rainStart = 0.187f;
+      float rainStop  = 0.25f;
+      float weight    = 0;
+      float prevTime  = -1;
+      } weather;
+
     std::unique_ptr<DynamicWorld>         wdynamic;
     std::unique_ptr<WorldView>            wview;
     std::unique_ptr<GlobalEffects>        globFx;
@@ -223,6 +233,8 @@ class World final {
     auto         portalAt(std::string_view tag) -> BspSector*;
 
     void         initScripts(bool firstTime);
+    float        skyTime() const;
+    void         tickWeather();
 
     Sound        addHitEffect(std::string_view src, std::string_view reciver, std::string_view scheme, const Tempest::Matrix4x4& pos);
   };

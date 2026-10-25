@@ -119,7 +119,8 @@ Marvin::Marvin() {
     {"toggle wayboxes",            C_Invalid},
     {"toggle waynet",              C_Invalid},
     {"version",                    C_Invalid},
-    {"zstartrain",                 C_Invalid},
+    {"zstartrain %f",              C_StartRain},
+    {"zstartrain",                 C_StartRain},
     {"zstartsnow",                 C_Invalid},
     {"ztimer multiplyer %f",       C_TimeMultiplyer},
     {"ztimer realtime",            C_TimeRealtime},
@@ -435,6 +436,16 @@ bool Marvin::exec(std::string_view v) {
       if(world==nullptr || player==nullptr)
         return false;
       return addItemOrNpcBySymbolName(world, ret.argv[0], player->position());
+      }
+    case C_StartRain: {
+      World* world = Gothic::inst().world();
+      if(world==nullptr)
+        return false;
+      float pos = 0;
+      if(!ret.argv[0].empty() && !fromString(ret.argv[0], pos))
+        return false;
+      world->setRainWeight(pos, 0.1f);
+      return true;
       }
     case C_SetTime: {
       World* world = Gothic::inst().world();

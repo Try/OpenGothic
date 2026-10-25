@@ -1879,12 +1879,7 @@ void GameScript::wld_senduntrigger(std::string_view triggerTarget) {
   }
 
 bool GameScript::wld_israining() {
-  static bool first=true;
-  if(first){
-    Log::e("not implemented call [wld_israining]");
-    first=false;
-  }
-  return false;
+  return world().isRaining();
   }
 
 void GameScript::mdl_setvisual(std::shared_ptr<zenkit::INpc> npcRef, std::string_view visual) {

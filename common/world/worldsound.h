@@ -60,6 +60,7 @@ class WorldSound final {
     using PEffect = std::shared_ptr<Effect>;
 
     void    tickSoundZone(Npc& player);
+    void    tickRain();
     void    tickSlot(std::vector<PEffect>& eff);
     void    tickSlot(Effect& slot);
     void    initSlot(Effect& slot);
@@ -79,6 +80,10 @@ class WorldSound final {
     GameMusic::Tags                         currentTags = GameMusic::Tags::Std;
 
     Tempest::Vec3                           plPos;
+
+    PEffect                                 rainEff;
+    float                                   rainVol = 0;
+    uint64_t                                rainTick = 0;
 
     std::unordered_map<std::string,PEffect> freeSlot;
     std::vector<PEffect>                    effect;
