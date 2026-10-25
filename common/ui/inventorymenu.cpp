@@ -16,6 +16,9 @@
 
 using namespace Tempest;
 
+static constexpr int headerTop     = 70;
+static constexpr int headerSpacing = 30;
+
 struct InventoryMenu::Page {
   Page()=default;
   Page(const Page&)=delete;
@@ -560,10 +563,10 @@ void InventoryMenu::adjustScroll() {
 void InventoryMenu::drawAll(Painter &p, Npc &player, DrawPass pass) {
   const int padd = 43;
 
-  const int top=std::max(headerTop,margins().top);
-  const int left=std::max(padd,margins().left);
-  const int right=w()-std::max(padd,margins().right);
-  const int iy=top+headerHeight()+headerSpacing;
+  const int top   = std::max(headerTop,margins().top);
+  const int left  = std::max(padd,margins().left);
+  const int right = w() - std::max(padd,margins().right);
+  const int iy    = top + headerHeight() + headerSpacing;
 
   if(state==State::LockPicking)
     return;
@@ -715,7 +718,7 @@ void InventoryMenu::drawInfo(Painter &p) {
   const auto  area  = clientRect();
   const int   dw    = std::min(area.w, int(720*scale));
   const int   dh    = infoHeight();
-  const int   x     = safeAreaCenter(w(),dw,margins().left,margins().right);
+  const int   x     = SafeArea::center(w(),dw,margins().left,margins().right);
   const int   y     = h()-dh-std::max(20,margins().bottom);
 
   auto& pg  = activePage();

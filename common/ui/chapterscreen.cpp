@@ -37,8 +37,8 @@ void ChapterScreen::paintEvent(Tempest::PaintEvent &e) {
   const int32_t offset = int32_t(50*scale);
 
   Painter p(e);
-  int x = safeAreaCenter(w(),width, margins().left,margins().right);
-  int y = safeAreaCenter(h(),height,margins().top, margins().bottom);
+  int x = SafeArea::center(w(),width, margins().left,margins().right);
+  int y = SafeArea::center(h(),height,margins().top, margins().bottom);
   p.setBrush(*back);
   p.drawRect(x,y,width,height,
              0,0,back->w(),back->h());

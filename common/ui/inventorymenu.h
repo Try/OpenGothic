@@ -106,9 +106,6 @@ class InventoryMenu : public Tempest::Widget {
     int                       infoHeight() const;
     size_t                    pagesCount() const;
 
-    static constexpr int      headerTop = 70;
-    static constexpr int      headerSpacing = 30;
-
     const Page&               activePage();
     PageLocal&                activePageSel();
 

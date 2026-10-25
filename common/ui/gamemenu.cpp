@@ -722,8 +722,8 @@ void GameMenu::onTick() {
 
   if(menu->flags & zenkit::MenuFlag::ALIGN_CENTER) {
     const auto& margin = owner.margins();
-    setPosition(safeAreaCenter(owner.w(),w(),margin.left,margin.right),
-                safeAreaCenter(owner.h(),h(),margin.top,margin.bottom));
+    setPosition(SafeArea::center(owner.w(),w(),margin.left,margin.right),
+                SafeArea::center(owner.h(),h(),margin.top,margin.bottom));
     } else {
     setPosition(area.x+int(float(menu->pos_x)/scriptDiv*fx), area.y+int(float(menu->pos_y)/scriptDiv*fy));
     }

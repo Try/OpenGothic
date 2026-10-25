@@ -314,7 +314,7 @@ void DialogMenu::drawMsg(Tempest::Painter& p, int offsetY) {
 
     auto& fnt = *sc.font;
     auto  sz  = fnt.textSize(sc.txt);
-    int   x   = safeAreaCenter(w(),sz.w,margins().left,margins().right);
+    int   x   = SafeArea::center(w(),sz.w,margins().left,margins().right);
     fnt.drawText(p, x, offsetY + int(i*2+1)*sz.h, sc.txt);
     }
   }
@@ -427,7 +427,7 @@ void DialogMenu::paintEvent(Tempest::PaintEvent &e) {
   const uint64_t da = dlgAnimation ? ANIM_TIME : 0;
   const int      dw = std::min(area.w,int(600*scale));
   const int      dh = int(100*scale);
-  const int      dx = safeAreaCenter(w(),dw,margins().left,margins().right);
+  const int      dx = SafeArea::center(w(),dw,margins().left,margins().right);
   const int      dy = std::max(20,margins().top);
 
   if(current.time>0 && trade.isOpen()==InventoryMenu::State::Closed && haveToShowSubtitles(curentIsPl)) {
@@ -467,13 +467,13 @@ void DialogMenu::paintEvent(Tempest::PaintEvent &e) {
     int x = sc.x;
     int y = sc.y;
     if(x<0){
-      x = safeAreaCenter(w(),sz.w,margins().left,margins().right);
+      x = SafeArea::center(w(),sz.w,margins().left,margins().right);
       } else {
       x = area.x+(area.w*x)/100;
       }
     if(y<0){
       const int baseline = fnt.pixelSize();
-      y = safeAreaPosition((h()-sz.h)/2-baseline,sz.h,margins().top,h()-margins().bottom)+baseline;
+      y = SafeArea::position((h()-sz.h)/2-baseline,sz.h,margins().top,h()-margins().bottom)+baseline;
       } else {
       y = area.y+((area.h-sz.h)*y)/100+sz.h;
       }
@@ -498,7 +498,7 @@ void DialogMenu::paintChoice(PaintEvent &e) {
     dh += choiceTextSize.h;
     }
 
-  const int  x        = safeAreaCenter(w(),dw,margins().left,margins().right);
+  const int  x        = SafeArea::center(w(),dw,margins().left,margins().right);
   const int  y        = h()-dh-std::max(int(20*scale),margins().bottom);
 
   if(tex!=nullptr && (choiceAnimTime>0 || isActive)) {
