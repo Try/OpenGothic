@@ -249,6 +249,11 @@ float Animation::Sequence::totalTime() const {
   return float(data->numFrames)*1000.f/data->fpsRate;
   }
 
+uint64_t Animation::Sequence::moveTime() const {
+  // last sample of root motion is at numFrames-1
+  return uint64_t(float(data->tr.size())*1000.f/data->fpsRate);
+  }
+
 float Animation::Sequence::atkTotalTime(uint16_t comboLen) const {
   if(comboLen<data->defHitEnd.size()) {
     uint64_t time = data->defHitEnd[comboLen];
@@ -518,6 +523,12 @@ void Animation::Sequence::processEvent(const zenkit::MdsEventTag& e, Animation::
   }
 
 Tempest::Vec3 Animation::Sequence::speed(uint64_t at, uint64_t dt) const {
+  if(animCls==Transition && isFly()) {
+    // keep last speed after end of jump
+    uint64_t all = moveTime();
+    if(at+dt>all)
+      at = all>dt ? all-dt : 0;
+    }
   auto a = translateXZ(at), b=translateXZ(at+dt); // note: at-dt vs at is more correct probably
   Tempest::Vec3 f = b-a;
 
@@ -532,8 +543,8 @@ Tempest::Vec3 Animation::Sequence::translateXZ(uint64_t at) const {
   if(numFrames==0 || d.tr.size()==0)
     return Tempest::Vec3();
 
-  if(animCls==Transition && !isFly()){
-    uint64_t all=uint64_t(totalTime());
+  if(animCls==Transition) {
+    uint64_t all = moveTime();
     if(at>all)
       at = all;
     }

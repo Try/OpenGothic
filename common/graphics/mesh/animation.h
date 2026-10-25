@@ -88,6 +88,7 @@ class Animation final {
       bool                                   isDefParWindow(uint64_t t) const;
       bool                                   isDefWindow(uint64_t t) const;
       float                                  totalTime() const;
+      uint64_t                               moveTime() const;
 
       bool                                   isAttackAnim() const;
       bool                                   isPrehit(uint64_t sTime, uint64_t now) const;
