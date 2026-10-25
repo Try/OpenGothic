@@ -36,6 +36,10 @@ class Marvin {
       C_ToggleTime,
       C_TimeMultiplyer,
       C_TimeRealtime,
+      C_SaveGame,
+      C_LoadGame,
+      C_SavePosition,
+      C_LoadPosition,
       // npc
       C_CheatFull,
       C_CheatGod,
@@ -61,6 +65,15 @@ class Marvin {
 
       C_Insert,
       C_PlayAni,
+      C_PlayFaceAni,
+      C_PlaySound,
+      C_ApplyOverlay,
+      C_RemoveOverlay,
+      C_SetFatness,
+      C_SetGuild,
+      C_SetTrueGuild,
+      C_SetPermAttitude,
+      C_SetTempAttitude,
 
       // opengothic specific
       C_ToggleGI,
@@ -95,7 +108,11 @@ class Marvin {
     bool   setVariable             (World* world, std::string_view name, std::string_view value);
     bool   setTime                 (World& world, std::string_view hh, std::string_view mm);
     bool   goToVob                 (World& world, Npc& player, Camera& c, std::string_view name, size_t n);
+    bool   setGuild                (World& world, Npc& npc, std::string_view name, bool trueGuild);
+    bool   setAttitude             (World& world, Npc& npc, std::string_view name, bool perm);
 
     std::vector<Cmd> cmd;
+    Tempest::Vec3    savedPos;
+    bool             hasSavedPos = false;
   };
 

@@ -7,9 +7,11 @@
 #include "utils/string_frm.h"
 #include "world/objects/npc.h"
 #include "world/objects/item.h"
+#include "world/objects/sound.h"
 #include "world/triggers/abstracttrigger.h"
 #include "camera.h"
 #include "gothic.h"
+#include "resources.h"
 
 static bool startsWith(std::string_view str, std::string_view needle) {
   if(needle.size()>str.size())
@@ -65,8 +67,9 @@ Marvin::Marvin() {
 
     // animation
     {"play ani %s",                C_PlayAni},
-    {"play faceani %s",            C_Invalid},
-    {"remove overlaymds %s",       C_Invalid},
+    {"play faceani %s",            C_PlayFaceAni},
+    {"apply overlaymds %s",        C_ApplyOverlay},
+    {"remove overlaymds %s",       C_RemoveOverlay},
     {"toggle aniinfo",             C_Invalid},
     {"zoverlaymds apply",          C_Invalid},
     {"zoverlaymds remove",         C_Invalid},
@@ -106,8 +109,10 @@ Marvin::Marvin() {
     // game
     {"LC1",                        C_Invalid},
     {"LC2",                        C_Invalid},
-    {"load game",                  C_Invalid},
-    {"save game",                  C_Invalid},
+    {"load game",                  C_LoadGame},
+    {"load position",              C_LoadPosition},
+    {"save game",                  C_SaveGame},
+    {"save position",              C_SavePosition},
     {"save zen",                   C_Invalid},
     {"set time %d %d",             C_SetTime},
     {"spawnmass %d",               C_Invalid},
@@ -145,6 +150,12 @@ Marvin::Marvin() {
     {"toggle inertiatarget",       C_ToggleInertia},
     {"ztoggle timedemo",           C_ZToggleTimeDemo},
     {"insert %c",                  C_Insert},
+    {"play sound %s",              C_PlaySound},
+    {"set modelfatness %f",        C_SetFatness},
+    {"set guild %s",               C_SetGuild},
+    {"set trueguild %s",           C_SetTrueGuild},
+    {"set permattitude %s",        C_SetPermAttitude},
+    {"set tempattitude %s",        C_SetTempAttitude},
 
     {"toggle gi",                  C_ToggleGI},
     {"toggle vsm",                 C_ToggleVsm},
@@ -266,6 +277,7 @@ bool Marvin::exec(std::string_view v) {
     case C_CheatFull:{
       if(auto pl = Gothic::inst().player()) {
         pl->changeAttribute(ATR_HITPOINTS,pl->attribute(ATR_HITPOINTSMAX),false);
+        pl->changeAttribute(ATR_MANA,     pl->attribute(ATR_MANAMAX),     false);
         }
       return true;
       }
@@ -464,6 +476,103 @@ bool Marvin::exec(std::string_view v) {
       return player->playAnimByName(ret.argv[0], BS_NONE) != nullptr;
       }
 
+    case C_PlayFaceAni: {
+      Npc* player = Gothic::inst().player();
+      if(player==nullptr)
+        return false;
+      player->startFaceAnim(ret.argv[0],1,0);
+      return true;
+      }
+    case C_PlaySound: {
+      World* world  = Gothic::inst().world();
+      Npc*   player = Gothic::inst().player();
+      if(world==nullptr || player==nullptr)
+        return false;
+      std::string file {ret.argv[0]};
+      for(auto& c:file)
+        c = char(std::toupper(c));
+      auto sfx = ::Sound(*world,::Sound::T_3D,file,player->centerPosition(),0.f,false);
+      if(sfx.isEmpty())
+        return false;
+      sfx.play();
+      return true;
+      }
+    case C_ApplyOverlay:
+    case C_RemoveOverlay: {
+      Npc* player = Gothic::inst().player();
+      if(player==nullptr)
+        return false;
+      std::string name {ret.argv[0]};
+      if(name.find('.')==std::string::npos)
+        name += ".MDS";
+      auto skelet = Resources::loadSkeleton(name);
+      if(skelet==nullptr)
+        return false;
+      if(ret.cmd.type==C_ApplyOverlay) {
+        if(player->hasOverlay(skelet)) {
+          print(string_frm(name," already applied."));
+          return true;
+          }
+        player->addOverlay(skelet,0);
+        } else {
+        if(!player->hasOverlay(skelet)) {
+          print(string_frm(name," is not applied."));
+          return true;
+          }
+        player->delOverlay(skelet);
+        }
+      return true;
+      }
+    case C_SetFatness: {
+      Npc*  player = Gothic::inst().player();
+      float f      = 0;
+      if(player==nullptr || !fromString(ret.argv[0], f))
+        return false;
+      player->setFatness(f);
+      return true;
+      }
+    case C_SetGuild:
+    case C_SetTrueGuild: {
+      World* world  = Gothic::inst().world();
+      Npc*   player = Gothic::inst().player();
+      if(world==nullptr || player==nullptr)
+        return false;
+      Npc* npc = player->target()!=nullptr ? player->target() : player;
+      return setGuild(*world,*npc,ret.argv[0],ret.cmd.type==C_SetTrueGuild);
+      }
+    case C_SetPermAttitude:
+    case C_SetTempAttitude: {
+      World* world  = Gothic::inst().world();
+      Npc*   player = Gothic::inst().player();
+      if(world==nullptr || player==nullptr || player->target()==nullptr)
+        return false;
+      return setAttitude(*world,*player->target(),ret.argv[0],ret.cmd.type==C_SetPermAttitude);
+      }
+    case C_SaveGame:
+      Gothic::inst().quickSave();
+      return true;
+    case C_LoadGame:
+      Gothic::inst().quickLoad();
+      return true;
+    case C_SavePosition: {
+      Npc* player = Gothic::inst().player();
+      if(player==nullptr)
+        return false;
+      savedPos    = player->position();
+      hasSavedPos = true;
+      return true;
+      }
+    case C_LoadPosition: {
+      Npc* player = Gothic::inst().player();
+      if(player==nullptr || !hasSavedPos || !player->setInteraction(nullptr))
+        return false;
+      player->setPosition(savedPos);
+      player->updateTransform();
+      if(auto c = Gothic::inst().camera())
+        c->reset(player);
+      return true;
+      }
+
     case C_ToggleGI:
       Gothic::inst().toggleGi();
       return true;
@@ -606,6 +715,50 @@ bool Marvin::goToVob(World& world, Npc& player, Camera& c, std::string_view name
   player.setPosition(pos);
   player.updateTransform();
   c.reset();
+  return true;
+  }
+
+bool Marvin::setGuild(World& world, Npc& npc, std::string_view name, bool trueGuild) {
+  std::string n {name};
+  for(auto& c:n)
+    c = char(std::toupper(c));
+  auto* sym = world.script().findSymbol(n);
+  if(sym==nullptr || sym->type()!=zenkit::DaedalusDataType::INT) {
+    print("Not a valid guild name.");
+    return false;
+    }
+  if(trueGuild)
+    npc.setTrueGuild(sym->get_int(0)); else
+    npc.handle().guild = sym->get_int(0);
+  return true;
+  }
+
+bool Marvin::setAttitude(World& world, Npc& npc, std::string_view name, bool perm) {
+  Attitude att = ATT_NULL;
+  if(compareNoCase(name,"FRIENDLY"))
+    att = ATT_FRIENDLY;
+  else if(compareNoCase(name,"NEUTRAL"))
+    att = ATT_NEUTRAL;
+  else if(compareNoCase(name,"ANGRY"))
+    att = ATT_ANGRY;
+  else if(compareNoCase(name,"HOSTILE"))
+    att = ATT_HOSTILE;
+  if(att==ATT_NULL) {
+    print("Unknown attitude.");
+    return false;
+    }
+
+  if(!perm) {
+    npc.setTempAttitude(att);
+    return true;
+    }
+
+  // temporary attitude can't be better than permanent one
+  Attitude cur = npc.tempAttitude();
+  if(cur==ATT_NULL)
+    cur = world.script().personAttitude(npc,*world.player());
+  npc.setAttitude(att);
+  npc.setTempAttitude(std::min(cur,att));
   return true;
   }
 
