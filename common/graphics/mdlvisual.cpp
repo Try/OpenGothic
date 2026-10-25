@@ -563,11 +563,12 @@ Vec3 MdlVisual::mapHeadBone() const {
 
 void MdlVisual::stopAnim(Npc& npc, std::string_view anim) {
   skInst->stopAnim(anim);
-  // Avoid issues with pfx on/off events within looped animations. Such as for Rupert and Bulko.
-  if(anim.empty())
-    effects.clear();
   if(!skInst->hasAnim())
     startAnimAndGet(npc,AnimationSolver::Idle,0,fgtMode,npc.walkMode());
+  }
+
+const Animation::Sequence* MdlVisual::startStandUpAnim(Npc& npc) {
+  return skInst->startStandUp(solver,npc.world().tickCount());
   }
 
 bool MdlVisual::stopItemStateAnim(Npc& npc) {

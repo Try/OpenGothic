@@ -98,6 +98,7 @@ class MdlVisual final {
     void                           startFaceAnim  (Npc& npc, std::string_view anim, float intensity, uint64_t duration);
     void                           stopDlgAnim    (Npc& npc);
     void                           stopAnim       (Npc& npc, std::string_view anim);
+    auto                           startStandUpAnim(Npc& npc) -> const Animation::Sequence*;
     bool                           stopItemStateAnim(Npc &npc);
     void                           stopWalkAnim   (Npc &npc);
     void                           setAnimRotate  (Npc &npc, int dir);

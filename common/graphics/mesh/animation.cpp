@@ -415,6 +415,28 @@ void Animation::Sequence::processPfx(const MdsParticleEffect& p, MdlVisual& visu
     }
   }
 
+void Animation::Sequence::pendingPfxStop(uint64_t barrier, uint64_t sTime, std::vector<int32_t>& out) const {
+  auto& d = *data;
+  if(d.pfx.empty() || d.numFrames==0)
+    return;
+
+  // pfx-stop events, that are not reached yet in current loop
+  uint64_t frame = barrier>sTime ? uint64_t(float(barrier-sTime)*d.fpsRate/1000.f) : 0;
+  if(animCls==Animation::Loop)
+    frame %= d.numFrames; else
+    frame = std::min<uint64_t>(frame,d.numFrames);
+
+  for(auto& i:d.pfx) {
+    if(!i.pfxStop)
+      continue;
+    uint64_t fr = frameClamp(i.frame,d.firstFrame,d.numFrames,d.lastFrame);
+    if(reverse ? (fr<d.numFrames-frame) : (fr>=frame)) {
+      if(std::find(out.begin(),out.end(),i.index)==out.end())
+        out.push_back(i.index);
+      }
+    }
+  }
+
 void Animation::Sequence::processEvents(uint64_t barrier, uint64_t sTime, uint64_t now, EvCount& ev) const {
   uint64_t frameA=0,frameB=0;
   bool     invert=false;

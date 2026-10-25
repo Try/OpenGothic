@@ -42,6 +42,7 @@ class Pose final {
                                  uint8_t comb, BodyState bs,
                                  StartHint hint, uint64_t tickCount);
     bool               stopAnim(std::string_view name);
+    auto               startStandUp(const AnimationSolver &solver, uint64_t tickCount) -> const Animation::Sequence*;
     bool               stopWalkAnim();
     void               interrupt();
     void               stopAllAnim();
@@ -144,6 +145,7 @@ class Pose final {
     uint8_t                         hasEvents = 0;
     uint8_t                         isFlyCombined = 0;
     uint8_t                         hasTransitions = 0;
+    std::vector<int32_t>            pfxStop;
 
     float                           headRotX = 0, headRotY = 0;
 
