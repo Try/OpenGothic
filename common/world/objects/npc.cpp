@@ -3448,8 +3448,16 @@ void Npc::addItem(size_t id, Npc &from, size_t count) {
   Inventory::transfer(invent,from.invent,&from,id,count,owner);
   }
 
+void Npc::addItem(size_t id, Inventory& from, size_t count) {
+  Inventory::transfer(invent,from,nullptr,id,count,owner);
+  }
+
 void Npc::moveItem(size_t id, Interactive &to, size_t count) {
   Inventory::transfer(to.inventory(),invent,this,id,count,owner);
+  }
+
+void Npc::moveItem(size_t id, Inventory& to, size_t count) {
+  Inventory::transfer(to,invent,this,id,count,owner);
   }
 
 void Npc::sellItem(size_t id, Npc &to, size_t count) {
