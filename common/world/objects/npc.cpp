@@ -15,6 +15,7 @@
 #include "utils/versioninfo.h"
 #include "utils/fileext.h"
 #include "utils/dbgpainter.h"
+#include "utils/gthfont.h"
 #include "camera.h"
 #include "gothic.h"
 #include "resources.h"
@@ -4621,6 +4622,154 @@ void Npc::drawVobRay(DbgPainter& p, const Npc& oth) const {
     }
   p.setPen(Color(1,0,0));
   p.drawLine(mapHeadBone(), head);
+  }
+
+static const char* dbgBodyStateName(BodyState bs) {
+  static const char* names[] = {
+    "BS_STAND", "BS_WALK", "BS_SNEAK", "BS_RUN", "BS_SPRINT", "BS_SWIM", "BS_CRAWL", "BS_DIVE",
+    "BS_JUMP", "BS_CLIMB", "BS_FALL", "BS_SIT", "BS_LIE", "BS_INVENTORY", "BS_ITEMINTERACT",
+    "BS_MOBINTERACT", "BS_MOBINTERACT_INTERRUPT", "BS_TAKEITEM", "BS_DROPITEM", "BS_THROWITEM",
+    "BS_PICKPOCKET", "BS_STUMBLE", "BS_UNCONSCIOUS", "BS_DEAD", "BS_AIMNEAR", "BS_AIMFAR",
+    "BS_HIT", "BS_PARADE", "BS_CASTING", "BS_PETRIFIED", "BS_CONTROLLING",
+    };
+  const uint32_t id = uint32_t(bs & BS_MAX);
+  if(id<std::size(names))
+    return names[id];
+  return "unknown";
+  }
+
+static const char* dbgAiActionName(Action act) {
+  static const char* names[] = {
+    "AI_None", "AI_LookAtNpc", "AI_StopLookAt", "AI_RemoveWeapon", "AI_TurnToNpc", "AI_GoToNpc",
+    "AI_GoToNextFp", "AI_GoToPoint", "AI_StartState", "AI_PlayAnim", "AI_PlayAnimBs", "AI_Wait",
+    "AI_StandUp", "AI_StandUpQuick", "AI_EquipArmor", "AI_EquipBestArmor", "AI_EquipMelee",
+    "AI_EquipRange", "AI_UseMob", "AI_UseItem", "AI_UseItemToState", "AI_Teleport",
+    "AI_DrawWeaponMelee", "AI_DrawWeaponRange", "AI_DrawSpell", "AI_Attack", "AI_Flee", "AI_Dodge",
+    "AI_UnEquipWeapons", "AI_UnEquipArmor", "AI_Output", "AI_OutputSvm", "AI_OutputSvmOverlay",
+    "AI_ProcessInfo", "AI_StopProcessInfo", "AI_ContinueRoutine", "AI_AlignToFp", "AI_AlignToWp",
+    "AI_SetNpcsToState", "AI_SetWalkMode", "AI_FinishingMove", "AI_DrawWeapon", "AI_TakeItem",
+    "AI_GotoItem", "AI_PointAtNpc", "AI_PointAt", "AI_StopPointAt", "AI_PrintScreen", "AI_LookAt",
+    "AI_WhirlToNpc", "AI_TurnAway",
+    };
+  if(size_t(act)<std::size(names))
+    return names[act];
+  return "unknown";
+  }
+
+static const char* dbgAttitudeName(Attitude att) {
+  switch(att) {
+    case ATT_FRIENDLY: return "friendly";
+    case ATT_NEUTRAL:  return "neutral";
+    case ATT_ANGRY:    return "angry";
+    case ATT_HOSTILE:  return "hostile";
+    case ATT_NULL:     break;
+    }
+  return "-";
+  }
+
+void Npc::drawDbgInfo(DbgPainter& p) const {
+  // like oCVob::ShowDebugInfo and oCNpc::ShowDebugInfo
+  auto&     fnt = Resources::font(1.0);
+  const int dy  = int(fnt.pixelSize());
+  auto      pos = position();
+  if(auto sk = visual.visualSkeleton())
+    pos.y += sk->bboxCol[1].y;
+
+  const uint64_t now = owner.tickCount();
+  visual.pose().forEachLayer([&](const Animation::Sequence& sq, uint64_t sAnim) {
+    if(sq.layer!=1 || sq.data==nullptr)
+      return;
+    uint64_t frame = uint64_t(float(now-sAnim)*sq.data->fpsRate/1000.f);
+    if(sq.data->numFrames>0)
+      frame %= sq.data->numFrames;
+    p.drawText(pos, string_frm(sq.name," (",frame,")"));
+    pos.y += float(dy);
+    });
+
+  p.drawText(0, p.h*5000/8192, string_frm("Perc: ",displayName()));
+  int x = 0, y = p.h*5000/8192 + dy;
+  static const char* percNames[] = {
+    "", "ASSESSPLAYER", "ASSESSENEMY", "ASSESSFIGHTER", "ASSESSBODY", "ASSESSITEM", "ASSESSMURDER",
+    "ASSESSDEFEAT", "ASSESSDAMAGE", "ASSESSOTHERSDAMAGE", "ASSESSTHREAT", "ASSESSREMOVEWEAPON",
+    "OBSERVEINTRUDER", "ASSESSFIGHTSOUND", "ASSESSQUIETSOUND", "ASSESSWARN", "CATCHTHIEF",
+    "ASSESSTHEFT", "ASSESSCALL", "ASSESSTALK", "ASSESSGIVENITEM", "ASSESSFAKEGUILD", "MOVEMOB",
+    "MOVENPC", "DRAWWEAPON", "OBSERVESUSPECT", "NPCCOMMAND", "ASSESSMAGIC", "ASSESSSTOPMAGIC",
+    "ASSESSCASTER", "ASSESSSURPRISE", "ASSESSENTERROOM", "ASSESSUSEMOB",
+    };
+  for(size_t i=1; i<PERC_Count && i<std::size(percNames); ++i) {
+    if(!perception[i].func.isValid())
+      continue;
+    if(x>=p.w*5462/8192) {
+      x  = 0;
+      y += dy;
+      }
+    p.drawText(x, y, percNames[i]);
+    x += p.w*2730/8192;
+    }
+  }
+
+void Npc::drawDbgAi(DbgPainter& p) const {
+  // like oCNpc::ShowState, called from oCAIHuman::DoAI
+  auto&     fnt = Resources::font(1.0);
+  const int dy  = int(fnt.pixelSize());
+  auto      pl  = owner.player();
+  int       y   = p.h*1600/8192;
+
+  const char* walk = "Run";
+  if(isDive())
+    walk = "Dive";
+  else if(isSwim())
+    walk = "Swim";
+  else if(isInWater())
+    walk = "Water";
+  else if(bool(wlkMode & WalkBit::WM_Sneak))
+    walk = "Sneak";
+  else if(bool(wlkMode & WalkBit::WM_Walk))
+    walk = "Walk";
+  p.drawText(0, y, string_frm("Walk : ",walk,"   State : ",aiState.hint,(aiState.started ? "_LOOP" : "")));
+
+  const auto  bs     = bodyState();
+  const bool  detect = (pl!=nullptr && pl!=this && canSenseNpc(*pl,true)!=SensesBit::SENSE_NONE);
+  const int   dist   = pl!=nullptr ? int(std::sqrt(qDistTo(*pl))) : 0;
+  std::string flg;
+  if(bs & BS_FLAG_INTERRUPTABLE) flg += "I";
+  if(bs & BS_FLAG_FREEHANDS)     flg += "F";
+  if(bs & BS_MOD_HIDDEN)         flg += "H";
+  if(bs & BS_MOD_DRUNK)          flg += "D";
+  if(bs & BS_MOD_NUTS)           flg += "N";
+  if(bs & BS_MOD_BURNING)        flg += "B";
+  if(bs & BS_MOD_CONTROLLED)     flg += "C";
+  if(bs & BS_MOD_TRANSFORMED)    flg += "T";
+  p.drawText(0, y+dy, string_frm("P.detect : ",(detect ? "yes" : "no"),"    BS:",dbgBodyStateName(bs),"(",flg,")   D:",dist," cm"));
+
+  auto& sc   = owner.script();
+  auto  perm = pl!=nullptr ? sc.personAttitude(*this,*pl) : ATT_NEUTRAL;
+  auto  tmp  = tmpAttitude!=ATT_NULL ? tmpAttitude : perm;
+  auto* gil  = sc.findSymbol("TXT_GUILDS");
+  const int x2 = p.w*5800/8192;
+  p.drawText(x2, y,      string_frm("NpcName : ",displayName()));
+  p.drawText(x2, y+dy,   string_frm("TempAttitude : ",dbgAttitudeName(tmp)));
+  p.drawText(x2, y+dy*2, string_frm("PermAttitude : ",dbgAttitudeName(perm)));
+  if(gil!=nullptr) {
+    p.drawText(x2, y+dy*3, string_frm("Guild : ",    gil->get_string(uint16_t(guild()))));
+    p.drawText(x2, y+dy*4, string_frm("TrueGuild : ",gil->get_string(uint16_t(std::min<uint32_t>(uint32_t(trueGuild()),GIL_MAX-1)))));
+    }
+
+  y = p.h*2100/8192;
+  for(size_t i=0; i<aiQueue.size(); ++i) {
+    p.drawText(0, y, dbgAiActionName(aiQueue[i].act));
+    y += dy;
+    }
+
+  y = p.h*6000/8192;
+  const uint64_t now = owner.tickCount();
+  visual.pose().forEachLayer([&](const Animation::Sequence& sq, uint64_t sAnim) {
+    uint64_t frame = sq.data!=nullptr ? uint64_t(float(now-sAnim)*sq.data->fpsRate/1000.f) : 0;
+    if(sq.data!=nullptr && sq.data->numFrames>0)
+      frame %= sq.data->numFrames;
+    p.drawText(0, y, string_frm(sq.layer," ",sq.name," (",frame,")"));
+    y += dy;
+    });
   }
 
 bool Npc::canSeeNpc(const Npc &oth, bool freeLos) const {

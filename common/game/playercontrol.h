@@ -21,7 +21,7 @@ class PlayerControl final {
     PlayerControl(DialogMenu& dlg, InventoryMenu& inv);
     ~PlayerControl();
 
-    void  onKeyPressed (KeyCodec::Action a, Tempest::Event::KeyType key, KeyCodec::Mapping mapping);
+    void  onKeyPressed (KeyCodec::Action a, Tempest::Event::KeyType key, KeyCodec::Mapping mapping, Tempest::Event::Modifier mod = Tempest::Event::M_NoModifier);
     void  onKeyReleased(KeyCodec::Action a, KeyCodec::Mapping mapping);
     bool  isPressed(KeyCodec::Action a) const;
     void  onRotateMouse(float dAngleX, float dAngleY);
@@ -161,8 +161,10 @@ class PlayerControl final {
     void           marvinF8();
     void           marvinK();
     void           marvinO();
-    void           marvinH();
+    void           marvinH(Tempest::Event::Modifier mod);
     void           marvinY();
+    void           marvinG(Tempest::Event::Modifier mod);
+    void           marvinT(Tempest::Event::Modifier mod);
     void           toggleWalkMode();
     void           toggleSneakMode();
     void           moveFocus(FocusAction act);

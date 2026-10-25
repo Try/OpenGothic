@@ -833,6 +833,21 @@ void WorldObjects::marchCsCameras(DbgPainter& p) const {
       }
   }
 
+void WorldObjects::drawDbgInfo(DbgPainter& p) const {
+  for(auto& i:npcArr) {
+    if(i->dbgAi)
+      i->drawDbgAi(p);
+    if(i->dbgInfo)
+      i->drawDbgInfo(p);
+    }
+  for(auto& i:interactiveObj)
+    if(i->dbgInfo)
+      i->drawDbgInfo(p);
+  for(auto& i:items)
+    if(i->dbgInfo)
+      i->drawDbgInfo(p);
+  }
+
 void WorldObjects::drawVobBoxNpcNear(DbgPainter& p) const {
   for(auto& i:npcNear)
     i->drawVobBox(p);

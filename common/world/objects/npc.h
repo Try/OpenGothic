@@ -84,6 +84,11 @@ class Npc final {
 
     void       drawVobBox(DbgPainter& p) const;
     void       drawVobRay(DbgPainter& p, const Npc& npc) const;
+    void       drawDbgInfo(DbgPainter& p) const;
+    void       drawDbgAi(DbgPainter& p) const;
+
+    bool       dbgInfo = false;
+    bool       dbgAi   = false;
 
     bool       setPosition (float x,float y,float z);
     bool       setPosition (const Tempest::Vec3& pos);

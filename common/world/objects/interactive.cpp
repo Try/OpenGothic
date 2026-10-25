@@ -190,6 +190,12 @@ void Interactive::drawVobBox(DbgPainter& p) const {
     }
   }
 
+void Interactive::drawDbgInfo(DbgPainter& p) const {
+  // like oCVob::ShowDebugInfo for oCMobInter
+  auto pos = displayPosition();
+  p.drawText(pos, string_frm("ST:",state," SC:",schemeName()));
+  }
+
 void Interactive::drawVobRay(DbgPainter& p, const Npc& npc) const {
   auto head = npc.mapHeadBone();
 

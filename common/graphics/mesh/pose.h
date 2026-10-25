@@ -69,6 +69,8 @@ class Pose final {
     bool               isInAnim(std::string_view           sq) const;
     bool               isInAnim(const Animation::Sequence* sq) const;
     bool               hasAnim() const;
+    template<class F>
+    void               forEachLayer(F f) const { for(auto& i:lay) f(*i.seq, i.sAnim); }
     uint64_t           animationTotalTime() const;
     uint64_t           atkTotalTime() const;
 

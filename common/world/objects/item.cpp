@@ -8,6 +8,7 @@
 #include "world/world.h"
 #include "utils/versioninfo.h"
 #include "utils/fileext.h"
+#include "utils/string_frm.h"
 #include "utils/dbgpainter.h"
 
 using namespace Tempest;
@@ -91,6 +92,11 @@ void Item::drawVobBox(DbgPainter& p) const {
     p.setPen(Tempest::Color(0,1,0));
     p.drawPoint(v);
     }
+  }
+
+void Item::drawDbgInfo(DbgPainter& p) const {
+  auto pos = midPosition();
+  p.drawText(pos, string_frm(displayName()," x",count()));
   }
 
 void Item::drawVobRay(DbgPainter& p, const Npc& npc) const {

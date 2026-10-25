@@ -282,6 +282,11 @@ void MainWindow::paintEvent(PaintEvent& event) {
       DbgPainter dbg(p,c->viewProj(),w(),h());
       player.drawVobRay(dbg);
       }
+
+    if(Gothic::inst().isMarvinEnabled() && c!=nullptr) {
+      DbgPainter dbg(p,c->viewProj(),w(),h());
+      world->drawDbgInfo(dbg);
+      }
     }
 
   if(auto wx = Gothic::inst().worldView()) {
@@ -455,7 +460,7 @@ void MainWindow::keyDownEvent(KeyEvent &event) {
 
   auto act     = keycodec.tr(event);
   auto mapping = keycodec.mapping(event);
-  player.onKeyPressed(act,event.key,mapping);
+  player.onKeyPressed(act,event.key,mapping,event.modifier);
 
   if(event.key==Event::K_F11) {
     auto tex = renderer.screenshoot(cmdId, Size(int(swapchain.w()),int(swapchain.h())));

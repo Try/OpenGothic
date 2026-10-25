@@ -6,6 +6,7 @@
 #include "world/objects/item.h"
 #include "world/objects/interactive.h"
 #include "world/world.h"
+#include "game/damagecalculator.h"
 #include "ui/dialogmenu.h"
 #include "ui/inventorymenu.h"
 #include "gothic.h"
@@ -45,7 +46,7 @@ void PlayerControl::setTarget(Npc *other) {
     }
   }
 
-void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType key, KeyCodec::Mapping mapping) {
+void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType key, KeyCodec::Mapping mapping, Tempest::Event::Modifier mod) {
   auto       w    = Gothic::inst().world();
   auto       c    = Gothic::inst().camera();
   auto       pl   = w  ? w->player() : nullptr;
@@ -200,9 +201,13 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
   if(a==Action::K_F8 && Gothic::inst().isMarvinEnabled())
     marvinF8();
   if(key==Tempest::KeyEvent::K_H && Gothic::inst().isMarvinEnabled() && Gothic::inst().settingsGetI("GAME","usePotionKeys")==0)
-    marvinH();
+    marvinH(mod);
   if(a==Action::K_Y && Gothic::inst().isMarvinEnabled())
     marvinY();
+  if(a==Action::K_G && Gothic::inst().isMarvinEnabled())
+    marvinG(mod);
+  if(a==Action::K_T && Gothic::inst().isMarvinEnabled())
+    marvinT(mod);
 
   ctrl[a] = true;
   }
@@ -511,13 +516,29 @@ void PlayerControl::marvinO() {
   w->setPlayer(target);
   }
 
-void PlayerControl::marvinH() {
+void PlayerControl::marvinH(Tempest::Event::Modifier mod) {
   auto w = Gothic::inst().world();
   if(w == nullptr || w->player() == nullptr)
     return;
 
-  // hit self, like in vanilla
   auto& pl = *w->player();
+  if(mod & Tempest::Event::M_Shift) {
+    // hit focus npc
+    if(auto npc = focus().npc)
+      npc->takeDamage(pl,nullptr);
+    return;
+    }
+  if(mod & Tempest::Event::M_Ctrl) {
+    // damage without attacker
+    DamageCalculator::Damage dmg = {};
+    dmg[zenkit::DamageType::FIRE]  = 5;
+    dmg[zenkit::DamageType::MAGIC] = 5;
+    auto ret = DamageCalculator::damageValue(pl,pl,nullptr,true,dmg,COLL_DOEVERYTHING);
+    if(ret.hasHit && !ret.invincible)
+      pl.changeAttribute(ATR_HITPOINTS,-ret.value,false);
+    return;
+    }
+  // hit self, like in vanilla
   pl.takeDamage(pl,nullptr);
   }
 
@@ -533,6 +554,42 @@ void PlayerControl::marvinY() {
   float rot = pl.rotationRad();
   float s = std::sin(rot), c = std::cos(rot);
   pl.goToPoint(pl.position() + Tempest::Vec3(c, 0.0f, s) * 1000);
+  }
+
+void PlayerControl::marvinG(Tempest::Event::Modifier mod) {
+  auto w = Gothic::inst().world();
+  if(w == nullptr || w->player() == nullptr)
+    return;
+
+  // show ai of player or focus npc, only one at time
+  Npc* npc = w->player();
+  if(mod & Tempest::Event::M_Shift)
+    npc = focus().npc;
+  for(uint32_t i=0; i<w->npcCount(); ++i) {
+    auto n = w->npcById(i);
+    if(n!=nullptr && n!=npc)
+      n->dbgAi = false;
+    }
+  if(npc!=nullptr)
+    npc->dbgAi = !npc->dbgAi;
+  }
+
+void PlayerControl::marvinT(Tempest::Event::Modifier mod) {
+  auto w = Gothic::inst().world();
+  if(w == nullptr || w->player() == nullptr)
+    return;
+
+  if(mod & Tempest::Event::M_Shift) {
+    w->player()->dbgInfo = !w->player()->dbgInfo;
+    return;
+    }
+  auto f = focus();
+  if(f.npc!=nullptr)
+    f.npc->dbgInfo = !f.npc->dbgInfo;
+  else if(f.interactive!=nullptr)
+    f.interactive->dbgInfo = !f.interactive->dbgInfo;
+  else if(f.item!=nullptr)
+    f.item->dbgInfo = !f.item->dbgInfo;
   }
 
 Focus PlayerControl::findFocus(const Focus* prev) const {

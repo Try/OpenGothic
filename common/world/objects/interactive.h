@@ -33,6 +33,7 @@ class Interactive : public Vob {
 
     void                drawVobBox(DbgPainter& p) const;
     void                drawVobRay(DbgPainter& p, const Npc& npc) const;
+    void                drawDbgInfo(DbgPainter& p) const;
 
     void                resetPositionToTA(int32_t state);
     void                updateAnimation(uint64_t dt);

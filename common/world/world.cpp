@@ -580,6 +580,10 @@ void World::drawVobBoxNpcNear(DbgPainter& p) const {
   wobj.drawVobBoxNpcNear(p);
   }
 
+void World::drawDbgInfo(DbgPainter& p) const {
+  wobj.drawDbgInfo(p);
+  }
+
 AiOuputPipe *World::openDlgOuput(Npc &player, Npc &npc) {
   return game.openDlgOuput(player,npc);
   }

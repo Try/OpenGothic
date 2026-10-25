@@ -41,6 +41,8 @@ class Vob {
     virtual bool  isDynamic() const;
     virtual float extendedSearchRadius() const;
 
+    bool          dbgInfo = false;
+
   protected:
     World&                            world;
     zenkit::VirtualObjectType         vobType     = zenkit::VirtualObjectType::UNKNOWN;

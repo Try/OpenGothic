@@ -29,6 +29,7 @@ class Item : public Vob {
 
     void    drawVobBox(DbgPainter& p) const;
     void    drawVobRay(DbgPainter& p, const Npc& npc) const;
+    void    drawDbgInfo(DbgPainter& p) const;
 
     void    save(Serialize& fout) const override;
 

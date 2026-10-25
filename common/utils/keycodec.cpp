@@ -129,6 +129,10 @@ KeyCodec::Action KeyCodec::tr(Tempest::KeyEvent const& e) const {
     return K_O;
   if(e.key == Tempest::Event::K_Y)
     return K_Y;
+  if(e.key == Tempest::Event::K_G)
+    return K_G;
+  if(e.key == Tempest::Event::K_T)
+    return K_T;
   return Idle;
   }
 

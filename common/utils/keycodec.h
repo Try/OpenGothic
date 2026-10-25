@@ -68,6 +68,8 @@ class KeyCodec final {
       K_K,     // Marvin Mode's K
       K_O,     // Marvin Mode's O
       K_Y,     // Marvin Mode's Y
+      K_G,     // Marvin Mode's G
+      K_T,     // Marvin Mode's T
       K_Del, // Settings menu
 
       Last

@@ -34,6 +34,7 @@ class AiQueue {
     void     load(Serialize& fin);
 
     size_t   size() const { return aiActions.size(); }
+    auto     operator[](size_t i) const -> const AiAction& { return aiActions[i]; }
     void     clear();
     void     pushBack (AiAction&& a);
     void     pushFront(AiAction&& a);
