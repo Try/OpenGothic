@@ -2584,8 +2584,14 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
           implAniWait(visual.pose().animationTotalTime());
         }
       else if(bs!=BS_DEAD) {
-        visual.stopAnim(*this,"");
         setStateItem(MeshObjects::Mesh(),"");
+        if(act.act==AI_StandUp) {
+          if(auto sq = visual.startStandUpAnim(*this)) {
+            implAniWait(uint64_t(sq->totalTime()));
+            break;
+            }
+          }
+        visual.stopAnim(*this,"");
         setAnim(Anim::Idle);
         }
       break;
