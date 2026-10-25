@@ -532,6 +532,10 @@ void Npc::clearSpeed() {
   mvAlgo.clearSpeed();
   }
 
+void Npc::startFall(const Vec3& speed) {
+  mvAlgo.startFall(speed);
+  }
+
 void Npc::setProcessPolicy(NpcProcessPolicy t) {
   if(aiPolicy==t)
     return;
@@ -4555,6 +4559,10 @@ void Npc::clearGoTo() {
     stopWalking();
     go2.clear();
     }
+  }
+
+void Npc::goToPoint(const Vec3& pos) {
+  go2.set(pos);
   }
 
 void Npc::stopWalking() {

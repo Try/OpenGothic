@@ -195,6 +195,14 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
 
   if(a==Action::K_O && Gothic::inst().isMarvinEnabled())
     marvinO();
+  if(a==Action::K_K && Gothic::inst().isMarvinEnabled())
+    marvinK();
+  if(a==Action::K_F8 && Gothic::inst().isMarvinEnabled())
+    marvinF8();
+  if(key==Tempest::KeyEvent::K_H && Gothic::inst().isMarvinEnabled() && Gothic::inst().settingsGetI("GAME","usePotionKeys")==0)
+    marvinH();
+  if(a==Action::K_Y && Gothic::inst().isMarvinEnabled())
+    marvinY();
 
   ctrl[a] = true;
   }
@@ -446,33 +454,32 @@ void PlayerControl::clearInput() {
   std::memset(wctrl,0,sizeof(wctrl));
   }
 
-void PlayerControl::marvinF8(uint64_t dt) {
+void PlayerControl::marvinF8() {
   auto w = Gothic::inst().world();
   if(w==nullptr || w->player()==nullptr)
     return;
 
+  // reset position, like oCNpc::ResetPos
   auto& pl  = *w->player();
-  auto  pos = pl.position();
+  auto  pos = pl.position() + Tempest::Vec3(0,150,0);
   float rot = pl.rotationRad();
-  float s   = std::sin(rot), c = std::cos(rot);
-
-  Tempest::Vec3 dp(c,0.8f,s);
-  pos += dp*6000*float(dt)/1000.f;
+  // forward impulse 30000, player mass 80
+  auto  dp  = Tempest::Vec3(std::cos(rot), 0, std::sin(rot)) * (30000.f/80.f/1000.f);
 
   pl.changeAttribute(ATR_HITPOINTS,pl.attribute(ATR_HITPOINTSMAX),false);
   pl.changeAttribute(ATR_MANA,     pl.attribute(ATR_MANAMAX),     false);
   pl.clearState(false);
-  pl.clearSpeed();
   pl.clearAiQueue();
   pl.setPosition(pos);
   pl.setInteraction(nullptr,true);
   pl.setAnim(AnimationSolver::Idle);
+  pl.startFall(dp);
 
   if(auto c = Gothic::inst().camera())
     c->reset();
   }
 
-void PlayerControl::marvinK(uint64_t dt) {
+void PlayerControl::marvinK() {
   auto w = Gothic::inst().world();
   if (w == nullptr || w->player() == nullptr)
     return;
@@ -483,13 +490,15 @@ void PlayerControl::marvinK(uint64_t dt) {
   float s = std::sin(rot), c = std::cos(rot);
 
   Tempest::Vec3 dp(c, 0.0f, s);
-  pos += dp * 6000 * float(dt) / 1000.f;
+  pos += dp * 300;
 
   pl.clearState(false);
   pl.clearSpeed();
   pl.setPosition(pos);
   pl.setInteraction(nullptr,true);
   // pl.setAnim(AnimationSolver::Idle); // Original G2 behaviour: K doesn't stop running
+  if(auto c = Gothic::inst().camera())
+    c->reset(&pl);
   }
 
 void PlayerControl::marvinO() {
@@ -500,6 +509,30 @@ void PlayerControl::marvinO() {
   auto target = w->player()->target();
 
   w->setPlayer(target);
+  }
+
+void PlayerControl::marvinH() {
+  auto w = Gothic::inst().world();
+  if(w == nullptr || w->player() == nullptr)
+    return;
+
+  // hit self, like in vanilla
+  auto& pl = *w->player();
+  pl.takeDamage(pl,nullptr);
+  }
+
+void PlayerControl::marvinY() {
+  auto w = Gothic::inst().world();
+  if(w == nullptr || w->player() == nullptr)
+    return;
+
+  auto& pl = *w->player();
+  if(!pl.setInteraction(nullptr))
+    return;
+
+  float rot = pl.rotationRad();
+  float s = std::sin(rot), c = std::cos(rot);
+  pl.goToPoint(pl.position() + Tempest::Vec3(c, 0.0f, s) * 1000);
   }
 
 Focus PlayerControl::findFocus(const Focus* prev) const {
@@ -568,10 +601,6 @@ bool PlayerControl::tickMove(uint64_t dt) {
   if(tickCameraMove(dt))
     return true;
 
-  if(ctrl[Action::K_F8] && Gothic::inst().isMarvinEnabled())
-    marvinF8(dt);
-  if(ctrl[Action::K_K] && Gothic::inst().isMarvinEnabled())
-    marvinK(dt);
   cacheFocus = ctrl[Action::ActionGeneric];
   if(camera!=nullptr)
     camera->setLookBack(ctrl[Action::LookBack]);

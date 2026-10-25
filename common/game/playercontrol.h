@@ -158,9 +158,11 @@ class PlayerControl final {
 
     void           setupSettings();
     bool           canInteract() const;
-    void           marvinF8(uint64_t dt);
-    void           marvinK(uint64_t dt);
+    void           marvinF8();
+    void           marvinK();
     void           marvinO();
+    void           marvinH();
+    void           marvinY();
     void           toggleWalkMode();
     void           toggleSneakMode();
     void           moveFocus(FocusAction act);

@@ -67,6 +67,7 @@ class KeyCodec final {
       K_F8,    // Marvin Mode's F8
       K_K,     // Marvin Mode's K
       K_O,     // Marvin Mode's O
+      K_Y,     // Marvin Mode's Y
       K_Del, // Settings menu
 
       Last

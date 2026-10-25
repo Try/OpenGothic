@@ -59,6 +59,7 @@ class MoveAlgo final {
 
     void    multSpeed(float s){ mulSpeed=s; }
     void    clearSpeed();
+    void    startFall(const Tempest::Vec3& speed);
     bool    accessDamFly(float dx, float dz, char hitType);
 
     bool    testSlide(const Tempest::Vec3& p, DynamicWorld::CollisionTest& out) const;
