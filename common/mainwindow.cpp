@@ -198,7 +198,7 @@ void MainWindow::paintEvent(PaintEvent& event) {
         if(Gothic::inst().version().game==1) {
           int lw = int(area.w*0.5);
           int lh = int(area.h*0.05);
-          drawLoading(p,safeAreaCenter(w(),lw,margins().left,margins().right), area.y+int(area.h*0.75), lw, lh);
+          drawLoading(p,SafeArea::center(w(),lw,margins().left,margins().right), area.y+int(area.h*0.75), lw, lh);
           } else {
           drawLoading(p,area.x+int(area.w*0.92)-loadBox->w(), area.y+int(area.h*0.12), loadBox->w(),loadBox->h());
           }
@@ -702,7 +702,8 @@ void MainWindow::drawBar(Painter &p, const Tempest::Texture2d* bar, int x, int y
   if(flg & AlignRight)
     x-=int(destW);
   else if(flg & AlignHCenter)
-    x = safeAreaPosition(x-int(destW)/2,int(destW),margins().left,w()-margins().right);
+    x = SafeArea::position(x-int(destW)/2,int(destW),margins().left,w()-margins().right);
+
   if(flg & AlignBottom)
     y-=int(destH);
 
@@ -779,8 +780,8 @@ void MainWindow::drawSaving(Painter &p) {
   }
 
 void MainWindow::drawSaving(Painter& p, const Tempest::Texture2d& back, int sw, int sh, float scale) {
-  const int x = safeAreaCenter(w(),sw,margins().left,margins().right);
-  const int y = safeAreaCenter(h(),sh,margins().top,margins().bottom);
+  const int x = SafeArea::center(w(),sw,margins().left,margins().right);
+  const int y = SafeArea::center(h(),sh,margins().top,margins().bottom);
 
   // SAVING.TGA is semi-transparent image with the idea to accomulate alpha over time
   // ... for loop for now
