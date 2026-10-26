@@ -2146,7 +2146,7 @@ void Npc::takeFallDamage(const Vec3& fallSpeed) {
       setAnim(lastHitType=='A' ? Anim::FallenA : Anim::FallenB);
       }
     }
-  auto dmg = DamageCalculator::damageFall(*this,fallSpeed.length());
+  auto dmg = DamageCalculator::damageFall(*this,std::abs(fallSpeed.y));
   if(!dmg.hasHit)
     return;
   int32_t hp = attribute(ATR_HITPOINTS);
