@@ -17,6 +17,7 @@ class GamepadSettingsMenu final : public Tempest::Dialog {
     void keyUpEvent(Tempest::KeyEvent& event) override;
     void mouseDownEvent(Tempest::MouseEvent& event) override;
     void mouseWheelEvent(Tempest::MouseEvent& event) override;
+    void metricsEvent(Tempest::DisplayMetricsEvent& event) override;
     void paintEvent(Tempest::PaintEvent& event) override;
     void paintShadow(Tempest::PaintEvent&) override {}
 
@@ -26,7 +27,7 @@ class GamepadSettingsMenu final : public Tempest::Dialog {
       float scale;
       };
     Layout layout() const;
-    Tempest::Size canvasSize() const;
+    Tempest::Rect canvasRect() const;
     void reveal(const Layout& layout);
     std::string rowText(int row) const;
     GamepadSettingsInput input;

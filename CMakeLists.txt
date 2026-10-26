@@ -318,6 +318,62 @@ if(OPENGOTHIC_GAMEPAD_TOOLS)
     target_link_libraries(PlayerControlBowTests PRIVATE Threads::Threads)
     add_test(NAME gamepad-player-bow COMMAND PlayerControlBowTests)
 
+    # Exercise inventory merge behavior from exact production bodies without assets.
+    set(INVENTORY_MERGE_BODIES "")
+    foreach(PART IN ITEMS iterator iterator_factory pages rows header geometry scroll selection)
+      set(MERGE_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/common/ui/inventorymenu.cpp")
+      if(PART STREQUAL "iterator")
+        set(MERGE_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/common/game/inventory.cpp")
+        set(BEGIN_MARKER "const Item& Inventory::Iterator::operator*()")
+        set(END_MARKER "Inventory::Inventory()")
+      elseif(PART STREQUAL "iterator_factory")
+        set(MERGE_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/common/game/inventory.cpp")
+        set(BEGIN_MARKER "Inventory::Iterator Inventory::iterator(")
+        set(END_MARKER "int32_t Inventory::priceOf(")
+      elseif(PART STREQUAL "pages")
+        set(BEGIN_MARKER "static constexpr int headerTop")
+        set(END_MARKER "InventoryMenu::InventoryMenu(")
+      elseif(PART STREQUAL "rows")
+        set(BEGIN_MARKER "size_t InventoryMenu::rowsCount()")
+        set(END_MARKER "int InventoryMenu::headerHeight()")
+      elseif(PART STREQUAL "header")
+        set(BEGIN_MARKER "int InventoryMenu::headerHeight()")
+        set(END_MARKER "void InventoryMenu::paintEvent(")
+      elseif(PART STREQUAL "geometry")
+        set(BEGIN_MARKER "Size InventoryMenu::slotSize()")
+        set(END_MARKER "void InventoryMenu::onItemAction(")
+      elseif(PART STREQUAL "scroll")
+        set(BEGIN_MARKER "void InventoryMenu::adjustScroll()")
+        set(END_MARKER "void InventoryMenu::drawAll(")
+      else()
+        set(BEGIN_MARKER "bool InventoryMenu::gamepadSelection(")
+        set(END_MARKER "void InventoryMenu::processGamepadModal(")
+      endif()
+      set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${MERGE_SOURCE}")
+      file(READ "${MERGE_SOURCE}" MERGE_TEXT)
+      string(FIND "${MERGE_TEXT}" "${BEGIN_MARKER}" BEGIN_OFFSET)
+      string(FIND "${MERGE_TEXT}" "${END_MARKER}" END_OFFSET)
+      if(BEGIN_OFFSET LESS 0 OR END_OFFSET LESS_EQUAL BEGIN_OFFSET)
+        message(FATAL_ERROR "Cannot locate inventory ${PART} methods for regression fixture")
+      endif()
+      math(EXPR METHOD_LENGTH "${END_OFFSET} - ${BEGIN_OFFSET}")
+      string(SUBSTRING "${MERGE_TEXT}" ${BEGIN_OFFSET} ${METHOD_LENGTH} METHOD_TEXT)
+      string(APPEND INVENTORY_MERGE_BODIES "${METHOD_TEXT}\n")
+    endforeach()
+    file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/generated/inventory-merge-bodies.inc" "${INVENTORY_MERGE_BODIES}")
+    add_executable(InventoryMenuMergeTests
+      tests/inventorymenumerge_test.cpp
+      "${GAMEPAD_GTEST_DIR}/src/gtest-all.cc"
+      "${GAMEPAD_GTEST_DIR}/src/gtest_main.cc")
+    target_include_directories(InventoryMenuMergeTests PRIVATE
+      common lib/Tempest/Engine/include
+      "${CMAKE_CURRENT_BINARY_DIR}/generated"
+      "${GAMEPAD_GTEST_DIR}" "${GAMEPAD_GTEST_DIR}/include")
+    target_compile_options(InventoryMenuMergeTests PRIVATE -fno-access-control)
+    target_link_libraries(InventoryMenuMergeTests PRIVATE Threads::Threads)
+    add_test(NAME gamepad-inventory-merge COMMAND InventoryMenuMergeTests)
+    set_tests_properties(gamepad-inventory-merge PROPERTIES TIMEOUT 10)
+
     # Include the actual private dialogs and exercise close/queued input before
     # Dialog::exec unwinds. Access relaxation applies only to this test target.
     add_executable(GamepadDialogTests

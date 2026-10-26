@@ -333,6 +333,59 @@ TEST(GamepadDialog, HeldCrossCannotRepeatACharacterOrSaveAfterMovingSelection) {
   dialog.exec();
   }
 
+TEST(GamepadDialog, SaveKeyboardAndEveryCellFitSafeAreaAfterOwnerShrink) {
+  Tempest::Widget viewport;
+  viewport.resize(844,390);
+  std::string name;
+  GameMenu::SavNameDialog dialog(name);
+  dialog.resize(viewport.size());
+  dialog.setMargins(Tempest::Margin(47,10,12,21));
+  viewport.addWidget(&dialog);
+  for(const auto size : {Tempest::Size(844,390),Tempest::Size(640,300)}) {
+    viewport.resize(size);
+    const auto area = dialog.keyboardRect();
+    EXPECT_GE(area.x,47);
+    EXPECT_GE(area.y,12);
+    EXPECT_LE(area.x+area.w,size.w-10);
+    EXPECT_LE(area.y+area.h,size.h-21);
+    dialog.updateCells();
+    for(const auto& cell : dialog.cells) {
+      EXPECT_GE(cell.x,area.x);
+      EXPECT_GE(cell.y,area.y);
+      EXPECT_LE(cell.x+cell.w,area.x+area.w);
+      EXPECT_LE(cell.y+cell.h,area.y+area.h);
+      }
+    }
+  viewport.takeWidget(&dialog);
+  }
+
+TEST(GamepadDialog, MetricsInvalidatePressedSaveCellBeforeTheNextPaint) {
+  std::string name = "Original";
+  QueuedDialog<GameMenu::SavNameDialog> dialog(name);
+  dialog.resize(844,390);
+  dialog.queue = [&] {
+    dialog.updateCells();
+    const auto oldSave = dialog.cells[GamepadTextInput::Save];
+    Tempest::MouseEvent click(oldSave.x+oldSave.w/2,oldSave.y+oldSave.h/2,Tempest::Event::ButtonLeft);
+    dialog.mouseDownEvent(click);
+    EXPECT_EQ(dialog.pressedCell,GamepadTextInput::Save);
+    Tempest::DisplayMetricsEvent changed(Tempest::Margin(47,10,12,21),1.f);
+    dialog.metricsEvent(changed);
+    dialog.mouseUpEvent(click);
+    EXPECT_TRUE(dialog.isOpen());
+    EXPECT_FALSE(dialog.decision.isAccepted());
+    EXPECT_EQ(name,"Original");
+    dialog.updateCells();
+    const auto save = dialog.cells[GamepadTextInput::Save];
+    Tempest::MouseEvent fresh(save.x+save.w/2,save.y+save.h/2,Tempest::Event::ButtonLeft);
+    dialog.mouseDownEvent(fresh);
+    dialog.mouseUpEvent(fresh);
+    EXPECT_TRUE(dialog.decision.isAccepted());
+    EXPECT_EQ(name,"Original");
+    };
+  dialog.exec();
+  }
+
 TEST(GamepadDialog, ClosedJournalContentIgnoresQueuedScrolling) {
   GameMenu::Item text;
   text.scroll = 5;

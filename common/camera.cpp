@@ -758,7 +758,16 @@ void Camera::tick(uint64_t dt) {
     auto& physic = *world->physic();
 
     if(pl!=nullptr && pl->isSwim()) {
-      inWater = (angles.x < -8.f);
+      // The swimmer stays at the surface while the orbit camera can dip below it at any pitch.
+      auto to = origin;
+      to.y = std::max(origin.y, world->view()->bbox().second.y);
+      auto cave = physic.ray(origin, to);
+      if(cave.hasCol) {
+        to = cave.v;
+        }
+      // The water surface mesh has gaps under overhangs, so a camera below the swimmer's surface is still
+      // underwater when it shares the swimmer's water: no rock and no water surface in between.
+      inWater = (cave.hasCol && angles.x < -0.f) || physic.cameraRay(origin, to).waterCol % 2;
       }
     else if(pl!=nullptr && (pl->isInAir() || pl->isJump()) && !pl->isDead()) {
       // NOTE: not quite correct

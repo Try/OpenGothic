@@ -63,7 +63,7 @@ static const char* appBuild = "OpenGothic local";
 ```sh
 git submodule update --init --recursive
 cmake -S . -B build -DOPENGOTHIC_GAMEPAD_TOOLS=ON
-cmake --build build --target Gothic2Notr Spacer GamepadInputTests GamepadStateTests MacOSGamepadTests InstanceStorageTests PlayerControlInputTests PlayerControlBowTests GamepadDialogTests GamepadMenuLoopTests TempestGamepadProbe --parallel 6
+cmake --build build --target Gothic2Notr Spacer GamepadInputTests GamepadStateTests MacOSGamepadTests InstanceStorageTests PlayerControlInputTests PlayerControlBowTests InventoryMenuMergeTests GamepadDialogTests GamepadMenuLoopTests TempestGamepadProbe --parallel 6
 ctest --test-dir build --output-on-failure
 ```
 
@@ -73,6 +73,10 @@ vendored in Tempest, and no game assets are needed for the automated checks.
 The macOS backend lifetime fixture uses AddressSanitizer with Clang.
 PlayerControl fixtures generate method bodies from production sources so
 input and bow regressions cannot silently test an outdated copied router.
+The inventory merge fixture also executes production iterator, page, selection,
+row-count and scrolling methods, including separate equipped-item slots and
+safe-area/scaling boundaries. Native dialog checks cover inset changes and
+visible keyboard/click geometry without changing save confirm/cancel decisions.
 
 `build/opengothic/TempestGamepadProbe --seconds 180` opens a diagnostic window
 and writes device events and axes to stdout. Focus its window, then exercise
@@ -89,6 +93,10 @@ consumption, spell cycling/casting, sneak, a real ladder, swimming/diving,
 lockpicking, inventory, controlled trade, save cancel/confirm/load, mixed
 keyboard/mouse input, focus loss, reconnect, and normal exit. Save checks used
 isolated profiles and verified that the original files were unchanged.
+
+Those physical observations belong to the earlier feature build. The revision
+synchronized with upstream has fresh build and automated regression coverage;
+a new physical controller session was not performed for that merged revision.
 
 Camera control was checked qualitatively at approximately 30 and 42–45
 observed engine FPS. Physical USB and sustained actual 60/120 FPS checks are

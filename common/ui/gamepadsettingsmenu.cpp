@@ -1,4 +1,5 @@
 #include "gamepadsettingsmenu.h"
+#include "safearea.h"
 
 #include <Tempest/Painter>
 
@@ -17,23 +18,24 @@ GamepadSettingsMenu::GamepadSettingsMenu(GamepadSettings settings, bool russian,
   setCursorShape(CursorShape::Arrow);
   }
 
-Tempest::Size GamepadSettingsMenu::canvasSize() const {
-  // UiOverlay follows viewport resizes, but the modal keeps its opening size.
-  // Keep all controls inside the currently visible part of that modal.
-  const auto* parent = owner();
-  return {std::max(1,std::min(w(),parent ? parent->w()-x() : w())),
-          std::max(1,std::min(h(),parent ? parent->h()-y() : h()))};
+Tempest::Rect GamepadSettingsMenu::canvasRect() const {
+  return SafeArea::visibleRect(*this);
+  }
+
+void GamepadSettingsMenu::metricsEvent(DisplayMetricsEvent& event) {
+  setMargins(event.safeAreaMargins);
+  update();
   }
 
 GamepadSettingsMenu::Layout GamepadSettingsMenu::layout() const {
-  const auto canvas = canvasSize();
+  const auto canvas = canvasRect();
   const float scale = std::max(0.25f,std::min({uiScale,
                                             float(canvas.w)/900.f,float(canvas.h)/300.f}));
   const int padding = std::max(4,int(14.f*scale));
   const int rowHeight = Resources::font(scale).pixelSize()+std::max(3,int(8.f*scale));
   const int width = std::max(1,std::min(canvas.w,int(880.f*scale)));
   const int height = std::max(1,std::min(canvas.h,(GamepadSettingsInput::Rows+3)*rowHeight+2*padding));
-  return {(canvas.w-width)/2,(canvas.h-height)/2,width,height,padding,rowHeight,
+  return {canvas.x+(canvas.w-width)/2,canvas.y+(canvas.h-height)/2,width,height,padding,rowHeight,
           std::max(1,(height-2*padding)/rowHeight-2),scale};
   }
 

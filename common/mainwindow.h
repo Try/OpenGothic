@@ -54,6 +54,7 @@ class MainWindow : public Tempest::Window {
   private:
     void paintEvent     (Tempest::PaintEvent& event) override;
     void resizeEvent    (Tempest::SizeEvent & event) override;
+    void metricsEvent   (Tempest::DisplayMetricsEvent& event) override;
 
     void mouseDownEvent (Tempest::MouseEvent& event) override;
     void mouseUpEvent   (Tempest::MouseEvent& event) override;

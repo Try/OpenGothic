@@ -251,7 +251,7 @@ bool MoveAlgo::implTick(uint64_t dt, MvFlags moveFlg) {
     return false;
 
   // jump animation (lift off)
-  if(bs==BS_JUMP && npc.isFlyAnim() && state!=InAir && state!=Jump && state!=JumpUp) {
+  if(bs==BS_JUMP && (npc.isFlyAnim() || npc.isJumpAnim()) && state!=InAir && state!=Jump && state!=JumpUp) {
     setState(Jump);
     return true;
     }

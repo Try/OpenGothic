@@ -1,4 +1,5 @@
 #include "inventorymenu.h"
+#include "safearea.h"
 
 #include <Tempest/Painter>
 #include <Tempest/SoundEffect>
@@ -14,6 +15,9 @@
 #include "resources.h"
 
 using namespace Tempest;
+
+static constexpr int headerTop     = 70;
+static constexpr int headerSpacing = 30;
 
 struct InventoryMenu::Page {
   Page()=default;
@@ -442,8 +446,12 @@ void InventoryMenu::mouseWheelEvent(MouseEvent &e) {
   }
 
 size_t InventoryMenu::rowsCount() const {
-  int iy=30+34+70;
-  return size_t(std::max(1,(h()-iy-infoHeight()-20)/std::max(1,slotSize().h)));
+  const int iy=std::max(headerTop,margins().top)+headerHeight()+headerSpacing;
+  return size_t(std::max(1,(h()-iy-infoHeight()-std::max(20,margins().bottom))/std::max(1,slotSize().h)));
+  }
+
+int InventoryMenu::headerHeight() const {
+  return int(34*Gothic::interfaceScale(this));
   }
 
 void InventoryMenu::paintEvent(PaintEvent &e) {
@@ -610,7 +618,10 @@ void InventoryMenu::adjustScroll() {
 void InventoryMenu::drawAll(Painter &p, Npc &player, DrawPass pass) {
   const int padd = 43;
 
-  int iy=30+34+70;
+  const int top   = std::max(headerTop,margins().top);
+  const int left  = std::max(padd,margins().left);
+  const int right = w() - std::max(padd,margins().right);
+  const int iy    = top + headerHeight() + headerSpacing;
 
   if(state==State::LockPicking)
     return;
@@ -620,20 +631,20 @@ void InventoryMenu::drawAll(Painter &p, Npc &player, DrawPass pass) {
 
   if(chest!=nullptr){
     if(pass==DrawPass::Back)
-      drawHeader(p,chest->displayName(),padd,70);
-    drawItems(p,pass,*pageOth,pageLocal[0],padd,iy,wcount,hcount);
+      drawHeader(p,chest->displayName(),left,top);
+    drawItems(p,pass,*pageOth,pageLocal[0],left,iy,wcount,hcount);
     }
 
   if(trader!=nullptr) {
     if(pass==DrawPass::Back)
-      drawHeader(p,trader->displayName(),padd,70);
-    drawItems(p,pass,*pageOth,pageLocal[0],padd,iy,wcount,hcount);
+      drawHeader(p,trader->displayName(),left,top);
+    drawItems(p,pass,*pageOth,pageLocal[0],left,iy,wcount,hcount);
     }
 
   if(state!=State::Ransack) {
     if(pass==DrawPass::Back)
-      drawGold (p,player,w()-padd-2*slotSize().w,70);
-    drawItems(p,pass,*pagePl,pageLocal[1],w()-padd-wcount*slotSize().w,iy,wcount,hcount);
+      drawGold (p,player,right-2*slotSize().w,top);
+    drawItems(p,pass,*pagePl,pageLocal[1],right-wcount*slotSize().w,iy,wcount,hcount);
     }
 
   if(pass==DrawPass::Back)
@@ -743,7 +754,7 @@ void InventoryMenu::drawHeader(Painter &p, std::string_view title, int x, int y)
   const int   th    = fnt.textSize(title).h;
   const int   padd  = int(8*scale);
   const int   dw    = std::max(slotSize().w*2, tw+padd*2);
-  const int   dh    = int(34*scale);
+  const int   dh    = headerHeight();
 
   if(tex) {
     p.setBrush(*tex);
@@ -759,10 +770,11 @@ void InventoryMenu::drawHeader(Painter &p, std::string_view title, int x, int y)
 
 void InventoryMenu::drawInfo(Painter &p) {
   const float scale = Gothic::interfaceScale(this);
-  const int   dw    = std::min(w(), int(720*scale));
+  const auto  area  = clientRect();
+  const int   dw    = std::min(area.w, int(720*scale));
   const int   dh    = infoHeight();
-  const int   x     = (w()-dw)/2;
-  const int   y     = h()-dh-20;
+  const int   x     = SafeArea::center(w(),dw,margins().left,margins().right);
+  const int   y     = h()-dh-std::max(20,margins().bottom);
 
   auto& pg  = activePage();
   auto& sel = activePageSel();
@@ -933,10 +945,11 @@ void InventoryMenu::drawGamepadModal(Painter& p) {
                       local("Left/Right: 1   Up/Down: 10\nL1: 1   R1: All","\xc2\xeb\xe5\xe2\xee/\xe2\xef\xf0\xe0\xe2\xee: 1   \xc2\xe2\xe5\xf0\xf5/\xe2\xed\xe8\xe7: 10\nL1: 1   R1: \xe2\xe5\xf1\xfc \xf1\xf2\xe5\xea") :
                       local("Arrows / L1 / R1: slot 3-10","\xd1\xf2\xf0\xe5\xeb\xea\xe8 / L1 / R1: \xf1\xeb\xee\xf2 3-10");
   const string_frm body(operation,": ",value,"\n",item->displayName(),"\n",change,"\n",controls);
-  const int width = std::max(1,std::min(w()-20,fnt.textSize(body).w+40));
+  const auto area = SafeArea::visibleRect(*this);
+  const int width = std::max(1,std::min(area.w-20,fnt.textSize(body).w+40));
   const int padding = std::min(20,width/4);
   const int textWidth = std::max(1,width-2*padding);
-  const int maxHeight = std::max(1,h()-20);
+  const int maxHeight = std::max(1,area.h-20);
   int textHeight = fnt.textSize(textWidth,body).h;
   if(textHeight+2*padding>maxHeight) {
     const float fit = float(std::max(1,maxHeight-2*padding))/float(std::max(1,textHeight));
@@ -944,7 +957,7 @@ void InventoryMenu::drawGamepadModal(Painter& p) {
     textHeight = fnt.textSize(textWidth,body).h;
     }
   const int height = std::min(maxHeight,textHeight+2*padding);
-  const int x = (w()-width)/2, y = (h()-height)/2;
+  const int x = area.x+(area.w-width)/2, y = area.y+(area.h-height)/2;
   p.pushState();
   p.setScissor(x,y,width,height);
   p.setBrush(Color(0.04f,0.04f,0.04f,1));

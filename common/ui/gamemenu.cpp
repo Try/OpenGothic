@@ -1,4 +1,5 @@
 #include "gamemenu.h"
+#include "safearea.h"
 
 #include <Tempest/Painter>
 #include <Tempest/Log>
@@ -347,17 +348,36 @@ struct GameMenu::SavNameDialog : Dialog {
       text += char(e.code);
     }
 
+  void metricsEvent(DisplayMetricsEvent& event) override {
+    setMargins(event.safeAreaMargins);
+    cells.fill({});
+    pressedCell = GamepadTextInput::Cells;
+    update();
+    }
+
+  Rect keyboardRect() const {
+    const auto area = SafeArea::visibleRect(*this);
+    const int width = std::max(1,std::min(area.w-20,int(800*uiScale)));
+    const int height = std::max(1,std::min(area.h-20,int(320*uiScale)));
+    return {area.x+(area.w-width)/2,area.y+(area.h-height)/2,width,height};
+    }
+
+  void updateCells() {
+    const auto area = keyboardRect();
+    const int cellW = std::max(1,area.w/int(GamepadTextInput::Columns));
+    const int lineH = std::max(1,area.h/9);
+    for(size_t i=0;i<GamepadTextInput::Cells;++i)
+      cells[i] = Rect(area.x+int(i%GamepadTextInput::Columns)*cellW,
+                      area.y+(2+int(i/GamepadTextInput::Columns))*lineH,cellW,lineH);
+    }
+
   void paintEvent(PaintEvent& e) override {
     Painter p(e);
     const float scale = uiScale;
     auto font = Resources::font(scale);
     font.enableCyrillicFallback();
-    // Dialog's initial size survives native window resizing; fit its visible viewport.
-    const int canvasW = std::max(1,std::min(w(),owner()!=nullptr ? owner()->w()-this->x() : w()));
-    const int canvasH = std::max(1,std::min(h(),owner()!=nullptr ? owner()->h()-this->y() : h()));
-    const int width = std::max(1,std::min(canvasW-20,int(800*scale)));
-    const int height = std::max(1,std::min(canvasH-20,int(320*scale)));
-    const int x = (canvasW-width)/2, y = (canvasH-height)/2;
+    const auto area = keyboardRect();
+    const int width = area.w, height = area.h, x = area.x, y = area.y;
     const int cellW = std::max(1,width/int(GamepadTextInput::Columns));
     const int lineH = std::max(1,height/9);
     int labelW = 1;
@@ -366,6 +386,7 @@ struct GameMenu::SavNameDialog : Dialog {
     const float fit = std::min({1.f,float(std::max(1,cellW-4))/float(labelW),
                                float(std::max(1,lineH-2))/float(std::max(1,font.pixelSize()))});
     font.setScale(scale*fit);
+    updateCells();
     p.setScissor(x,y,width,height);
     p.setBrush(Color(0.04f,0.04f,0.04f,1));
     p.drawRect(x,y,width,height);
@@ -381,8 +402,6 @@ struct GameMenu::SavNameDialog : Dialog {
     const auto preview = text.substr(begin)+"_";
     font.drawText(p,x+2,y+lineH+font.pixelSize(),preview);
     for(size_t i=0;i<GamepadTextInput::Cells;++i) {
-      cells[i] = Rect(x+int(i%GamepadTextInput::Columns)*cellW,
-                      y+(2+int(i/GamepadTextInput::Columns))*lineH,cellW,lineH);
       if(!input.enabled(i))
         continue;
       const auto& r = cells[i];
@@ -521,7 +540,8 @@ void GameMenu::paintEvent(PaintEvent &e) {
   const float scale = Gothic::interfaceScale(this);
 
   Painter p(e);
-  p.setScissor(-x(),-y(),owner.w(),owner.h());
+  const auto area = owner.clientRect();
+  p.setScissor(area.x-x(),area.y-y(),area.w,area.h);
 
   if(back) {
     p.setBrush(*back);
@@ -866,8 +886,9 @@ void GameMenu::onTick() {
   const float fx    = 640.0f * scale;
   const float fy    = 480.0f * scale;
 
-  const float wx = float(owner.w());
-  const float wy = float(owner.h());
+  const auto  area = owner.clientRect();
+  const float wx   = float(area.w);
+  const float wy   = float(area.h);
 
   Size size = {0, 0};
   if(menu->flags & zenkit::MenuFlag::DONT_SCALE_DIMENSION) {
@@ -878,9 +899,11 @@ void GameMenu::onTick() {
   resize(size);
 
   if(menu->flags & zenkit::MenuFlag::ALIGN_CENTER) {
-    setPosition((owner.w()-w())/2, (owner.h()-h())/2);
+    const auto& margin = owner.margins();
+    setPosition(SafeArea::center(owner.w(),w(),margin.left,margin.right),
+                SafeArea::center(owner.h(),h(),margin.top,margin.bottom));
     } else {
-    setPosition(int(float(menu->pos_x)/scriptDiv*fx), int(float(menu->pos_y)/scriptDiv*fy));
+    setPosition(area.x+int(float(menu->pos_x)/scriptDiv*fx), area.y+int(float(menu->pos_y)/scriptDiv*fy));
     }
   }
 
@@ -1049,6 +1072,7 @@ void GameMenu::execSingle(Item &it, int slideDx, KeyCodec::Action hint) {
       if(it.savHdr.version==0)
         dlg.text = "";
       dlg.resize(owner.size());
+      dlg.setMargins(owner.margins());
       {
       MenuRoot::ModalInputScope modal(owner,[&dlg](KeyCodec::Action action) { dlg.onGamepad(action); });
       dlg.exec();

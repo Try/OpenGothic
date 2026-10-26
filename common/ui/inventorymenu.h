@@ -111,6 +111,7 @@ class InventoryMenu : public Tempest::Widget {
     size_t                    rowsCount() const;
 
     Tempest::Size             slotSize() const;
+    int                       headerHeight() const;
     int                       infoHeight() const;
     size_t                    pagesCount() const;
 

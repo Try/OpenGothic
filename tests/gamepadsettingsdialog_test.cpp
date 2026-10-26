@@ -56,18 +56,46 @@ void lateEdits(GamepadSettingsMenu& dialog) {
 TEST(GamepadSettingsDialog, CanvasTracksParentShrinkWithoutChangingDialogSize) {
   Tempest::Widget viewport;
   viewport.resize(1280,720);
+  viewport.setMargins(Tempest::Margin(0));
   GamepadSettingsMenu dialog(GamepadSettings(),false);
   dialog.resize(1280,720);
+  dialog.setMargins(Tempest::Margin(0));
   viewport.addWidget(&dialog);
-  EXPECT_EQ(dialog.canvasSize(),Tempest::Size(1280,720));
+  EXPECT_EQ(dialog.canvasRect(),Tempest::Rect(0,0,1280,720));
   viewport.resize(640,360);
   EXPECT_EQ(dialog.size(),Tempest::Size(1280,720));
-  EXPECT_EQ(dialog.canvasSize(),Tempest::Size(640,360));
+  EXPECT_EQ(dialog.canvasRect(),Tempest::Rect(0,0,640,360));
   dialog.setPosition(20,30);
-  EXPECT_EQ(dialog.canvasSize(),Tempest::Size(620,330));
+  EXPECT_EQ(dialog.canvasRect(),Tempest::Rect(0,0,620,330));
   viewport.resize(1920,1080);
-  EXPECT_EQ(dialog.canvasSize(),Tempest::Size(1280,720));
+  EXPECT_EQ(dialog.canvasRect(),Tempest::Rect(0,0,1280,720));
   viewport.takeWidget(&dialog);
+  }
+
+TEST(GamepadSettingsDialog, SafeInsetsAreNotDoubledAndSurviveOwnerShrink) {
+  Tempest::Widget viewport;
+  viewport.resize(844,390);
+  viewport.setMargins(Tempest::Margin(47,10,12,21));
+  GamepadSettingsMenu dialog(GamepadSettings(),false);
+  dialog.resize(viewport.size());
+  dialog.setMargins(viewport.margins());
+  viewport.addWidget(&dialog);
+  EXPECT_EQ(dialog.canvasRect(),Tempest::Rect(47,12,787,357));
+  viewport.resize(640,300);
+  EXPECT_EQ(dialog.canvasRect(),Tempest::Rect(47,12,583,267));
+  viewport.takeWidget(&dialog);
+  }
+
+TEST(GamepadSettingsDialog, MetricsUpdateCurrentInsetsAndTinyCanvasRemainsBounded) {
+  GamepadSettingsMenu dialog(GamepadSettings(),false);
+  dialog.resize(844,390);
+  Tempest::DisplayMetricsEvent changed(Tempest::Margin(10,47,0,15),1.f);
+  dialog.metricsEvent(changed);
+  EXPECT_EQ(dialog.canvasRect(),Tempest::Rect(10,0,787,375));
+  dialog.resize(5,5);
+  Tempest::DisplayMetricsEvent tiny(Tempest::Margin(100),1.f);
+  dialog.metricsEvent(tiny);
+  EXPECT_EQ(dialog.canvasRect(),Tempest::Rect(4,4,1,1));
   }
 
 TEST(GamepadSettingsDialog, CancelThenQueuedConfirmCannotAcceptBeforeScopeUnwinds) {

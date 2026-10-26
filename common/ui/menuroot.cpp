@@ -87,6 +87,7 @@ void MenuRoot::showGamepadSettings() {
                              Gothic::settingsGetI("GAME","language")==int(ScriptLang::RU),
                              Gothic::interfaceScale(this));
   dialog.resize(size());
+  dialog.setMargins(margins());
   {
   ModalInputScope modal(*this,[&dialog](KeyCodec::Action action) { dialog.onGamepad(action); });
   dialog.exec();
