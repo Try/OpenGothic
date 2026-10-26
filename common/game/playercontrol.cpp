@@ -276,9 +276,17 @@ void PlayerControl::tickFocus() {
   if(!ctrl[Action::ActionGeneric])
     return;
 
+  auto w  = Gothic::inst().world();
+  auto pl = w!=nullptr ? w->player() : nullptr;
+  if(pl!=nullptr && pl->interactive()!=nullptr)
+    return;
+
   auto focus = currentFocus;
   if(focus.interactive!=nullptr && interact(*focus.interactive)) {
     clearInput();
+    // vanilla: holding action key uses mobsi again, after quit
+    if(pl!=nullptr && pl->interactive()==focus.interactive && !focus.interactive->isLadder())
+      ctrl[Action::ActionGeneric] = true;
     }
   else if(focus.npc!=nullptr && interact(*focus.npc)) {
     clearInput();
@@ -962,6 +970,12 @@ void PlayerControl::implMoveMobsi(Npc& pl, uint64_t /*dt*/) {
   auto inter = pl.interactive();
 
   if(ctrl[KeyCodec::Back] && !inter->isLadder()) {
+    pl.setInteraction(nullptr);
+    return;
+    }
+
+  // forward at last state - leave mobsi, same as in vanilla
+  if(ctrl[KeyCodec::Forward] && !inter->isLadder() && inter->isStaticState() && inter->stateId()==inter->stateCount()) {
     pl.setInteraction(nullptr);
     return;
     }
