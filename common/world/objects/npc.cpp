@@ -3397,20 +3397,25 @@ Item* Npc::addItem(std::unique_ptr<Item>&& i) {
   return invent.addItem(std::move(i));
   }
 
-Item* Npc::takeItem(Item& item) {
+bool Npc::canTakeItem(const Item& item) const {
   if(interactive()!=nullptr)
-    return nullptr;
+    return false;
   if(item.isTorchBurn() && (isUsingTorch() || weaponState()!=WeaponState::NoWeapon))
-    return nullptr;
-
+    return false;
   auto state = bodyStateMasked();
-  if(state!=BS_STAND && state!=BS_SNEAK && state!=BS_SWIM && state!=BS_DIVE) {
+  return state==BS_STAND || state==BS_SNEAK || state==BS_SWIM || state==BS_DIVE || state==BS_TAKEITEM;
+  }
+
+Item* Npc::takeItem(Item& item) {
+  if(!canTakeItem(item))
     return nullptr;
-    }
 
   const auto  dpos = item.midPosition()-centerPosition();
   const auto* sq   = setAnimAngGet(Npc::Anim::ItmGet, Pose::calcAniCombVert(dpos));
   if(sq==nullptr)
+    return nullptr;
+  // item is taken, once T_STAND_2_IGET is done
+  if(!visual.pose().isInAnim(sq))
     return nullptr;
 
   std::unique_ptr<Item> ptr = owner.takeItem(item);
@@ -3431,7 +3436,9 @@ Item* Npc::takeItem(Item& item) {
   if(isPlayer() && it!=nullptr)
     owner.sendPassivePerc(*this,*this,*it,PERC_ASSESSTHEFT);
 
-  implAniWait(uint64_t(sq->totalTime()));
+  // wait for T_IGET_2_STAND
+  if(setAnim(Anim::Idle))
+    implAniWait(visual.pose().animationTotalTime());
   return it;
   }
 
