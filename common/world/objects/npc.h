@@ -193,6 +193,7 @@ class Npc final {
     bool       isJump() const;
     bool       isJumpUp() const;
     bool       isStanding() const;
+    int        footPos();
     bool       isSwim() const;
     bool       isInWater() const;
     bool       isDive() const;
