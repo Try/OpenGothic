@@ -81,6 +81,7 @@ void AbstractTrigger::processEvent(const TriggerEvent& evt) {
     }
   if(fireDelay>0) {
     TriggerEvent ex(evt.target, evt.emitter, world.tickCount() + fireDelay, evt.type);
+    ex.instigator = evt.instigator;
     delayedEvent = std::move(ex);
     world.enableDefTrigger(*this);
     return;
@@ -154,6 +155,7 @@ void AbstractTrigger::onIntersect(Npc& n) {
   if(boxNpc.intersections().size()>0) {
     // enableTicks();
     TriggerEvent e(target,vobName,TriggerEvent::T_Touch);
+    e.instigator = &n;
     processEvent(e);
     }
   }

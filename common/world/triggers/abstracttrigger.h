@@ -37,6 +37,7 @@ class TriggerEvent final {
     std::string       emitter;
     Type              type        = T_Trigger;
     uint64_t          timeBarrier = 0;
+    Npc*              instigator  = nullptr;
     struct {
       zenkit::MoverMessageType msg = zenkit::MoverMessageType::FIXED_DIRECT;
       int32_t                  key = 0;
