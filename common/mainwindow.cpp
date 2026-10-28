@@ -357,6 +357,17 @@ void MainWindow::processMouse(MouseEvent& event, bool enable) {
   }
 
 void MainWindow::tickMouse(uint64_t dt) {
+  if(rootMenu.isActive() || dialogs.isActive() || inventory.isActive()) {
+    uiPointer = true;
+    }
+  else if(uiPointer) {
+    // The UI pointer moves freely, so mouse look restarts from the window center instead of where it was left.
+    uiPointer = false;
+    dMouse      = Point();
+    if(SystemApi::isFullscreen(hwnd()))
+      setCursorPosition(Point(w()/2,h()/2));
+    }
+
   auto camera = Gothic::inst().camera();
   if(dialogs.hasContent() || Gothic::inst().isPause() || camera==nullptr || camera->isCutscene()) {
     dMouse = Point();
