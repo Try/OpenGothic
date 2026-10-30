@@ -407,6 +407,8 @@ class Npc final {
 
     bool      doAttack(Anim anim, BodyState bs);
     void      commitSpell();
+    void      startSpellTargetEffect(bool assessMagic);
+    void      stopSpellTargetEffect();
     void      takeDamage(Npc& other, const Bullet* b);
     void      takeDamage(Npc& other, const Bullet* b, const VisualFx* vfx, int32_t splId);
     bool      isTargetableBySpell(TargetType t) const;
@@ -588,6 +590,7 @@ class Npc final {
     int32_t                        manaInvested     = 0;
     int32_t                        aiExpectedInvest = 1;
     size_t                         currentSpellCast = size_t(-1);
+    Npc*                           spellEffectTarget = nullptr;
     uint64_t                       castNextTime     = 0;
     int32_t                        spellInfo        = 0;
 

@@ -60,9 +60,11 @@ class MdlVisual final {
     void                           setMagicWeapon(Effect&& spell, World& owner);
     void                           setMagicWeaponKey(World& owner, SpellFxKey key, int32_t keyLvl=0);
 
-    void                           startEffect (World& owner, Effect&& pfx, int32_t slot, bool noSlot);
-    void                           stopEffect  (const VisualFx& vfx);
-    void                           stopEffect  (int32_t slot);
+    void                           startEffect(World& owner, Effect&& pfx, int32_t slot, bool noSlot, bool persistent = false);
+    void                           stopEffect(const VisualFx& vfx);
+    void                           stopEffect(int32_t slot);
+    void                           stopPersistentEffects();
+
     void                           setNpcEffect(World& owner, Npc& npc, std::string_view s, zenkit::NpcFlag flags);
     void                           setFatness  (float f);
     void                           emitBlockEffect(Npc& dst, Npc& src);
@@ -129,6 +131,7 @@ class MdlVisual final {
       uint64_t    timeUntil=0;
       int         id=0;
       bool        noSlot = false;
+      bool        persistent = false;
       };
 
     struct TorchSlot {
