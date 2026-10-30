@@ -317,11 +317,10 @@ void MdlVisual::dropShield(Npc& npc) {
   npc.delItem(itm->clsId(),1);
   }
 
-void MdlVisual::startEffect(World& owner, Effect&& vfx, int32_t slot, bool noSlot) {
-  uint64_t timeUntil = vfx.effectPrefferedTime();
-  if(timeUntil!=0)
+void MdlVisual::startEffect(World& owner, Effect&& vfx, int32_t slot, bool noSlot, bool persistent) {
+  uint64_t timeUntil = persistent ? uint64_t(-1) : vfx.effectPrefferedTime();
+  if(!persistent && timeUntil!=0)
     timeUntil+=owner.tickCount();
-
   if(skeleton==nullptr)
     return;
 
@@ -331,18 +330,19 @@ void MdlVisual::startEffect(World& owner, Effect&& vfx, int32_t slot, bool noSlo
   for(auto& i:effects) {
     if(i.id==slot && !i.noSlot) {
       i.timeUntil = timeUntil;
+      i.persistent = persistent;
       i.view = std::move(vfx);
       i.view.bindAttaches(*skInst,*skeleton);
       syncAttaches();
       return;
       }
     }
-
   PfxSlot slt;
-  slt.id        = slot;
-  slt.timeUntil = timeUntil;
-  slt.noSlot    = noSlot;
-  slt.view      = std::move(vfx);
+  slt.id         = slot;
+  slt.timeUntil  = timeUntil;
+  slt.noSlot     = noSlot;
+  slt.persistent = persistent;
+  slt.view       = std::move(vfx);
   slt.view.bindAttaches(*skInst,*skeleton);
   effects.push_back(std::move(slt));
   syncAttaches();
@@ -368,6 +368,18 @@ void MdlVisual::stopEffect(int32_t slot) {
       return;
       }
     }
+  }
+
+void MdlVisual::stopPersistentEffects() {
+  for(size_t i=0;i<effects.size();) {
+    if(!effects[i].persistent) {
+      ++i;
+      continue;
+      }
+    effects[i] = std::move(effects.back());
+    effects.pop_back();
+    }
+  syncAttaches();
   }
 
 void MdlVisual::setNpcEffect(World& owner, Npc& npc, std::string_view s, zenkit::NpcFlag flags) {
@@ -564,8 +576,17 @@ Vec3 MdlVisual::mapHeadBone() const {
 void MdlVisual::stopAnim(Npc& npc, std::string_view anim) {
   skInst->stopAnim(anim);
   // Avoid issues with pfx on/off events within looped animations. Such as for Rupert and Bulko.
-  if(anim.empty())
-    effects.clear();
+  if(anim.empty()) {
+    for(size_t i=0;i<effects.size();) {
+      if(effects[i].persistent) {
+        ++i;
+        continue;
+        }
+      effects[i] = std::move(effects.back());
+      effects.pop_back();
+      }
+    syncAttaches();
+    }
   if(!skInst->hasAnim())
     startAnimAndGet(npc,AnimationSolver::Idle,0,fgtMode,npc.walkMode());
   }

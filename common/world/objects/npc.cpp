@@ -21,6 +21,11 @@
 
 using namespace Tempest;
 
+static bool isG1Pyrokinesis(World& owner, const VisualFx* fx) {
+  return owner.version().game==1 && fx!=nullptr &&
+         fx->emFXInvestTarget=="spellFX_Pyrokinesis_target";
+  }
+
 static std::string_view humansTorchOverlay = "_TORCH.MDS";
 
 std::string_view Npc::Routine::wayPointName() const {
@@ -593,6 +598,8 @@ bool Npc::checkHealth(bool onChange, bool allowUnconscious) {
   }
 
 void Npc::onNoHealth(bool death, HitSound sndMask) {
+  if(death)
+    visual.stopPersistentEffects();
   invent.switchActiveWeapon(*this,Item::NSLOT);
   visual.dropWeapon(*this);
   visual.dropShield(*this);
@@ -3167,6 +3174,56 @@ bool Npc::isTargetableBySpell(TargetType t) const {
   return false;
   }
 
+void Npc::startSpellTargetEffect(bool assessMagic) {
+  Npc* target = assessMagic ? currentTarget : spellEffectTarget;
+  if(target==nullptr)
+    return;
+
+  auto active = invent.getItem(currentSpellCast);
+  if(active==nullptr || !active->isSpellOrRune())
+    return;
+
+  const VisualFx* spellFx = owner.script().spellVfx(active->spellId());
+  if(!isG1Pyrokinesis(owner,spellFx))
+    return;
+
+  if(assessMagic) {
+    spellEffectTarget = target;
+    target->lastHitSpell = active->spellId();
+    target->perceptionProcess(*this,nullptr,0,PERC_ASSESSMAGIC);
+
+    if(const VisualFx* targetFx = Gothic::inst().loadVisualFx(spellFx->emFXInvestTarget)) {
+      Effect targetEffect(*targetFx,owner,*target,SpellFxKey::Invest);
+      targetEffect.setActive(true);
+      targetEffect.setLooped(true);
+      target->visual.startEffect(owner,std::move(targetEffect),-1,true,true);
+      }
+    }
+
+  const ParticleFx* pfx = Gothic::inst().loadParticleFx("MFX_PYROKINESIS_ORIGIN");
+  if(pfx==nullptr)
+    return;
+
+  Effect e(PfxEmitter(owner,pfx), "ZS_RIGHTHAND");
+  e.setTarget(spellEffectTarget);
+  e.setActive(true);
+  e.setLooped(true);
+
+  visual.startEffect(owner,std::move(e),-1,false);
+  }
+
+void Npc::stopSpellTargetEffect() {
+  if(spellEffectTarget==nullptr)
+    return;
+
+  if(const VisualFx* targetFx = Gothic::inst().loadVisualFx("spellFX_Pyrokinesis_target"))
+    spellEffectTarget->visual.stopEffect(*targetFx);
+
+  spellEffectTarget->perceptionProcess(*this,nullptr,0,PERC_ASSESSSTOPMAGIC);
+  spellEffectTarget = nullptr;
+  visual.stopEffect(-1);
+  }
+
 void Npc::commitSpell() {
   auto active = invent.getItem(currentSpellCast);
   if(active==nullptr || !active->isSpellOrRune())
@@ -3192,21 +3249,23 @@ void Npc::commitSpell() {
     b.setTarget(nullptr);
     visual.setMagicWeaponKey(owner,SpellFxKey::Init);
     } else {
-    // NOTE: use pfx_ppsIsLoopingChg ?
-    const VisualFx* vfx = owner.script().spellVfx(splId);
-    if(vfx!=nullptr) {
-      auto e = Effect(*vfx,owner,Vec3(x,y,z),SpellFxKey::Cast);
-      e.setOrigin(this);
-      e.setTarget((currentTarget==nullptr) ? this : currentTarget);
-      e.setSpellId(splId,owner);
-      e.setActive(true);
-      visual.startEffect(owner,std::move(e),0,true);
-      }
-    visual.setMagicWeaponKey(owner,SpellFxKey::Init);
-    if(currentTarget!=nullptr) {
-      currentTarget->lastHitSpell = splId;
-      currentTarget->perceptionProcess(*this,nullptr,0,PERC_ASSESSMAGIC);
-      }
+      // NOTE: use pfx_ppsIsLoopingChg ?
+      const VisualFx* vfx = owner.script().spellVfx(splId);
+      const bool g1Pyrokinesis = isG1Pyrokinesis(owner,vfx);
+      if(vfx!=nullptr && !g1Pyrokinesis) {
+        auto e = Effect(*vfx,owner,Vec3(x,y,z),SpellFxKey::Cast);
+        e.setOrigin(this);
+        e.setTarget((currentTarget==nullptr) ? this : currentTarget);
+        e.setSpellId(splId,owner);
+        e.setActive(true);
+        visual.startEffect(owner,std::move(e),0,true);
+        }
+      visual.setMagicWeaponKey(owner,SpellFxKey::Init);
+      if(currentTarget!=nullptr) {
+        currentTarget->lastHitSpell = splId;
+        if(!g1Pyrokinesis)
+          currentTarget->perceptionProcess(*this,nullptr,0,PERC_ASSESSMAGIC);
+        }
     }
 
   if(active->isSpell()) {
@@ -3910,6 +3969,7 @@ Npc::BeginCastResult Npc::beginCastSpell() {
     case SPL_RECEIVEINVEST:
     case SPL_NEXTLEVEL: {
       ++manaInvested;
+      startSpellTargetEffect(true);
       auto ani = owner.script().spellCastAnim(*this,*active);
       if(!visual.startAnimSpell(*this,ani,true))
         Log::d("Couldn't start animation for spell '",currentSpellCast,"'");
@@ -3937,7 +3997,8 @@ bool Npc::tickCast(uint64_t dt) {
 
   if(currentSpellCast!=size_t(-1)) {
     if(active==nullptr || !active->isSpellOrRune() || isDown()) {
-      // canot cast spell
+      // cannot cast spell
+      stopSpellTargetEffect();
       castLevel        = CS_NoCast;
       currentSpellCast = size_t(-1);
       castNextTime     = 0;
@@ -4011,6 +4072,7 @@ bool Npc::tickCast(uint64_t dt) {
       auto& spl = owner.script().spellDesc(active->spellId());
       castNextTime += uint64_t(spl.time_per_mana);
       ++manaInvested;
+      startSpellTargetEffect(false);
       return true;
       }
     case SpellCode::SPL_DONTINVEST:
@@ -4031,6 +4093,7 @@ bool Npc::tickCast(uint64_t dt) {
 void Npc::endCastSpell(bool playerCtrl) {
   if(castLevel<CS_Invest_0 || castLevel>CS_Invest_Last)
     return;
+  stopSpellTargetEffect();
   int32_t castLvl = int(castLevel)-int(CS_Invest_0);
   if(!playerCtrl) {
     castLevel = CastState(castLvl+CS_Cast_0);
