@@ -63,8 +63,11 @@ const char* materialTag(zenkit::MaterialGroup src) {
   return "UD";
   }
 
-World::World(GameSession& game, std::string_view file, bool startup, std::function<void(int)> loadProgress)
+World::World(GameSession& game, std::string_view file, bool startup, std::function<void(int)> loadProgress, WorldLand&& land)
   :wname(std::move(file)), game(game), wsound(game,*this), wobj(*this) {
+  if(land.name!=wname)
+    land = WorldLand();
+
   const auto* entry = Resources::vdfsIndex().find(wname);
 
   if(entry == nullptr) {
@@ -83,12 +86,16 @@ World::World(GameSession& game, std::string_view file, bool startup, std::functi
 
     auto wdynamicFut = std::async(std::launch::async, [&]() {
       Workers::setThreadName("Loading: BVH thread");
+      if(land.physic!=nullptr)
+        return std::unique_ptr<DynamicWorld>(new DynamicWorld(this,std::move(land.physic)));
       return std::unique_ptr<DynamicWorld>(new DynamicWorld(this,worldMesh));
       });
     auto wviewFut = std::async(std::launch::async, [&]() {
       Workers::setThreadName("Loading: PackedMesh thread");
+      if(land.visual!=nullptr)
+        return std::unique_ptr<WorldView>(new WorldView(std::move(land.visual), wname));
       PackedMesh vmesh(worldMesh,PackedMesh::PK_VisualLnd);
-      return std::unique_ptr<WorldView>(new WorldView(vmesh, wname));
+      return std::unique_ptr<WorldView>(new WorldView(std::make_unique<Landscape::Mesh>(vmesh), wname));
       });
 
     loadProgress(30);
@@ -124,6 +131,12 @@ World::World(GameSession& game, std::string_view file, bool startup, std::functi
   }
 
 World::~World() {
+  }
+
+WorldLand World::takeLand() {
+  if(wdynamic==nullptr || wview==nullptr)
+    return WorldLand();
+  return WorldLand{wname, wdynamic->takeLand(), wview->takeLand()};
   }
 
 void World::createPlayer(std::string_view cls) {

@@ -28,12 +28,21 @@ class Interactive;
 class VersionInfo;
 class GlobalFx;
 
+// Immutable level data that a reload of the same level can take over
+struct WorldLand final {
+  std::string                         name;
+  std::unique_ptr<DynamicWorld::Land> physic;
+  std::unique_ptr<Landscape::Mesh>    visual;
+  };
+
 class World final {
   public:
     World()=delete;
     World(const World&)=delete;
-    World(GameSession& game, std::string_view file, bool startup, std::function<void(int)> loadProgress);
+    World(GameSession& game, std::string_view file, bool startup, std::function<void(int)> loadProgress, WorldLand&& land = {});
     ~World();
+
+    WorldLand            takeLand();
 
     void                 createPlayer(std::string_view cls);
     void                 insertPlayer(std::unique_ptr<Npc>&& npc, std::string_view waypoint);

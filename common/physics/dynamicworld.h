@@ -41,9 +41,27 @@ class DynamicWorld final {
     static constexpr float bulletSpeed = 3; // centimeters per milliseconds
     static constexpr float spellSpeed  = 1; // centimeters per milliseconds
 
+    // Immutable collision data of the level mesh, which can be moved into a reload of the same level
+    struct Land final {
+      Land();
+      Land(const Land&)=delete;
+      ~Land();
+
+      std::vector<std::string>          sectors;
+      // PhysicVbo references this vector, so Land is moved only by pointer
+      std::vector<btVector3>            vbo;
+      std::unique_ptr<PhysicVbo>        landMesh;
+      std::unique_ptr<btCollisionShape> landShape;
+      std::unique_ptr<PhysicVbo>        waterMesh;
+      std::unique_ptr<btCollisionShape> waterShape;
+      };
+
     DynamicWorld(World *world, const zenkit::Mesh& mesh);
+    DynamicWorld(World *world, std::unique_ptr<Land> land);
     DynamicWorld(const DynamicWorld&)=delete;
     ~DynamicWorld();
+
+    std::unique_ptr<Land> takeLand();
 
     enum Category {
       C_Null      = 1,
@@ -304,16 +322,9 @@ class DynamicWorld final {
 
     std::unique_ptr<CollisionWorld>    world;
 
-    std::vector<std::string>           sectors;
-
-    std::vector<btVector3>             landVbo;
-    std::unique_ptr<PhysicVbo>         landMesh;
-    std::unique_ptr<btCollisionShape>  landShape;
+    std::unique_ptr<Land>              land;
     std::unique_ptr<btRigidBody>       landBody;
-
-    std::unique_ptr<btCollisionShape>  waterShape;
     std::unique_ptr<btRigidBody>       waterBody;
-    std::unique_ptr<PhysicVbo>         waterMesh;
 
     std::unique_ptr<NpcBodyList>       npcList;
     std::unique_ptr<BulletsList>       bulletList;

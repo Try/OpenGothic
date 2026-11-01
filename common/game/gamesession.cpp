@@ -116,7 +116,7 @@ GameSession::GameSession(std::string file) {
   // wrld->setDayTime(8,0);
   }
 
-GameSession::GameSession(Serialize &fin) {
+GameSession::GameSession(Serialize &fin, WorldLand&& land) {
   Gothic::inst().setLoadingProgress(0);
   setupSettings();
 
@@ -146,7 +146,7 @@ GameSession::GameSession(Serialize &fin) {
   if(true) {
     setWorld(std::unique_ptr<World>(new World(*this,wname,false,[&](int v){
       Gothic::inst().setLoadingProgress(int(v*0.55));
-      })));
+      },std::move(land))));
     wrld->load(fin);
     }
 
@@ -237,6 +237,12 @@ void GameSession::setWorld(std::unique_ptr<World> &&w) {
       visitedWorlds.emplace_back(*wrld);
     }
   wrld = std::move(w);
+  }
+
+WorldLand GameSession::takeLand() {
+  if(wrld==nullptr)
+    return WorldLand();
+  return wrld->takeLand();
   }
 
 std::unique_ptr<World> GameSession::clearWorld() {
