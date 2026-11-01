@@ -2,9 +2,12 @@
 
 #include <zenkit/Misc.hh>
 
+#include <Tempest/Checkbox>
+
 #include "enumwidget.h"
 #include "floatwidget.h"
 #include "intwidget.h"
+#include "ui/controls/checkwidget.h"
 #include "ui/controls/sliderwidget.h"
 #include "vecwidget.h"
 #include "colorwidget.h"
@@ -95,7 +98,27 @@ struct ParameterWidget::Base : ParameterWidget {
   size_t  pos = 0;
   };
 
-struct ParameterWidget::EditEnum    : Base<EnumWidget> {
+struct ParameterWidget::EditBool : Base<CheckWidget> {
+  EditBool(size_t pos, std::string_view name):Base(pos,name) {
+    edit->onValueChanged.bind(this, &EditBool::commit);
+    }
+
+  void commit(size_t id) {
+    Variant v;
+    v.set(int(id));
+    onChanged(pos,v,true);
+    }
+
+  Variant argv() const override {
+    return Variant(int(edit->value() ? 1 : 0));
+    }
+
+  void setArgv(const Variant& v) override {
+    edit->setValue(size_t(toNumber(v))!=0);
+    }
+  };
+
+struct ParameterWidget::EditEnum : Base<EnumWidget> {
   EditEnum(size_t pos, std::string_view name):Base(pos,name) {
     edit->onItemSelected.bind(this, &EditEnum::commit);
     }
@@ -271,8 +294,7 @@ ParameterWidget* ParameterWidget::implCreateEditor(const Property::Type& type, s
     return ret;
     }
   if(&type==&Property::Type::Bool1) {
-    auto ret = new EditEnum(pos,name);
-    ret->edit->setItems({"False","True"});
+    auto ret = new EditBool(pos,name);
     return ret;
     }
   if(&type==&Property::Type::String) {

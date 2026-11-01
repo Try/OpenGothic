@@ -134,9 +134,21 @@ void UiStyle::draw(Painter& p, CheckBox*, Style::Element /*e*/,
     b = &Assets::inst().ic.check_on.sprite(sz.w,sz.h,Icon::ST_Normal); else
     b = &Assets::inst().ic.check_off.sprite(sz.w,sz.h,Icon::ST_Normal);
 
-  p.setBrush(*b);
-  p.drawRect((sz.w-p.brush().w())/2,(sz.h-p.brush().h())/2,
-             p.brush().w(),p.brush().h());
+  auto color = Tempest::Color{1,1,1,1};
+  if(st.checked==WidgetState::Checked)
+    color = Assets::inst().colors.highlight;
+
+  auto offset = IVec2((sz.w - b->w())/2, (sz.h-b->h())/2);
+  if(st.moveOver) {
+    p.setBrush(Color(1,1,1, 0.1));
+    p.drawRect(0,0,sz.w,sz.h);
+    }
+  if(st.checked==WidgetState::Checked) {
+    p.setBrush(Color(1,1,1,1));
+    p.drawRect(offset.x+4,offset.y+4, 16,16);
+    }
+  p.setBrush(Brush(*b, color));
+  p.drawRect(offset.x, offset.y, p.brush().w(), p.brush().h());
 
   p.translate(-r.x,-r.y);
   }
