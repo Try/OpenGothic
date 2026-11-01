@@ -142,6 +142,7 @@ class Resources final {
     static void recycle(Tempest::StorageImage&& img);
     static void recycle(Tempest::Attachment&& img);
     static void recycle(Tempest::ZBuffer&& img);
+    static void recycle(Tempest::Texture2d&& img);
     static void recycle(Tempest::AccelerationStructure&& rtas);
 
     static std::vector<uint8_t>      getFileData(std::string_view name);
@@ -241,6 +242,7 @@ class Resources final {
       std::vector<Tempest::StorageImage>    img;
       std::vector<Tempest::Attachment>      att;
       std::vector<Tempest::ZBuffer>         zb;
+      std::vector<Tempest::Texture2d>       tx;
       std::vector<Tempest::DescriptorArray> arr;
       std::vector<Tempest::AccelerationStructure> rtas;
       };

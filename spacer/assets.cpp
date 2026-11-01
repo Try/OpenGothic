@@ -36,6 +36,8 @@ Assets::Assets(Device& device, TextureAtlas& atlas) {
   ic.file_large     = Icon(AssetFile::pixmap("file_large.png"), atlas);
   ic.folder_large   = Icon(AssetFile::pixmap("folder_large.png"), atlas);
 
+  ic.circle         = Icon(AssetFile::pixmap("circle.png"), atlas);
+
   im.pointLight = device.texture(AssetFile::pixmap("point_light.png"));
   }
 

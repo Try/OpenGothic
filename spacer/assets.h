@@ -31,6 +31,8 @@ class Assets {
       Tempest::Icon file_project;
       Tempest::Icon file_large;
       Tempest::Icon folder_large;
+
+      Tempest::Icon circle;
       } ic;
 
     struct {

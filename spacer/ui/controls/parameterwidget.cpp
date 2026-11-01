@@ -5,6 +5,7 @@
 #include "enumwidget.h"
 #include "floatwidget.h"
 #include "intwidget.h"
+#include "ui/controls/sliderwidget.h"
 #include "vecwidget.h"
 #include "colorwidget.h"
 #include "stringwidget.h"
@@ -186,7 +187,7 @@ struct ParameterWidget::EditInt1    : Base<IntWidget> {
     }
   };
 
-struct ParameterWidget::EditFloat1  : Base<FloatWidget> {
+struct ParameterWidget::EditFloat1  : Base<SliderWidget> {
   EditFloat1(size_t pos, std::string_view name):Base(pos,name) {
     edit->setUndoRedoEnabled(false);
     edit->onValueModifyed.bind(this, &EditFloat1::commit);

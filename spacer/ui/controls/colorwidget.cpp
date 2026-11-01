@@ -1,5 +1,6 @@
 #include "colorwidget.h"
 
+#include "ui/controls/numberedit.h"
 #include "ui/uihelper.h"
 #include "utility/colormath.h"
 #include "vecwidget.h"
@@ -11,11 +12,6 @@
 using namespace Tempest;
 
 struct ColorWidget::ClrCycle : Widget {
-  ClrCycle(){}
-  ~ClrCycle() {
-    // ProjectMgr::inst().onGpuAssetChanged();
-    }
-
   void resizeEvent(SizeEvent& e) override {
     recreateImg();
     }
@@ -25,7 +21,6 @@ struct ColorWidget::ClrCycle : Widget {
       return;
 
     auto& device = Resources::device();
-    // ProjectMgr::inst().onGpuAssetChanged();
     update();
 
     auto px = Pixmap(w(),h(),TextureFormat::RGBA8);
@@ -50,6 +45,8 @@ struct ColorWidget::ClrCycle : Widget {
           p[3] = 255;
           }
         }
+
+    Resources::recycle(std::move(view));
     view = device.texture(px);
     }
 
@@ -106,22 +103,77 @@ struct ColorWidget::ClrCycle : Widget {
   Tempest::Vec3      hsv;
   };
 
+struct ColorWidget::NumPad : Widget {
+  NumPad() {
+    red   = &addWidget(new NumberEdit());
+    green = &addWidget(new NumberEdit());
+    blue  = &addWidget(new NumberEdit());
+
+    for(auto i:{red, green, blue}) {
+      // i->setSliderMinMax(0, 255);
+      i->enableFloats(false);
+      i->onValueModifyed.bind(this, &NumPad::onModifyed);
+      }
+
+    auto sz = UiHelper::wrapContent(*this, Vertical);
+    setSizeHint(sz, margins());
+    setSizePolicy(Preferred,Fixed);
+    setLayout(Vertical);
+    }
+
+  Vec3 value() const {
+    return Vec3(red->value(), green->value(), blue->value());
+    }
+
+  void setValue(Vec3 v) {
+    red  ->setValue(v.x);
+    green->setValue(v.y);
+    blue ->setValue(v.z);
+    }
+
+  void setValue(Vec4 v) {
+    red  ->setValue(v.x);
+    green->setValue(v.y);
+    blue ->setValue(v.z);
+    }
+
+  void onModifyed(double, bool commited){
+    auto v = value();
+    onValueModifyed(Vec4(v.x, v.y, v.z, 1), commited);
+    }
+
+  Tempest::Signal<void(Tempest::Vec4 v,bool commit)> onValueModifyed;
+
+  NumberEdit* red   = nullptr;
+  NumberEdit* green = nullptr;
+  NumberEdit* blue  = nullptr;
+  };
+
 ColorWidget::ColorWidget(std::string_view name) {
-  setSizePolicy(Preferred,Fixed);
+  auto& lft = addWidget(new Widget());
+  auto& rgh = addWidget(new Widget());
 
-  clr  = &addWidget(new ClrCycle());
+  auto lbl = &lft.addWidget(new Label());
+  lft.addWidget(new Widget());
+  clr  = &rgh.addWidget(new ClrCycle());
+  edit = &rgh.addWidget(new NumPad());
+
   clr->setSizePolicy(Fixed);
-  edit = &addWidget(new VecWidget(name,3));
-  edit->setCompact(false);
-  edit->setNames({"Red", "Green", "Blue", "Alpha"});
-  edit->setSliderMinMax(0, 255);
-  edit->enableFloats(false);
 
+  lft.setLayout(Vertical);
+  rgh.setLayout(Horizontal);
+  rgh.setMinimumSize(UiHelper::wrapContent(rgh));
+
+  auto sz = UiHelper::wrapContent(*this, Horizontal);
+  setSizeHint(sz, margins());
+  setSizePolicy(Preferred,Fixed);
+  setLayout(Horizontal);
+
+  lbl->setText(name);
   edit->onValueModifyed.bind(this,&ColorWidget::modifyProxy);
   clr ->onValueModifyed.bind(this,&ColorWidget::modifyProxy);
-  edit->onResize.bind(this,&ColorWidget::adjustSize);
+  //edit->onResize.bind(this,&ColorWidget::adjustSize);
 
-  setLayout(Horizontal);
   adjustSize();
   }
 
@@ -147,6 +199,10 @@ void ColorWidget::adjustSize() {
   }
 
 void ColorWidget::modifyProxy(Vec4 v, bool commit) {
+  v.x = std::clamp(v.x, 0.f, 255.f);
+  v.y = std::clamp(v.y, 0.f, 255.f);
+  v.z = std::clamp(v.z, 0.f, 255.f);
+
   edit->setValue(v);
   clr ->setRGB(Vec3(v.x,v.y,v.z)/255.f);
   onValueModifyed(v,commit);

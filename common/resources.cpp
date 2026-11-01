@@ -946,6 +946,7 @@ void Resources::resetRecycled(uint8_t fId) {
   inst->recycled[fId].img.clear();
   inst->recycled[fId].att.clear();
   inst->recycled[fId].zb.clear();
+  inst->recycled[fId].tx.clear();
   inst->recycled[fId].arr.clear();
   inst->recycled[fId].rtas.clear();
   }
@@ -983,6 +984,13 @@ void Resources::recycle(Tempest::ZBuffer&& img) {
     return;
   std::lock_guard<std::recursive_mutex> g(inst->sync);
   inst->recycled[inst->recycledId].zb.emplace_back(std::move(img));
+  }
+
+void Resources::recycle(Tempest::Texture2d&& img) {
+  if(img.isEmpty())
+    return;
+  std::lock_guard<std::recursive_mutex> g(inst->sync);
+  inst->recycled[inst->recycledId].tx.emplace_back(std::move(img));
   }
 
 void Resources::recycle(Tempest::AccelerationStructure&& rtas) {

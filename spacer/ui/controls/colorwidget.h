@@ -21,10 +21,11 @@ class ColorWidget : public Tempest::Widget {
 
   private:
     struct ClrCycle;
+    struct NumPad;
     void adjustSize();
     void modifyProxy(Tempest::Vec4 v,bool commit);
 
-    ClrCycle*  clr  = nullptr;
-    VecWidget* edit = nullptr;
+    ClrCycle* clr  = nullptr;
+    NumPad*   edit = nullptr;
   };
 

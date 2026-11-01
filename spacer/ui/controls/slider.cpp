@@ -40,17 +40,26 @@ Vec2 Slider::range() const {
   }
 
 void Slider::paintEvent(PaintEvent& e) {
+  const int  sz = 6;
+  const auto sp = Assets::inst().ic.circle.sprite(h(), h(), Tempest::Icon::ST_Normal);
+
   Painter p(e);
   float v   = std::max(min,std::min(val,max))-min;
   int   x   = 0;
   if(max>min)
-    x = int((v/(max-min))*w());
+    x = int((v/(max-min))*(w() - sp.w())) + sp.w()/2;
 
   p.setBrush(Assets::inst().colors.workspaceD);
   p.drawRect(0,0,w(),h());
 
+  p.setBrush(Assets::inst().colors.highlight);
+  p.drawRect(0, (h()-sz)/2, x, sz);
+
   p.setBrush(Assets::inst().colors.workspace);
-  p.drawRect(0,0,x,h());
+  p.drawRect(x, (h()-sz)/2, w(), sz);
+
+  p.setBrush(Brush(sp, Assets::inst().colors.highlight));
+  p.drawRect(x-sp.w()/2, (h()-sp.h())/2, sp.h(), sp.h());
 
   Label::paintEvent(e);
   }
@@ -68,7 +77,8 @@ void Slider::mouseUpEvent(MouseEvent& e) {
   }
 
 void Slider::implMouse(MouseEvent& e) {
-  float v = float(e.x)/float(w());
+  auto  sp = Assets::inst().ic.circle.sprite(h(), h(), Tempest::Icon::ST_Normal);
+  float v  = float(e.x - sp.w()/2)/float(w()-sp.w());
   v = std::max(0.f,std::min(v,1.f));
   implSet(v*(max-min)+min,e.type()==Event::MouseUp,true);
   }
