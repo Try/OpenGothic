@@ -591,6 +591,7 @@ class Npc final {
     int32_t                        aiExpectedInvest = 1;
     size_t                         currentSpellCast = size_t(-1);
     Npc*                           spellEffectTarget = nullptr;
+    const VisualFx*                spellEffectTargetFx = nullptr;
     uint64_t                       castNextTime     = 0;
     int32_t                        spellInfo        = 0;
 
