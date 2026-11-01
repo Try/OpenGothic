@@ -51,6 +51,16 @@ class PropertyDelegate : public Tempest::ListDelegate {
     void mkIndex_zCVobAnimate(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob);
     void mkIndex_zCVobLensFlare(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob);
     void mkIndex_zCVobLight(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob);
+    void mkIndex_zCVobSpot(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob);
+    void mkIndex_zCVobStartpoint(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob);
+    void mkIndex_zCMessageFilter(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob);
+    void mkIndex_zCCodeMaster(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob);
+    void mkIndex_zCTriggerWorldStart(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob);
+    void mkIndex_zCCSCamera(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob);
+    void mkIndex_zCCamTrj_KeyFrame(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob);
+    void mkIndex_oCTouchDamage(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob);
+    void mkIndex_zCTriggerUntouch(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob);
+    void mkIndex_zCEarthquake(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob);
 
     std::unordered_set<zenkit::VirtualObjectType> closed;
     std::vector<Index>                            index;

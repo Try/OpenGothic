@@ -4,6 +4,8 @@
 
 #include <zenkit/vobs/Misc.hh>
 #include <zenkit/vobs/Light.hh>
+#include <zenkit/vobs/Trigger.hh>
+#include <zenkit/vobs/Camera.hh>
 
 #include "ui/controls/parameterwidget.h"
 #include "ui/controls/widgetheader.h"
@@ -149,6 +151,26 @@ auto PropertyDelegate::addView(std::string_view name, F T::* field) -> Index& {
     id.slt.type = &Property::Type::Enum;
     id.slt.enumValues = {"High", "Medium", "Low"};
     }
+  else if constexpr(std::is_same_v<F,zenkit::MessageFilterAction>) {
+    id.slt.type = &Property::Type::Enum;
+    id.slt.enumValues = {"None", "Trigger", "Untrigger", "Enable", "Disable", "Toggle"};
+    }
+  else if constexpr(std::is_same_v<F,zenkit::CameraMotion>) {
+    id.slt.type = &Property::Type::Enum;
+    id.slt.enumValues = {"Undefined", "Smooth", "Linear", "Step", "Slow", "Fast"};
+    }
+  else if constexpr(std::is_same_v<F,zenkit::TouchCollisionType>) {
+    id.slt.type = &Property::Type::Enum;
+    id.slt.enumValues = {"None", "Box", "Point"};
+    }
+  else if constexpr(std::is_same_v<F,std::vector<float>>) {
+    //TODO
+    id.slt.type = &Property::Type::Vec1;
+    }
+  else if constexpr(std::is_same_v<F,std::vector<std::string>>) {
+    //TODO
+    id.slt.type = &Property::Type::Vec1;
+    }
 
   id.get = [field](const WorldEdit::Vob* vob) -> Variant {
     if(auto d = dynamic_cast<const T*>(vob->get())) {
@@ -217,15 +239,35 @@ void PropertyDelegate::mkIndex(zenkit::VirtualObjectType type, const zenkit::Vir
       mkIndex_zCVobLight(type, vob);
       break;
     case zenkit::VirtualObjectType::zCVobSpot:
+      mkIndex_zCVobSpot(type, vob);
+      break;
     case zenkit::VirtualObjectType::zCVobStartpoint:
+      mkIndex_zCVobStartpoint(type, vob);
+      break;
     case zenkit::VirtualObjectType::zCMessageFilter:
+      mkIndex_zCMessageFilter(type, vob);
+      break;
     case zenkit::VirtualObjectType::zCCodeMaster:
+      mkIndex_zCCodeMaster(type, vob);
+      break;
     case zenkit::VirtualObjectType::zCTriggerWorldStart:
+      mkIndex_zCTriggerWorldStart(type, vob);
+      break;
     case zenkit::VirtualObjectType::zCCSCamera:
+      mkIndex_zCCSCamera(type, vob);
+      break;
     case zenkit::VirtualObjectType::zCCamTrj_KeyFrame:
+      mkIndex_zCCamTrj_KeyFrame(type, vob);
+      break;
     case zenkit::VirtualObjectType::oCTouchDamage:
+      mkIndex_oCTouchDamage(type, vob);
+      break;
     case zenkit::VirtualObjectType::zCTriggerUntouch:
+      mkIndex_zCTriggerUntouch(type, vob);
+      break;
     case zenkit::VirtualObjectType::zCEarthquake:
+      mkIndex_zCEarthquake(type, vob);
+      break;
     case zenkit::VirtualObjectType::oCMOB:
     case zenkit::VirtualObjectType::oCMobInter:
     case zenkit::VirtualObjectType::oCMobBed:
@@ -335,14 +377,127 @@ void PropertyDelegate::mkIndex_zCVobLight(zenkit::VirtualObjectType type, const 
   mkIndex_zCVob(type, vob);
   if(addHeader("zCVobLight", zenkit::VirtualObjectType::zCVobLight))
     return;
-  addView("lightPresetInUse", &zenkit::VLight::preset);
-  addView("lightType",        &zenkit::VLight::light_type);
-  addView("range",            &zenkit::VLight::range, 0.f, 2000.f);
-  addView("color",            &zenkit::VLight::color);
-  addView("spotConeAngle",    &zenkit::VLight::cone_angle, 0.f, 180.f);
-  addView("lightStatic",      &zenkit::VLight::is_static);
-  addView("lightQuality",     &zenkit::VLight::quality);
-  addView("lensflareFX",      &zenkit::VLight::lensflare_fx);
+  addView("lightPresetInUse",       &zenkit::VLight::preset);
+  addView("lightType",              &zenkit::VLight::light_type);
+  addView("range",                  &zenkit::VLight::range, 0.f, 2000.f);
+  addView("color",                  &zenkit::VLight::color);
+  addView("spotConeAngle",          &zenkit::VLight::cone_angle, 0.f, 180.f);
+  addView("lightStatic",            &zenkit::VLight::is_static);
+  addView("lightQuality",           &zenkit::VLight::quality);
+  addView("lensflareFX",            &zenkit::VLight::lensflare_fx);
+  addView("turnedOn",               &zenkit::VLight::on);
+  addView("range animation scale",  &zenkit::VLight::range_animation_scale);
+  addView("range animation fps",    &zenkit::VLight::range_animation_fps, 0.f, 60.f);
+  addView("range animation smooth", &zenkit::VLight::range_animation_smooth);
+  addView("color animation list",   &zenkit::VLight::color_animation_list);
+  addView("color animation fps",    &zenkit::VLight::color_animation_fps, 0.f, 60.f);
+  addView("color animation smooth", &zenkit::VLight::color_animation_smooth);
+  addView("can move",               &zenkit::VLight::can_move);
+  }
 
-  //addView("turnedOn",         &zenkit::VLight::on);
+void PropertyDelegate::mkIndex_zCVobSpot(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob) {
+  mkIndex_zCVob(type, vob);
+  if(addHeader("zCVobSpot", zenkit::VirtualObjectType::zCVobSpot))
+    return;
+  }
+
+void PropertyDelegate::mkIndex_zCVobStartpoint(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob) {
+  mkIndex_zCVob(type, vob);
+  if(addHeader("zCVobStartpoint", zenkit::VirtualObjectType::zCVobStartpoint))
+    return;
+  }
+
+void PropertyDelegate::mkIndex_zCMessageFilter(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob) {
+  mkIndex_zCVob(type, vob);
+  if(addHeader("zCMessageFilter", zenkit::VirtualObjectType::zCMessageFilter))
+    return;
+  addView("target",       &zenkit::VMessageFilter::target);
+  addView("on trigger",   &zenkit::VMessageFilter::on_trigger);
+  addView("on untrigger", &zenkit::VMessageFilter::on_untrigger);
+  }
+
+void PropertyDelegate::mkIndex_zCCodeMaster(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob) {
+  mkIndex_zCVob(type, vob);
+  if(addHeader("zCCodeMaster", zenkit::VirtualObjectType::zCCodeMaster))
+    return;
+
+  addView("target",                 &zenkit::VCodeMaster::target);
+  addView("ordered",                &zenkit::VCodeMaster::ordered);
+  addView("first false is failure", &zenkit::VCodeMaster::first_false_is_failure);
+  addView("failure target",         &zenkit::VCodeMaster::failure_target);
+  addView("untriggered cancels",    &zenkit::VCodeMaster::untriggered_cancels);
+  addView("slaves",                 &zenkit::VCodeMaster::slaves);
+  // addView("",                       &zenkit::VCodeMaster::s_num_triggered_slaves); // saves only
+  }
+
+void PropertyDelegate::mkIndex_zCTriggerWorldStart(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob) {
+  mkIndex_zCVob(type, vob);
+  if(addHeader("zCTriggerWorldStart", zenkit::VirtualObjectType::zCTriggerWorldStart))
+    return;
+  addView("target",    &zenkit::VTriggerWorldStart::target);
+  addView("fire once", &zenkit::VTriggerWorldStart::fire_once);
+  // addView("fs_has_fired", &zenkit::VTriggerWorldStart::s_has_fired); // saves only
+  }
+
+void PropertyDelegate::mkIndex_zCCSCamera(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob) {
+  mkIndex_zCVob(type, vob);
+  if(addHeader("zCCSCamera", zenkit::VirtualObjectType::zCCSCamera))
+    return;
+  }
+
+void PropertyDelegate::mkIndex_zCCamTrj_KeyFrame(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob) {
+  mkIndex_zCVob(type, vob);
+  if(addHeader("zCCamTrj_KeyFrame", zenkit::VirtualObjectType::zCCamTrj_KeyFrame))
+    return;
+
+  addView("time",                   &zenkit::VCameraTrajectoryFrame::time, 0.f, 6000.f);
+  addView("roll angle",             &zenkit::VCameraTrajectoryFrame::roll_angle, -180.f, 180.f);
+  addView("fov scale",              &zenkit::VCameraTrajectoryFrame::fov_scale, 0.f, 2.f);
+  addView("motion type",            &zenkit::VCameraTrajectoryFrame::motion_type);
+  addView("motion type fov",        &zenkit::VCameraTrajectoryFrame::motion_type_fov);
+  addView("motion type roll",       &zenkit::VCameraTrajectoryFrame::motion_type_roll);
+  addView("motion type time scale", &zenkit::VCameraTrajectoryFrame::motion_type_time_scale);
+  addView("tension",                &zenkit::VCameraTrajectoryFrame::tension);
+  addView("cam bias",               &zenkit::VCameraTrajectoryFrame::cam_bias);
+  addView("continuity",             &zenkit::VCameraTrajectoryFrame::continuity);
+  addView("time scale",             &zenkit::VCameraTrajectoryFrame::time_scale);
+  addView("time fixed",             &zenkit::VCameraTrajectoryFrame::time_fixed);
+  // addView("original_pose",          &zenkit::VCameraTrajectoryFrame::original_pose);
+  }
+
+void PropertyDelegate::mkIndex_oCTouchDamage(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob) {
+  mkIndex_zCVob(type, vob);
+  if(addHeader("oCTouchDamage", zenkit::VirtualObjectType::oCTouchDamage))
+    return;
+
+  addView("damage",           &zenkit::VTouchDamage::damage, 0.f, 1000.f);
+  addView("barrier",          &zenkit::VTouchDamage::barrier);
+  addView("blunt",            &zenkit::VTouchDamage::blunt);
+  addView("edge",             &zenkit::VTouchDamage::edge);
+  addView("fire",             &zenkit::VTouchDamage::fire);
+  addView("fly",              &zenkit::VTouchDamage::fly);
+  addView("magic",            &zenkit::VTouchDamage::magic);
+  addView("point",            &zenkit::VTouchDamage::point);
+  addView("fall",             &zenkit::VTouchDamage::fall);
+  addView("repeat delay sec", &zenkit::VTouchDamage::repeat_delay_sec, 0.f, 10.f);
+  addView("volume scale",     &zenkit::VTouchDamage::volume_scale, 0.f, 3.f);
+  addView("collision",        &zenkit::VTouchDamage::collision);
+  }
+
+void PropertyDelegate::mkIndex_zCTriggerUntouch(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob) {
+  mkIndex_zCVob(type, vob);
+  if(addHeader("zCTriggerUntouch", zenkit::VirtualObjectType::zCTriggerUntouch))
+    return;
+
+  addView("target", &zenkit::VTriggerUntouch::target);
+  }
+
+void PropertyDelegate::mkIndex_zCEarthquake(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob) {
+  mkIndex_zCVob(type, vob);
+  if(addHeader("zCEarthquake", zenkit::VirtualObjectType::zCEarthquake))
+    return;
+
+  addView("radius",    &zenkit::VEarthquake::radius, 0.f, 1000.f);
+  addView("duration",  &zenkit::VEarthquake::duration);
+  addView("amplitude", &zenkit::VEarthquake::amplitude);
   }
