@@ -51,5 +51,6 @@ Material::AlphaFunc Parser::loadAlpha(std::string_view src) {
     return Material::AdditiveLight;
   if(src=="MUL")
     return Material::Multiply;
+  // TODO: based on finding in G1 - maybe blend is the default fallback?
   return Material::Solid;
   }
