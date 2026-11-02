@@ -2,7 +2,7 @@
 
 #include <zenkit/Misc.hh>
 
-#include <Tempest/Checkbox>
+#include <Tempest/CheckBox>
 
 #include "enumwidget.h"
 #include "floatwidget.h"

@@ -2,7 +2,7 @@
 
 #include <Tempest/Widget>
 #include <Tempest/Label>
-#include <Tempest/Checkbox>
+#include <Tempest/CheckBox>
 
 class NumberEdit;
 
