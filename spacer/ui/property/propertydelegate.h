@@ -35,6 +35,8 @@ class PropertyDelegate : public Tempest::ListDelegate {
     auto addView(std::string_view name, F T::*) -> Index&;
     template<class T, class F>
     auto addView(std::string_view name, F T::*, F min, F max) -> Index&;
+    template<class T, class F>
+    auto addView(std::string_view name, F T::*, std::false_type) -> Index&;
 
     bool isClosed(zenkit::VirtualObjectType type) const;
     void mkIndex(const zenkit::VirtualObject* vob);
@@ -61,6 +63,29 @@ class PropertyDelegate : public Tempest::ListDelegate {
     void mkIndex_oCTouchDamage(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob);
     void mkIndex_zCTriggerUntouch(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob);
     void mkIndex_zCEarthquake(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob);
+    void mkIndex_oCMOB(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob);
+    void mkIndex_oCMobInter(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob);
+    void mkIndex_oCMobBed(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob);
+    void mkIndex_oCMobFire(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob);
+    void mkIndex_oCMobLadder(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob);
+    void mkIndex_oCMobSwitch(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob);
+    void mkIndex_oCMobWheel(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob);
+    void mkIndex_oCMobContainer(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob);
+    void mkIndex_oCMobDoor(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob);
+    void mkIndex_zCTrigger(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob);
+    void mkIndex_zCTriggerList(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob);
+    void mkIndex_oCTriggerScript(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob);
+    void mkIndex_oCTriggerChangeLevel(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob);
+    void mkIndex_oCCSTrigger(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob);
+    void mkIndex_zCMover(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob);
+    void mkIndex_zCVobSound(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob);
+    void mkIndex_zCVobSoundDaytime(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob);
+    void mkIndex_oCZoneMusic(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob);
+    void mkIndex_oCZoneMusicDefault(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob);
+    void mkIndex_zCZoneZFog(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob);
+    void mkIndex_zCZoneZFogDefault(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob);
+    void mkIndex_zCZoneVobFarPlane(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob);
+    void mkIndex_zCZoneVobFarPlaneDefault(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob);
 
     std::unordered_set<zenkit::VirtualObjectType> closed;
     std::vector<Index>                            index;
