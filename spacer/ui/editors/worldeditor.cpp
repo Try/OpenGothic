@@ -510,6 +510,23 @@ void WorldEditor::moveDropOver(DropOverEvent& ev) {
       ev.setUiVisible(false);
       update();
       }
+    if(itm->it.type()==ProjectItem::T_ScriptItem) {
+      /*
+      auto name = std::string(itm->it.name());
+      FileExt::exchangeExt(name,"MRM","3DS");
+
+      const auto query = rayQuery(ev.pos());
+
+      insertVob.reset(new WorldEdit::Vob());
+      insertVob->setVisual(*level, name);
+      insertVob->setCollision(*level, false);
+      insertVob->setPosition(query.hitPos());
+
+      ev.accept();
+      ev.setUiVisible(false);
+      */
+      update();
+      }
     if(itm->it.type()==ProjectItem::T_Texture) {
       // decals?
       }

@@ -8,6 +8,8 @@
 
 #include <Tempest/Texture2d>
 
+#include <zenkit/addon/daedalus.hh>
+
 class WorldEdit;
 class ProtoMesh;
 
@@ -26,6 +28,7 @@ class ProjectItem {
       T_StaticMesh,
       T_Texture,
       T_World,
+      T_ScriptItem,
       };
 
     enum State : uint32_t {
@@ -55,15 +58,17 @@ class ProjectItem {
   private:
     struct Data {
       std::vector<std::shared_ptr<ProjectItem::Data>> files;
-      std::string name;
-      std::string path;
-      size_t      depth = 0;
-      State       state = S_Idle;
+      std::string       name;
+      std::string       path;
+      size_t            depth = 0;
+      State             state = S_Idle;
+      ProjectItem::Type type  = ProjectItem::T_Dir;
 
       SpinLock    sync;
       std::shared_ptr<const Tempest::Texture2d> preview;
 
-      std::shared_ptr<WorldEdit> world;
+      std::shared_ptr<zenkit::IItem> item;
+      std::shared_ptr<WorldEdit>      world;
       };
 
     ProjectItem(std::shared_ptr<Data> data);

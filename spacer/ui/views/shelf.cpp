@@ -62,7 +62,7 @@ struct Shelf::Item : ProjectItemView {
     else if(it.type()==ProjectItem::T_Dir) {
       drawIcon(p, Assets::inst().ic.folder_large);
       }
-    else if(it.type()==ProjectItem::T_StaticMesh) {
+    else if(it.type()==ProjectItem::T_StaticMesh || it.type()==ProjectItem::T_ScriptItem) {
       auto pr = it.preview();
       if(pr!=nullptr)
         drawIcon(p, *pr); else
@@ -133,6 +133,9 @@ struct Shelf::Central : Widget {
           break;
         case 2:
           filterFn = [](const ProjectItem& it) { return it.type()==ProjectItem::T_Texture; };
+          break;
+        case 3:
+          filterFn = [](const ProjectItem& it) { return true; };
           break;
         default:
           filterFn = [](const ProjectItem&)    { return false; };
@@ -222,7 +225,10 @@ struct Shelf::Central : Widget {
       auto& pro = ProjectMgr::inst();
       if(proj<ProjectMgr::inst().vdfCount()) {
         if(!owner.showByType)
-          indexFolder(); else
+          indexFolder();
+        else if(owner.categoryId==3)
+          indexType(ProjectMgr::inst().cItemRoot());
+        else
           indexType(ProjectMgr::inst().vdf(proj));
         }
 

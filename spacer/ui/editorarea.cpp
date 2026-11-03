@@ -395,6 +395,7 @@ void EditorArea::load(const ProjectItem& itm) {
     case ProjectItem::T_File:
     case ProjectItem::T_StaticMesh:
     case ProjectItem::T_Texture:
+    case ProjectItem::T_ScriptItem:
       break;
     case ProjectItem::T_World:
       implLoad<WorldEditor>(itm);

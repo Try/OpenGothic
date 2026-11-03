@@ -3,12 +3,14 @@
 #include <Tempest/Log>
 #include <Tempest/Fence>
 
+#include "graphics/inventoryrenderer.h"
 #include "objects/worldedit.h"
 #include "project/projectitem.h"
 #include "graphics/shaders.h"
 #include "utils/fileext.h"
 #include "utils/workers.h"
 #include "resources.h"
+#include "gothic.h"
 
 using namespace Tempest;
 
@@ -86,7 +88,7 @@ void DataWorker::exec() {
         auto mesh = MeshObjects::Mesh(render.itmGroup,*proto,0,0,0,false);
         mesh.setObjMatrix(Matrix4x4::mkIdentity());
 
-        auto ret = createPreview(it, mesh, proto->bbox());
+        auto ret = createPreview(mesh, proto->bbox());
         commit(it, [&](){
           it.setPreview(ret);
           it.setPayload(proto);
@@ -94,6 +96,19 @@ void DataWorker::exec() {
         } else {
         Log::d(it.name()," - unable to load mesh");
         it.setError();
+        }
+      }
+    else if(type==ProjectItem::T_ScriptItem) {
+      bool valid = (it.data!=nullptr && it.data->item!=nullptr);
+      auto name  = valid ? it.data->item->visual.c_str() : "";
+      if(auto proto = Resources::loadMesh(name)) {
+        auto mesh = MeshObjects::Mesh(render.itmGroup,*proto,0,0,0,false);
+        mesh.setObjMatrix(Matrix4x4::mkIdentity());
+
+        auto ret = createPreview(InventoryRenderer::itemRotation(*it.data->item), mesh, proto->bbox());
+        commit(it, [&](){
+          it.setPreview(ret);
+          });
         }
       }
     else if(type==ProjectItem::T_Texture) {
@@ -162,7 +177,14 @@ void DataWorker::commit(ProjectItem& out, std::function<void()> func) {
   updateHint.fetch_add(1);
   }
 
-auto DataWorker::createPreview(ProjectItem& itm, const MeshObjects::Mesh& mesh, const Vec3* bbox) -> std::shared_ptr<Tempest::Texture2d> {
+auto DataWorker::createPreview(const MeshObjects::Mesh& mesh, const Tempest::Vec3* bbox) -> std::shared_ptr<Texture2d> {
+  static const float invX = 180;
+  static const float invY = 0;
+  static const float invZ = 45;
+  return createPreview(Vec3(invX, invY, invZ), mesh, bbox);
+  }
+
+auto DataWorker::createPreview(const Vec3& rot, const MeshObjects::Mesh& mesh, const Vec3* bbox) -> std::shared_ptr<Tempest::Texture2d> {
   Tempest::Matrix4x4 viewMat;
   // inventory-like view
   {
@@ -173,14 +195,11 @@ auto DataWorker::createPreview(ProjectItem& itm, const MeshObjects::Mesh& mesh, 
   if(sz>0.1f)
     sz=0.1f;
 
-  static const float invX = 180;
-  static const float invY = 0;
-  static const float invZ = 45;
   Tempest::Matrix4x4 mat;
   mat.identity();
-  mat.rotateOX(invX);
-  mat.rotateOZ(invZ);
-  mat.rotateOY(invY);
+  mat.rotateOX(rot.x);
+  mat.rotateOZ(rot.z);
+  mat.rotateOY(rot.y);
   for(int i=0; i<3; ++i){
     auto trX = mat.at(i,0);
     auto trY = mat.at(i,2);

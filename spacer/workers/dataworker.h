@@ -27,7 +27,8 @@ class DataWorker {
     void commit(ProjectItem& out, std::function<void ()> func);
     void implUnloadAll();
 
-    auto createPreview(ProjectItem& itm, const MeshObjects::Mesh& mesh, const Tempest::Vec3* bbox) -> std::shared_ptr<Tempest::Texture2d>;
+    auto createPreview(const MeshObjects::Mesh& mesh, const Tempest::Vec3* bbox) -> std::shared_ptr<Tempest::Texture2d>;
+    auto createPreview(const Tempest::Vec3& rot, const MeshObjects::Mesh& mesh, const Tempest::Vec3* bbox) -> std::shared_ptr<Tempest::Texture2d>;
 
     std::thread              th;
 

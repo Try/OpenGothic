@@ -14,6 +14,7 @@
 #include "ui/documentmenu.h"
 #include "ui/chapterscreen.h"
 #include "utils/versioninfo.h"
+#include "utils/inifile.h"
 #include "sound/soundfx.h"
 
 class VersionInfo;

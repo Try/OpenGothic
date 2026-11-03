@@ -58,24 +58,7 @@ bool ProjectItem::isVisible() const {
 ProjectItem::Type ProjectItem::type() const {
   if(data==nullptr)
     return T_File;
-
-  if(data->files.size()>0)
-    return T_Dir;
-
-  if(FileExt::hasExt(data->name,"3DS"))
-    return T_StaticMesh;
-  if(FileExt::hasExt(data->name,"MRM"))
-    return T_StaticMesh;
-
-  if(FileExt::hasExt(data->name,"TEX"))
-    return T_Texture;
-  if(FileExt::hasExt(data->name,"TGA"))
-    return T_Texture;
-
-  if(FileExt::hasExt(data->name,"ZEN"))
-    return T_World;
-
-  return T_File;
+  return data->type;
   }
 
 size_t ProjectItem::itemsCount() const {

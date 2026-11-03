@@ -9,6 +9,8 @@
 #include "editorarea.h"
 #include "editorsettings.h"
 #include "editorwindow.h"
+#include "commandline.h"
+#include "gothic.h"
 #include "assets.h"
 
 using namespace Tempest;
@@ -33,6 +35,8 @@ RootView::RootView() {
     edit->openApp();
     }
   */
+  onOpenProjectF(std::filesystem::path(CommandLine::inst().modPath()));
+
   auto ow = ProjectMgr::inst().find("OLDWORLD.ZEN");
   edit->load(ow); // TEMP: start level view
   setFocus(true);
