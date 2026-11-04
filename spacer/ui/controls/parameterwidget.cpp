@@ -144,9 +144,9 @@ struct ParameterWidget::EditColorWidget : Base<ColorWidget> {
     edit->onResize  .bind(this, &EditColorWidget::adjustSize);
     }
 
-  void commit(Vec4,bool) {
+  void commit(Vec4, bool commit) {
     Variant v = argv();
-    onChanged(pos,v,true);
+    onChanged(pos,v,commit);
     }
 
   Variant argv() const override {
