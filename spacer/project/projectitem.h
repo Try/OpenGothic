@@ -53,7 +53,8 @@ class ProjectItem {
     ProjectItem           item(size_t i) const;
 
     auto                  preview() const -> std::shared_ptr<const Tempest::Texture2d>;
-    auto                  get() const -> std::shared_ptr<WorldEdit>;
+    template<class T>
+    auto                  get() const -> std::shared_ptr<T> { return implGet((const T*)nullptr); }
 
   private:
     struct Data {
@@ -72,6 +73,9 @@ class ProjectItem {
       };
 
     ProjectItem(std::shared_ptr<Data> data);
+
+    auto implGet(const WorldEdit*) const -> std::shared_ptr<WorldEdit>;
+    auto implGet(const zenkit::IItem*) const -> std::shared_ptr<zenkit::IItem>;
 
     void setPending();
     void setError();

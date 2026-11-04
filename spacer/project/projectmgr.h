@@ -31,6 +31,7 @@ class ProjectMgr {
     ProjectItem  cItemRoot();
 
     ProjectItem  find(std::string_view name);
+    ProjectItem  findCItem(std::string_view name);
 
     Tempest::Signal<void()> onGpuAssetChanged;
 
@@ -38,6 +39,7 @@ class ProjectMgr {
     std::shared_ptr<ProjectItem::Data> mkIndex(const zenkit::VfsNode& node, size_t depth, const std::string& prefix);
     std::shared_ptr<ProjectItem::Data> mkIndexDat(std::string_view name);
     ProjectItem  find(const ProjectItem& itm, std::string_view name);
+    ProjectItem  findCItem(const ProjectItem& itm, std::string_view name);
 
     zenkit::DaedalusScript loadScript(std::string_view name);
 

@@ -159,11 +159,26 @@ ProjectItem ProjectMgr::find(std::string_view name) {
   return find(root(), name);
   }
 
+ProjectItem ProjectMgr::findCItem(std::string_view name) {
+  return findCItem(cItemRoot(), name);
+  }
+
 ProjectItem ProjectMgr::find(const ProjectItem& itm, std::string_view name) {
   if(itm.name()==name)
     return itm;
   for(size_t i=0; i<itm.itemsCount(); ++i) {
     auto n = find(itm.item(i), name);
+    if(!n.isEmpty())
+      return n;
+    }
+  return ProjectItem();
+  }
+
+ProjectItem ProjectMgr::findCItem(const ProjectItem& itm, std::string_view name) {
+  if(itm.name()==name)
+    return itm;
+  for(size_t i=0; i<itm.itemsCount(); ++i) {
+    auto n = findCItem(itm.item(i), name);
     if(!n.isEmpty())
       return n;
     }

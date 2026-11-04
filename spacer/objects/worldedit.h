@@ -69,8 +69,11 @@ class WorldEdit {
     const Vob& root() const { return rootVob; }
     Vob&       root() { return rootVob; }
 
+    bool       isValidVob(const Vob* v) const;
+
   private:
     void load(Vob& out, std::vector<std::shared_ptr<zenkit::VirtualObject>>& child);
+    bool isValidVob(const Vob& node, const Vob* v) const;
 
     std::unique_ptr<DynamicWorld> physics;
     std::unique_ptr<WorldView>    wview;

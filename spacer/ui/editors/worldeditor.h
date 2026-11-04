@@ -42,8 +42,9 @@ class WorldEditor: public BaseEditor,
     void mouseUpEvent  (Tempest::MouseEvent& e) override;
     void mouseDragEvent(Tempest::MouseEvent& e) override;
 
-    void moveDropOver(DropOverEvent& ev) override;
-    void dropDone    (DropOverEvent& ev) override;
+    void moveDropOver (DropOverEvent& ev) override;
+    void moveDropLeave(DropOverEvent& ev) override;
+    void dropDone     (DropOverEvent& ev) override;
 
     void paintEvent(Tempest::PaintEvent& e) override;
     void resizeEvent(Tempest::SizeEvent& e) override;

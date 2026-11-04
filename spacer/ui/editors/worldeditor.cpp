@@ -13,6 +13,8 @@
 #include "resources.h"
 #include "utils/fileext.h"
 
+#include <zenkit/vobs/Misc.hh>
+
 using namespace Tempest;
 
 struct WorldEditor::Gizmo {
@@ -340,7 +342,7 @@ void WorldEditor::preload(ProjectItem&) const {
 
 bool WorldEditor::load(ProjectItem& it) {
   try {
-    level = it.get();
+    level = it.get<WorldEdit>();
 
     camera.setMarvinMode(Camera::M_Free);
     camera.setPosition(Vec3(0,500,0));
@@ -387,6 +389,8 @@ void WorldEditor::undo() {
   timeline.undo(*level);
   propertyDelegate->update();
   treeDelegate->update();
+  if(!level->isValidVob(selVob))
+    selVob = nullptr;
   update();
   }
 
@@ -394,7 +398,8 @@ void WorldEditor::redo() {
   timeline.redo(*level);
   propertyDelegate->update();
   treeDelegate->update();
-  //selVob = level->root();
+  if(!level->isValidVob(selVob))
+    selVob = nullptr;
   update();
   }
 
@@ -511,26 +516,30 @@ void WorldEditor::moveDropOver(DropOverEvent& ev) {
       update();
       }
     if(itm->it.type()==ProjectItem::T_ScriptItem) {
-      /*
-      auto name = std::string(itm->it.name());
-      FileExt::exchangeExt(name,"MRM","3DS");
-
       const auto query = rayQuery(ev.pos());
 
-      insertVob.reset(new WorldEdit::Vob());
-      insertVob->setVisual(*level, name);
+      auto vob = std::make_shared<zenkit::VItem>();
+      vob->type     = zenkit::VirtualObjectType::oCItem;
+      vob->instance = itm->it.name();
+
+      insertVob.reset(new WorldEdit::Vob(vob));
+      insertVob->setVisual(*level, "");
       insertVob->setCollision(*level, false);
       insertVob->setPosition(query.hitPos());
 
       ev.accept();
       ev.setUiVisible(false);
-      */
       update();
       }
     if(itm->it.type()==ProjectItem::T_Texture) {
       // decals?
       }
     }
+  }
+
+void WorldEditor::moveDropLeave(DropOverEvent& ev) {
+  insertVob.reset();
+  update();
   }
 
 void WorldEditor::dropDone(DropOverEvent& ev) {

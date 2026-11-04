@@ -4,11 +4,13 @@
 #include <future>
 #include <cassert>
 #include <zenkit/World.hh>
+#include <zenkit/vobs/Misc.hh>
 
 #include "graphics/mesh/submesh/packedmesh.h"
 #include "graphics/worldview.h"
 #include "physics/dynamicworld.h"
 #include "physics/physicmesh.h"
+#include "project/projectmgr.h"
 #include "utils/workers.h"
 #include "resources.h"
 
@@ -63,19 +65,35 @@ void WorldEdit::Vob::initView(WorldEdit& owner) {
     phys  = PhysicMesh();
     }
 
+  auto visualMesh = [](const zenkit::VirtualObject& vob) -> std::tuple<std::string_view,bool,zenkit::VisualType> {
+    if(vob.type==zenkit::VirtualObjectType::zCVob && vob.visual!=nullptr) {
+      return {vob.visual->name, vob.show_visual, vob.visual->type};
+      }
+    if(vob.type==zenkit::VirtualObjectType::oCItem) {
+      auto& itm  = reinterpret_cast<const zenkit::VItem&>(vob);
+      auto  pitm = ProjectMgr::inst().findCItem(itm.instance);
+      auto  iitm = pitm.get<zenkit::IItem>();
+      if(iitm!=nullptr)
+        return {iitm->visual, true, zenkit::VisualType::MESH};
+      return {"", true, zenkit::VisualType::UNKNOWN};
+      }
+    return {"", true, zenkit::VisualType::UNKNOWN};
+    };
+
   //FIXME: copypaste from ObjVisual
-  if(vob.type==zenkit::VirtualObjectType::zCVob) {
-    const auto& visName = vob.visual_name;
-    if(visName.empty())
+  if(vob.type==zenkit::VirtualObjectType::zCVob ||
+     vob.type==zenkit::VirtualObjectType::oCItem) {
+    const auto [visName, visShow, visType] = visualMesh(vob);
+    if(visName.empty() || visType==zenkit::VisualType::UNKNOWN)
       return;
-    switch (vob.visual->type) {
+    switch (visType) {
      case zenkit::VisualType::MESH:
      case zenkit::VisualType::MULTI_RESOLUTION_MESH: {
        auto view = Resources::loadMesh(visName);
        if(!view)
          return;
        // setType(M_Mesh);
-       if(vob.show_visual) {
+       if(visShow) {
          mesh = owner.wview->addStaticView(view, true);
          mesh.setWind(vob.anim_mode,vob.anim_strength);
          mesh.setObjMatrix(pos);
@@ -138,9 +156,10 @@ void WorldEdit::Vob::setRotation(const zenkit::Mat3& rot) {
   }
 
 void WorldEdit::Vob::setVisual(WorldEdit& owner, std::string_view vis) {
-  orig->visual_name  = vis;
+  orig->visual_name  = vis; //legacy
   orig->show_visual  = true;
   orig->visual       = std::make_shared<zenkit::VisualMesh>();
+  orig->visual->name = vis;
   orig->visual->type = zenkit::VisualType::MESH;
   clearView();
   initView(owner);
@@ -197,6 +216,20 @@ void WorldEdit::load(Vob& out, std::vector<std::shared_ptr<zenkit::VirtualObject
     out.child[i]->orig = child[i];
     out.child[i]->orig->children.clear();
     }
+  }
+
+bool WorldEdit::isValidVob(const Vob* v) const {
+  return isValidVob(rootVob, v);
+  }
+
+bool WorldEdit::isValidVob(const Vob& node, const Vob* v) const {
+  if(&node==v)
+    return true;
+  for(size_t i=0; i<node.child.size(); ++i) {
+    if(isValidVob(*node.child[i], v))
+      return true;
+    }
+  return false;
   }
 
 

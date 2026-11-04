@@ -31,7 +31,7 @@ struct EditorArea::EditorWrapper : public Tempest::Widget {
     setLayout(Horizontal);
 
     //item.projectSettings(); // fetch settings
-    item.get(); //preload
+    item.get<WorldEdit>(); //preload
     edit->preload(item);
 
     for(size_t i=0; i<ToolWindow::T_Count; ++i)

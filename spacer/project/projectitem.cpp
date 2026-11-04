@@ -1,7 +1,6 @@
 #include "projectitem.h"
 
 #include "workers/dataworker.h"
-#include "utils/fileext.h"
 
 ProjectItem::ProjectItem() {
   }
@@ -29,8 +28,10 @@ std::string_view ProjectItem::name() const {
   }
 
 bool ProjectItem::isReady() const {
-  if(type()==T_World)
-    return get()!=nullptr; //WIP
+  if(type()==T_World) {
+    std::lock_guard<SpinLock> guard(data->sync);
+    return data->state!=S_Idle || data->state!=S_Pending;
+    }
   return true;
   }
 
@@ -81,7 +82,7 @@ auto ProjectItem::preview() const -> std::shared_ptr<const Tempest::Texture2d> {
   return nullptr;
   }
 
-auto ProjectItem::get() const -> std::shared_ptr<WorldEdit> {
+auto ProjectItem::implGet(const WorldEdit*) const -> std::shared_ptr<WorldEdit> {
   if(data==nullptr)
     return nullptr;
   {
@@ -91,6 +92,13 @@ auto ProjectItem::get() const -> std::shared_ptr<WorldEdit> {
   }
   DataWorker::load(*this);
   return nullptr;
+  }
+
+auto ProjectItem::implGet(const zenkit::IItem*) const -> std::shared_ptr<zenkit::IItem> {
+  if(data==nullptr)
+    return nullptr;
+  std::lock_guard<SpinLock> guard(data->sync);
+  return data->item;
   }
 
 void ProjectItem::setPending() {
