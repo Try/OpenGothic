@@ -3,6 +3,7 @@
 #include <Tempest/Log>
 
 #include "ui/gamemenu.h"
+#include "utils/mouseutil.h"
 #include "gothic.h"
 
 using namespace Tempest;
@@ -20,6 +21,12 @@ MenuRoot::~MenuRoot() {
   }
 
 void MenuRoot::initSettings() {
+#if !defined(__MOBILE_PLATFORM__)
+  // Touch input does not depend on Gothic's mouse option, so this only applies to the desktop pointer.
+  mouseEnabled = MouseUtil::isPointerEnabled();
+  updateCursor();
+#endif
+
   const auto lang = Gothic::inst().settingsGetI("GAME", "language");
   if(lang==vmLang && vm!=nullptr)
     return;
@@ -62,6 +69,7 @@ void MenuRoot::setMenu(GameMenu *w) {
   if(w)
     addWidget(w);
   current=w;
+  updateCursor();
   }
 
 void MenuRoot::pushMenu(GameMenu *w) {
@@ -74,6 +82,7 @@ void MenuRoot::pushMenu(GameMenu *w) {
     w->onTick();
     }
   current = w;
+  updateCursor();
   }
 
 void MenuRoot::popMenu() {
@@ -81,6 +90,7 @@ void MenuRoot::popMenu() {
     if(Gothic::inst().isInGame() || Gothic::inst().checkLoading()!=Gothic::LoadState::Idle) {
       current=nullptr;
       removeAllWidgets();
+      updateCursor();
       owner()->setFocus(true);
       }
     return;
@@ -91,6 +101,7 @@ void MenuRoot::popMenu() {
   addWidget(w);
   current=w;
   current->onTick();
+  updateCursor();
 
   menuStack.pop_back();
   }
@@ -100,7 +111,15 @@ void MenuRoot::closeAll() {
   if(Gothic::inst().isInGame() || Gothic::inst().checkLoading()!=Gothic::LoadState::Idle) {
     current=nullptr;
     removeAllWidgets();
+    updateCursor();
     }
+  }
+
+void MenuRoot::updateCursor() {
+#if !defined(__MOBILE_PLATFORM__)
+  // Menus receive mouse moves here, so this widget's shape is the one shown.
+  setCursorShape(current!=nullptr && mouseEnabled ? CursorShape::Arrow : CursorShape::Hidden);
+#endif
   }
 
 bool MenuRoot::isActive() const {
@@ -136,37 +155,40 @@ void MenuRoot::mouseDownEvent(MouseEvent& event) {
     popMenu();
     return;
     }
-#if defined(__MOBILE_PLATFORM__)
+  if(event.button!=Event::ButtonLeft)
+    return;
+  if(!mouseEnabled) {
+    // Without the pointer a click confirms the current selection, as before.
+    current->onKeyboard(KeyCodec::ActionGeneric);
+    return;
+    }
   touchStart = event.pos();
   touchMoved = false;
   current->onBeginTouch(touchStart-current->pos());
-#else
-  current->onKeyboard(KeyCodec::ActionGeneric);
-#endif
   }
 
 void MenuRoot::mouseDragEvent(MouseEvent& event) {
-#if defined(__MOBILE_PLATFORM__)
   if(current==nullptr)
     return;
   const int step = std::max(1, int(20.f*Gothic::interfaceScale(this)));
   const auto delta = event.pos()-touchStart;
   touchMoved |= std::max(std::abs(delta.x),std::abs(delta.y))>=step;
   current->onDragTouch(event.pos()-current->pos());
-#else
-  (void)event;
-#endif
   }
 
 void MenuRoot::mouseUpEvent(MouseEvent& event) {
-#if defined(__MOBILE_PLATFORM__)
-  if(current==nullptr)
+  if(current==nullptr || event.button!=Event::ButtonLeft)
     return;
   mouseDragEvent(event);
   current->onEndTouch(!touchMoved);
-#else
-  (void)event;
-#endif
+  }
+
+void MenuRoot::mouseMoveEvent(MouseEvent& event) {
+  if(current==nullptr || !mouseEnabled) {
+    event.ignore();
+    return;
+    }
+  current->onHover(event.pos()-current->pos());
   }
 
 void MenuRoot::mouseWheelEvent(MouseEvent &event) {
