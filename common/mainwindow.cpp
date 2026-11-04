@@ -8,6 +8,7 @@
 #include <Tempest/Layout>
 #include <Tempest/Application>
 #include <Tempest/Log>
+#include <Tempest/TextCodec>
 
 #include "ui/dialogmenu.h"
 #include "ui/menuroot.h"
@@ -23,6 +24,7 @@
 #include "game/globaleffects.h"
 #include "utils/gthfont.h"
 #include "utils/dbgpainter.h"
+
 
 #include "commandline.h"
 #include "gothic.h"
@@ -1076,6 +1078,7 @@ void MainWindow::loadGame(std::string_view slot) {
   Gothic::inst().setBenchmarkMode(Benchmark::None);
   Gothic::inst().startLoad("LOADING.TGA",[slot=std::string(slot)](std::unique_ptr<GameSession>&& game){
     game = nullptr; // clear world-memory now
+
     Tempest::RFile file(slot);
     Serialize      s(file);
     std::unique_ptr<GameSession> w(new GameSession(s));

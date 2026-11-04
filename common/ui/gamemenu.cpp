@@ -22,6 +22,7 @@
 #include "gothic.h"
 #include "resources.h"
 #include "build.h"
+#include "commandline.h"
 
 using namespace Tempest;
 
@@ -1017,8 +1018,11 @@ void GameMenu::execSaveGame(const GameMenu::Item& item) {
     return;
 
   string_frm fname("save_slot_",int(id),".sav");
-  Gothic::inst().save(fname,item.handle->text[0]);
-  }
+  const std::u16string path16 = CommandLine::inst().saveFilePath(fname.c_str());
+
+  std::string path8 = Tempest::TextCodec::toUtf8(path16);
+  Gothic::inst().save(path8, item.handle->text[0]);
+}
 
 bool GameMenu::execLoadGame(const GameMenu::Item &item) {
   const size_t id = saveSlotId(item);
@@ -1026,11 +1030,14 @@ bool GameMenu::execLoadGame(const GameMenu::Item &item) {
     return false;
 
   string_frm fname("save_slot_",int(id),".sav");
-  if(!FileUtil::exists(TextCodec::toUtf16(fname.c_str())))
+  const std::u16string path16 = CommandLine::inst().saveFilePath(fname.c_str());
+
+  if(!FileUtil::exists(path16))
     return false;
-  Gothic::inst().load(fname);
+
+  Gothic::inst().load(Tempest::TextCodec::toUtf8(path16));
   return true;
-  }
+}
 
 void GameMenu::execCommands(std::string str, bool isClick, KeyCodec::Action hint) {
   if(str.find("EFFECTS ")==0) {
@@ -1091,15 +1098,19 @@ void GameMenu::updateSavTitle(GameMenu::Item& sel) {
   char fname[64]={};
   std::snprintf(fname,sizeof(fname)-1,"save_slot_%d.sav",int(id));
 
-  if(!FileUtil::exists(TextCodec::toUtf16(fname))) {
+  const std::u16string path16 = CommandLine::inst().saveFilePath(fname);
+
+  if(!FileUtil::exists(path16)) {
     sel.handle->text[0] = "---";
     return;
     }
 
   SaveGameHeader hdr;
   try {
-    RFile     fin(fname);
-    Serialize reader(fin);
+    std::string path8 = Tempest::TextCodec::toUtf8(path16);
+    RFile       fin(path8);
+    Serialize   reader(fin);
+
     reader.setEntry("header");
     reader.read(hdr);
     if(id!=0 || sel.handle->text[0].empty())
@@ -1123,7 +1134,7 @@ void GameMenu::updateSavTitle(GameMenu::Item& sel) {
   catch(std::runtime_error&) {
     return;
     }
-  }
+}
 
 void GameMenu::updateSavThumb(GameMenu::Item &sel) {
   if(sel.handle->on_sel_action_s[0]!="SAVEGAME_LOAD" &&
@@ -1156,7 +1167,9 @@ bool GameMenu::implUpdateSavThumb(GameMenu::Item& sel) {
   char fname[64]={};
   std::snprintf(fname,sizeof(fname)-1,"save_slot_%d.sav",int(id));
 
-  if(!FileUtil::exists(TextCodec::toUtf16(fname)))
+  const std::u16string path16 = CommandLine::inst().saveFilePath(fname);
+
+  if(!FileUtil::exists(path16))
     return false;
 
   const SaveGameHeader& hdr = sel.savHdr;
@@ -1177,7 +1190,7 @@ bool GameMenu::implUpdateSavThumb(GameMenu::Item& sel) {
   std::snprintf(form,sizeof(form),"%dh %dmin",int(mins/60),int(mins%60));
   set("MENUITEM_LOADSAVE_PLAYTIME_VALUE", form);
   return true;
-  }
+}
 
 size_t GameMenu::saveSlotId(const GameMenu::Item &sel) {
   const char* prefix[2] = {"MENUITEM_LOAD_SLOT", "MENUITEM_SAVE_SLOT"};
