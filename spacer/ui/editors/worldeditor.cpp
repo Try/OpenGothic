@@ -521,6 +521,26 @@ void WorldEditor::moveDropOver(DropOverEvent& ev) {
       auto vob = std::make_shared<zenkit::VItem>();
       vob->type     = zenkit::VirtualObjectType::oCItem;
       vob->instance = itm->it.name();
+      vob->vob_name = itm->it.name();
+
+      insertVob.reset(new WorldEdit::Vob(vob));
+      insertVob->setVisual(*level, "");
+      insertVob->setCollision(*level, false);
+      insertVob->setPosition(query.hitPos());
+
+      ev.accept();
+      ev.setUiVisible(false);
+      update();
+      }
+    if(itm->it.type()==ProjectItem::T_LightPreset) {
+      const auto query = rayQuery(ev.pos());
+
+      auto vob = std::make_shared<zenkit::VLight>();
+      if(auto p = itm->it.get<zenkit::LightPreset>()) {
+        static_cast<zenkit::LightPreset&>(*vob) = *p;
+        }
+      vob->type     = zenkit::VirtualObjectType::zCVobLight;
+      vob->vob_name = itm->it.name();
 
       insertVob.reset(new WorldEdit::Vob(vob));
       insertVob->setVisual(*level, "");
@@ -566,7 +586,7 @@ void WorldEditor::resizeEvent(SizeEvent& e) {
   }
 
 void WorldEditor::update3d(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t cmdId) {
-  if(size().isEmpty())
+  if(size().isEmpty() || level==nullptr)
     return;
 
   auto& device = Resources::device();

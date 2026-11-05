@@ -27,12 +27,13 @@ class MdlVisual final {
 
     void                           setVisual(const Skeleton *visual);
 
-    void                           setObjMatrix(const Tempest::Matrix4x4 &m, bool syncAttach = false);
+    void                           setObjMatrix(const Tempest::Matrix4x4 &m, bool syncAttach = true);
 
     void                           setHeadRotation(float dx, float dz);
     Tempest::Vec2                  headRotation() const;
     void                           setYTranslationEnable(bool e);
     void                           setVisualBody(World& owner, MeshObjects::Mesh&& body);
+    void                           setVisualBody(WorldView& owner, MeshObjects::Mesh&& body);
     void                           setVisualBody(Npc& npc, MeshObjects::Mesh&& h, MeshObjects::Mesh&& body, int32_t version);
     void                           syncAttaches();
     const Skeleton*                visualSkeleton() const;
@@ -136,7 +137,7 @@ class MdlVisual final {
       size_t                     boneId=size_t(-1);
       };
 
-    void implSetBody(Npc* npc, World& world, MeshObjects::Mesh&& body, const int32_t version);
+    void implSetBody(Npc* npc, WorldView& world, MeshObjects::Mesh&& body, const int32_t version);
     void setSlotAttachment(MeshObjects::Mesh&& itm, std::string_view bone);
 
     void bind(MeshAttach& slot, MeshObjects::Mesh&&   itm, std::string_view bone);

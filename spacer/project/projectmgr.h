@@ -29,6 +29,7 @@ class ProjectMgr {
     ProjectItem  vdf(size_t id);
     ProjectItem  root();
     ProjectItem  cItemRoot();
+    ProjectItem  lightsRoot();
 
     ProjectItem  find(std::string_view name);
     ProjectItem  findCItem(std::string_view name);
@@ -38,6 +39,7 @@ class ProjectMgr {
   private:
     std::shared_ptr<ProjectItem::Data> mkIndex(const zenkit::VfsNode& node, size_t depth, const std::string& prefix);
     std::shared_ptr<ProjectItem::Data> mkIndexDat(std::string_view name);
+    std::shared_ptr<ProjectItem::Data> mkIndexLightPresets(ProjectItem asset);
     ProjectItem  find(const ProjectItem& itm, std::string_view name);
     ProjectItem  findCItem(const ProjectItem& itm, std::string_view name);
 
@@ -46,4 +48,5 @@ class ProjectMgr {
     std::shared_ptr<Gothic>            gothic;
     std::shared_ptr<ProjectItem::Data> rootItem;
     std::shared_ptr<ProjectItem::Data> itemRoot;
+    std::shared_ptr<ProjectItem::Data> lightPresetsRoot;
   };

@@ -72,13 +72,17 @@ void MdlVisual::setYTranslationEnable(bool e) {
   }
 
 void MdlVisual::setVisualBody(World& owner, MeshObjects::Mesh&& body) {
+  implSetBody(nullptr,*owner.view(),std::move(body),0);
+  }
+
+void MdlVisual::setVisualBody(WorldView& owner, MeshObjects::Mesh&& body) {
   implSetBody(nullptr,owner,std::move(body),0);
   }
 
 // Mdl_SetVisualBody
 void MdlVisual::setVisualBody(Npc& npc, MeshObjects::Mesh &&h, MeshObjects::Mesh &&body, int32_t version) {
   bind(head,std::move(h),"BIP01 HEAD");
-  implSetBody(&npc,npc.world(),std::move(body),version);
+  implSetBody(&npc,*npc.world().view(),std::move(body),version);
   head.view.setAsGhost(hnpcFlagGhost);
   head.view.setFatness(npc.fatness());
   }
@@ -107,7 +111,7 @@ void MdlVisual::clearOverlays() {
   }
 
 void MdlVisual::setBody(Npc& npc, MeshObjects::Mesh&& a, const int32_t version) {
-  implSetBody(&npc,npc.world(),std::move(a),version);
+  implSetBody(&npc,*npc.world().view(),std::move(a),version);
   setObjMatrix(pos);
   }
 
@@ -115,11 +119,11 @@ void MdlVisual::setArmor(Npc& npc, MeshObjects::Mesh&& armor) {
   // NOTE: Giant_Bug have no version tag in attachments;
   // Light dragon hunter armour has broken attachment with no tags
   // Big dragon hunter armour has many atachments with version tags
-  implSetBody(&npc,npc.world(),std::move(armor),-1);
+  implSetBody(&npc,*npc.world().view(),std::move(armor),-1);
   setObjMatrix(pos);
   }
 
-void MdlVisual::implSetBody(Npc* npc, World& world, MeshObjects::Mesh&& body, const int32_t version) {
+void MdlVisual::implSetBody(Npc* npc, WorldView& world, MeshObjects::Mesh&& body, const int32_t version) {
   attach.clear();
   if(auto p = body.protoMesh()) {
     for(auto& att:p->attach) {

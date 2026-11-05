@@ -135,6 +135,7 @@ struct Shelf::Central : Widget {
           filterFn = [](const ProjectItem& it) { return it.type()==ProjectItem::T_Texture; };
           break;
         case 3:
+        case 4:
           filterFn = [](const ProjectItem& it) { return true; };
           break;
         default:
@@ -228,6 +229,8 @@ struct Shelf::Central : Widget {
           indexFolder();
         else if(owner.categoryId==3)
           indexType(ProjectMgr::inst().cItemRoot());
+        else if(owner.categoryId==4)
+          indexType(ProjectMgr::inst().lightsRoot());
         else
           indexType(ProjectMgr::inst().vdf(proj));
         }

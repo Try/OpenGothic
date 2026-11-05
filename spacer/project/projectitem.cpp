@@ -44,6 +44,11 @@ bool ProjectItem::isPending() const {
   return data!=nullptr && data->state==S_Pending;
   }
 
+bool ProjectItem::isError() const {
+  std::lock_guard<SpinLock> guard(data->sync);
+  return data!=nullptr && data->state==S_Error;
+  }
+
 std::string_view ProjectItem::path() const {
   return data ? std::string_view(data->path) : "";
   }
@@ -101,6 +106,13 @@ auto ProjectItem::implGet(const zenkit::IItem*) const -> std::shared_ptr<zenkit:
   return data->item;
   }
 
+auto ProjectItem::implGet(const zenkit::LightPreset*) const -> std::shared_ptr<zenkit::LightPreset> {
+  if(data==nullptr)
+    return nullptr;
+  std::lock_guard<SpinLock> guard(data->sync);
+  return data->light;
+  }
+
 void ProjectItem::setPending() {
   std::lock_guard<SpinLock> guard(data->sync);
   data->state = S_Pending;
@@ -123,6 +135,14 @@ void ProjectItem::setPayload(std::shared_ptr<WorldEdit> payload) {
     return;
   std::lock_guard<SpinLock> guard(data->sync);
   data->world = payload;
+  data->state = S_Ready;
+  }
+
+void ProjectItem::setPayload(std::shared_ptr<zenkit::LightPreset> payload) {
+  if(data==nullptr)
+    return;
+  std::lock_guard<SpinLock> guard(data->sync);
+  data->light = payload;
   data->state = S_Ready;
   }
 

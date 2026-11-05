@@ -6,8 +6,11 @@
 #include <zenkit/vobs/VirtualObject.hh>
 
 #include "physics/physicmesh.h"
+#include "graphics/mdlvisual.h"
 #include "graphics/lightgroup.h"
 #include "graphics/meshobjects.h"
+#include "graphics/mesh/pose.h"
+#include "graphics/objvisual.h"
 #include "command.h"
 
 class DynamicWorld;
@@ -55,6 +58,7 @@ class WorldEdit {
 
         PhysicMesh        phys;
         MeshObjects::Mesh mesh;
+        MdlVisual         mdl;
         LightGroup::Light light;
 
       friend class WorldEdit;
