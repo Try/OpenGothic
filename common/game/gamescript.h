@@ -116,6 +116,7 @@ class GameScript final {
     const AiState&              aiState  (ScriptFn id);
     const zenkit::ISpell&       spellDesc(int32_t splId);
     const VisualFx*             spellVfx (int32_t splId);
+    bool                        isTelekinesisSpell(int32_t splId) const;
 
     auto dialogChoices(std::shared_ptr<zenkit::INpc> self, std::shared_ptr<zenkit::INpc> npc, const std::vector<uint32_t> &except, bool includeImp) -> std::vector<DlgChoice>;
     auto updateDialog (const GameScript::DlgChoice &dlg, Npc &player, Npc &npc) -> std::vector<GameScript::DlgChoice>;
