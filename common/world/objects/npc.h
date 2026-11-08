@@ -508,6 +508,7 @@ class Npc final {
 
     bool      isPlayerEnabledState(const ::AiState& st) const;
     void      tickRoutine();
+    bool      isInDailyRoutine() const;
     void      nextAiAction(AiQueue& queue, uint64_t dt);
     void      commitDamage();
     Npc*      updateNearestEnemy();
