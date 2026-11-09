@@ -1270,6 +1270,8 @@ void MainWindow::render(){
       }
     Resources::resetRecycled(cmdId);
 
+    auto& backbuf = swapchain.acquire();
+
     if(video.isActive()) {
       video.paint(device,cmdId);
       uiLayer.clear();
@@ -1289,7 +1291,7 @@ void MainWindow::render(){
     CommandBuffer& cmd = commands[cmdId];
     {
     auto enc = cmd.startEncoding(device);
-    renderer.draw(swapchain[swapchain.currentImage()],enc,cmdId,uiMesh[cmdId],numMesh[cmdId],inventory,video);
+    renderer.draw(backbuf,enc,cmdId,uiMesh[cmdId],numMesh[cmdId],inventory,video);
     }
     sync = device.submit(cmd);
     device.present(swapchain);

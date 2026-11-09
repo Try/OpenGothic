@@ -40,6 +40,8 @@ void EditorWindow::render() {
     sync.wait();
     Resources::resetRecycled(cmdId);
 
+    auto& backbuf = swapchain.acquire();
+
     {
       auto enc = cmd.startEncoding(device);
 
@@ -48,7 +50,7 @@ void EditorWindow::render() {
       dispatchPaintEvent(uiLayer,texAtlass);
       uiMesh[cmdId].update(device,uiLayer);
 
-      enc.setFramebuffer({{swapchain[swapchain.currentImage()],Vec4(0),Tempest::Preserve}});
+      enc.setFramebuffer({{backbuf,Vec4(0),Tempest::Preserve}});
       enc.setViewport(0,0,w(),h());
       uiMesh[cmdId].draw(enc);
     }
