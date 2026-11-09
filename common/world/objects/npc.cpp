@@ -3031,6 +3031,7 @@ void Npc::tickRoutine() {
   const bool fastPath = (aiPolicy==NpcProcessPolicy::AiFar2 && routines.empty()); //HACK: don't process far away Npc
   if(aiState.loopNextTime<=owner.tickCount()) {
     aiState.loopNextTime = owner.tickCount() + perceptionTimeClampt();
+    const auto loopState = aiState.funcIni;
     int loop = LOOP_CONTINUE;
     if(aiState.funcLoop.isValid()) {
       static const float MAX_DIST = 300;
@@ -3056,7 +3057,9 @@ void Npc::tickRoutine() {
         loop = LOOP_END;
       }
 
-    if(loop!=LOOP_CONTINUE) {
+    if(loop!=LOOP_CONTINUE &&
+       aiState.funcIni==loopState &&
+       aiState.started) {
       clearState(false);
       currentOther  = nullptr;
       currentVictim = nullptr;
