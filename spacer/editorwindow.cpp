@@ -63,3 +63,9 @@ void EditorWindow::render() {
     update();
     }
   }
+
+void EditorWindow::resizeEvent(Tempest::SizeEvent& e) {
+  for(auto& i:fence)
+    i.wait();
+  swapchain.reset();
+  }

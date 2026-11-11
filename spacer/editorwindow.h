@@ -25,6 +25,7 @@ class EditorWindow : public Tempest::Window {
 
   protected:
     void render() override;
+    void resizeEvent(Tempest::SizeEvent& e) override;
 
   private:
     Tempest::Device&           device;
