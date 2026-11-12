@@ -70,7 +70,7 @@ bool ProjectMgr::addProject(const std::filesystem::path& proj) {
 
   //rootItem         = mkIndex(Resources::vdfsIndex().root(), size_t(-1), "");
   //itemRoot         = mkIndexItems(gothic->defaultGameDatFile());
-  lightPresetsRoot = mkIndexLightPresets(find("LIGHTPRESETS.ZEN"));
+  //lightPresetsRoot = mkIndexLightPresets(find("LIGHTPRESETS.ZEN"));
   srcDatRoot       = mkIndexScripts(desc, TextCodec::toUtf8(workPath));
 
   gothic = std::make_shared<Gothic>(std::move(desc));
@@ -78,6 +78,7 @@ bool ProjectMgr::addProject(const std::filesystem::path& proj) {
 
   itemRoot         = mkIndexItems(gothic->defaultGameDatFile());
   rootItem         = mkIndex(Resources::vdfsIndex().root(), size_t(-1), "");
+  lightPresetsRoot = mkIndexLightPresets(find("LIGHTPRESETS.ZEN"));
 
   return true;
   }
