@@ -10,6 +10,7 @@
 #include "project/projectitem.h"
 
 #include "ui/editors/baseeditor.h"
+#include "ui/editors/scripteditor.h"
 #include "ui/editors/worldeditor.h"
 #include "ui/views/projecttree.h"
 #include "ui/views/menubar.h"
@@ -405,6 +406,9 @@ void EditorArea::load(const ProjectItem& itm) {
       break;
     case ProjectItem::T_World:
       implLoad<WorldEditor>(itm);
+      break;
+    case ProjectItem::T_Script:
+      implLoad<ScriptEditor>(itm);
       break;
     }
   }

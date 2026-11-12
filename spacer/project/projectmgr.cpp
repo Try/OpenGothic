@@ -1,13 +1,16 @@
 #include "projectmgr.h"
 
-#include "utils/fileext.h"
+#include <Tempest/TextCodec>
+#include <Tempest/Log>
+#include <cassert>
+
 #include "workers/dataworker.h"
+#include "utils/fileext.h"
+#include "utils/fileutil.h"
+#include "utils/srcparser.h"
 #include "projectitem.h"
 #include "gothic.h"
 #include "resources.h"
-#include <cassert>
-#include <Tempest/Log>
-#include <Tempest/Log>
 
 using namespace Tempest;
 
@@ -59,14 +62,23 @@ void ProjectMgr::unloadAll() {
 bool ProjectMgr::addProject(const std::filesystem::path& proj) {
   assert(gothic==nullptr);
   //TODO: handle various read exceptions
-  auto gothicPath = proj.parent_path().parent_path();
-  GameModDescriptor desc = {proj.u16string(), gothicPath.u16string() + u"/Data/"};
+  auto gothicPath = proj.parent_path().parent_path().u16string();
+  auto dataPath   = FileUtil::nestedPath(gothicPath, {u"Data"},  Dir::FT_Dir);
+  auto workPath   = FileUtil::nestedPath(gothicPath, {u"_work"}, Dir::FT_Dir);
+
+  GameModDescriptor desc = {proj.u16string(), dataPath, workPath};
+
+  //rootItem         = mkIndex(Resources::vdfsIndex().root(), size_t(-1), "");
+  //itemRoot         = mkIndexItems(gothic->defaultGameDatFile());
+  lightPresetsRoot = mkIndexLightPresets(find("LIGHTPRESETS.ZEN"));
+  srcDatRoot       = mkIndexScripts(desc, TextCodec::toUtf8(workPath));
 
   gothic = std::make_shared<Gothic>(std::move(desc));
   gothic->setupGlobalScripts();
+
+  itemRoot         = mkIndexItems(gothic->defaultGameDatFile());
   rootItem         = mkIndex(Resources::vdfsIndex().root(), size_t(-1), "");
-  itemRoot         = mkIndexDat(gothic->defaultGameDatFile());
-  lightPresetsRoot = mkIndexLightPresets(find("LIGHTPRESETS.ZEN"));
+
   return true;
   }
 
@@ -91,7 +103,7 @@ std::shared_ptr<ProjectItem::Data> ProjectMgr::mkIndex(const zenkit::VfsNode& no
   return d;
   }
 
-std::shared_ptr<ProjectItem::Data> ProjectMgr::mkIndexDat(std::string_view datFile) {
+std::shared_ptr<ProjectItem::Data> ProjectMgr::mkIndexItems(std::string_view datFile) {
   zenkit::DaedalusScript script = loadScript(datFile);
   if(script.size()==0)
     return nullptr;
@@ -193,6 +205,60 @@ std::shared_ptr<ProjectItem::Data> ProjectMgr::mkIndexLightPresets(ProjectItem a
   return items;
   }
 
+std::shared_ptr<ProjectItem::Data> ProjectMgr::mkIndexScripts(const GameModDescriptor& d, std::string_view root) {
+  auto items = std::make_shared<ProjectItem::Data>();
+  items->name  = "Source";
+  items->depth = 0;
+
+  for(auto& i:d.src) {
+    auto p = std::filesystem::path(i).parent_path();
+    SrcParser parser(i);
+    for(auto& path:parser.files) {
+      addScriptSources(items, p.string(), path);
+      }
+    }
+
+  return items;
+  }
+
+void ProjectMgr::addScriptSources(std::shared_ptr<ProjectItem::Data> out,
+                                  std::string_view root, std::string_view path) {
+  for(size_t i=0;; ++i) {
+    if(i==path.size() || path[i]=='\\' || path[i]=='/') {
+      if(i==path.size()) {
+        auto d = std::make_shared<ProjectItem::Data>();
+        d->name  = path;
+        d->path  = std::string(root) + "/" + d->name;
+        d->type  = ProjectItem::T_Script;
+        out->files.push_back(d);
+        return;
+        }
+
+      auto name = path.substr(0, i);
+      std::shared_ptr<ProjectItem::Data> d;
+      for(auto& dx:out->files) {
+        //TODO: carefult about mixed cases
+        if(dx->name==name) {
+          d = dx;
+          break;
+          }
+        }
+      if(d==nullptr) {
+        d = std::make_shared<ProjectItem::Data>();
+        d->name  = name;
+        d->path  = std::string(root) + "/" + d->name;
+        d->type  = ProjectItem::T_Dir;
+        out->files.push_back(d);
+        }
+
+      out  = d;
+      root = out->path;
+      path = path.substr(i+1);
+      i    = 0;
+      }
+    }
+  }
+
 size_t ProjectMgr::vdfCount() const {
   //TODO
   return 1;
@@ -219,6 +285,12 @@ ProjectItem ProjectMgr::cItemRoot() {
 ProjectItem ProjectMgr::lightsRoot() {
   ProjectItem itm;
   itm.data = lightPresetsRoot;
+  return itm;
+  }
+
+ProjectItem ProjectMgr::scriptRoot() {
+  ProjectItem itm;
+  itm.data = srcDatRoot;
   return itm;
   }
 

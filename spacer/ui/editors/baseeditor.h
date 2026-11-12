@@ -25,7 +25,7 @@ class BaseEditor : public Tempest::Widget {
 
     virtual auto      title() const -> std::string_view { return ""; }
     virtual BaseTool* createToolpanel(ToolWindow::Tool tool) = 0;
-    virtual void      preload(ProjectItem& it) const = 0;
+    virtual void      preload(ProjectItem&) const {}
     virtual bool      load(ProjectItem& it) = 0;
     virtual void      save() {}
     virtual bool      hasUnsavedChanges() const { return false; }

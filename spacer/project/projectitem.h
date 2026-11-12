@@ -32,6 +32,7 @@ class ProjectItem {
       T_World,
       T_ScriptItem,
       T_LightPreset,
+      T_Script,
       };
 
     enum State : uint32_t {
@@ -64,7 +65,7 @@ class ProjectItem {
     struct Data {
       std::vector<std::shared_ptr<ProjectItem::Data>> files;
       std::string       name;
-      std::string       path;
+      std::string       path; //fs path?
       size_t            depth = 0;
       State             state = S_Idle;
       ProjectItem::Type type  = ProjectItem::T_Dir;
@@ -72,6 +73,7 @@ class ProjectItem {
       SpinLock    sync;
       std::shared_ptr<const Tempest::Texture2d> preview;
 
+      std::shared_ptr<std::string>         text;
       std::shared_ptr<zenkit::IItem>       item;
       std::shared_ptr<zenkit::LightPreset> light;
       std::shared_ptr<WorldEdit>           world;
@@ -81,11 +83,13 @@ class ProjectItem {
 
     auto implGet(const WorldEdit*) const -> std::shared_ptr<WorldEdit>;
     auto implGet(const zenkit::IItem*) const -> std::shared_ptr<zenkit::IItem>;
+    auto implGet(const std::string*) const -> std::shared_ptr<std::string>;
     auto implGet(const zenkit::LightPreset*) const -> std::shared_ptr<zenkit::LightPreset>;
 
     void setPending();
     void setError();
     void setPreview(std::shared_ptr<const Tempest::Texture2d> preview);
+    void setPayload(std::shared_ptr<std::string> payload);
     void setPayload(std::shared_ptr<WorldEdit> payload);
     void setPayload(std::shared_ptr<zenkit::LightPreset> payload);
     void setPayload(const Tempest::Texture2d* payload);

@@ -106,6 +106,13 @@ auto ProjectItem::implGet(const zenkit::IItem*) const -> std::shared_ptr<zenkit:
   return data->item;
   }
 
+auto ProjectItem::implGet(const std::string*) const -> std::shared_ptr<std::string> {
+  if(data==nullptr)
+    return nullptr;
+  std::lock_guard<SpinLock> guard(data->sync);
+  return data->text;
+  }
+
 auto ProjectItem::implGet(const zenkit::LightPreset*) const -> std::shared_ptr<zenkit::LightPreset> {
   if(data==nullptr)
     return nullptr;
@@ -128,6 +135,14 @@ void ProjectItem::setPreview(std::shared_ptr<const Tempest::Texture2d> preview) 
     return;
   std::lock_guard<SpinLock> guard(data->sync);
   data->preview = preview;
+  }
+
+void ProjectItem::setPayload(std::shared_ptr<std::string> payload) {
+  if(data==nullptr)
+    return;
+  std::lock_guard<SpinLock> guard(data->sync);
+  data->text  = payload;
+  data->state = S_Ready;
   }
 
 void ProjectItem::setPayload(std::shared_ptr<WorldEdit> payload) {

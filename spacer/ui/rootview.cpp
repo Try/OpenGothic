@@ -10,7 +10,6 @@
 #include "editorsettings.h"
 #include "editorwindow.h"
 #include "commandline.h"
-#include "gothic.h"
 #include "assets.h"
 
 using namespace Tempest;
@@ -35,10 +34,8 @@ RootView::RootView() {
     edit->openApp();
     }
   */
-  onOpenProjectF(std::filesystem::path(CommandLine::inst().modPath()));
-
-  auto ow = ProjectMgr::inst().find("OLDWORLD.ZEN");
-  edit->load(ow); // TEMP: start level view
+  auto path = CommandLine::inst().modPath();
+  onOpenProjectF(std::filesystem::path(path));
   setFocus(true);
   }
 
@@ -133,6 +130,11 @@ bool RootView::onOpenProjectF(const std::filesystem::path& proj) {
   if(!ProjectMgr::inst().addProject(proj))
     return false;
   edit->openApp();
+  auto def = CommandLine::inst().wrldDef;
+  if(def.empty() || true)
+    def = "OLDWORLD.ZEN";
+  auto ow = ProjectMgr::inst().find(def);
+  edit->load(ow); // TEMP: start level view
   return true;
   }
 

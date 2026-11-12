@@ -136,6 +136,7 @@ struct Shelf::Central : Widget {
           break;
         case 3:
         case 4:
+        case 5:
           filterFn = [](const ProjectItem& it) { return true; };
           break;
         default:
@@ -231,6 +232,8 @@ struct Shelf::Central : Widget {
           indexType(ProjectMgr::inst().cItemRoot());
         else if(owner.categoryId==4)
           indexType(ProjectMgr::inst().lightsRoot());
+        else if(owner.categoryId==5)
+          indexType(ProjectMgr::inst().scriptRoot());
         else
           indexType(ProjectMgr::inst().vdf(proj));
         }
@@ -330,13 +333,14 @@ struct Shelf::PathItem : Tempest::Button {
   };
 
 struct Shelf::Delegate : Tempest::ListDelegate {
-  constexpr static std::string_view txt[6] = {
+  constexpr static std::string_view txt[7] = {
     "Files",
     "Meshes",
     "Textures",
     "Items",
     "Light presets",
-    "UI"
+    "Script",
+    "UI",
     };
 
   Delegate(Shelf& owner):owner(owner){}

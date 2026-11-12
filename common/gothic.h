@@ -29,18 +29,20 @@ class IniFile;
 class GameModDescriptor {
   public:
     GameModDescriptor();
-    GameModDescriptor(std::u16string_view mod, std::u16string_view root);
+    GameModDescriptor(std::u16string_view mod, std::u16string_view root, std::u16string_view workSrc);
     GameModDescriptor(GameModDescriptor&&) = default;
     ~GameModDescriptor();
     GameModDescriptor& operator = (GameModDescriptor&&) = default;
 
     std::unique_ptr<IniFile>    modFile;
     std::vector<std::u16string> vdf;
+    std::vector<std::u16string> src;
     std::string                 wrldDef, plDef, gameDatDef, ouDef;
 
   private:
     void detectVdf(std::vector<std::u16string>& ret, const std::u16string& root,
                    const std::function<bool(std::u16string_view)>& filter);
+    void detectSrc(std::vector<std::u16string>& ret, const std::u16string& root);
   };
 
 class Gothic final {

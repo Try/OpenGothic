@@ -20,7 +20,7 @@ class Variant;
 class RayQuery;
 
 class WorldEditor: public BaseEditor,
-                   public DropReciver  {
+                   public DropReciver {
   public:
     WorldEditor();
     ~WorldEditor() override;

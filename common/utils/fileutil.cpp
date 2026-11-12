@@ -24,6 +24,9 @@ bool FileUtil::exists(const std::u16string &path) {
 
 std::u16string FileUtil::caseInsensitiveSegment(std::u16string_view pathv,const char16_t* segment,Dir::FileType type) {
   auto path = std::u16string(pathv);
+  if(!path.empty() && path.back()!='/' && path.back()!='\\')
+    path.push_back('/');
+
   std::u16string next = path+segment;
   if(FileUtil::exists(next)) {
     if(type==Dir::FT_File)

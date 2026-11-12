@@ -22,7 +22,6 @@ ProjectItemView::ProjectItemView(const ProjectItem& it) : it(it) {
   }
 
 ProjectItemView::~ProjectItemView() {
-  ProjectMgr::inst().onGpuAssetChanged();
   }
 
 void ProjectItemView::setText(std::string_view t) {

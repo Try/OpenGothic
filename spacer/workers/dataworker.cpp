@@ -140,6 +140,21 @@ void DataWorker::exec() {
         it.setError();
         }
       }
+    else if(type==ProjectItem::T_Script) {
+      try {
+        RFile fin(it.path());
+        std::string text(fin.size(), '\0');
+        fin.read(text.data(), text.size());
+
+        commit(it, [&]() {
+          it.setPayload(std::make_shared<std::string>(std::move(text)));
+          });
+        }
+      catch(...){
+        Log::d(it.name()," - unable to load script");
+        it.setError();
+        }
+      }
     }
   }
 
