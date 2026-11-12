@@ -6,6 +6,8 @@
 #include "world/objects/item.h"
 #include "world/objects/interactive.h"
 #include "world/world.h"
+#include "world/aiqueue.h"
+#include "physics/dynamicworld.h"
 #include "ui/dialogmenu.h"
 #include "ui/inventorymenu.h"
 #include "gothic.h"
@@ -580,6 +582,7 @@ bool PlayerControl::tickMove(uint64_t dt) {
     return true;
 
   implMove(dt);
+  tickTelekinesis(*pl,*w,dt);
 
   float runAngle = pl->runAngle();
   if(runAngle!=0.f || std::fabs(runAngleDest)>0.01f) {
@@ -955,6 +958,74 @@ void PlayerControl::implMove(uint64_t dt) {
     assignRunAngle(pl,pl.rotation(),dt);
     }
   pl.setDirection(rot);
+  }
+
+Item* PlayerControl::telekinesisTarget(World& w) const {
+  Focus held;
+  held.item = telekinesisItem;
+  return w.validateFocus(held).item;
+  }
+
+void PlayerControl::tickTelekinesis(Npc& pl, World& w, uint64_t dt) {
+  // The telekinesis script only invests mana; like the original engine, PlayerControl moves the item meanwhile:
+  // it rises to the caster's head, is pulled in while the spell is held and is taken once it is close.
+  constexpr float speed       = 50.f;  // cm per second
+  constexpr float releaseDist = 200.f;
+  constexpr float takeDist    = 250.f;
+
+  Item*       it     = telekinesisTarget(w);
+  const Item* spell  = pl.weaponState()==WeaponState::Mage ? pl.inventory().activeWeapon() : nullptr;
+  const bool  invest = spell!=nullptr && pl.bodyStateMasked()==BS_CASTING && pl.activeSpellLevel()>0 &&
+                       w.script().isTelekinesisSpell(spell->spellId());
+  if(!invest) {
+    telekinesisItem = nullptr;
+    if(it==nullptr)
+      return;
+    it->setPhysicsEnable(w);
+    if((it->position()-pl.centerPosition()).length()<=takeDist)
+      pl.aiPush(AiQueue::aiTakeItem(*it));
+    return;
+    }
+
+  if(it==nullptr) {
+    it = currentFocus.item;
+    if(it==nullptr)
+      return;
+    it->setPhysicsDisable();
+    telekinesisItem = it;
+    }
+
+  auto pos = it->position();
+  auto dp  = pl.centerPosition()-pos;
+  if(dp.length()<=releaseDist) {
+    pl.endCastSpell(true);
+    return;
+    }
+
+  const float step = speed*float(dt)/1000.f;
+  const float head = pl.position().y + 2.f*(pl.centerPosition().y-pl.position().y);
+  if(pos.y<head)
+    pos.y = std::min(pos.y+step,head);
+  dp.y = 0;
+  const float flat = dp.length();
+  if(flat>0.f)
+    pos += dp*(std::min(step,flat)/flat);
+  it->setPosition(pos.x,pos.y,pos.z);
+  }
+
+void PlayerControl::dropTelekinesisItem() {
+  // Items load without physics, so a held one would hang in the air after loading the save
+  auto w  = Gothic::inst().world();
+  auto it = w!=nullptr ? telekinesisTarget(*w) : nullptr;
+  telekinesisItem = nullptr;
+  if(it==nullptr)
+    return;
+  auto pos = it->position();
+  auto hit = w->physic()->ray(pos, pos-Tempest::Vec3(0,10000.f,0));
+  if(auto bbox = it->bBox(); hit.hasCol && bbox!=nullptr)
+    pos.y = hit.v.y-bbox[0].y;
+  it->setPosition(pos.x,pos.y,pos.z);
+  it->setPhysicsEnable(*w);
   }
 
 void PlayerControl::implMoveMobsi(Npc& pl, uint64_t /*dt*/) {
