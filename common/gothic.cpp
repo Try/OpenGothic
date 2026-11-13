@@ -800,7 +800,7 @@ zenkit::DaedalusScript Gothic::loadScript(std::string_view datFile, const Script
     datFile = datFile.substr(segment+1);
     for(size_t i=0; i<datFile.size() && i<255; ++i)
       str16[i] = char16_t(datFile[i]);
-    str16[datFile.size()] = u'\0';
+    str16[std::min<size_t>(datFile.size(),255)] = u'\0';
     gscript = CommandLine::inst().scriptPath(lang);
     path    = caseInsensitiveSegment(gscript,str16,Dir::FT_File);
     }
