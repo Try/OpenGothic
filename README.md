@@ -147,6 +147,36 @@ cmake --build ./build --target Gothic2Notr
 ```
 Executables can be located at `OpenGothic/build/opengothic`.
 
+### iOS
+
+Requires Xcode 26 or newer and targets iOS 15 or newer. Clone with submodules
+as above, then generate an Xcode project:
+
+```bash
+brew install glslang
+cmake -S . -B build-ios -G Xcode \
+  -DCMAKE_SYSTEM_NAME=iOS \
+  -DCMAKE_OSX_SYSROOT=iphoneos \
+  -DCMAKE_OSX_ARCHITECTURES=arm64 \
+  -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0 \
+  -DOPENGOTHIC_IOS_BUNDLE_IDENTIFIER=org.example.opengothic
+open build-ios/OpenGothic.xcodeproj
+```
+
+Choose the `Gothic2Notr` scheme, select your development team under Signing
+& Capabilities, and run on your device. The bundle identifier must be unique
+to your signing team. The existing target name also applies to Gothic 1.
+
+For an unsigned build, add `-DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED=NO`
+when configuring, then run `cmake --build build-ios --config Release`.
+The application is generated at `build-ios/opengothic/Release/Gothic2Notr.app`.
+Use a separate build directory with `-DCMAKE_OSX_SYSROOT=iphonesimulator`
+for the simulator.
+
+Game data is not included. Before launching, copy your installation's
+`Data`, `_work`, and `System` folders into the app's Documents directory
+using Finder file sharing. Missing game data currently makes the app exit.
+
 ### Android
 Install dependencies: JDK 17, Gradle 8.9, CMake 3.22.1 or newer, Ninja and the Android SDK with SDK 35, build-tools 35.0.0, NDK 27.0.12077973 and SDK CMake 3.22.1.
 Set `JAVA_HOME`, `ANDROID_HOME` and `VULKAN_SDK`. Put Gradle, Ninja and the host Vulkan SDK's `glslangValidator` on `PATH`. 
