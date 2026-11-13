@@ -144,8 +144,8 @@ void Resources::mountVdfs(const std::vector<std::u16string>& vdfs) {
 
   for(auto& i:archives) {
     try {
-#ifdef __IOS__
-      // causes OOM on iPhone7
+#if defined(__IOS__) && !defined(_ZK_WITH_MMAP)
+      // Loading entire speech archives into memory causes OOM on iPhone7
       if(i.name.find(u"Speech")!=std::string::npos)
         continue;
 #endif
