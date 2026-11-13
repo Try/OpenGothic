@@ -639,13 +639,13 @@ void PropertyDelegate::mkIndex_oCMobInter(zenkit::VirtualObjectType type, const 
   }
 
 void PropertyDelegate::mkIndex_oCMobBed(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob) {
-  mkIndex_oCMOB(type, vob);
+  mkIndex_oCMobInter(type, vob);
   if(addHeader("oCMobBed", zenkit::VirtualObjectType::oCMobBed))
     return;
   }
 
 void PropertyDelegate::mkIndex_oCMobFire(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob) {
-  mkIndex_oCMOB(type, vob);
+  mkIndex_oCMobInter(type, vob);
   if(addHeader("oCMobFire", zenkit::VirtualObjectType::oCMobFire))
     return;
   addView("state",                    &zenkit::VFire::state, 0, 10);
@@ -657,25 +657,25 @@ void PropertyDelegate::mkIndex_oCMobFire(zenkit::VirtualObjectType type, const z
   }
 
 void PropertyDelegate::mkIndex_oCMobLadder(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob) {
-  mkIndex_oCMOB(type, vob);
+  mkIndex_oCMobInter(type, vob);
   if(addHeader("oCMobLadder", zenkit::VirtualObjectType::oCMobLadder))
     return;
   }
 
 void PropertyDelegate::mkIndex_oCMobSwitch(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob) {
-  mkIndex_oCMOB(type, vob);
+  mkIndex_oCMobInter(type, vob);
   if(addHeader("oCMobSwitch", zenkit::VirtualObjectType::oCMobSwitch))
     return;
   }
 
 void PropertyDelegate::mkIndex_oCMobWheel(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob) {
-  mkIndex_oCMOB(type, vob);
+  mkIndex_oCMobInter(type, vob);
   if(addHeader("oCMobWheel", zenkit::VirtualObjectType::oCMobWheel))
     return;
   }
 
 void PropertyDelegate::mkIndex_oCMobContainer(zenkit::VirtualObjectType type, const zenkit::VirtualObject& vob) {
-  mkIndex_oCMOB(type, vob);
+  mkIndex_oCMobInter(type, vob);
   if(addHeader("oCMobContainer", zenkit::VirtualObjectType::oCMobContainer))
     return;
   addView("locked",      &zenkit::VContainer::locked);

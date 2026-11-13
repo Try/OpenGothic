@@ -123,7 +123,7 @@ void WorldEdit::Vob::initView(WorldEdit& owner) {
        mesh.setWind(vob.anim_mode,vob.anim_strength);
        mesh.setObjMatrix(pos);
        }
-     if(vob.cd_dynamic) {
+     if(true || vob.cd_dynamic) {
        phys = PhysicMesh(*view, *owner.physics, false);
        phys.setObjMatrix(pos);
        phys.setPayloadPtr(orig.get());
@@ -151,10 +151,11 @@ void WorldEdit::Vob::initView(WorldEdit& owner) {
         mdl.setObjMatrix(pos);
         }
 
-      if(vob.cd_dynamic) {
+      if(true || vob.cd_dynamic) {
         phys = PhysicMesh(*view, *owner.physics, false);
         phys.setSkeleton(view->skeleton.get());
-        phys.setObjMatrix(pos);
+        //phys.setObjMatrix(pos);
+        phys.setPose(mdl.pose());
         phys.setPayloadPtr(orig.get());
         }
       break;

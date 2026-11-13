@@ -224,8 +224,55 @@ std::shared_ptr<ProjectItem::Data> ProjectMgr::mkIndexScripts(const GameModDescr
 
 void ProjectMgr::addScriptSources(std::shared_ptr<ProjectItem::Data> out,
                                   std::string_view root, std::string_view path) {
+  // https://gothic-modding-community.github.io/gmc/zengin/scripts/general_info/compilation/
+  auto matchWildcard = [](std::string_view file, std::string_view pattern){
+    size_t p = 0, f = 0;
+    size_t star  = std::string_view::npos;
+    size_t retry = 0;
+
+    while (f < file.size()) {
+      if (p < pattern.size() && (pattern[p] == '?' || std::tolower(pattern[p]) == std::tolower(file[f]))) {
+        ++p;
+        ++f;
+        }
+      else if (p < pattern.size() && pattern[p] == '*') {
+        star = p++;
+        retry = f;
+        }
+      else if (star != std::string_view::npos) {
+        p = star + 1;
+        f = ++retry;
+        }
+      else {
+        return false;
+        }
+      }
+
+    while (p < pattern.size() && pattern[p] == '*') {
+      ++p;
+      }
+
+    return p == pattern.size();
+    };
+
   for(size_t i=0;; ++i) {
     if(i==path.size() || path[i]=='\\' || path[i]=='/') {
+      if(i==path.size() && path.size()>0 && path.find('*')!=std::string::npos) {
+        Dir::scan(std::string(root), [&](const std::string& p, Dir::FileType t) {
+          if(t!=Dir::FT_File)
+            return;
+          if(!matchWildcard(p, path))
+            return;
+
+          auto d = std::make_shared<ProjectItem::Data>();
+          d->name  = p;
+          d->path  = std::string(root) + "/" + d->name;
+          d->type  = ProjectItem::T_Script;
+          out->files.push_back(d);
+          });
+        return;
+        }
+
       if(i==path.size()) {
         auto d = std::make_shared<ProjectItem::Data>();
         d->name  = path;

@@ -68,6 +68,9 @@ struct Shelf::Item : ProjectItemView {
         drawIcon(p, *pr); else
         drawIcon(p, Assets::inst().ic.file_large);
       }
+    else if(it.type()==ProjectItem::T_Script) {
+      drawIcon(p, Assets::inst().ic.file_script);
+      }
     else if(it.type()==ProjectItem::T_Texture) {
       auto pr = it.preview();
       if(pr!=nullptr)

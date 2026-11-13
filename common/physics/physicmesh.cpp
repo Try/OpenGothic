@@ -45,7 +45,7 @@ void PhysicMesh::implSetObjMatrix(const Tempest::Matrix4x4 &mt, const Tempest::M
     auto id  = binder->bind[i];
     auto mat = mt;
     if(id<skeleton->tr.size())
-      mat = tr[id];
+      mat = mt * tr[id];
     sub[ani->submeshId[i].id].setObjMatrix(mat);
     }
   for(size_t i=binds; i<sub.size(); ++i)
