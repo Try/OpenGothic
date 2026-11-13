@@ -11,6 +11,5 @@ Trigger::Trigger(Vob* parent, World &world, const zenkit::VirtualObject& d, Flag
   }
 
 void Trigger::onTrigger(const TriggerEvent&) {
-  TriggerEvent e(target,vobName,TriggerEvent::T_Trigger);
-  world.triggerEvent(e);
+  emitTargetTriggerEvent();
   }

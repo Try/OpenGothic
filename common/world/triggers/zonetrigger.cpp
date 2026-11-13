@@ -12,6 +12,7 @@ ZoneTrigger::ZoneTrigger(Vob* parent, World &world, const zenkit::VTriggerChange
   }
 
 void ZoneTrigger::onIntersect(Npc &n) {
+  emitTargetTriggerEvent();
   if(n.isPlayer())
     world.triggerChangeWorld(levelName, startVobName);
   }
