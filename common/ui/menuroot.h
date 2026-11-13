@@ -36,9 +36,11 @@ class MenuRoot : public Tempest::Widget {
     void mouseDownEvent (Tempest::MouseEvent& event) override;
     void mouseUpEvent   (Tempest::MouseEvent& event) override;
     void mouseDragEvent (Tempest::MouseEvent& event) override;
+    void mouseMoveEvent (Tempest::MouseEvent& event) override;
 
   private:
     void initSettings();
+    void updateCursor();
 
     std::unique_ptr<zenkit::DaedalusVm>    vm;
     int32_t                                vmLang = -1;
@@ -49,8 +51,7 @@ class MenuRoot : public Tempest::Widget {
 
     Tempest::Event::KeyType                cheatCode[6] = {};
     bool                                   showVersionHint = false;
-#if defined(__MOBILE_PLATFORM__)
+    bool                                   mouseEnabled    = true;
     Tempest::Point                         touchStart;
     bool                                   touchMoved = false;
-#endif
   };

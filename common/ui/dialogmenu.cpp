@@ -7,6 +7,7 @@
 #include <cassert>
 
 #include "utils/gthfont.h"
+#include "utils/mouseutil.h"
 #include "utils/string_frm.h"
 #include "world/objects/npc.h"
 #include "gothic.h"
@@ -84,6 +85,10 @@ void DialogMenu::tick(uint64_t dt) {
     } else {
     remPrint-=dt;
     }
+
+  const auto cursor = hasPointer() ? CursorShape::Arrow : CursorShape::Hidden;
+  if(cursorShape()!=cursor)
+    setCursorShape(cursor);
 
   if(isChoiceMenuActive()) {
     if(choiceAnimTime+dt>ANIM_TIME)
@@ -554,11 +559,63 @@ void DialogMenu::mouseDownEvent(MouseEvent &event) {
     }
 
   if(event.button==MouseEvent::ButtonLeft) {
+    // Clicking beside the choices must not pick the highlighted one.
+    if(hasPointer()) {
+      const size_t id = choiceAt(event.pos());
+      if(id>=choice.size())
+        return;
+      dlgSel = id;
+      }
     onSelect();
     }
   if(event.button==MouseEvent::ButtonRight) {
     skipPhrase();
     }
+  }
+
+void DialogMenu::mouseMoveEvent(MouseEvent& event) {
+  if(state==State::Idle || trade.isOpen()!=InventoryMenu::State::Closed || !MouseUtil::isPointerEnabled()) {
+    event.ignore();
+    return;
+    }
+  // Moves during a dialog are accepted, so the game does not see them as mouse look.
+  if(!hasPointer())
+    return;
+  const size_t id = choiceAt(event.pos());
+  if(id<choice.size() && id!=dlgSel) {
+    dlgSel = id;
+    update();
+    }
+  }
+
+bool DialogMenu::hasPointer() const {
+  return MouseUtil::isPointerEnabled() && isChoiceMenuActive();
+  }
+
+size_t DialogMenu::choiceAt(Point pos) const {
+  // Same layout as paintChoice
+  const float scale = Gothic::interfaceScale(this);
+  const int   padd  = int(20*scale);
+  const int   dw    = std::min(w(),int(600*scale));
+  const auto  fnt   = Resources::dialogFont(scale);
+
+  int dh = padd*2;
+  for(auto& c:choice)
+    dh += fnt.textSize(dw-padd, c.title).h;
+
+  const int x = (w()-dw)/2;
+  if(pos.x<x || pos.x>=x+dw)
+    return size_t(-1);
+
+  // Text is drawn from its baseline, one font height below the top of its line.
+  int top = h()-dh-int(20*scale)+padd*2-fnt.pixelSize();
+  for(size_t i=0; i<choice.size(); ++i) {
+    const int lineH = fnt.textSize(dw-padd, choice[i].title).h;
+    if(pos.y>=top && pos.y<top+lineH)
+      return i;
+    top += lineH;
+    }
+  return size_t(-1);
   }
 
 void DialogMenu::mouseWheelEvent(MouseEvent &e) {

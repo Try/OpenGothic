@@ -3,6 +3,8 @@
 #include <Tempest/Platform>
 #include <algorithm>
 
+#include "gothic.h"
+
 #ifdef __WINDOWS__
 #include <windows.h>
 #include <shlwapi.h>
@@ -21,5 +23,14 @@ float MouseUtil::mouseSysSpeed() {
   return 1.f;
 #else
   return 1.f;
+#endif
+  }
+
+bool MouseUtil::isPointerEnabled() {
+#if defined(__MOBILE_PLATFORM__)
+  // Touch input does not use the pointer
+  return false;
+#else
+  return Gothic::settingsGetI("GAME","enableMouse")!=0;
 #endif
   }
