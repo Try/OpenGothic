@@ -786,25 +786,17 @@ zenkit::DaedalusScript Gothic::loadScript(std::string_view datFile, const Script
     return script;
     }
 
-  char16_t str16[256] = {};
-  for(size_t i=0; i<datFile.size() && i<255; ++i)
-    str16[i] = char16_t(datFile[i]);
-
   auto gscript = CommandLine::inst().scriptPath();
-  auto path    = caseInsensitiveSegment(gscript,str16,Dir::FT_File);
+  auto path    = caseInsensitiveSegment(gscript,datFile,Dir::FT_File);
   if(!FileUtil::exists(path) && int(lang)>=0) {
     gscript = CommandLine::inst().scriptPath(lang);
-    path    = caseInsensitiveSegment(gscript,str16,Dir::FT_File);
+    path    = caseInsensitiveSegment(gscript,datFile,Dir::FT_File);
     }
   if(!FileUtil::exists(path) && int(lang)>=0) {
     datFile = datFile.substr(segment+1);
-    for(size_t i=0; i<datFile.size() && i<255; ++i)
-      str16[i] = char16_t(datFile[i]);
-    str16[datFile.size()] = u'\0';
     gscript = CommandLine::inst().scriptPath(lang);
-    path    = caseInsensitiveSegment(gscript,str16,Dir::FT_File);
+    path    = caseInsensitiveSegment(gscript,datFile,Dir::FT_File);
     }
-
   auto buf = zenkit::Read::from(path);
   zenkit::DaedalusScript script;
   script.load(buf.get());

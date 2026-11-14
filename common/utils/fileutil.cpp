@@ -22,12 +22,28 @@ bool FileUtil::exists(const std::u16string &path) {
 #endif
   }
 
-std::u16string FileUtil::caseInsensitiveSegment(std::u16string_view pathv,const char16_t* segment,Dir::FileType type) {
+std::u16string FileUtil::caseInsensitiveSegment(std::u16string_view path, std::string_view segment, Tempest::Dir::FileType type) {
+  if(segment.size()<255) {
+    char16_t segment16[256] = {};
+    for(size_t i=0; i<segment.size(); ++i)
+      segment16[i] = char16_t(segment[i]);
+    return caseInsensitiveSegment(path, segment16, type);
+    }
+
+  std::u16string segment16(segment.size(), '\0');
+  for(size_t i=0; i<segment.size(); ++i)
+    segment16[i] = char16_t(segment[i]);
+  return caseInsensitiveSegment(path, segment16, type);
+  }
+
+std::u16string FileUtil::caseInsensitiveSegment(std::u16string_view pathv, std::u16string_view segment, Dir::FileType type) {
   auto path = std::u16string(pathv);
   if(!path.empty() && path.back()!='/' && path.back()!='\\')
     path.push_back('/');
 
-  std::u16string next = path+segment;
+  std::u16string next = path;
+  next += segment;
+
   if(FileUtil::exists(next)) {
     if(type==Dir::FT_File)
       return next;
@@ -37,18 +53,15 @@ std::u16string FileUtil::caseInsensitiveSegment(std::u16string_view pathv,const 
   Dir::scan(path,[&path,&next,&segment,type](const std::u16string& p, Dir::FileType t){
     if(t!=type)
       return;
-    for(size_t i=0;;++i) {
+    for(size_t i=0; i<segment.size(); ++i) {
       char16_t cs = segment[i];
       char16_t cp = p[i];
       if('A'<=cs && cs<='Z')
         cs = char16_t(cs-'A'+'a');
       if('A'<=cp && cp<='Z')
         cp = char16_t(cp-'A'+'a');
-
       if(cs!=cp)
         return;
-      if(cs=='\0')
-        break;
       }
 
     next = path+p;
