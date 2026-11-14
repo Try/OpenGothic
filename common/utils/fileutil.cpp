@@ -51,7 +51,7 @@ std::u16string FileUtil::caseInsensitiveSegment(std::u16string_view pathv, std::
     }
 
   Dir::scan(path,[&path,&next,&segment,type](const std::u16string& p, Dir::FileType t){
-    if(t!=type)
+    if(t!=type || p.size()!=segment.size())
       return;
     for(size_t i=0; i<segment.size(); ++i) {
       char16_t cs = segment[i];
