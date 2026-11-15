@@ -347,7 +347,7 @@ Mem32::Region* Mem32::implAllocAt(ptr32_t address, uint32_t size) {
       p2.size   -=size;
       region.insert(region.begin()+ptrdiff_t(i+1),p2);
       }
-
+    region[i].size = size;
     return &region[i];
     }
   return nullptr;
