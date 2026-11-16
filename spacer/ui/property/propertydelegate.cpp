@@ -217,6 +217,9 @@ auto PropertyDelegate::addView(std::string_view name, F T::* field) -> Index& {
     id.slt.type = &Property::Type::Enum;
     id.slt.enumValues = {"Spherical", "Ellipsoidal"};
     }
+  else if constexpr(std::is_same_v<F,std::shared_ptr<zenkit::Visual>>) {
+    id.slt.type = &Property::Type::Mesh;
+    }
   else {
     static_assert(false);
     }
@@ -405,7 +408,7 @@ void PropertyDelegate::mkIndex_zCVob(zenkit::VirtualObjectType type, const zenki
   if(addHeader("zCVob", zenkit::VirtualObjectType::zCVob))
     return;
   addView("vobName",               &zenkit::VirtualObject::vob_name);
-  addView("visual",                &zenkit::VirtualObject::visual_name);
+  addView("visual",                &zenkit::VirtualObject::visual);
   addView("showVisual",            &zenkit::VirtualObject::show_visual);
   addView("visualCamAlign",        &zenkit::VirtualObject::sprite_camera_facing_mode);
   addView("visualAniMode",         &zenkit::VirtualObject::anim_mode);
@@ -840,3 +843,4 @@ void PropertyDelegate::mkIndex_zCZoneVobFarPlaneDefault(zenkit::VirtualObjectTyp
   if(addHeader("zCZoneVobFarPlaneDefault", zenkit::VirtualObjectType::zCZoneVobFarPlaneDefault))
     return;
   }
+

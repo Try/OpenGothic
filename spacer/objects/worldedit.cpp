@@ -63,10 +63,10 @@ void WorldEdit::Vob::initView(WorldEdit& owner) {
 
   if(!vob.show_visual) {
     mesh = MeshObjects::Mesh();
-    mdl   = MdlVisual();
+    mdl  = MdlVisual();
     }
   if(!vob.cd_dynamic) {
-    phys  = PhysicMesh();
+    phys = PhysicMesh();
     }
 
   if(vob.type==zenkit::VirtualObjectType::zCVobLight) {
@@ -123,6 +123,7 @@ void WorldEdit::Vob::initView(WorldEdit& owner) {
        mesh.setWind(vob.anim_mode,vob.anim_strength);
        mesh.setObjMatrix(pos);
        }
+     mdl = MdlVisual();
      if(true || vob.cd_dynamic) {
        phys = PhysicMesh(*view, *owner.physics, false);
        phys.setObjMatrix(pos);
@@ -141,6 +142,8 @@ void WorldEdit::Vob::initView(WorldEdit& owner) {
         return;
       // setType(M_Mdl);
       // mdl.proto = view;
+      mesh = MeshObjects::Mesh();
+      mdl  = MdlVisual();
       mdl.setYTranslationEnable(false);
       mdl.setVisual(view->skeleton.get());
 

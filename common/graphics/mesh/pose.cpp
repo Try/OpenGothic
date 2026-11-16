@@ -148,7 +148,7 @@ void Pose::setSkeleton(const Skeleton* sk) {
     }
   for(auto& i:hasSamples)
     i = S_None;
-  trY          = skeleton->rootTr.y;
+  trY          = skeleton!=nullptr ? skeleton->rootTr.y : 0;
   needToUpdate = true;
   if(lay.size()>0) //TODO
     Log::d("WARNING: ",__func__," animation adjustment is not implemented");

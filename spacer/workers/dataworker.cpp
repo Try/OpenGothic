@@ -79,11 +79,28 @@ void DataWorker::exec() {
       return;
 
     const auto type = it.type();
-    //TODO: loader by full name?! Doesn't seem to apply to how gothic game is structured..
-    // auto name = std::string(it.path());
+    //TODO: loader by full name?! Doesn't seem to apply to how gothic game is structured...
     if(type==ProjectItem::T_StaticMesh) {
       auto name = std::string(it.name());
       FileExt::exchangeExt(name,"MRM","3DS");
+      if(auto proto = Resources::loadMesh(name)) {
+        auto mesh = MeshObjects::Mesh(render.itmGroup,*proto,0,0,0,false);
+        mesh.setObjMatrix(Matrix4x4::mkIdentity());
+
+        auto ret = createPreview(mesh, proto->bbox());
+        commit(it, [&](){
+          it.setPreview(ret);
+          it.setPayload(proto);
+          });
+        } else {
+        Log::d(it.name()," - unable to load mesh");
+        it.setError();
+        }
+      }
+    else if(type==ProjectItem::T_AnimMesh) {
+      // not quite working
+      auto name = std::string(it.name());
+      FileExt::exchangeExt(name,"MDL","ASC");
       if(auto proto = Resources::loadMesh(name)) {
         auto mesh = MeshObjects::Mesh(render.itmGroup,*proto,0,0,0,false);
         mesh.setObjMatrix(Matrix4x4::mkIdentity());

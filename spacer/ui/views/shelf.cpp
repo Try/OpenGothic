@@ -62,7 +62,8 @@ struct Shelf::Item : ProjectItemView {
     else if(it.type()==ProjectItem::T_Dir) {
       drawIcon(p, Assets::inst().ic.folder_large);
       }
-    else if(it.type()==ProjectItem::T_StaticMesh || it.type()==ProjectItem::T_ScriptItem) {
+    else if(it.type()==ProjectItem::T_StaticMesh || it.type()==ProjectItem::T_AnimMesh ||
+            it.type()==ProjectItem::T_ScriptItem) {
       auto pr = it.preview();
       if(pr!=nullptr)
         drawIcon(p, *pr); else
@@ -132,7 +133,8 @@ struct Shelf::Central : Widget {
           filterFn = [](const ProjectItem&)    { return true; };
           break;
         case 1:
-          filterFn = [](const ProjectItem& it) { return it.type()==ProjectItem::T_StaticMesh; };
+          filterFn = [](const ProjectItem& it) { return it.type()==ProjectItem::T_StaticMesh ||
+                                                        it.type()==ProjectItem::T_AnimMesh; };
           break;
         case 2:
           filterFn = [](const ProjectItem& it) { return it.type()==ProjectItem::T_Texture; };

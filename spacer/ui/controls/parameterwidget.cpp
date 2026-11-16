@@ -3,11 +3,13 @@
 #include <zenkit/Misc.hh>
 
 #include <Tempest/CheckBox>
+#include <Tempest/Log>
 
 #include "enumwidget.h"
 #include "floatwidget.h"
 #include "intwidget.h"
 #include "ui/controls/checkwidget.h"
+#include "ui/controls/meshwidget.h"
 #include "ui/controls/sliderwidget.h"
 #include "vecwidget.h"
 #include "colorwidget.h"
@@ -15,6 +17,8 @@
 
 #include "ui/uihelper.h"
 #include "assets.h"
+
+#include <zenkit/vobs/VirtualObject.hh>
 
 using namespace Tempest;
 
@@ -190,6 +194,28 @@ struct ParameterWidget::EditString : Base<StringWidget> {
     }
   };
 
+struct ParameterWidget::EditMesh : Base<MeshWidget> {
+  EditMesh(size_t pos, std::string_view name):Base(pos, name) {
+    edit->onValueModifyed.bind(this, &EditMesh::commit);
+    }
+
+  void commit(const zenkit::Visual& a, bool commit) {
+    Variant v;
+    v.set(std::make_shared<zenkit::Visual>(a));
+    onChanged(pos,v,commit);
+    }
+
+  Variant argv() const override {
+    return Variant(std::make_shared<zenkit::Visual>(edit->value()));
+    }
+
+  void setArgv(const Variant& v) override {
+    if(auto vis = v.get<std::shared_ptr<zenkit::Visual>>())
+      edit->setValue(*vis); else
+      Log::e("");
+    }
+  };
+
 struct ParameterWidget::EditInt1    : Base<IntWidget> {
   EditInt1(size_t pos, std::string_view name):Base(pos,name) {
     edit->onValueModifyed.bind(this, &EditInt1::commit);
@@ -299,6 +325,10 @@ ParameterWidget* ParameterWidget::implCreateEditor(const Property::Type& type, s
     }
   if(&type==&Property::Type::String) {
     auto ret = new EditString(pos, name);
+    return ret;
+    }
+  if(&type==&Property::Type::Mesh) {
+    auto ret = new EditMesh(pos, name);
     return ret;
     }
 

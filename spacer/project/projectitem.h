@@ -28,6 +28,7 @@ class ProjectItem {
       T_Dir,
       T_File,
       T_StaticMesh,
+      T_AnimMesh,
       T_Texture,
       T_World,
       T_ScriptItem,

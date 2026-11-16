@@ -558,6 +558,7 @@ void WorldEditor::moveDropOver(DropOverEvent& ev) {
   }
 
 void WorldEditor::moveDropLeave(DropOverEvent& ev) {
+  ev.setUiVisible(true);
   insertVob.reset();
   update();
   }

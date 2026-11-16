@@ -3,6 +3,7 @@
 using namespace Property;
 
 const Type Type::Template   = CoreType::Template;
+const Type Type::Mesh       = CoreType::Mesh;
 const Type Type::String     = CoreType::String;
 
 const Type Type::Texture    = CoreType::Texture;

@@ -13,6 +13,7 @@ enum class CoreType : uint8_t {
   Undefined = 0,
   Template,
   Texture,
+  Mesh,
   String,
   Vec1,
   Vec2,
@@ -44,6 +45,7 @@ class Type final {
     static const Type Template;
 
     static const Type Texture;
+    static const Type Mesh;
     static const Type String;
 
     static const Type Bool1;

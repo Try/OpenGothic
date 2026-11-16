@@ -22,6 +22,11 @@ ProjectItem::Type fileTypeByName(std::string_view name) {
   if(FileExt::hasExt(name,"MRM"))
     return ProjectItem::T_StaticMesh;
 
+  if(FileExt::hasExt(name,"MDL"))
+    return ProjectItem::T_AnimMesh;
+  if(FileExt::hasExt(name,"ASC"))
+    return ProjectItem::T_AnimMesh;
+
   if(FileExt::hasExt(name,"TEX"))
     return ProjectItem::T_Texture;
   if(FileExt::hasExt(name,"TGA"))

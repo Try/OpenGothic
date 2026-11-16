@@ -400,6 +400,7 @@ void EditorArea::load(const ProjectItem& itm) {
     case ProjectItem::T_Dir:
     case ProjectItem::T_File:
     case ProjectItem::T_StaticMesh:
+    case ProjectItem::T_AnimMesh:
     case ProjectItem::T_Texture:
     case ProjectItem::T_ScriptItem:
     case ProjectItem::T_LightPreset:
