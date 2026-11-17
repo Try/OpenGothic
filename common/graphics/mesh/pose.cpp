@@ -646,6 +646,9 @@ bool Pose::isJumpAnim() const {
   for(auto& i:lay) {
     if(i.bs!=BS_JUMP || i.seq->animCls!=Animation::Transition)
       continue;
+    // Only lift-off (T_RUNL_2_JUMP, T_STAND_2_JUMP): a landing such as T_JUMP_2_STAND would restart the jump on the ground
+    if(!i.seq->name.ends_with("_2_JUMP"))
+      continue;
     return true;
     }
   return false;
