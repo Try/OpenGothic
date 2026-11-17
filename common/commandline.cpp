@@ -9,6 +9,12 @@
 #include <filesystem>
 #endif
 
+#ifdef __WINDOWS__
+#include <windows.h>
+#include <shellapi.h>
+#include <cwchar>
+#endif
+
 #include <algorithm>
 
 #include "utils/installdetect.h"
@@ -46,6 +52,29 @@ static int intArg(std::string_view v) {
   return (std::stoi(std::string(v)));
   }
 
+static std::u16string u16Argv(const char** argv, int i) {
+#ifdef __WINDOWS__
+  // argv is in the system code page, the wide command line is not
+  int     wargc = 0;
+  LPWSTR* wargv = nullptr;
+  try {
+    wargv = CommandLineToArgvW(GetCommandLineW(),&wargc);
+    std::u16string ret;
+    if(wargv!=nullptr && i<wargc)
+      ret = std::u16string(reinterpret_cast<const char16_t*>(wargv[i]));
+    LocalFree(wargv);
+    return ret;
+    }
+  catch(...) {
+    if(wargv!=nullptr)
+      LocalFree(wargv);
+    throw;
+    }
+#else
+  return TextCodec::toUtf16(argv[i]);
+#endif
+  }
+
 CommandLine::CommandLine(int argc, const char** argv) {
   instance = this;
   if(argc<1)
@@ -62,7 +91,7 @@ CommandLine::CommandLine(int argc, const char** argv) {
     else if(arg=="-g") {
       ++i;
       if(i<argc)
-        gpath.assign(argv[i],argv[i]+std::strlen(argv[i]));
+        gpath = u16Argv(argv,i);
       }
     else if(arg=="-devmode") {
       // http://www.gothic-library.ru/publ/marvin/1-1-0-547
