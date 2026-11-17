@@ -10,6 +10,6 @@ Trigger::Trigger(Vob* parent, World &world, const zenkit::VirtualObject& d, Flag
   :AbstractTrigger(parent,world,d,flags) {
   }
 
-void Trigger::onTrigger(const TriggerEvent&) {
-  emitTargetTriggerEvent();
+void Trigger::onTrigger(const TriggerEvent& evt) {
+  AbstractTrigger::onTrigger(evt);
   }

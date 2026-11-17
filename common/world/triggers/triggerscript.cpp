@@ -10,8 +10,8 @@ TriggerScript::TriggerScript(Vob* parent, World &world, const zenkit::VTriggerSc
   function = data.function;
   }
 
-void TriggerScript::onTrigger(const TriggerEvent &) {
-  emitTargetTriggerEvent();
+void TriggerScript::onTrigger(const TriggerEvent &evt) {
+  AbstractTrigger::onTrigger(evt);
   try {
     if(!function.empty())
       world.script().getVm().call_function(function);

@@ -243,7 +243,7 @@ void MoveTrigger::preProcessTrigger(State prev) {
   }
 
 void MoveTrigger::postProcessTrigger() {
-  emitTargetTriggerEvent();
+  AbstractTrigger::onTrigger(TriggerEvent());
   if(state==Open)
     emitSound(sfxOpenEnd);
   if(state==Close)
