@@ -3110,7 +3110,7 @@ void Npc::emitSoundEffect(std::string_view sound, float range, bool freeSlot) {
 
 void Npc::emitSoundGround(std::string_view sound, float range, bool freeSlot) {
   auto mat = mvAlgo.groundMaterial();
-  string_frm buf(sound,"_",MaterialGroupNames[uint8_t(mat)]);
+  string_frm buf(sound, "_", Material::materialName(mat));
   auto sfx = ::Sound(owner,::Sound::T_Regular,buf,{x,y,z},range,freeSlot);
   sfx.play();
   }
