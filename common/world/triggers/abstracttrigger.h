@@ -67,7 +67,7 @@ class AbstractTrigger : public Vob {
       AbstractTrigger* tg;
       };
 
-    virtual void                 onTrigger(const TriggerEvent& evt);
+    virtual void                 onTrigger(const TriggerEvent& evt) = 0;
     virtual void                 onUntrigger(const TriggerEvent& evt);
     virtual void                 onGotoMsg(const TriggerEvent& evt);
     void                         moveEvent() override;

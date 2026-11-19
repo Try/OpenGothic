@@ -9,6 +9,8 @@ class ZoneTrigger : public AbstractTrigger {
     void onIntersect(Npc& n) override;
 
   private:
+    void onTrigger(const TriggerEvent& evt) override;
+
     std::string levelName;
     std::string startVobName;
   };

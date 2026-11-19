@@ -15,7 +15,7 @@ class CodeMaster : public AbstractTrigger {
     void load(Serialize &fin) override;
 
     void onFailure();
-    void onSuccess();
+    void onSuccess(const TriggerEvent& evt);
     void zeroState();
 
     std::vector<bool>        keys;

@@ -36,7 +36,7 @@ void CodeMaster::onTrigger(const TriggerEvent &evt) {
     return;
 
   if(std::find(keys.begin(),keys.end(),false)==keys.end())
-    onSuccess();
+    onSuccess(evt);
   else if(ordered)
     onFailure();
   }
@@ -61,12 +61,9 @@ void CodeMaster::onFailure() {
     }
   }
 
-void CodeMaster::onSuccess() {
+void CodeMaster::onSuccess(const TriggerEvent &evt) {
   zeroState();
-  if(!target.empty()) {
-    TriggerEvent e(target,vobName,TriggerEvent::T_Trigger);
-    world.triggerEvent(e);
-    }
+  AbstractTrigger::onTrigger(evt);
   }
 
 void CodeMaster::zeroState() {

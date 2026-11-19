@@ -127,7 +127,10 @@ void AbstractTrigger::implProcessEvent(const TriggerEvent& evt) {
   }
 
 void AbstractTrigger::onTrigger(const TriggerEvent&) {
-  Log::d("TODO: trigger[",name(),"]");
+  if(target.empty())
+    return;
+  TriggerEvent e(target,vobName,TriggerEvent::T_Trigger);
+  world.triggerEvent(e);
   }
 
 void AbstractTrigger::onUntrigger(const TriggerEvent&) {
