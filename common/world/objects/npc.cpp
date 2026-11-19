@@ -23,27 +23,6 @@ using namespace Tempest;
 
 static std::string_view humansTorchOverlay = "_TORCH.MDS";
 
-static const char* materialName(zenkit::MaterialGroup src) {
-  switch(src) {
-    case zenkit::MaterialGroup::UNDEFINED:
-    case zenkit::MaterialGroup::NONE:
-      return "UNDEF";
-    case zenkit::MaterialGroup::METAL:
-      return "METAL";
-    case zenkit::MaterialGroup::STONE:
-      return "STONE";
-    case zenkit::MaterialGroup::WOOD:
-      return "WOOD";
-    case zenkit::MaterialGroup::EARTH:
-      return "EARTH";
-    case zenkit::MaterialGroup::WATER:
-      return "WATER";
-    case zenkit::MaterialGroup::SNOW:
-      return "SNOW";
-    }
-  return "UNDEF";
-  }
-
 std::string_view Npc::Routine::wayPointName() const {
   return point!=nullptr ? point->name : fallbackName;
   }
@@ -3131,7 +3110,7 @@ void Npc::emitSoundEffect(std::string_view sound, float range, bool freeSlot) {
 
 void Npc::emitSoundGround(std::string_view sound, float range, bool freeSlot) {
   auto mat = mvAlgo.groundMaterial();
-  string_frm buf(sound,"_",materialName(mat));
+  string_frm buf(sound, "_", Material::materialName(mat));
   auto sfx = ::Sound(owner,::Sound::T_Regular,buf,{x,y,z},range,freeSlot);
   sfx.play();
   }

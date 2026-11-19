@@ -103,6 +103,27 @@ bool Material::isTesselated(AlphaFunc alpha) {
   return (alpha==Material::Water);
   }
 
+auto Material::materialName(zenkit::MaterialGroup src) -> std::string_view {
+  switch(src) {
+    case zenkit::MaterialGroup::UNDEFINED:
+    case zenkit::MaterialGroup::NONE:
+      return "UNDEF";
+    case zenkit::MaterialGroup::METAL:
+      return "METAL";
+    case zenkit::MaterialGroup::STONE:
+      return "STONE";
+    case zenkit::MaterialGroup::WOOD:
+      return "WOOD";
+    case zenkit::MaterialGroup::EARTH:
+      return "EARTH";
+    case zenkit::MaterialGroup::WATER:
+      return "WATER";
+    case zenkit::MaterialGroup::SNOW:
+      return "SNOW";
+    }
+  return "UNDEF";
+  }
+
 Material::AlphaFunc Material::loadAlphaFunc(zenkit::AlphaFunction zenAlpha,
                                             zenkit::MaterialGroup matGroup,
                                             uint8_t clrAlpha,
