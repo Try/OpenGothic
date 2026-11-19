@@ -494,16 +494,6 @@ enum Protection : uint8_t {
   PROT_MAX     = 8
   };
 
-inline const char* MaterialGroupNames[] = {
-  "UNDEF",
-  "METAL",
-  "STONE",
-  "WOOD",
-  "EARTH",
-  "WATER",
-  "SNOW",
-  };
-
 enum class NpcProcessPolicy : uint8_t {
   Player,
   AiNormal,
