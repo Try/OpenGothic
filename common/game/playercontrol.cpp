@@ -459,8 +459,8 @@ void PlayerControl::marvinF8(uint64_t dt) {
   Tempest::Vec3 dp(c,0.8f,s);
   pos += dp*6000*float(dt)/1000.f;
 
-  pl.changeAttribute(ATR_HITPOINTS,pl.attribute(ATR_HITPOINTSMAX),false);
-  pl.changeAttribute(ATR_MANA,     pl.attribute(ATR_MANAMAX),     false);
+  pl.changeHitpoints(pl.attribute(ATR_HITPOINTSMAX));
+  pl.changeAttribute(ATR_MANA,pl.attribute(ATR_MANAMAX));
   pl.clearState(false);
   pl.clearSpeed();
   pl.clearAiQueue();
