@@ -1211,7 +1211,7 @@ int32_t Npc::talentValue(Talent t) const {
   }
 
 int32_t Npc::hitChance(Talent t) const {
-  if(t<=zenkit::INpc::hitchance_count)
+  if(t<zenkit::INpc::hitchance_count)
     return hnpc->hitchance[t];
   return 0;
   }
