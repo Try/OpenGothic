@@ -865,6 +865,9 @@ const zenkit::IFocus& World::searchPolicy(const Npc& pl, TargetCollect& collAlgo
         auto&   spl = script().spellDesc(id);
         collAlgo = TargetCollect(spl.target_collect_algo);
         collType = TargetType(spl.target_collect_type);
+        // Telekinesis only moves items, so a person nearby must not take the focus from one
+        if(script().isTelekinesisSpell(id))
+          collType = TARGET_TYPE_ITEMS;
         }
       opt = WorldObjects::SearchFlg(WorldObjects::NoDeath | WorldObjects::NoUnconscious);
       return game.script()->focusMage();

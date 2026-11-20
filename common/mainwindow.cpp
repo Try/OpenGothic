@@ -1092,6 +1092,8 @@ void MainWindow::saveGame(std::string_view slot, std::string_view name) {
   if(auto w = Gothic::inst().world(); w!=nullptr && w->currentCs()!=nullptr)
     return;
 
+  player.dropTelekinesisItem();
+
   auto tex  = renderer.screenshoot(cmdId, Size(int(swapchain.w()),int(swapchain.h())));
   auto lres = Attachment();
 
