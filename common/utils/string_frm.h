@@ -110,10 +110,9 @@ class alignas(64) string_frm {
 
     void implWrite(char* out, size_t maxSz, size_t& at, const char* arg) {
       for(size_t i=0; arg[i]; ++i) {
-        if(at>=maxSz)
-          break;
-        out[at] = arg[i];
-        at++;
+        if(at<maxSz)
+          out[at] = arg[i];
+        ++at;
         }
       }
 
