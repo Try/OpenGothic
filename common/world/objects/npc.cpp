@@ -3051,8 +3051,8 @@ void Npc::tickRoutine() {
       }
 
     if(aiState.eTime<=owner.time()) {
-      // Avoid interruption of ZS_TALK/ZS_ATTACK
-      if(currentTarget==nullptr && outputPipe->isFinished())
+      // Avoid interruption of non-daily routine states
+      if(isInDailyRoutine())
         loop = LOOP_END;
       }
 
@@ -3063,6 +3063,15 @@ void Npc::tickRoutine() {
       }
     }
   }
+
+bool Npc::isInDailyRoutine() const {
+  // TA_Sleep is bound to ZS_GotoBed which starts ZS_Sleep
+  // ZS_Sleep inherits daily routine status
+  ScriptFn fn = currentRoutine().callback;
+  if(fn.isValid() && aiState.funcIni==fn)
+    return true;
+  return (currentTarget==nullptr && outputPipe->isFinished());
+}
 
 void Npc::setTarget(Npc *t) {
   if(currentTarget==t)
@@ -4359,7 +4368,9 @@ void Npc::addRoutine(gtime s, gtime e, uint32_t callback, std::string_view point
 void Npc::excRoutine(size_t callback) {
   routines.clear();
   owner.script().invokeState(this,currentOther,currentVictim,callback);
-  // aiState.eTime = gtime();
+  // update npc state immediately if it's a daily routine
+  if(isInDailyRoutine())
+    aiState.eTime = owner.time();
   }
 
 void Npc::multSpeed(float s) {
