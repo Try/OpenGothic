@@ -102,7 +102,7 @@ class PfxBucket {
       };
 
     struct ParState final {
-      uint16_t      life=0, maxLife=1;
+      uint32_t      life=0, maxLife=1;
       Tempest::Vec3 pos, dir;
 
       std::vector<Trail> trail;
