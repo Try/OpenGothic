@@ -1218,6 +1218,19 @@ CollideMask GameScript::canNpcCollideWithSpell(Npc& npc, Npc* shooter, int32_t s
   return CollideMask(vm.call_function<int>(fn, spellId));
   }
 
+bool GameScript::canNpcDropUnconscious(Npc& npc, Npc& attacker) {
+  if(owner.version().game==1)
+    return npc.isHuman() && attacker.isHuman();
+
+  auto fn = vm.find_symbol_by_name("C_DropUnconscious");
+  if(fn==nullptr)
+    return false;
+
+  ScopeVar self (*vm.global_self(),  npc.handlePtr());
+  ScopeVar other(*vm.global_other(), attacker.handlePtr());
+  return vm.call_function<int>(fn);
+}
+
 // Gothic 1 only differentiates between the two worldmap types with and
 // without the orc addition and does this inside the code, not the script
 int GameScript::playerHotKeyScreenMap_G1(Npc& pl) {
@@ -2071,7 +2084,7 @@ void GameScript::npc_exchangeroutine(std::shared_ptr<zenkit::INpc> npcRef, std::
 
 bool GameScript::npc_isdead(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
-  return npc==nullptr || isDead(*npc);
+  return npc==nullptr || npc->attribute(ATR_HITPOINTS)<=0;
   }
 
 bool GameScript::npc_knowsinfo(std::shared_ptr<zenkit::INpc> npcRef, int infoinstance) {
@@ -2297,7 +2310,7 @@ void GameScript::npc_setstatetime(std::shared_ptr<zenkit::INpc> npcRef, int val)
 void GameScript::npc_changeattribute(std::shared_ptr<zenkit::INpc> npcRef, int atr, int val) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr && atr>=0)
-    npc->changeAttribute(Attribute(atr),val,false);
+    npc->changeAttribute(Attribute(atr),val);
   }
 
 bool GameScript::npc_isonfp(std::shared_ptr<zenkit::INpc> npcRef, std::string_view val) {

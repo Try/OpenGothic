@@ -141,6 +141,7 @@ class GameScript final {
     void invokePickLock(Npc& npc, int bSuccess, int bBrokenOpen);
     void invokeRefreshAtInsert(Npc& npc);
     auto canNpcCollideWithSpell(Npc& npc, Npc* shooter, int32_t spellId) -> CollideMask;
+    bool canNpcDropUnconscious(Npc& npc, Npc& attacker);
 
     int  playerHotKeyScreenMap_G1(Npc& pl);
     int  playerHotKeyScreenMap(Npc& pl);

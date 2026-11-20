@@ -214,7 +214,8 @@ class Npc final {
     int32_t    mageCycle() const;
     bool       canSneak() const;
     int32_t    attribute (Attribute a) const;
-    void       changeAttribute(Attribute a, int32_t val, bool allowUnconscious);
+    bool       changeAttribute(Attribute a, int32_t val);
+    void       changeHitpoints(int32_t val, bool allowUnconscious = false);
     int32_t    protection(Protection p) const;
     void       changeProtection(Protection p, int32_t val);
 
@@ -512,14 +513,13 @@ class Npc final {
     void      commitDamage();
     Npc*      updateNearestEnemy();
     Npc*      updateNearestBody();
-    bool      checkHealth(bool onChange, bool forceKill);
-    void      onNoHealth(bool death, HitSound sndMask);
+    void      checkHealth(bool allowUnconscious = false, HitSound sndMask = HS_Dead);
+    void      onNoHealth(bool death = true, HitSound sndMask = HS_Dead);
     bool      hasAutoroll() const;
     bool      prepareTurn();
     void      stopWalkAnimation();
     void      takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32_t splId, bool isSpell);
     void      takeFallDamage(const Tempest::Vec3& fallSpeed);
-    void      takeDrownDamage();
 
     void      dropTorch(bool burnout = false);
 
