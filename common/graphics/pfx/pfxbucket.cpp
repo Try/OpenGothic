@@ -26,7 +26,7 @@ static uint64_t ppsDiff(const ParticleFx& decl, bool loop, uint64_t time0, uint6
   }
 
 float PfxBucket::ParState::lifeTime() const {
-  return 1.f-life/float(maxLife);
+  return 1.f-float(life)/float(maxLife);
   }
 
 std::mt19937 PfxBucket::rndEngine;
@@ -207,7 +207,7 @@ void PfxBucket::init(PfxBucket::Block& block, ImplEmitter& emitter, size_t parti
     p.life    = uint16_t(-1)/2;
     p.maxLife = uint16_t(-1);
     } else {
-    p.life    = uint16_t(randf(decl.lspPartAvg,decl.lspPartVar));
+    p.life    = uint32_t(std::clamp(randf(decl.lspPartAvg,decl.lspPartVar),0.f,float(uint32_t(-1)/2)));
     p.maxLife = p.life;
     }
 
@@ -391,7 +391,7 @@ void PfxBucket::tick(Block& sys, ImplEmitter& emitter, size_t particle, uint64_t
   const float dtF = float(dt);
 
   // eval particle
-  ps.life  = uint16_t(ps.life-dt);
+  ps.life  = uint32_t(ps.life-dt);
   ps.pos  += ps.dir*dtF;
   ps.dir  += decl.flyGravity*dtF;
 
