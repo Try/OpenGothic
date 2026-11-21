@@ -4,6 +4,7 @@
 #include <Tempest/Panel>
 #include <Tempest/ComboBox>
 
+#include "project/projectmgr.h"
 #include "workers/dataworker.h"
 #include "ui/rootview.h"
 
@@ -11,15 +12,28 @@ using namespace Tempest;
 
 Tempest::Signal<void(Tempest::Encoder<Tempest::CommandBuffer>&,uint8_t)> EditorWindow::onUpdate3D;
 
+static EditorWindow* instance = nullptr;
+
 EditorWindow::EditorWindow(Tempest::Device& device)
   : Window(Maximized), device(device), swapchain(device,hwnd()), texAtlass(device), assets(device,texAtlass) {
+  instance = this;
+
   setWindowTitle("Spacer");
   setLayout(Horizontal);
-  addWidget(new RootView()).setFocus(true);
+
+  auto& root = addWidget(new RootView());
+  root.setFocus(true);
   }
 
 EditorWindow::~EditorWindow() {
   device.waitIdle();
+  instance = nullptr;
+  }
+
+void* EditorWindow::mainWindow() {
+  if(instance!=nullptr)
+    return instance->hwnd();
+  return nullptr;
   }
 
 void EditorWindow::render() {

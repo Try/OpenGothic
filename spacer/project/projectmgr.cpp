@@ -218,9 +218,14 @@ std::shared_ptr<ProjectItem::Data> ProjectMgr::mkIndexScripts(const GameModDescr
 
   for(auto& i:d.src) {
     auto p = std::filesystem::path(i).parent_path();
-    SrcParser parser(i);
-    for(auto& path:parser.files) {
-      addScriptSources(items, p.string(), path);
+    try {
+      SrcParser parser(i);
+      for(auto& path:parser.files) {
+        addScriptSources(items, p.string(), path);
+        }
+      }
+    catch(...) {
+      Log::e("unable to read source-list");
       }
     }
 
@@ -262,7 +267,7 @@ void ProjectMgr::addScriptSources(std::shared_ptr<ProjectItem::Data> out,
 
   for(size_t i=0;; ++i) {
     if(i==path.size() || path[i]=='\\' || path[i]=='/') {
-      if(i==path.size() && path.size()>0 && path.find('*')!=std::string::npos) {
+      if(i==path.size() && path.find_first_of("*?")!=std::string_view::npos) {
         Dir::scan(std::string(root), [&](const std::string& p, Dir::FileType t) {
           if(t!=Dir::FT_File)
             return;

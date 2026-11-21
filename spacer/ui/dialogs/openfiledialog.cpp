@@ -3,7 +3,7 @@
 #include <Tempest/Platform>
 #include <Tempest/TextCodec>
 
-#include "ui/rootview.h"
+#include "editorwindow.h"
 
 #ifdef __WINDOWS__
 #include <windows.h>
@@ -90,7 +90,7 @@ OpenFileDialog::getOpenFileName(std::string_view /*path*/,
     if(multiselect)
       pFileOpen->SetOptions(FOS_NOCHANGEDIR | FOS_ALLOWMULTISELECT); else
       pFileOpen->SetOptions(FOS_NOCHANGEDIR);
-    hr = pFileOpen->Show(HWND(RootView::mainWindow()));
+    hr = pFileOpen->Show(HWND(EditorWindow::mainWindow()));
 
     // Get the file name from the dialog box.
     if(SUCCEEDED(hr)) {

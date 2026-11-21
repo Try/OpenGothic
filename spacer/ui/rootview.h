@@ -15,7 +15,6 @@ class RootView : public Tempest::Widget {
     RootView();
 
     static RootView& inst();
-    static void*     mainWindow();
 
     void onNewFile();
     void onSave();

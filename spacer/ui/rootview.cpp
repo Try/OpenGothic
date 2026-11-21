@@ -3,12 +3,11 @@
 #include <Tempest/Log>
 #include <Tempest/Painter>
 
-#include "ui/dialogs/openfiledialog.h"
+#include "ui/dialogs/importdialog.h"
 #include "project/projectmgr.h"
 #include "project/projectitem.h"
 #include "editorarea.h"
 #include "editorsettings.h"
-#include "editorwindow.h"
 #include "commandline.h"
 #include "assets.h"
 
@@ -26,30 +25,20 @@ RootView::RootView() {
 
   initShortkuts();
   EditorSettings::inst().onShortcuts.bind(this,&RootView::setupShortkuts);
-  /*
-  ProjectMgr::inst().onAssetReady.bind(this,&RootView::update);
-  if(!ProjectMgr::inst().hasVisibleProject()) {
-    RootView::inst().onNewFile();
-    } else {
-    edit->openApp();
-    }
-  */
+
   auto path = CommandLine::inst().modPath();
-  onOpenProjectF(std::filesystem::path(path));
+  if(path.empty()) {
+    if(!onOpenProject())
+      SystemApi::exit();
+    } else {
+    onOpenProjectF(std::filesystem::path(path));
+    }
+
   setFocus(true);
   }
 
 RootView& RootView::inst() {
   return *instance;
-  }
-
-void* RootView::mainWindow() {
-  auto w = instance->owner();
-  while(w->owner()!=nullptr)
-    w = w->owner();
-  if(auto wx = dynamic_cast<EditorWindow*>(w))
-    return wx->hwnd();
-  return nullptr;
   }
 
 void RootView::paintEvent(PaintEvent& e) {
@@ -118,8 +107,8 @@ void RootView::onRedo() {
   }
 
 bool RootView::onOpenProject() {
-  auto proj = OpenFileDialog::getProjOpenFileName("");
-  return onOpenProjectF(proj);
+  ImportDialog dialog;
+  return onOpenProjectF(dialog.selectProject());
   }
 
 bool RootView::onOpenProjectF(const std::filesystem::path& proj) {
