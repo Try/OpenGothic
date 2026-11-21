@@ -14,7 +14,7 @@
 
 class WorldEdit;
 class PropertyDelegate;
-class VobTreeDelegate;
+class VobTreeView;
 
 class Variant;
 class RayQuery;
@@ -110,8 +110,8 @@ class WorldEditor: public BaseEditor,
 
     Command::UndoStack<WorldEdit> timeline;
 
-    WorldEdit::Vob*        selVob = nullptr;
-    VobTreeDelegate*       treeDelegate = nullptr;
+    WorldEdit::Vob*        selVob           = nullptr;
+    VobTreeView*           vobTree          = nullptr;
     PropertyDelegate*      propertyDelegate = nullptr;
 
     std::unique_ptr<WorldEdit::Vob> insertVob;

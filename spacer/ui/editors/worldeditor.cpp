@@ -6,7 +6,7 @@
 
 #include "ui/property/propertydelegate.h"
 #include "ui/projectitemview.h"
-#include "ui/vobtreedelegate.h"
+#include "ui/vobtreeview.h"
 #include "objects/worldedit.h"
 #include "objects/rayquery.h"
 #include "editorwindow.h"
@@ -349,7 +349,7 @@ bool WorldEditor::load(ProjectItem& it) {
     camera.setSpin(PointF(0));
     camera.setAngles(camera.spin());
 
-    treeDelegate->setWorld(*level);
+    vobTree->setWorld(*level);
 
     return true;
     }
@@ -362,12 +362,9 @@ bool WorldEditor::load(ProjectItem& it) {
 BaseEditor::BaseTool* WorldEditor::createToolpanel(ToolWindow::Tool tool) {
   if(tool==ToolWindow::T_VobTree) {
     auto ctrl = new BaseTool();
-    auto& list     = ctrl->addWidget(new Tempest::ListView());
-    auto& delegate = *list.setDelegate(new VobTreeDelegate());
+    vobTree = &ctrl->addWidget(new VobTreeView());
     ctrl->setLayout(Vertical);
-    delegate.onVobSelected.bind(this, &WorldEditor::selectVob);
-
-    treeDelegate = &delegate;
+    vobTree->onVobSelected.bind(this, &WorldEditor::selectVob);
     return ctrl;
     }
   if(tool==ToolWindow::T_VobProp) {
@@ -387,19 +384,23 @@ BaseEditor::BaseTool* WorldEditor::createToolpanel(ToolWindow::Tool tool) {
 
 void WorldEditor::undo() {
   timeline.undo(*level);
+  vobTree->updateView();
+  if(selVob!=nullptr && !level->isValidVob(selVob)) {
+    selectVob(nullptr);
+    return;
+    }
   propertyDelegate->update();
-  treeDelegate->update();
-  if(!level->isValidVob(selVob))
-    selVob = nullptr;
   update();
   }
 
 void WorldEditor::redo() {
   timeline.redo(*level);
+  vobTree->updateView();
+  if(selVob!=nullptr && !level->isValidVob(selVob)) {
+    selectVob(nullptr);
+    return;
+    }
   propertyDelegate->update();
-  treeDelegate->update();
-  if(!level->isValidVob(selVob))
-    selVob = nullptr;
   update();
   }
 
@@ -571,6 +572,7 @@ void WorldEditor::dropDone(DropOverEvent& ev) {
 
   auto vob = insertVob.get();
   timeline.push(*level, new CmdNewVob(insertVob.release()));
+  vobTree->updateView();
   invalidateTab();
   selectVob(vob);
   }
@@ -787,7 +789,7 @@ void WorldEditor::deleteVob() {
   if(selVob!=nullptr) {
     timeline.push(*level, new CmdDeleteVob(selVob));
     invalidateTab();
-    treeDelegate->update();
+    vobTree->updateView();
     selectVob(nullptr);
     update();
     }
@@ -795,13 +797,15 @@ void WorldEditor::deleteVob() {
 
 void WorldEditor::selectVob(WorldEdit::Vob* vob) {
   selVob = vob;
-  treeDelegate->setVob(selVob);
+  vobTree->setVob(selVob);
   propertyDelegate->setVob(selVob);
   update();
   }
 
 void WorldEditor::setVobProperty(std::unique_ptr<Command::Action<WorldEdit>>& cmd, bool commit) {
   timeline.push(*level, cmd.release(), commit);
+  if(commit)
+    vobTree->updateView();
   invalidateTab();
   update();
   }
