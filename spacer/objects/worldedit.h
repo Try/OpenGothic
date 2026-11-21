@@ -66,7 +66,6 @@ class WorldEdit {
       friend class CmdNewVob;
       friend class CmdDeleteVob;
 
-      template<class Vob, class F>
       friend class CmdSetProperty;
       };
 
@@ -139,37 +138,4 @@ class CmdRotateVob : public Command::Action<WorldEdit> {
 
     WorldEdit::Vob* vob = nullptr;
     zenkit::Mat3    ang, orig;
-  };
-
-template<class Vob, class F>
-class CmdSetProperty: public Command::Action<WorldEdit> {
-  public:
-    CmdSetProperty(WorldEdit::Vob* vob, F Vob::* field, const F& v) : vob(vob), field(field), value(v) {}
-
-  private:
-    void redo(WorldEdit& subj) override {
-      auto& vx = *dynamic_cast<Vob*>(vob->orig.get());
-      auto& f  = (vx.*field);
-      std::swap(f, value);
-      //TODO: easeup non-visivic properties
-      //TODO: easeup non-committed props
-      vob->initView(subj);
-      }
-
-    void undo(WorldEdit& subj) override {
-      redo(subj);
-      }
-
-    bool merge(const Action& prev) override {
-      if(auto p = dynamic_cast<const CmdSetProperty<Vob,F>*>(&prev)) {
-        if(p->vob==vob && p->field==field) {
-          return true;
-          }
-        }
-      return false;
-      }
-
-    WorldEdit::Vob* vob;
-    F Vob::*        field;
-    F               value;
   };
