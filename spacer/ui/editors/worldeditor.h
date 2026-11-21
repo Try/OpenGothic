@@ -15,6 +15,7 @@
 class WorldEdit;
 class PropertyDelegate;
 class VobTreeView;
+class SearchLine;
 
 class Variant;
 class RayQuery;
@@ -24,6 +25,8 @@ class WorldEditor: public BaseEditor,
   public:
     WorldEditor();
     ~WorldEditor() override;
+
+    void focusVobSearch();
 
   protected:
     std::string_view title() const override;
@@ -51,6 +54,19 @@ class WorldEditor: public BaseEditor,
 
   private:
     struct Gizmo;
+    struct VobFocusButton;
+
+    struct Anim {
+      public:
+        void start(Tempest::Vec3 from, Tempest::Vec3 to, uint64_t now);
+        bool tick (Camera& camera, uint64_t now);
+
+      private:
+        Tempest::Vec3 from    = {};
+        Tempest::Vec3 to      = {};
+        uint64_t      started = 0;
+        bool          active  = false;
+      };
 
     enum class GizmoMode : int32_t {
       Drag,
@@ -73,6 +89,7 @@ class WorldEditor: public BaseEditor,
     void update3d(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t cmdId);
     void processKeyboard(Tempest::KeyEvent& e);
     void tickCamera(uint64_t dt);
+    void focusCameraOnVob();
     void tick();
 
     int  gizmoQuery(Tempest::Point mpos) const;
@@ -93,6 +110,7 @@ class WorldEditor: public BaseEditor,
 
     Tempest::Timer             timer;
     Camera                     camera;
+    Anim                       cameraAnim;
     std::shared_ptr<WorldEdit> level;
     State                      state = State::T_Idle;
     GizmoMode                  gizmoMode = GizmoMode::Drag;
@@ -112,6 +130,7 @@ class WorldEditor: public BaseEditor,
 
     WorldEdit::Vob*        selVob           = nullptr;
     VobTreeView*           vobTree          = nullptr;
+    SearchLine*            vobSearch        = nullptr;
     PropertyDelegate*      propertyDelegate = nullptr;
 
     std::unique_ptr<WorldEdit::Vob> insertVob;

@@ -24,6 +24,9 @@ class Assets {
       Tempest::Icon close_save;
       Tempest::Icon more;
       Tempest::Icon add;
+      Tempest::Icon target;
+      Tempest::Icon locationSearching;
+      Tempest::Icon search;
       Tempest::Icon down, up;
       Tempest::Icon tri_close, tri_open, tri_open_small;
       Tempest::Icon check_off, check_on;

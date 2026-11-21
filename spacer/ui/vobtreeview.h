@@ -3,6 +3,7 @@
 #include <Tempest/ScrollBar>
 #include <Tempest/Widget>
 
+#include <string>
 #include <unordered_set>
 #include <vector>
 
@@ -14,29 +15,38 @@ class VobTreeView : public Tempest::Widget {
 
     void setWorld  (WorldEdit& world);
     void setVob    (const WorldEdit::Vob* vob);
+    void setFilter (const Tempest::TextModel& text);
     void updateView();
+    void revealSelection();
 
     Tempest::Signal<void(WorldEdit::Vob*)> onVobSelected;
+    Tempest::Signal<void()>                onVobDoubleClicked;
 
   protected:
-    void paintEvent     (Tempest::PaintEvent& e) override;
-    void resizeEvent    (Tempest::SizeEvent&  e) override;
-    void mouseDownEvent (Tempest::MouseEvent& e) override;
-    void mouseUpEvent   (Tempest::MouseEvent& e) override;
-    void mouseMoveEvent (Tempest::MouseEvent& e) override;
-    void mouseLeaveEvent(Tempest::MouseEvent& e) override;
-    void mouseWheelEvent(Tempest::MouseEvent& e) override;
+    void paintEvent           (Tempest::PaintEvent& e) override;
+    void resizeEvent          (Tempest::SizeEvent&  e) override;
+    void mouseDownEvent       (Tempest::MouseEvent& e) override;
+    void mouseDoubleClickEvent(Tempest::MouseEvent& e) override;
+    void mouseUpEvent         (Tempest::MouseEvent& e) override;
+    void mouseMoveEvent       (Tempest::MouseEvent& e) override;
+    void mouseLeaveEvent      (Tempest::MouseEvent& e) override;
+    void mouseWheelEvent      (Tempest::MouseEvent& e) override;
 
   private:
     struct Row {
       WorldEdit::Vob* vob;
       size_t          depth;
+      bool            hasVisibleChildren;
 
       std::string_view label() const;
-      std::string_view fallbackLabel() const;
+      std::string_view vobName() const;
       };
 
     void                   appendRows(WorldEdit::Vob& vob, size_t depth);
+    void                   appendFilteredRows(WorldEdit::Vob& vob, size_t depth);
+    static bool            matchesFilter(std::string_view row, std::string_view pattern);
+    bool                   isCollapsed(const WorldEdit::Vob* vob) const;
+    bool                   openSelectionPath(const WorldEdit::Vob& node);
     void                   paintRow(Tempest::Painter& p, const Row& row, const Tempest::Rect& rect, bool hovered) const;
     void                   updateScrollBars();
     void                   scrollChanged(int value);
@@ -58,6 +68,8 @@ class VobTreeView : public Tempest::Widget {
     bool                  pressedArrow             = false;
     Tempest::Point        mouse                    = {-1, -1};
 
+    std::string                              filter;
     std::unordered_set<const WorldEdit::Vob*> collapsed;
+    std::unordered_set<const WorldEdit::Vob*> filteredCollapsed;
     std::vector<Row>                          rows;
   };

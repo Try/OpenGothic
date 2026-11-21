@@ -3,12 +3,18 @@
 #include <Tempest/Painter>
 #include <Tempest/Log>
 #include <Tempest/ListView>
+#include <Tempest/Button>
+#include <Tempest/Application>
 
+#include <cmath>
+
+#include "ui/controls/searchline.h"
 #include "ui/property/propertydelegate.h"
 #include "ui/projectitemview.h"
 #include "ui/vobtreeview.h"
 #include "objects/worldedit.h"
 #include "objects/rayquery.h"
+#include "assets.h"
 #include "editorwindow.h"
 #include "resources.h"
 #include "utils/fileext.h"
@@ -16,6 +22,36 @@
 #include <zenkit/vobs/Misc.hh>
 
 using namespace Tempest;
+
+struct WorldEditor::VobFocusButton final : public Button {
+  public:
+    Signal<void()> onDoubleClick;
+
+  protected:
+    void mouseDoubleClickEvent(MouseEvent& e) override {
+      onDoubleClick();
+      Button::mouseDownEvent(e);
+      }
+  };
+
+void WorldEditor::Anim::start(Vec3 from, Vec3 to, uint64_t now) {
+  this->from = from;
+  this->to   = to;
+  started    = now;
+  active     = true;
+  }
+
+bool WorldEditor::Anim::tick(Camera& camera, uint64_t now) {
+  if(!active)
+    return false;
+
+  constexpr uint64_t duration = 500;
+  const float        t        = float(std::min(now-started, duration))/float(duration);
+  const float        eased    = t*t*(3.f-2.f*t);
+  camera.setPosition(from+(to-from)*eased);
+  active = t<1.f;
+  return true;
+  }
 
 struct WorldEditor::Gizmo {
   static constexpr float TMax = 1e30f;
@@ -343,6 +379,7 @@ void WorldEditor::preload(ProjectItem&) const {
 bool WorldEditor::load(ProjectItem& it) {
   try {
     level = it.get<WorldEdit>();
+    cameraAnim = Anim();
 
     camera.setMarvinMode(Camera::M_Free);
     camera.setPosition(Vec3(0,500,0));
@@ -359,12 +396,45 @@ bool WorldEditor::load(ProjectItem& it) {
     }
   }
 
+void WorldEditor::focusVobSearch() {
+  if(vobSearch==nullptr)
+    return;
+
+  vobSearch->setFocus(true);
+  vobSearch->setSelection(0, vobSearch->text().size());
+  vobSearch->update();
+  }
+
 BaseEditor::BaseTool* WorldEditor::createToolpanel(ToolWindow::Tool tool) {
   if(tool==ToolWindow::T_VobTree) {
     auto ctrl = new BaseTool();
-    vobTree = &ctrl->addWidget(new VobTreeView());
     ctrl->setLayout(Vertical);
+
+    auto& toolbar = ctrl->addWidget(new Widget());
+    toolbar.setLayout(Horizontal);
+    toolbar.setSizePolicy(Preferred, Fixed);
+
+    vobSearch = &toolbar.addWidget(new SearchLine("Search (Ctrl+L)"));
+    vobSearch->setSizePolicy(Expanding, Preferred);
+
+    const auto& icons  = Assets::inst().ic;
+    const int   size   = toolbar.style().metrics().buttonSize;
+    const int   height = std::max(size, vobSearch->sizeHint().h);
+    toolbar.setMinimumSize(0, height);
+
+    auto& focus = toolbar.addWidget(new VobFocusButton());
+    focus.setButtonType(Button::T_ToolButton);
+    focus.setMinimumSize(size, 0);
+    focus.setSizePolicy(Fixed, Preferred);
+    focus.setIcon(icons.target);
+
+    vobTree = &ctrl->addWidget(new VobTreeView());
+    vobTree->setSizePolicy(Preferred, Expanding);
     vobTree->onVobSelected.bind(this, &WorldEditor::selectVob);
+    vobTree->onVobDoubleClicked.bind(this, &WorldEditor::focusCameraOnVob);
+    vobSearch->onTextChanged.bind(vobTree, &VobTreeView::setFilter);
+    focus.onClick.bind(vobTree, &VobTreeView::revealSelection);
+    focus.onDoubleClick.bind(this, &WorldEditor::focusCameraOnVob);
     return ctrl;
     }
   if(tool==ToolWindow::T_VobProp) {
@@ -440,8 +510,9 @@ void WorldEditor::keyUpEvent(Tempest::KeyEvent& e) {
   }
 
 void WorldEditor::mouseDownEvent(Tempest::MouseEvent& e) {
-  mpos  = e.pos();
-  state = State::T_Idle;
+  cameraAnim = Anim();
+  mpos       = e.pos();
+  state      = State::T_Idle;
 
   if(e.button==Tempest::Event::ButtonLeft) {
     const int giz = gizmoQuery(mpos);
@@ -626,7 +697,29 @@ void WorldEditor::tickCamera(uint64_t dt) {
   camera.tick(dt);
   }
 
+void WorldEditor::focusCameraOnVob() {
+  if(selVob==nullptr || selVob->get()==nullptr || w()<=0 || h()<=0)
+    return;
+
+  auto inverseView = camera.view();
+  inverseView.inverse();
+
+  Vec3 from(0.f);
+  Vec3 forward(0.f, 0.f, 1.f);
+  inverseView.project(from);
+  inverseView.project(forward);
+  forward = Vec3::normalize(forward-from);
+
+  static float focusDistance = 700.f;
+  cameraAnim.start(from, selVob->position()-forward*focusDistance, Application::tickCount());
+  }
+
 void WorldEditor::tick() {
+  if(cameraAnim.tick(camera, Application::tickCount())) {
+    update();
+    return;
+    }
+
   if(state==State::T_WASD) {
     tickCamera(16);
     }
@@ -796,6 +889,8 @@ void WorldEditor::deleteVob() {
   }
 
 void WorldEditor::selectVob(WorldEdit::Vob* vob) {
+  if(selVob!=vob)
+    cameraAnim = Anim();
   selVob = vob;
   vobTree->setVob(selVob);
   propertyDelegate->setVob(selVob);

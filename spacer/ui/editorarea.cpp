@@ -440,6 +440,23 @@ void EditorArea::implLoad(const ProjectItem& itm) {
   showEditor(editor.size()-1);
   }
 
+void EditorArea::focusVobSearch() {
+  auto* ed = currentEditor();
+  if(ed==nullptr)
+    return;
+
+  auto* world = dynamic_cast<WorldEditor*>(ed->edit.get());
+  if(world==nullptr)
+    return;
+
+  auto* tool = window[ToolWindow::T_VobTree];
+  if(tool==nullptr || tool->owner()==nullptr)
+    return;
+  if(auto* group = dynamic_cast<ToolGroup*>(tool->owner()->owner()))
+    group->selectTool(*tool);
+  world->focusVobSearch();
+  }
+
 void EditorArea::save() {
   if(auto e = currentEditor())
     e->save();

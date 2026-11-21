@@ -64,6 +64,9 @@ void RootView::initShortkuts() {
 
   scRedo    = Shortcut(*this,Event::M_Command,   Event::K_Y);
   scRedo.onActivated.bind(this,&RootView::onRedo);
+
+  scSearchVobs = Shortcut(*this, Event::M_Ctrl, Event::K_L);
+  scSearchVobs.onActivated.bind(edit, &EditorArea::focusVobSearch);
   }
 
 void RootView::setupShortkuts() {

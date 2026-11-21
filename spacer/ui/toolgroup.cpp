@@ -154,6 +154,16 @@ void ToolGroup::mkTabs() {
     }
   }
 
+void ToolGroup::selectTool(ToolWindow& tool) {
+  for(size_t i=0; i<central->widgetsCount(); ++i) {
+    if(&central->widget(i)==&tool) {
+      if(i!=sel)
+        setSelection(i);
+      return;
+      }
+    }
+  }
+
 void ToolGroup::setSelection(size_t i) {
   sel = i;
   for(size_t i=0; i<central->widgetsCount(); ++i)

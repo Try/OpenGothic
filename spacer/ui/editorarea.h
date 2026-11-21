@@ -23,6 +23,7 @@ class EditorArea : public Tempest::Widget,
     void               save();
     void               undo();
     void               redo();
+    void               focusVobSearch();
     bool               closeApp();
 
     void               openApp();

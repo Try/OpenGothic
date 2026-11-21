@@ -21,6 +21,9 @@ Assets::Assets(Device& device, TextureAtlas& atlas) {
   ic.more       = Icon(AssetFile::pixmap("more.png"), atlas);
 
   ic.add        = Icon(AssetFile::pixmap("add.png"), atlas);
+  ic.target     = Icon(AssetFile::pixmap("target.png"), atlas);
+  ic.locationSearching = Icon(AssetFile::pixmap("location_searching.png"), atlas);
+  ic.search     = Icon(AssetFile::pixmap("search.png"), atlas);
 
   ic.down       = Icon(AssetFile::pixmap("down.png"), atlas);
   ic.up         = Icon(AssetFile::pixmap("up.png"), atlas);

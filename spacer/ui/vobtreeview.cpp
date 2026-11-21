@@ -1,8 +1,10 @@
 #include "vobtreeview.h"
 
 #include <Tempest/Painter>
+#include <Tempest/TextModel>
 
 #include <algorithm>
+#include <cctype>
 
 #include "assets.h"
 
@@ -26,6 +28,7 @@ void VobTreeView::setWorld(WorldEdit& w) {
   world = &w;
   selected = nullptr;
   collapsed.clear();
+  filteredCollapsed.clear();
   verticalBar.setValue(0);
   horizontalBar.setValue(0);
   verticalWheelRemainder   = 0;
@@ -38,11 +41,28 @@ void VobTreeView::setVob(const WorldEdit::Vob* vob) {
   update();
   }
 
+void VobTreeView::setFilter(const TextModel& text) {
+  std::string query(text.c_str(), text.size());
+  for(auto& ch : query)
+    ch = char(std::tolower(static_cast<unsigned char>(ch)));
+  if(query==filter)
+    return;
+
+  filter = std::move(query);
+  filteredCollapsed.clear();
+  verticalBar.setValue(0);
+  horizontalBar.setValue(0);
+  updateView();
+  }
+
 void VobTreeView::updateView() {
   pressed = nullptr;
   rows.clear();
-  if(world!=nullptr)
-    appendRows(world->root(), 0);
+  if(world!=nullptr) {
+    if(filter.empty())
+      appendRows(world->root(), 0); else
+      appendFilteredRows(world->root(), 0);
+    }
 
   treeWidth = 0;
   if(!rows.empty()) {
@@ -54,25 +74,91 @@ void VobTreeView::updateView() {
     const int collapsedIndent = assets.ic.down.sprite(height, height, Icon::ST_Normal).w();
 
     for(const auto& row : rows) {
-      const int arrowWidth = collapsed.count(row.vob)!=0 ? collapsedIndent : indent;
-      const int groupWidth = row.vob->size()>0 ? arrowWidth+arrowLabelGap : 0;
-      auto      label      = row.label();
-      if(label.empty())
-        label = row.fallbackLabel();
-      treeWidth = std::max(treeWidth, 2*rowPadding + int(row.depth)*arrowWidth + groupWidth + font.textSize(label).w);
+      const int arrowWidth = isCollapsed(row.vob) ? collapsedIndent : indent;
+      const int groupWidth = row.hasVisibleChildren ? arrowWidth+arrowLabelGap : 0;
+      treeWidth = std::max(treeWidth, 2*rowPadding + int(row.depth)*arrowWidth + groupWidth + font.textSize(row.label()).w);
       }
     }
   updateScrollBars();
   update();
   }
 
+void VobTreeView::revealSelection() {
+  if(world==nullptr || selected==nullptr)
+    return;
+
+  const auto isSelected = [this](const Row& row) { return row.vob==selected; };
+  auto       row        = std::find_if(rows.begin(), rows.end(), isSelected);
+  if(row==rows.end()) {
+    if(!openSelectionPath(world->root()))
+      return;
+    updateView();
+    row = std::find_if(rows.begin(), rows.end(), isSelected);
+    if(row==rows.end())
+      return;
+    }
+
+  const auto area   = viewport();
+  const int  height = rowHeight();
+  const int  top    = int(row-rows.begin())*height;
+  if(top<verticalBar.value() || top+height>verticalBar.value()+area.h)
+    verticalBar.setValue(top-std::max(0, (area.h-height)/2));
+
+  const auto& arrow = arrowSprite(*row);
+  const int   x     = arrowRect(*row, 0, arrow).x;
+  const int   label = x+(row->hasVisibleChildren ? arrow.w()+arrowLabelGap : 0);
+  if(label<0 || label>=area.w)
+    horizontalBar.setValue(horizontalBar.value()+x-rowPadding);
+  }
+
+bool VobTreeView::openSelectionPath(const WorldEdit::Vob& node) {
+  if(&node==selected)
+    return true;
+
+  for(size_t i=0; i<node.size(); ++i) {
+    if(openSelectionPath(node[i])) {
+      (filter.empty() ? collapsed : filteredCollapsed).erase(&node);
+      return true;
+      }
+    }
+  return false;
+  }
+
 void VobTreeView::appendRows(WorldEdit::Vob& vob, size_t depth) {
-  rows.push_back({&vob, depth});
+  rows.push_back({&vob, depth, vob.size()>0});
   if(collapsed.count(&vob)!=0)
     return;
 
   for(size_t i=0; i<vob.size(); ++i)
     appendRows(vob[i], depth+1);
+  }
+
+void VobTreeView::appendFilteredRows(WorldEdit::Vob& vob, size_t depth) {
+  const size_t index = rows.size();
+  rows.push_back({&vob, depth, false});
+
+  for(size_t i=0; i<vob.size(); ++i)
+    appendFilteredRows(vob[i], depth+1);
+
+  auto&      row                = rows[index];
+  const bool hasVisibleChildren = rows.size()>index+1;
+  if(!hasVisibleChildren && (row.vob->get()==nullptr || !matchesFilter(row.label(), filter))) {
+    rows.pop_back();
+    return;
+    }
+
+  row.hasVisibleChildren = hasVisibleChildren;
+  if(isCollapsed(&vob))
+    rows.resize(index+1);
+  }
+
+bool VobTreeView::matchesFilter(std::string_view row, std::string_view pattern) {
+  return std::search(row.begin(), row.end(), pattern.begin(), pattern.end(),
+                     [](unsigned char a, unsigned char b) { return std::tolower(a)==std::tolower(b); })!=row.end();
+  }
+
+bool VobTreeView::isCollapsed(const WorldEdit::Vob* vob) const {
+  return (filter.empty() ? collapsed : filteredCollapsed).count(vob)!=0;
   }
 
 int VobTreeView::rowHeight() const {
@@ -137,7 +223,7 @@ const VobTreeView::Row* VobTreeView::rowAt(Point point) const {
   }
 
 bool VobTreeView::isArrowHit(const Row& row, Point point) const {
-  if(row.vob->size()==0)
+  if(!row.hasVisibleChildren)
     return false;
 
   const int y = int(&row-rows.data())*rowHeight()-verticalBar.value();
@@ -146,7 +232,7 @@ bool VobTreeView::isArrowHit(const Row& row, Point point) const {
 
 const Sprite& VobTreeView::arrowSprite(const Row& row) const {
   const auto& assets = Assets::inst();
-  const auto& icon   = collapsed.count(row.vob)!=0 ? assets.ic.down : assets.ic.up;
+  const auto& icon   = isCollapsed(row.vob) ? assets.ic.down : assets.ic.up;
   const int   height = rowHeight();
   return icon.sprite(height, height, Icon::ST_Normal);
   }
@@ -174,6 +260,12 @@ void VobTreeView::mouseDownEvent(MouseEvent& e) {
   update();
   }
 
+void VobTreeView::mouseDoubleClickEvent(MouseEvent& e) {
+  mouseDownEvent(e);
+  if(e.isAccepted() && pressed!=nullptr && !pressedArrow && pressed->vob==selected)
+    onVobDoubleClicked();
+  }
+
 void VobTreeView::mouseUpEvent(MouseEvent& e) {
   if(e.button!=Event::ButtonLeft || pressed==nullptr) {
     e.ignore();
@@ -190,8 +282,9 @@ void VobTreeView::mouseUpEvent(MouseEvent& e) {
 
   auto* vob = row->vob;
   if(pressedArrow) {
-    if(collapsed.erase(vob)==0)
-      collapsed.insert(vob);
+    auto& branches = filter.empty() ? collapsed : filteredCollapsed;
+    if(branches.erase(vob)==0)
+      branches.insert(vob);
     updateView();
     } else if(vob->get()!=nullptr) {
     onVobSelected(vob);
@@ -262,16 +355,14 @@ void VobTreeView::paintRow(Painter& p, const Row& row, const Rect& rect, bool ho
   const auto& arrow  = arrowSprite(row);
   const auto  bounds = arrowRect(row, rect.y, arrow);
   int         x      = bounds.x;
-  if(row.vob->size()>0) {
+  if(row.hasVisibleChildren) {
     p.setBrush(arrow);
     p.drawRect(bounds.x, bounds.y, bounds.w, bounds.h);
     x += bounds.w+arrowLabelGap;
     }
 
-  auto       label    = row.label();
-  const bool fallback = label.empty();
-  if(fallback)
-    label = row.fallbackLabel();
+  const auto label    = row.label();
+  const bool fallback = row.vob->get()!=nullptr && row.vobName().empty();
 
   auto font = assets.fntSmall;
   font.setBold(active);
@@ -283,12 +374,16 @@ void VobTreeView::paintRow(Painter& p, const Row& row, const Rect& rect, bool ho
 
 std::string_view VobTreeView::Row::label() const {
   const auto* object = vob->get();
-  return object!=nullptr ? std::string_view(object->vob_name) : "LEVEL";
+  if(object==nullptr)
+    return "LEVEL";
+  if(const auto name = vobName(); !name.empty())
+    return name;
+  if(object->type==zenkit::VirtualObjectType::zCVobLight)
+    return "zCVobLight";
+  return object->visual_name;
   }
 
-std::string_view VobTreeView::Row::fallbackLabel() const {
-  const auto& object = *vob->get();
-  if(object.type==zenkit::VirtualObjectType::zCVobLight)
-    return "zCVobLight";
-  return object.visual_name;
+std::string_view VobTreeView::Row::vobName() const {
+  const auto* object = vob->get();
+  return object!=nullptr ? std::string_view(object->vob_name) : std::string_view{};
   }

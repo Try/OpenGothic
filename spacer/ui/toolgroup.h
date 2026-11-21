@@ -21,6 +21,7 @@ class ToolGroup : public Tempest::Panel {
       }
 
     void   invalidate();
+    void   selectTool(ToolWindow& tool);
     void   saveUiLayout(BaseEditor::ToolType parent, size_t group);
     void   moveContent(ToolGroup& src);
 

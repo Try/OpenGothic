@@ -36,6 +36,7 @@ class RootView : public Tempest::Widget {
     Tempest::Shortcut      scSave;
     Tempest::Shortcut      scUndo;
     Tempest::Shortcut      scRedo;
+    Tempest::Shortcut      scSearchVobs;
 
     EditorArea*            edit = nullptr;
 
