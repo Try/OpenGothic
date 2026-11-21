@@ -6,8 +6,10 @@
 #include <Tempest/Button>
 #include <Tempest/Application>
 
+#include <algorithm>
 #include <cmath>
 
+#include "ui/controls/filtermenu.h"
 #include "ui/controls/searchline.h"
 #include "ui/property/propertydelegate.h"
 #include "ui/projectitemview.h"
@@ -32,6 +34,23 @@ struct WorldEditor::VobFocusButton final : public Button {
       onDoubleClick();
       Button::mouseDownEvent(e);
       }
+  };
+
+struct WorldEditor::VobClassFilterButton final : Button {
+  explicit VobClassFilterButton(VobTreeView& tree) : tree(tree) {
+    setButtonType(T_ToolButton);
+    setIcon(Assets::inst().ic.filterList);
+    onClick.bind(this, &VobClassFilterButton::showFilters);
+    }
+
+  private:
+    void showFilters() {
+      FilterMenu menu(tree);
+      menu.show(*this);
+      setButtonType(tree.hasClassFilters() ? T_PushButton : T_ToolButton);
+      }
+
+    VobTreeView& tree;
   };
 
 void WorldEditor::Anim::start(Vec3 from, Vec3 to, uint64_t now) {
@@ -430,6 +449,11 @@ BaseEditor::BaseTool* WorldEditor::createToolpanel(ToolWindow::Tool tool) {
 
     vobTree = &ctrl->addWidget(new VobTreeView());
     vobTree->setSizePolicy(Preferred, Expanding);
+
+    auto& classFilter = toolbar.addWidget(new VobClassFilterButton(*vobTree), 0);
+    classFilter.setMinimumSize(size, 0);
+    classFilter.setSizePolicy(Fixed, Preferred);
+
     vobTree->onVobSelected.bind(this, &WorldEditor::selectVob);
     vobTree->onVobDoubleClicked.bind(this, &WorldEditor::focusCameraOnVob);
     vobSearch->onTextChanged.bind(vobTree, &VobTreeView::setFilter);

@@ -55,6 +55,7 @@ class WorldEditor: public BaseEditor,
   private:
     struct Gizmo;
     struct VobFocusButton;
+    struct VobClassFilterButton;
 
     struct Anim {
       public:

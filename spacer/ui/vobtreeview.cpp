@@ -7,6 +7,7 @@
 #include <cctype>
 
 #include "assets.h"
+#include "objects/vobreflection.h"
 
 using namespace Tempest;
 
@@ -49,6 +50,35 @@ void VobTreeView::setFilter(const TextModel& text) {
     return;
 
   filter = std::move(query);
+  updateFilter();
+  }
+
+bool VobTreeView::hasClassFilters() const {
+  return !classFilters.empty();
+  }
+
+bool VobTreeView::isClassFiltered(zenkit::VirtualObjectType type) const {
+  return classFilters.contains(type);
+  }
+
+void VobTreeView::toggleClassFilter(zenkit::VirtualObjectType type) {
+  if(classFilters.erase(type)==0)
+    classFilters.insert(type);
+  updateFilter();
+  }
+
+void VobTreeView::clearClassFilters() {
+  if(classFilters.empty())
+    return;
+  classFilters.clear();
+  updateFilter();
+  }
+
+bool VobTreeView::isFiltering() const {
+  return !filter.empty() || hasClassFilters();
+  }
+
+void VobTreeView::updateFilter() {
   filteredCollapsed.clear();
   verticalBar.setValue(0);
   horizontalBar.setValue(0);
@@ -59,7 +89,7 @@ void VobTreeView::updateView() {
   pressed = nullptr;
   rows.clear();
   if(world!=nullptr) {
-    if(filter.empty())
+    if(!isFiltering())
       appendRows(world->root(), 0); else
       appendFilteredRows(world->root(), 0);
     }
@@ -117,7 +147,7 @@ bool VobTreeView::openSelectionPath(const WorldEdit::Vob& node) {
 
   for(size_t i=0; i<node.size(); ++i) {
     if(openSelectionPath(node[i])) {
-      (filter.empty() ? collapsed : filteredCollapsed).erase(&node);
+      (isFiltering() ? filteredCollapsed : collapsed).erase(&node);
       return true;
       }
     }
@@ -142,7 +172,9 @@ void VobTreeView::appendFilteredRows(WorldEdit::Vob& vob, size_t depth) {
 
   auto&      row                = rows[index];
   const bool hasVisibleChildren = rows.size()>index+1;
-  if(!hasVisibleChildren && (row.vob->get()==nullptr || !matchesFilter(row.label(), filter))) {
+  const auto* object = vob.get();
+  if(!hasVisibleChildren && (object==nullptr || !matchesClassFilter(object->type) ||
+                            (!filter.empty() && !matchesFilter(row.label(), filter)))) {
     rows.pop_back();
     return;
     }
@@ -152,13 +184,24 @@ void VobTreeView::appendFilteredRows(WorldEdit::Vob& vob, size_t depth) {
     rows.resize(index+1);
   }
 
+bool VobTreeView::matchesClassFilter(zenkit::VirtualObjectType type) const {
+  if(classFilters.empty() || classFilters.contains(type))
+    return true;
+
+  const auto* cls = VobReflection::find(type);
+  for(auto base = cls!=nullptr ? cls->baseClass() : nullptr; base!=nullptr; base = base->baseClass())
+    if(base->type!=VobReflection::Type::zCVob && classFilters.contains(base->type))
+      return true;
+  return false;
+  }
+
 bool VobTreeView::matchesFilter(std::string_view row, std::string_view pattern) {
   return std::search(row.begin(), row.end(), pattern.begin(), pattern.end(),
                      [](unsigned char a, unsigned char b) { return std::tolower(a)==std::tolower(b); })!=row.end();
   }
 
 bool VobTreeView::isCollapsed(const WorldEdit::Vob* vob) const {
-  return (filter.empty() ? collapsed : filteredCollapsed).count(vob)!=0;
+  return (isFiltering() ? filteredCollapsed : collapsed).count(vob)!=0;
   }
 
 int VobTreeView::rowHeight() const {
@@ -282,7 +325,7 @@ void VobTreeView::mouseUpEvent(MouseEvent& e) {
 
   auto* vob = row->vob;
   if(pressedArrow) {
-    auto& branches = filter.empty() ? collapsed : filteredCollapsed;
+    auto& branches = isFiltering() ? filteredCollapsed : collapsed;
     if(branches.erase(vob)==0)
       branches.insert(vob);
     updateView();
@@ -378,9 +421,11 @@ std::string_view VobTreeView::Row::label() const {
     return "LEVEL";
   if(const auto name = vobName(); !name.empty())
     return name;
-  if(object->type==zenkit::VirtualObjectType::zCVobLight)
-    return "zCVobLight";
-  return object->visual_name;
+  if(!object->visual_name.empty())
+    return object->visual_name;
+  if(const auto* cls = VobReflection::find(object->type))
+    return cls->name;
+  return "Unknown Vob";
   }
 
 std::string_view VobTreeView::Row::vobName() const {

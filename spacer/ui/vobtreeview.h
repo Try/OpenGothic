@@ -19,6 +19,11 @@ class VobTreeView : public Tempest::Widget {
     void updateView();
     void revealSelection();
 
+    bool hasClassFilters() const;
+    bool isClassFiltered(zenkit::VirtualObjectType type) const;
+    void toggleClassFilter(zenkit::VirtualObjectType type);
+    void clearClassFilters();
+
     Tempest::Signal<void(WorldEdit::Vob*)> onVobSelected;
     Tempest::Signal<void()>                onVobDoubleClicked;
 
@@ -45,6 +50,9 @@ class VobTreeView : public Tempest::Widget {
     void                   appendRows(WorldEdit::Vob& vob, size_t depth);
     void                   appendFilteredRows(WorldEdit::Vob& vob, size_t depth);
     static bool            matchesFilter(std::string_view row, std::string_view pattern);
+    bool                   matchesClassFilter(zenkit::VirtualObjectType type) const;
+    bool                   isFiltering() const;
+    void                   updateFilter();
     bool                   isCollapsed(const WorldEdit::Vob* vob) const;
     bool                   openSelectionPath(const WorldEdit::Vob& node);
     void                   paintRow(Tempest::Painter& p, const Row& row, const Tempest::Rect& rect, bool hovered) const;
@@ -68,7 +76,8 @@ class VobTreeView : public Tempest::Widget {
     bool                  pressedArrow             = false;
     Tempest::Point        mouse                    = {-1, -1};
 
-    std::string                              filter;
+    std::string                               filter;
+    std::unordered_set<zenkit::VirtualObjectType> classFilters;
     std::unordered_set<const WorldEdit::Vob*> collapsed;
     std::unordered_set<const WorldEdit::Vob*> filteredCollapsed;
     std::vector<Row>                          rows;
