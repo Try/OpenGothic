@@ -694,6 +694,13 @@ void WorldEditor::update3d(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_
     update();
     }
 
+  Widget* wx = this;
+  while(wx!=nullptr) {
+    if(!wx->isVisible())
+      return;
+    wx = wx->owner();
+    }
+
   if(!hasFocus() && !needToUpdate())
     return;
 
