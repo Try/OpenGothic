@@ -55,6 +55,7 @@ class WorldEdit {
 
         std::vector<std::unique_ptr<Vob>>      child;
         std::shared_ptr<zenkit::VirtualObject> orig;
+        bool                                   physics = true;
 
         PhysicMesh        phys;
         MeshObjects::Mesh mesh;

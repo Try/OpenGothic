@@ -124,7 +124,7 @@ void WorldEdit::Vob::initView(WorldEdit& owner) {
        mesh.setObjMatrix(pos);
        }
      mdl = MdlVisual();
-     if(true || vob.cd_dynamic) {
+     if(physics) {
        phys = PhysicMesh(*view, *owner.physics, false);
        phys.setObjMatrix(pos);
        phys.setPayloadPtr(orig.get());
@@ -154,7 +154,7 @@ void WorldEdit::Vob::initView(WorldEdit& owner) {
         mdl.setObjMatrix(pos);
         }
 
-      if(true || vob.cd_dynamic) {
+      if(physics) {
         phys = PhysicMesh(*view, *owner.physics, false);
         phys.setSkeleton(view->skeleton.get());
         //phys.setObjMatrix(pos);
@@ -209,8 +209,7 @@ void WorldEdit::Vob::setVisual(WorldEdit& owner, std::string_view vis) {
   }
 
 void WorldEdit::Vob::setCollision(WorldEdit& owner, bool cd) {
-  orig->cd_static  = cd;
-  orig->cd_dynamic = cd;
+  physics = cd;
   clearView();
   initView(owner);
   }
