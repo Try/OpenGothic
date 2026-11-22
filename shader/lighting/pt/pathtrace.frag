@@ -66,6 +66,16 @@ float shadowFactor(vec3 pos) {
   return calcShadow(shPos.xyz/shPos.w);
   }
 
+float lightIntensityPT(const vec3 normal, const float distance, const vec3 ldir, const float lightRange) {
+  if(distance<=0.0)
+    return 0;
+
+  const float normalizedDistance = lightRange / distance;
+  const float falloff            = (normalizedDistance * normalizedDistance);
+  const float lambert            = max(0.0, -dot(ldir, normal));
+
+  return lambert * falloff * 0.25;
+  }
 
 vec3 randomizeRay(vec3 ray, float off, inout Random rngState) {
 #if !defined(SOFT_SHADOW)
@@ -169,7 +179,7 @@ float samplePointLight(vec3 norm, vec3 rayOrigin, vec3 lightPos, float range, bo
   const vec3    rayDirection = ldir/dirLength;
   const vec3    shRay        = randomizeRay(rayDirection, 0.0375, rngState);
 
-  const float   intensity    = lightIntensity(norm, dirLength, -shRay, range);
+  const float   intensity    = lightIntensityPT(norm, dirLength, -rayDirection, range);
   if(!shadowed || intensity<=0)
     return 0;
 
@@ -256,6 +266,9 @@ vec4 pathtrace(vec3 rayOrigin, vec3 rayDirection) {
       }
 
     if(hit.rayT==TMax) {
+      if(bounce==0)
+        return vec4(0);
+
       vec3 sky = textureSkyLUT(skyLUT, vec3(0,RPlanet+max(rayOrigin.y*0.01,0),0), rayDirection, scene.sunDir) * scene.GSunIntensity;
       color += thruput*sky;
       color += thruput*(vec3(0.3, 0.26, 1)*0.15); //HACK for the night sky
