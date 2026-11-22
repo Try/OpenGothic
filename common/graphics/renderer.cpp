@@ -177,6 +177,9 @@ void Renderer::setupSettings() {
     resetShadowmap();
     }
 
+  if(settings.pathTraceEnabled && !Shaders::options().doRtScene)
+    settings.pathTraceEnabled = false;
+
   resetSkyFog();
   resetShadowmap();
   }

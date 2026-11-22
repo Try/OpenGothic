@@ -37,6 +37,8 @@ float rayQueryProceedShadow(const vec3 rayOrigin, const vec3 rayDirection, float
   // CullBack due to vegetation
   uint  flags = gl_RayFlagsSkipAABBEXT | gl_RayFlagsCullBackFacingTrianglesEXT;
   float tMin  = 1;
+  if(tMax<=tMin)
+    return 1;
 
   rayQueryEXT rayQuery;
   rayQueryInitializeEXT(rayQuery, topLevelAS, flags, CM_ShadowCaster,
