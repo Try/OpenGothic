@@ -17,6 +17,7 @@ class PropertyDelegate : public Tempest::ListDelegate {
 
     size_t           size() const override;
     Tempest::Widget* createView(size_t position) override;
+    Tempest::Widget* update(Tempest::Widget* widget, size_t position) override;
 
   private:
     struct TypeHeader;

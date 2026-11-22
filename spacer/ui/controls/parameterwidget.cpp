@@ -13,6 +13,7 @@
 #include "ui/controls/sliderwidget.h"
 #include "vecwidget.h"
 #include "colorwidget.h"
+#include "colorlistwidget.h"
 #include "stringwidget.h"
 
 #include "ui/uihelper.h"
@@ -171,6 +172,30 @@ struct ParameterWidget::EditColorWidget : Base<ColorWidget> {
   void adjustSize() {
     auto sz = UiHelper::wrapContent(*this,Vertical);
     setSizeHint(sz,margins());
+    }
+  };
+
+struct ParameterWidget::EditColorList : Base<ColorListWidget> {
+  EditColorList(size_t pos, std::string_view name):Base(pos,name) {
+    edit->onValueModifyed.bind(this, &EditColorList::commit);
+    edit->onResize.bind(this, &Base::adjustSize);
+    }
+
+  Variant argv() const override {
+    return Variant(edit->value());
+    }
+
+  void setArgv(const Variant& value) override {
+    if(const auto* colors = value.get<std::vector<zenkit::Color>>())
+      edit->setValue(*colors);
+    }
+
+  void setColorAnimationTiming(float fps, bool smooth) override {
+    edit->setTiming(fps, smooth);
+    }
+
+  void commit(bool commit) {
+    onChanged(pos, argv(), commit);
     }
   };
 
@@ -334,6 +359,8 @@ ParameterWidget* ParameterWidget::implCreateEditor(const Property::Type& type, s
 
   const auto ctype = type.coreType;
   switch(ctype) {
+    case Property::CoreType::ColorList:
+      return new EditColorList(pos, name);
     case Property::CoreType::Texture:
       return new ParameterWidget(); //TODO: edit texture
     case Property::CoreType::Vec1:
@@ -376,5 +403,5 @@ Variant ParameterWidget::argv() const {
 void ParameterWidget::setArgv(const Variant&) {
   }
 
-void ParameterWidget::setColorIds(const std::vector<Tempest::Vec3>&) {
+void ParameterWidget::setColorAnimationTiming(float, bool) {
   }

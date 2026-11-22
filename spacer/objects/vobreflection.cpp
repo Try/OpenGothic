@@ -81,6 +81,9 @@ VobReflection::Field& VobReflection::addProperty(std::vector<Field>& fields, std
   else if constexpr(std::is_same_v<F,zenkit::Color>) {
     id.slot.type = &Property::Type::Color;
     }
+  else if constexpr(std::is_same_v<F,std::vector<zenkit::Color>>) {
+    id.slot.type = &Property::Type::ColorList;
+    }
   else if constexpr(std::is_same_v<F,zenkit::SpriteAlignment>) {
     id.slot.type = &Property::Type::Enum;
     id.slot.enumValues = {"None", "Yaw", "Full"};
@@ -307,7 +310,7 @@ void VobReflection::register_zCVobLight() {
   addProperty(cls.fields, "range animation scale",  &zenkit::VLight::range_animation_scale, std::false_type());
   addProperty(cls.fields, "range animation fps",    &zenkit::VLight::range_animation_fps, 0.f, 60.f);
   addProperty(cls.fields, "range animation smooth", &zenkit::VLight::range_animation_smooth);
-  addProperty(cls.fields, "color animation list",   &zenkit::VLight::color_animation_list, std::false_type());
+  addProperty(cls.fields, "color animation list",   &zenkit::VLight::color_animation_list);
   addProperty(cls.fields, "color animation fps",    &zenkit::VLight::color_animation_fps, 0.f, 60.f);
   addProperty(cls.fields, "color animation smooth", &zenkit::VLight::color_animation_smooth);
   addProperty(cls.fields, "can move",               &zenkit::VLight::can_move);

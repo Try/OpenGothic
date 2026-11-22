@@ -3,6 +3,8 @@
 #include "ui/controls/parameterwidget.h"
 #include "ui/controls/widgetheader.h"
 
+#include <zenkit/vobs/Light.hh>
+
 using namespace Tempest;
 
 class CmdSetProperty final : public Command::Action<WorldEdit> {
@@ -93,7 +95,19 @@ Widget* PropertyDelegate::createView(size_t i) {
   auto var = row.field->get ? row.field->get(*vob->get()) : Variant();
   auto ed  = ParameterWidget::createEditor(row.field->slot, var, i);
   ed->onChanged.bind(this, &PropertyDelegate::onProperty);
-  return ed;
+  return update(ed, i);
+  }
+
+Widget* PropertyDelegate::update(Widget* widget, size_t i) {
+  const auto* field = index[i].field;
+  if(field != nullptr && field->slot.type == &Property::Type::ColorList) {
+    auto* light = dynamic_cast<const zenkit::VLight*>(vob->get());
+    auto* ctrl  = dynamic_cast<ParameterWidget*>(widget);
+    if(ctrl!=nullptr && light!=nullptr) {
+      ctrl->setColorAnimationTiming(light->color_animation_fps, light->color_animation_smooth);
+      }
+    }
+  return widget;
   }
 
 void PropertyDelegate::setupUI(const VobReflection::Class& cls) {

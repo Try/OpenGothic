@@ -930,8 +930,10 @@ void WorldEditor::selectVob(WorldEdit::Vob* vob) {
 
 void WorldEditor::setVobProperty(std::unique_ptr<Command::Action<WorldEdit>>& cmd, bool commit) {
   timeline.push(*level, cmd.release(), commit);
-  if(commit)
+  if(commit) {
     vobTree->updateView();
+    propertyDelegate->updateView();
+    }
   invalidateTab();
   update();
   }

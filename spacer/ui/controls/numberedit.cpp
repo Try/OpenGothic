@@ -26,6 +26,8 @@ void NumberEdit::keyRepeatEvent(KeyEvent& e) {
   }
 
 bool NumberEdit::checkInput(KeyEvent& e) const {
+  if(!isEnabled())
+    return false;
   if(e.key==Event::K_Delete || e.key==Event::K_Back)
     return true;
   return ('0'<=e.code && e.code<='9') || e.code=='-' || e.code==0 || (e.code=='.' && flt);
