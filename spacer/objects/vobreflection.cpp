@@ -81,6 +81,9 @@ VobReflection::Field& VobReflection::addProperty(std::vector<Field>& fields, std
   else if constexpr(std::is_same_v<F,zenkit::Color>) {
     id.slot.type = &Property::Type::Color;
     }
+  else if constexpr(std::is_same_v<F,std::vector<float>>) {
+    id.slot.type = &Property::Type::RangeScale;
+    }
   else if constexpr(std::is_same_v<F,std::vector<zenkit::Color>>) {
     id.slot.type = &Property::Type::ColorList;
     }
@@ -300,19 +303,19 @@ void VobReflection::register_zCVobLight() {
   auto& cls = addClass(Type::zCVobLight, "zCVobLight", Type::zCVob);
   addProperty(cls.fields, "lightPresetInUse",       &zenkit::VLight::preset);
   addProperty(cls.fields, "lightType",              &zenkit::VLight::light_type);
-  addProperty(cls.fields, "range",                  &zenkit::VLight::range, 0.f, 2000.f);
-  addProperty(cls.fields, "color",                  &zenkit::VLight::color);
-  addProperty(cls.fields, "spotConeAngle",          &zenkit::VLight::cone_angle, 0.f, 180.f);
   addProperty(cls.fields, "lightStatic",            &zenkit::VLight::is_static);
+  addProperty(cls.fields, "turnedOn",               &zenkit::VLight::on);
+  addProperty(cls.fields, "color",                  &zenkit::VLight::color);
+  addProperty(cls.fields, "color animation list",   &zenkit::VLight::color_animation_list);
+  addProperty(cls.fields, "color animation smooth", &zenkit::VLight::color_animation_smooth);
+  addProperty(cls.fields, "color animation fps",    &zenkit::VLight::color_animation_fps, 0.f, 60.f);
+  addProperty(cls.fields, "range",                  &zenkit::VLight::range, 0.f, 2000.f);
+  addProperty(cls.fields, "range animation scale",  &zenkit::VLight::range_animation_scale);
+  addProperty(cls.fields, "range animation smooth", &zenkit::VLight::range_animation_smooth);
+  addProperty(cls.fields, "range animation fps",    &zenkit::VLight::range_animation_fps, 0.f, 60.f);
+  addProperty(cls.fields, "spotConeAngle",          &zenkit::VLight::cone_angle, 0.f, 180.f);
   addProperty(cls.fields, "lightQuality",           &zenkit::VLight::quality);
   addProperty(cls.fields, "lensflareFX",            &zenkit::VLight::lensflare_fx);
-  addProperty(cls.fields, "turnedOn",               &zenkit::VLight::on);
-  addProperty(cls.fields, "range animation scale",  &zenkit::VLight::range_animation_scale, std::false_type());
-  addProperty(cls.fields, "range animation fps",    &zenkit::VLight::range_animation_fps, 0.f, 60.f);
-  addProperty(cls.fields, "range animation smooth", &zenkit::VLight::range_animation_smooth);
-  addProperty(cls.fields, "color animation list",   &zenkit::VLight::color_animation_list);
-  addProperty(cls.fields, "color animation fps",    &zenkit::VLight::color_animation_fps, 0.f, 60.f);
-  addProperty(cls.fields, "color animation smooth", &zenkit::VLight::color_animation_smooth);
   addProperty(cls.fields, "can move",               &zenkit::VLight::can_move);
   }
 

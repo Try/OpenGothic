@@ -11,7 +11,7 @@ class ParameterWidget : virtual public Tempest::Widget {
 
     virtual Variant argv() const;
     virtual void    setArgv(const Variant&);
-    virtual void    setColorAnimationTiming(float fps, bool smooth);
+    virtual void    setAnimationTiming(float fps, bool smooth);
 
     Tempest::Signal<void(size_t id,const Variant& v,bool commit)> onChanged;
 
@@ -26,7 +26,8 @@ class ParameterWidget : virtual public Tempest::Widget {
     struct EditBool;
     struct EditEnum;
     struct EditColorWidget;
-    struct EditColorList;
+    template<class Editor, class Value>
+    struct EditAnimationList;
     struct EditInt1;
     struct EditFloat1;
     struct EditFloat2;

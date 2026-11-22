@@ -20,6 +20,7 @@ enum class CoreType : uint8_t {
   Vec3,
   Vec4,
   ColorList,
+  RangeScale,
   };
 
 enum class InputType : uint8_t {
@@ -66,6 +67,7 @@ class Type final {
 
     static const Type Color;
     static const Type ColorList;
+    static const Type RangeScale;
     static const Type Percentage;
   };
 

@@ -14,6 +14,7 @@
 #include "vecwidget.h"
 #include "colorwidget.h"
 #include "colorlistwidget.h"
+#include "rangescalewidget.h"
 #include "stringwidget.h"
 
 #include "ui/uihelper.h"
@@ -30,7 +31,9 @@ struct ParameterWidget::Base : ParameterWidget {
     auto& ic = Assets::inst().ic.up;
     auto& sp = ic.sprite(w(),h(),Icon::ST_Normal);
 
+    auto& m = style().metrics();
     this->setSizePolicy(Preferred,Fixed);
+    this->setSizeHint(Size(m.buttonSize,m.buttonSize));
     this->setLayout(Vertical);
     this->setMargins(Margin(sp.w()+8,0,0,0));
     edit = &addWidget(new Editor(a...));
@@ -175,27 +178,28 @@ struct ParameterWidget::EditColorWidget : Base<ColorWidget> {
     }
   };
 
-struct ParameterWidget::EditColorList : Base<ColorListWidget> {
-  EditColorList(size_t pos, std::string_view name):Base(pos,name) {
-    edit->onValueModifyed.bind(this, &EditColorList::commit);
-    edit->onResize.bind(this, &Base::adjustSize);
+template<class Editor, class Value>
+struct ParameterWidget::EditAnimationList : Base<Editor> {
+  EditAnimationList(size_t pos, std::string_view name):Base<Editor>(pos,name) {
+    this->edit->onValueModifyed.bind(this, &EditAnimationList::commit);
+    this->edit->onResize.bind(this, &Base<Editor>::adjustSize);
     }
 
   Variant argv() const override {
-    return Variant(edit->value());
+    return Variant(this->edit->value());
     }
 
   void setArgv(const Variant& value) override {
-    if(const auto* colors = value.get<std::vector<zenkit::Color>>())
-      edit->setValue(*colors);
+    if(const auto* list = value.get<std::vector<Value>>())
+      this->edit->setValue(*list);
     }
 
-  void setColorAnimationTiming(float fps, bool smooth) override {
-    edit->setTiming(fps, smooth);
+  void setAnimationTiming(float fps, bool smooth) override {
+    this->edit->setTiming(fps, smooth);
     }
 
   void commit(bool commit) {
-    onChanged(pos, argv(), commit);
+    this->onChanged(this->pos, argv(), commit);
     }
   };
 
@@ -360,7 +364,9 @@ ParameterWidget* ParameterWidget::implCreateEditor(const Property::Type& type, s
   const auto ctype = type.coreType;
   switch(ctype) {
     case Property::CoreType::ColorList:
-      return new EditColorList(pos, name);
+      return new EditAnimationList<ColorListWidget,zenkit::Color>(pos, name);
+    case Property::CoreType::RangeScale:
+      return new EditAnimationList<RangeScaleWidget,float>(pos, name);
     case Property::CoreType::Texture:
       return new ParameterWidget(); //TODO: edit texture
     case Property::CoreType::Vec1:
@@ -403,5 +409,5 @@ Variant ParameterWidget::argv() const {
 void ParameterWidget::setArgv(const Variant&) {
   }
 
-void ParameterWidget::setColorAnimationTiming(float, bool) {
+void ParameterWidget::setAnimationTiming(float, bool) {
   }

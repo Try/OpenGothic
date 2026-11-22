@@ -100,12 +100,16 @@ Widget* PropertyDelegate::createView(size_t i) {
 
 Widget* PropertyDelegate::update(Widget* widget, size_t i) {
   const auto* field = index[i].field;
-  if(field != nullptr && field->slot.type == &Property::Type::ColorList) {
-    auto* light = dynamic_cast<const zenkit::VLight*>(vob->get());
-    auto* ctrl  = dynamic_cast<ParameterWidget*>(widget);
-    if(ctrl!=nullptr && light!=nullptr) {
-      ctrl->setColorAnimationTiming(light->color_animation_fps, light->color_animation_smooth);
-      }
+  if(field == nullptr)
+    return widget;
+
+  const auto* light = dynamic_cast<const zenkit::VLight*>(vob->get());
+  auto* ctrl = dynamic_cast<ParameterWidget*>(widget);
+  if(ctrl!=nullptr && light!=nullptr) {
+    if(field->slot.type == &Property::Type::ColorList)
+      ctrl->setAnimationTiming(light->color_animation_fps, light->color_animation_smooth);
+    else if(field->slot.type == &Property::Type::RangeScale)
+      ctrl->setAnimationTiming(light->range_animation_fps, light->range_animation_smooth);
     }
   return widget;
   }
