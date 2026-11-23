@@ -601,9 +601,10 @@ void Npc::onNoHealth(bool death, HitSound sndMask) {
 
   size_t fdead=owner.script().findSymbolIndex(state);
   startState(fdead,"",gtime::endOfTime(),true);
-  // npcs outside of ai range don't enter ZS_Dead in vanilla, inventory is left unchanged
-  // Sengrath's crossbow lacks MISSION flag and would be removed on ZS_Dead start
-  // WA: don't execute start function where inventory would be changed.
+  // Npc's outside of ai range don't enter ZS_Dead in vanilla.
+  //  this quirk has important interaction with merchant npc's.
+  // Example:
+  //   Sengrath's crossbow lacks MISSION flag and would be removed on ZS_Dead start
   if(aiPolicy==NpcProcessPolicy::AiFar || aiPolicy==NpcProcessPolicy::AiFar2)
     aiState.started = true;
   // Note: clear perceptions for William in Jarkentar
@@ -1241,6 +1242,7 @@ bool Npc::changeAttribute(Attribute a, int32_t val) {
       return false;
     if(isPlayer() && owner.currentCs()!=nullptr)
       return false;
+    //NOTE: immortals are not considered even for script damage
     if(isImmortal())
       return false;
     }
@@ -2326,6 +2328,12 @@ void Npc::tick(uint64_t dt) {
 
   assert(go2.flag!=GoToHint::GT_Enemy && go2.flag!=GoToHint::GT_EnemyG);
 
+  if(!isDead()) {
+    tickRegen(hnpc->attribute[ATR_HITPOINTS],hnpc->attribute[ATR_HITPOINTSMAX],
+              hnpc->attribute[ATR_REGENERATEHP],dt);
+    tickRegen(hnpc->attribute[ATR_MANA],hnpc->attribute[ATR_MANAMAX],
+              hnpc->attribute[ATR_REGENERATEMANA],dt);
+    }
   // npc could be killed by script e.g. swampdrone explosion
   checkHealth(false,HS_NoSound);
 
@@ -2355,13 +2363,6 @@ void Npc::tick(uint64_t dt) {
 
   if(tickCast(dt))
     return;
-
-  if(!isDead()) {
-    tickRegen(hnpc->attribute[ATR_HITPOINTS],hnpc->attribute[ATR_HITPOINTSMAX],
-              hnpc->attribute[ATR_REGENERATEHP],dt);
-    tickRegen(hnpc->attribute[ATR_MANA],hnpc->attribute[ATR_MANAMAX],
-              hnpc->attribute[ATR_REGENERATEMANA],dt);
-    }
 
   if(waitTime>=owner.tickCount() || aniWaitTime>=owner.tickCount() || outWaitTime>owner.tickCount()) {
     if(!isPlayer() && go2.flag!=GT_Flee && faiWaitTime<owner.tickCount() && currentTarget!=nullptr) {
