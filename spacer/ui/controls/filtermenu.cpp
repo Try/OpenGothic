@@ -19,22 +19,22 @@ using namespace Tempest;
 
 class FilterMenu::MenuStyle final : public UiStyle {
   public:
-    void draw(Painter& p, Panel*, Element, const WidgetState&, const Rect& r, const Extra&) const override {
+    void draw(Painter &p, Panel *, Element, const WidgetState &, const Rect &r, const Extra &) const override {
       p.setBrush(Brush(Assets::inst().colors.menu, Painter::NoBlend));
       p.drawRect(r.x, r.y, r.w, r.h);
       }
 
-    void draw(Painter& p, CheckBox* box, Element e, const WidgetState& state,
-              const Rect& r, const Extra& extra) const override {
-      auto row = state;
-      row.button = state.checked==WidgetState::Checked ? Button::T_PushButton : Button::T_FlatButton;
-      UiStyle::draw(p, static_cast<Button*>(box), e, row, r, extra);
+    void draw(Painter &p, CheckBox *box, Element e, const WidgetState &state, const Rect &r,
+              const Extra &extra) const override {
+      auto row   = state;
+      row.button = state.checked == WidgetState::Checked ? Button::T_PushButton : Button::T_FlatButton;
+      UiStyle::draw(p, static_cast<Button *>(box), e, row, r, extra);
 
-      auto marker = state;
+      auto marker     = state;
       marker.moveOver = false;
       UiStyle::draw(p, box, e, marker, r, extra);
       }
-  };
+    };
 
 class FilterMenu::ClassListDelegate final : public ListDelegate {
   public:
@@ -113,8 +113,8 @@ class FilterMenu::Popup final : public UiOverlay {
 
     Widget& anchor;
     Widget& panel;
-    Size preferredSize;
-    bool open = true;
+    Size    preferredSize;
+    bool    open = true;
   };
 
 FilterMenu::FilterMenu(VobTreeView& tree) : Menu(Declarator()), tree(tree) {
@@ -142,7 +142,7 @@ Widget* FilterMenu::createItems(const std::vector<Item>&) {
   header.setMargins(Margin(8, 2, 0, 0));
 
   auto& title = header.addWidget(new Label());
-  auto font = Assets::inst().fntSmall;
+  auto  font  = Assets::inst().fntSmall;
   font.setBold(true);
   title.setFont(font);
   title.setText("Filter by class");
@@ -160,9 +160,9 @@ Widget* FilterMenu::createItems(const std::vector<Item>&) {
   list.centralWidget().setSpacing(0);
   list.setDelegate(new ClassListDelegate(*this));
 
-  const auto headerSize = UiHelper::wrapContent(header, Horizontal);
-  const auto listSize = UiHelper::wrapContent(list.centralWidget());
-  const auto& margins = items->margins();
+  const auto  headerSize = UiHelper::wrapContent(header, Horizontal);
+  const auto  listSize   = UiHelper::wrapContent(list.centralWidget());
+  const auto& margins    = items->margins();
   items->resize(std::max(headerSize.w, std::max(listSize.w, 230)) + margins.xMargin(),
                 std::max(headerSize.h, header.minSize().h) + listSize.h + items->spacing() + margins.yMargin());
   return items.release();
