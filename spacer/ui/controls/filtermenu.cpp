@@ -20,7 +20,7 @@ using namespace Tempest;
 class FilterMenu::MenuStyle final : public UiStyle {
   public:
     void draw(Painter& p, Panel*, Element, const WidgetState&, const Rect& r, const Extra&) const override {
-      p.setBrush(Brush(Assets::inst().colors.workspaceD, Painter::NoBlend));
+      p.setBrush(Brush(Assets::inst().colors.menu, Painter::NoBlend));
       p.drawRect(r.x, r.y, r.w, r.h);
       }
 
