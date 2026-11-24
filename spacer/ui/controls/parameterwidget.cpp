@@ -338,9 +338,11 @@ ParameterWidget* ParameterWidget::implCreateEditor(const Property::Type& type, s
     auto ret = new EditInt1(pos,name);
     return ret;
     }
-  if(&type==&Property::Type::Enum) {
+  if(&type==&Property::Type::Enum || &type==&Property::Type::EnumSegmented) {
     auto ret = new EditEnum(pos,name);
     ret->edit->setItems(enumValues);
+    if(&type==&Property::Type::EnumSegmented)
+      ret->edit->setDisplayPolicy(EnumWidget::DisplayPolicy::Segment);
     return ret;
     }
   if(&type==&Property::Type::Color) {

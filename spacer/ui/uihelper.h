@@ -3,13 +3,21 @@
 #include <Tempest/Button>
 #include <Tempest/Label>
 
+#include "uistyle.h"
+
+namespace Tempest {
+  class LineEdit;
+  }
+
 namespace UiHelper {
   Tempest::Button* toolBtn(const Tempest::Icon& ic);
   Tempest::Button* btn    (const char* name);
+  Tempest::Size    inputSizeHint(const Tempest::LineEdit& input, std::string_view sample);
+
   template<class T>
   T&               row(Tempest::Widget* to, const char* name, int nameSz = -1) {
     auto w = new Tempest::Widget();
-    w->setMinimumSize(0,27);
+    w->setMinimumSize(0,UiStyle::propertyRowHeight);
     w->setMargins(Tempest::Margin(0,0,0,0));
     w->setLayout(Tempest::Horizontal);
     w->setSizePolicy(Tempest::Preferred,Tempest::Fixed);

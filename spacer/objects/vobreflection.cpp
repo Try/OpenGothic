@@ -88,15 +88,15 @@ VobReflection::Field& VobReflection::addProperty(std::vector<Field>& fields, std
     id.slot.type = &Property::Type::ColorList;
     }
   else if constexpr(std::is_same_v<F,zenkit::SpriteAlignment>) {
-    id.slot.type = &Property::Type::Enum;
+    id.slot.type = &Property::Type::EnumSegmented;
     id.slot.enumValues = {"None", "Yaw", "Full"};
     }
   else if constexpr(std::is_same_v<F,zenkit::ShadowType>) {
-    id.slot.type = &Property::Type::Enum;
+    id.slot.type = &Property::Type::EnumSegmented;
     id.slot.enumValues = {"None", "Blob"};
     }
   else if constexpr(std::is_same_v<F,zenkit::AnimationType>) {
-    id.slot.type = &Property::Type::Enum;
+    id.slot.type = &Property::Type::EnumSegmented;
     id.slot.enumValues = {"None", "Wind", "Wind2"};
     }
   else if constexpr(std::is_same_v<F,zenkit::MoverMessageType>) {
@@ -104,11 +104,11 @@ VobReflection::Field& VobReflection::addProperty(std::vector<Field>& fields, std
     id.slot.enumValues = {"FixedDirect", "FixedOrder", "Next", "Previous"};
     }
   else if constexpr(std::is_same_v<F,zenkit::LightType>) {
-    id.slot.type = &Property::Type::Enum;
+    id.slot.type = &Property::Type::EnumSegmented;
     id.slot.enumValues = {"Point", "Spot"};
     }
   else if constexpr(std::is_same_v<F,zenkit::LightQuality>) {
-    id.slot.type = &Property::Type::Enum;
+    id.slot.type = &Property::Type::EnumSegmented;
     id.slot.enumValues = {"High", "Medium", "Low"};
     }
   else if constexpr(std::is_same_v<F,zenkit::MessageFilterAction>) {
@@ -120,7 +120,7 @@ VobReflection::Field& VobReflection::addProperty(std::vector<Field>& fields, std
     id.slot.enumValues = {"Undefined", "Smooth", "Linear", "Step", "Slow", "Fast"};
     }
   else if constexpr(std::is_same_v<F,zenkit::TouchCollisionType>) {
-    id.slot.type = &Property::Type::Enum;
+    id.slot.type = &Property::Type::EnumSegmented;
     id.slot.enumValues = {"None", "Box", "Point"};
     }
   else if constexpr(std::is_same_v<F,zenkit::SoundMaterialType>) {
@@ -128,7 +128,7 @@ VobReflection::Field& VobReflection::addProperty(std::vector<Field>& fields, std
     id.slot.enumValues = {"Wood", "Stone", "Metal", "Leather", "Clay", "Glass"};
     }
   else if constexpr(std::is_same_v<F,zenkit::TriggerBatchMode>) {
-    id.slot.type = &Property::Type::Enum;
+    id.slot.type = &Property::Type::EnumSegmented;
     id.slot.enumValues = {"All", "Next", "Random"};
     }
   else if constexpr(std::is_same_v<F,zenkit::MoverBehavior>) {
@@ -136,7 +136,7 @@ VobReflection::Field& VobReflection::addProperty(std::vector<Field>& fields, std
     id.slot.enumValues = {"Toggle", "Trigger control", "Open timed", "Loop", "Single keys"};
     }
   else if constexpr(std::is_same_v<F,zenkit::MoverLerpType>) {
-    id.slot.type = &Property::Type::Enum;
+    id.slot.type = &Property::Type::EnumSegmented;
     id.slot.enumValues = {"Linear", "Curve"};
     }
   else if constexpr(std::is_same_v<F,zenkit::MoverSpeedType>) {
@@ -144,11 +144,11 @@ VobReflection::Field& VobReflection::addProperty(std::vector<Field>& fields, std
     id.slot.enumValues = {"Constant", "Slow start end", "Slow start", "Slow end", "Segment slow start end", "Segment slow start", "Segment slow end"};
     }
   else if constexpr(std::is_same_v<F,zenkit::SoundMode>) {
-    id.slot.type = &Property::Type::Enum;
+    id.slot.type = &Property::Type::EnumSegmented;
     id.slot.enumValues = {"Loop", "Once", "Random"};
     }
   else if constexpr(std::is_same_v<F,zenkit::SoundTriggerVolumeType>) {
-    id.slot.type = &Property::Type::Enum;
+    id.slot.type = &Property::Type::EnumSegmented;
     id.slot.enumValues = {"Spherical", "Ellipsoidal"};
     }
   else if constexpr(std::is_same_v<F,std::shared_ptr<zenkit::Visual>>) {

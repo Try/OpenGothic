@@ -29,7 +29,8 @@ enum class InputType : uint8_t {
   Int,
   Bool,
   Percentage,
-  Enum
+  Enum,
+  EnumSegmented
   };
 
 class Type final {
@@ -64,6 +65,7 @@ class Type final {
     static const Type Vec4;
 
     static const Type Enum;
+    static const Type EnumSegmented;
 
     static const Type Color;
     static const Type ColorList;

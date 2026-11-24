@@ -7,6 +7,7 @@
 #include "assets.h"
 #include "ui/controls/slider.h"
 #include "ui/uihelper.h"
+#include "ui/uistyle.h"
 
 using namespace Tempest;
 
@@ -22,24 +23,24 @@ SliderWidget::SliderWidget() : SliderWidget("") {
   }
 
 SliderWidget::SliderWidget(std::string_view name) {
-  auto& lft = addWidget(new Widget());
-  auto& rgh = addWidget(new Wrap());
+  auto& lbl = addWidget(new Label());
+  auto& rgh = addWidget(new Widget());
 
-  auto lbl = &lft.addWidget(new Label());
-  lft.addWidget(new Widget());
   txt = &rgh.addWidget(new NumberEdit());
   sld = &rgh.addWidget(new Slider());
 
-  lft.setLayout(Vertical);
-  rgh.setLayout(Vertical);
-  rgh.setMinimumSize(UiHelper::wrapContent(rgh));
+  lbl.setText(name);
+  txt->setMinimumSize(UiHelper::inputSizeHint(*txt, ".8888 ").w, 0);
+  txt->setSizePolicy(Fixed,Fixed);
+  sld->setSizePolicy(Expanding,Preferred);
 
-  auto sz = UiHelper::wrapContent(*this, Horizontal);
-  setSizeHint(sz, margins());
+  rgh.setMinimumSize(txt->minSize().w + sld->minSize().w, 0);
+  rgh.setSpacing(4);
+  rgh.setLayout(Horizontal);
+
+  setSizeHint(0,UiStyle::propertyRowHeight);
   setSizePolicy(Preferred,Fixed);
   setLayout(Horizontal);
-
-  lbl->setText(name);
 
   txt->enableFloats(true);
   txt->onValueModifyed.bind(this,&SliderWidget::onModifyed);

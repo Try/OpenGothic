@@ -4,6 +4,8 @@
 
 class UiStyle : public Tempest::Style {
   public:
+    static constexpr int propertyRowHeight = 27;
+
     UiStyle();
 
     // common

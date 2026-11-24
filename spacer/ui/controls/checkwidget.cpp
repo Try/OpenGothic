@@ -1,5 +1,7 @@
 #include "checkwidget.h"
 
+#include "ui/uistyle.h"
+
 using namespace Tempest;
 
 CheckWidget::CheckWidget(std::string_view hint) {
@@ -8,7 +10,7 @@ CheckWidget::CheckWidget(std::string_view hint) {
 
   lbl.setText(hint);
 
-  setSizeHint(0,27);
+  setSizeHint(0,UiStyle::propertyRowHeight);
   setSizePolicy(Preferred,Fixed);
   setLayout(Horizontal);
 

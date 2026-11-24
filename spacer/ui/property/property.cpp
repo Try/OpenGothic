@@ -21,6 +21,7 @@ const Type Type::Vec3       = CoreType::Vec3;
 const Type Type::Vec4       = CoreType::Vec4;
 
 const Type Type::Enum       = {CoreType::Vec1,InputType::Enum};
+const Type Type::EnumSegmented = {CoreType::Vec1,InputType::EnumSegmented};
 const Type Type::Color      = CoreType::Vec3;
 const Type Type::ColorList  = CoreType::ColorList;
 const Type Type::RangeScale = CoreType::RangeScale;
