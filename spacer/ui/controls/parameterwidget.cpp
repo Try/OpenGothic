@@ -149,12 +149,10 @@ struct ParameterWidget::EditEnum : Base<EnumWidget> {
 struct ParameterWidget::EditColorWidget : Base<ColorWidget> {
   EditColorWidget(size_t pos, std::string_view name):Base(pos,name) {
     edit->onValueModifyed.bind(this, &EditColorWidget::commit);
-    edit->onResize  .bind(this, &EditColorWidget::adjustSize);
     }
 
   void commit(Vec4, bool commit) {
-    Variant v = argv();
-    onChanged(pos,v,commit);
+    onChanged(pos,argv(),commit);
     }
 
   Variant argv() const override {
@@ -170,11 +168,6 @@ struct ParameterWidget::EditColorWidget : Base<ColorWidget> {
     if(auto cl = v.get<zenkit::Color>()) {
       edit->setValue(*cl);
       }
-    }
-
-  void adjustSize() {
-    auto sz = UiHelper::wrapContent(*this,Vertical);
-    setSizeHint(sz,margins());
     }
   };
 
