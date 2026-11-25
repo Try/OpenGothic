@@ -241,19 +241,19 @@ struct ParameterWidget::EditMesh : Base<MeshWidget> {
     }
   };
 
-struct ParameterWidget::EditInt1    : Base<IntWidget> {
+struct ParameterWidget::EditInt1 : Base<IntWidget> {
   EditInt1(size_t pos, std::string_view name):Base(pos,name) {
     edit->onValueModifyed.bind(this, &EditInt1::commit);
     }
 
-  void commit(int32_t a,bool commit) {
+  void commit(int32_t a, bool commit) {
     Variant v;
-    v.set(float(a));
-    onChanged(pos,v,commit);
+    v.set(a);
+    onChanged(pos, v, commit);
     }
 
   Variant argv() const override {
-    return Variant(float(edit->value()));
+    return Variant(edit->value());
     }
 
   void setArgv(const Variant& v) override {

@@ -2,6 +2,7 @@
 
 #include <Tempest/Log>
 
+#include <cassert>
 #include <zenkit/vobs/Misc.hh>
 #include <zenkit/vobs/Light.hh>
 #include <zenkit/vobs/Trigger.hh>
@@ -40,7 +41,14 @@ static const T variantCast(const Variant& v) {
       }
     }
 
+  if constexpr(std::is_same_v<T,int>) {
+    if(auto f = v.get<int>()) {
+      return *f;
+      }
+    }
+
   Tempest::Log::d("failed variant cast (", typeid(T).name(), ")");
+  assert(false);
   return T();
   }
 
@@ -60,6 +68,9 @@ VobReflection::Field& VobReflection::addProperty(std::vector<Field>& fields, std
   if constexpr(std::is_same_v<F,bool>) {
     id.slot.type = &Property::Type::Bool1;
     }
+  else if constexpr(std::is_same_v<F,int>) {
+    id.slot.type = &Property::Type::Int1;
+    }
   else if constexpr(std::is_same_v<F,float>) {
     id.slot.type = &Property::Type::Vec1;
     }
@@ -71,9 +82,6 @@ VobReflection::Field& VobReflection::addProperty(std::vector<Field>& fields, std
     }
   else if constexpr(std::is_same_v<F,zenkit::Vec3>) {
     id.slot.type = &Property::Type::Vec3;
-    }
-  else if constexpr(std::is_same_v<F,int>) {
-    id.slot.type = &Property::Type::Int1;
     }
   else if constexpr(std::is_same_v<F,std::string>) {
     id.slot.type = &Property::Type::String;
@@ -250,7 +258,7 @@ void VobReflection::register_zCVob() {
   addProperty(cls.fields, "cdDyn",                 &zenkit::VirtualObject::cd_dynamic);
   addProperty(cls.fields, "staticVob",             &zenkit::VirtualObject::vob_static);
   addProperty(cls.fields, "dynShadow",             &zenkit::VirtualObject::dynamic_shadows);
-  addProperty(cls.fields, "zbias",                 &zenkit::VirtualObject::bias, 0, 2);
+  addProperty(cls.fields, "zbias",                 &zenkit::VirtualObject::bias, 0, 16);
   addProperty(cls.fields, "isAmbient",             &zenkit::VirtualObject::ambient);
   }
 
