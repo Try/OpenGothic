@@ -44,6 +44,7 @@ class VobTreeView : public Tempest::Widget {
       bool            hasVisibleChildren;
 
       std::string_view label() const;
+      std::string_view className() const;
       std::string_view vobName() const;
       };
 
@@ -59,6 +60,9 @@ class VobTreeView : public Tempest::Widget {
     void                   updateScrollBars();
     void                   scrollChanged(int value);
     int                    rowHeight() const;
+    int                    objectWidth(int width) const;
+    void                   toggleClassColumn();
+    void                   paintHeader(Tempest::Painter& p, int width, int height) const;
     Tempest::Rect          viewport() const;
     const Row*             rowAt(Tempest::Point point) const;
     bool                   isArrowHit(const Row& row, Tempest::Point point) const;
@@ -74,6 +78,7 @@ class VobTreeView : public Tempest::Widget {
     const WorldEdit::Vob* selected                 = nullptr;
     const Row*            pressed                  = nullptr;
     bool                  pressedArrow             = false;
+    bool                  showClassColumn          = true;
     Tempest::Point        mouse                    = {-1, -1};
 
     std::string                               filter;

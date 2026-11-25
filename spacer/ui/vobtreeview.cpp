@@ -1,5 +1,6 @@
 #include "vobtreeview.h"
 
+#include <Tempest/Menu>
 #include <Tempest/Painter>
 #include <Tempest/TextModel>
 
@@ -137,7 +138,7 @@ void VobTreeView::revealSelection() {
   const auto& arrow = arrowSprite(*row);
   const int   x     = arrowRect(*row, 0, arrow).x;
   const int   label = x+(row->hasVisibleChildren ? arrow.w()+arrowLabelGap : 0);
-  if(label<0 || label>=area.w)
+  if(label<0 || label>=objectWidth(area.w))
     horizontalBar.setValue(horizontalBar.value()+x-rowPadding);
   }
 
@@ -174,7 +175,8 @@ void VobTreeView::appendFilteredRows(WorldEdit::Vob& vob, size_t depth) {
   const bool hasVisibleChildren = rows.size()>index+1;
   const auto* object = vob.get();
   if(!hasVisibleChildren && (object==nullptr || !matchesClassFilter(object->type) ||
-                            (!filter.empty() && !matchesFilter(row.label(), filter)))) {
+                            (!filter.empty() && !matchesFilter(row.label(), filter) &&
+                             !matchesFilter(row.className(), filter)))) {
     rows.pop_back();
     return;
     }
@@ -209,8 +211,21 @@ int VobTreeView::rowHeight() const {
   }
 
 Rect VobTreeView::viewport() const {
-  return Rect(0, 0, verticalBar.isVisible() ? verticalBar.x() : w(),
-                    horizontalBar.isVisible() ? horizontalBar.y() : h());
+  const int top    = std::min(rowHeight(), h());
+  const int bottom = horizontalBar.isVisible() ? horizontalBar.y() : h();
+  return Rect(0, top, verticalBar.isVisible() ? verticalBar.x() : w(), bottom-top);
+  }
+
+int VobTreeView::objectWidth(int width) const {
+  if(!showClassColumn)
+    return width;
+  return width-std::min(width/2, std::clamp(width/3, 112, 200));
+  }
+
+void VobTreeView::toggleClassColumn() {
+  showClassColumn = !showClassColumn;
+  updateScrollBars();
+  update();
   }
 
 void VobTreeView::updateScrollBars() {
@@ -218,22 +233,25 @@ void VobTreeView::updateScrollBars() {
   const int treeHeight = int(rows.size())*height;
   const int thickness  = style().metrics().scrollbarSize;
   const int barWidth   = std::clamp(thickness, 0, w());
-  const int barHeight  = std::clamp(thickness, 0, h());
+  const int top        = std::min(height, h());
+  const int bodyHeight = h()-top;
+  const int barHeight  = std::clamp(thickness, 0, bodyHeight);
 
-  bool showVertical = barWidth>0 && treeHeight>h();
-  const bool showHorizontal = barHeight>0 && treeWidth>w()-(showVertical ? barWidth : 0);
-  showVertical = barWidth>0 && treeHeight>h()-(showHorizontal ? barHeight : 0);
+  bool       showVertical   = barWidth>0 && treeHeight>bodyHeight;
+  const bool showHorizontal = barHeight>0 && treeWidth>objectWidth(w()-(showVertical ? barWidth : 0));
+  showVertical = barWidth>0 && treeHeight>bodyHeight-(showHorizontal ? barHeight : 0);
   const int width      = w()-(showVertical ? barWidth : 0);
-  const int pageHeight = h()-(showHorizontal ? barHeight : 0);
+  const int pageHeight = bodyHeight-(showHorizontal ? barHeight : 0);
+  const int pageWidth  = objectWidth(width);
 
-  verticalBar.setGeometry(width, 0, barWidth, pageHeight);
-  horizontalBar.setGeometry(0, pageHeight, width, barHeight);
+  verticalBar.setGeometry(width, top, barWidth, pageHeight);
+  horizontalBar.setGeometry(0, top+pageHeight, pageWidth, barHeight);
   verticalBar.setVisible(showVertical);
   horizontalBar.setVisible(showHorizontal);
 
   // Leave enough space below the last row to scroll it to the top.
   const int maxY = showVertical ? treeHeight-std::min(height, pageHeight) : 0;
-  const int maxX = showHorizontal ? treeWidth-width : 0;
+  const int maxX = showHorizontal ? treeWidth-pageWidth : 0;
   auto configure = [height](ScrollBar& bar, int end, int page) {
     bar.setRange(0, end);
     bar.setSmallStep(height);
@@ -243,7 +261,7 @@ void VobTreeView::updateScrollBars() {
     bar.update();
     };
   configure(verticalBar, maxY, pageHeight);
-  configure(horizontalBar, maxX, width);
+  configure(horizontalBar, maxX, pageWidth);
   }
 
 void VobTreeView::resizeEvent(SizeEvent& e) {
@@ -258,18 +276,18 @@ void VobTreeView::scrollChanged(int) {
 
 const VobTreeView::Row* VobTreeView::rowAt(Point point) const {
   const auto area = viewport();
-  if(point.x<0 || point.x>=area.w || point.y<0 || point.y>=area.h)
+  if(!area.contains(point))
     return nullptr;
 
-  const size_t row = (size_t(verticalBar.value()) + size_t(point.y))/size_t(rowHeight());
+  const size_t row = (size_t(verticalBar.value()) + size_t(point.y-area.y))/size_t(rowHeight());
   return row<rows.size() ? &rows[row] : nullptr;
   }
 
 bool VobTreeView::isArrowHit(const Row& row, Point point) const {
-  if(!row.hasVisibleChildren)
+  if(!row.hasVisibleChildren || point.x>=objectWidth(viewport().w))
     return false;
 
-  const int y = int(&row-rows.data())*rowHeight()-verticalBar.value();
+  const int y = viewport().y+int(&row-rows.data())*rowHeight()-verticalBar.value();
   return arrowRect(row, y, arrowSprite(row)).contains(point);
   }
 
@@ -286,6 +304,15 @@ Rect VobTreeView::arrowRect(const Row& row, int y, const Sprite& arrow) const {
   }
 
 void VobTreeView::mouseDownEvent(MouseEvent& e) {
+  if(e.button==Event::ButtonRight && e.pos().y<viewport().y) {
+    Menu::Declarator items;
+    items.item(showClassColumn ? "Hide Class column" : "Show Class column", this, &VobTreeView::toggleClassColumn);
+    Menu menu(std::move(items));
+    e.accept();
+    menu.exec(*this, e.pos(), false);
+    return;
+    }
+
   if(e.button!=Event::ButtonLeft) {
     e.ignore();
     return;
@@ -368,6 +395,7 @@ void VobTreeView::mouseWheelEvent(MouseEvent& e) {
 void VobTreeView::paintEvent(PaintEvent& e) {
   Painter p(e);
   const auto area = viewport();
+  paintHeader(p, area.w, area.y);
   const auto clip = p.scissor().intersected(area);
   if(clip.w<=0 || clip.h<=0)
     return;
@@ -376,13 +404,36 @@ void VobTreeView::paintEvent(PaintEvent& e) {
   const int    height  = rowHeight();
   const int    offset  = verticalBar.value();
   const auto*  hovered = rowAt(mouse);
-  const size_t first   = (size_t(offset)+size_t(clip.y))/size_t(height);
-  const size_t last    = std::min(rows.size(), (size_t(offset)+size_t(clip.y+clip.h-1))/size_t(height)+1);
+  const size_t first   = (size_t(offset)+size_t(clip.y-area.y))/size_t(height);
+  const size_t last    = std::min(rows.size(), (size_t(offset)+size_t(clip.y-area.y+clip.h-1))/size_t(height)+1);
 
   for(size_t i=first; i<last; ++i) {
-    const int y = int(i)*height-offset;
+    const int y = area.y+int(i)*height-offset;
     paintRow(p, rows[i], Rect(0, y, area.w, height), &rows[i]==hovered);
     }
+  }
+
+void VobTreeView::paintHeader(Painter& p, int width, int height) const {
+  if(height==0)
+    return;
+
+  const auto clip  = p.scissor();
+  const int  split = objectWidth(width);
+  auto       font  = Assets::inst().fntSmall;
+  font.setBold(true);
+  p.setFont(font);
+  p.setBrush(Assets::inst().colors.workspace);
+  p.drawRect(0, 0, w(), height);
+
+  const int baseline = height-(height-font.textSize("Object").h)/2;
+  p.setBrush(style().colors().text);
+  p.setScissor(clip.intersected(Rect(0, 0, split, height)));
+  p.drawText(rowPadding, baseline, "Object");
+  if(showClassColumn) {
+    p.setScissor(clip.intersected(Rect(split, 0, width-split, height)));
+    p.drawText(split+2*rowPadding, baseline, "Class");
+    }
+  p.setScissor(clip);
   }
 
 void VobTreeView::paintRow(Painter& p, const Row& row, const Rect& rect, bool hovered) const {
@@ -393,6 +444,10 @@ void VobTreeView::paintRow(Painter& p, const Row& row, const Rect& rect, bool ho
   st.moveOver = hovered;
   st.pressed  = hovered && &row==pressed;
   style().draw(p, static_cast<Button*>(nullptr), Style::E_Background, st, rect, Style::Extra(*this));
+
+  const auto clip  = p.scissor();
+  const int  split = objectWidth(rect.w);
+  p.setScissor(clip.intersected(Rect(0, rect.y, split, rect.h)));
 
   const auto& assets = Assets::inst();
   const auto& arrow  = arrowSprite(row);
@@ -413,6 +468,15 @@ void VobTreeView::paintRow(Painter& p, const Row& row, const Rect& rect, bool ho
   p.setBrush(fallback ? Color(0.8f) : style().colors().text);
   const int textHeight = font.textSize(label).h;
   p.drawText(x, rect.y+rect.h-(rect.h-textHeight)/2, label);
+  p.setScissor(clip);
+
+  if(showClassColumn) {
+    p.setScissor(clip.intersected(Rect(split, rect.y, rect.w-split, rect.h)));
+    p.setBrush(active ? style().colors().text : Color(0.70f, 0.70f, 0.70f));
+    const auto name = row.className();
+    p.drawText(split+2*rowPadding, rect.y+rect.h-(rect.h-font.textSize(name).h)/2, name);
+    p.setScissor(clip);
+    }
   }
 
 std::string_view VobTreeView::Row::label() const {
@@ -423,9 +487,15 @@ std::string_view VobTreeView::Row::label() const {
     return name;
   if(!object->visual_name.empty())
     return object->visual_name;
-  if(const auto* cls = VobReflection::find(object->type))
-    return cls->name;
-  return "Unknown Vob";
+  return className();
+  }
+
+std::string_view VobTreeView::Row::className() const {
+  const auto* object = vob->get();
+  if(object==nullptr)
+    return {};
+  const auto* cls = VobReflection::find(object->type);
+  return cls!=nullptr ? cls->name : "Unknown Vob";
   }
 
 std::string_view VobTreeView::Row::vobName() const {
