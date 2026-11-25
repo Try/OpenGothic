@@ -135,6 +135,10 @@ const std::vector<zenkit::Color>& ColorListWidget::value() const {
   return colors;
   }
 
+void ColorListWidget::setDefaultColor(const zenkit::Color& color) {
+  defaultColor = color;
+  }
+
 void ColorListWidget::setAsSmooth(bool s) {
   smooth = s;
   preview->update();
@@ -196,7 +200,7 @@ void ColorListWidget::modifyColor(size_t index, Vec4 value, bool commit) {
   }
 
 void ColorListWidget::addFrame() {
-  colors.push_back(colors.empty() ? zenkit::Color(255, 255, 255, 255) : colors.back());
+  colors.push_back(colors.empty() ? defaultColor : colors.back());
   syncFrames();
   preview->update();
   onValueModifyed(true);

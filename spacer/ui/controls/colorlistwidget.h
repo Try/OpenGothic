@@ -12,6 +12,7 @@ class ColorListWidget : public Tempest::Widget {
 
     void setValue(std::vector<zenkit::Color> colors);
     const std::vector<zenkit::Color>& value() const;
+    void setDefaultColor(const zenkit::Color& color);
     void setAsSmooth(bool smooth);
     void setExpanded(bool expanded);
 
@@ -32,7 +33,8 @@ class ColorListWidget : public Tempest::Widget {
     void removeFrame(size_t index);
 
     std::vector<zenkit::Color> colors;
-    Ramp*            preview = nullptr;
-    Tempest::Widget* list    = nullptr;
-    bool             smooth  = true;
+    zenkit::Color              defaultColor = {255, 255, 255, 255};
+    Ramp*                      preview      = nullptr;
+    Tempest::Widget*           list         = nullptr;
+    bool                       smooth       = true;
   };

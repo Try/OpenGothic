@@ -5,13 +5,16 @@
 #include "ui/property/property.h"
 #include "utility/variant.h"
 
+namespace zenkit { struct Color; }
+
 class ParameterWidget : virtual public Tempest::Widget {
   public:
     static ParameterWidget* createEditor(const Property::Slot& s, const Variant& v, size_t id);
 
     virtual Variant argv() const;
     virtual void    setArgv(const Variant&);
-    virtual void    setAnimationTiming(float fps, bool smooth);
+    virtual void    setDefaultColor(const zenkit::Color& color);
+    virtual void    setAnimationSmooth(bool smooth);
 
     Tempest::Signal<void(size_t id,const Variant& v,bool commit)> onChanged;
 

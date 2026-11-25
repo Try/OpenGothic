@@ -189,7 +189,12 @@ struct ParameterWidget::EditAnimationList : Base<Editor> {
       this->edit->setValue(*list);
     }
 
-  void setAnimationTiming(float fps, bool smooth) override {
+  void setDefaultColor(const zenkit::Color& color) override {
+    if constexpr(std::is_same_v<Editor, ColorListWidget>)
+      this->edit->setDefaultColor(color);
+    }
+
+  void setAnimationSmooth(bool smooth) override {
     if constexpr(std::is_same_v<Editor, ColorListWidget>)
       this->edit->setAsSmooth(smooth);
     }
@@ -407,5 +412,8 @@ Variant ParameterWidget::argv() const {
 void ParameterWidget::setArgv(const Variant&) {
   }
 
-void ParameterWidget::setAnimationTiming(float, bool) {
+void ParameterWidget::setDefaultColor(const zenkit::Color&) {
+  }
+
+void ParameterWidget::setAnimationSmooth(bool) {
   }

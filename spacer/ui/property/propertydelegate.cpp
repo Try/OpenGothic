@@ -105,9 +105,9 @@ Widget* PropertyDelegate::update(Widget* widget, size_t i) {
 
   const auto* light = dynamic_cast<const zenkit::VLight*>(vob->get());
   auto* ctrl = dynamic_cast<ParameterWidget*>(widget);
-  if(ctrl!=nullptr && light!=nullptr) {
-    if(field->slot.type == &Property::Type::ColorList)
-      ctrl->setAnimationTiming(light->color_animation_fps, light->color_animation_smooth);
+  if(ctrl!=nullptr && light!=nullptr && field->slot.type == &Property::Type::ColorList) {
+    ctrl->setDefaultColor(light->color);
+    ctrl->setAnimationSmooth(light->color_animation_smooth);
     }
   return widget;
   }
