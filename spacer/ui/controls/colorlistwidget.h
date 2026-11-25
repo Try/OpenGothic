@@ -12,7 +12,7 @@ class ColorListWidget : public Tempest::Widget {
 
     void setValue(std::vector<zenkit::Color> colors);
     const std::vector<zenkit::Color>& value() const;
-    void setTiming(float fps, bool smooth);
+    void setAsSmooth(bool smooth);
     void setExpanded(bool expanded);
 
     Tempest::Signal<void(bool commit)> onValueModifyed;

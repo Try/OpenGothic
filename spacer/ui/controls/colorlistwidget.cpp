@@ -1,5 +1,6 @@
 #include "colorlistwidget.h"
 
+#include <Tempest/Button>
 #include <Tempest/Painter>
 
 #include <algorithm>
@@ -12,33 +13,35 @@
 
 using namespace Tempest;
 
-struct ColorListWidget::Ramp : Widget {
+struct ColorListWidget::Ramp : Button {
   explicit Ramp(ColorListWidget& owner) : owner(owner) {
-    setSizeHint(0,UiStyle::propertyRowHeight);
-    setSizePolicy(Preferred,Fixed);
+    setButtonType(T_FlatButton);
+    setSizeHint(0, UiStyle::propertyRowHeight);
+    setSizePolicy(Preferred, Fixed);
     }
 
   void paintEvent(PaintEvent& event) override {
     constexpr int inset   = 3;
     constexpr int padding = 4;
 
+    Button::paintEvent(event);
     Painter p(event);
 
     const auto& icons = Assets::inst().ic;
-    const auto icon = (owner.list->isVisible() ? icons.up : icons.down).sprite(w(),h(),Icon::ST_Normal);
-    const int x = std::max(0,w()-icon.w()-padding);
+    const auto  icon  = (owner.list->isVisible() ? icons.up : icons.down).sprite(w(), h(), Icon::ST_Normal);
+    const int   x     = std::max(0, w() - icon.w() - padding);
     p.setBrush(icon);
-    p.drawRect(x,(h()-icon.h())/2,icon.w(),icon.h());
+    p.drawRect(x, (h() - icon.h()) / 2, icon.w(), icon.h());
 
-    const int width = x-padding-inset;
-    const int rampHeight = h()-2*inset;
-    if(width<=0 || rampHeight<=0)
+    const int width      = x - padding - inset;
+    const int rampHeight = h() - 2 * inset;
+    if(width <= 0 || rampHeight <= 0)
       return;
 
     const auto& colors = owner.colors;
     if(colors.empty()) {
       p.setBrush(Assets::inst().colors.workspaceD);
-      p.drawRect(inset,inset,width,rampHeight);
+      p.drawRect(inset, inset, width, rampHeight);
       return;
       }
 
@@ -50,17 +53,10 @@ struct ColorListWidget::Ramp : Widget {
       const float  blend = owner.smooth ? float(frame - left) : 0.f;
       const auto&  a     = colors[left];
       const auto&  b     = colors[right];
-      p.setBrush(Color(std::lerp(a.r,b.r,blend)/255.f,
-                       std::lerp(a.g,b.g,blend)/255.f,
-                       std::lerp(a.b,b.b,blend)/255.f));
-      p.drawRect(inset+x,inset,1,rampHeight);
+      p.setBrush(Color(std::lerp(a.r, b.r, blend) / 255.f, std::lerp(a.g, b.g, blend) / 255.f,
+                       std::lerp(a.b, b.b, blend) / 255.f));
+      p.drawRect(inset + x, inset, 1, rampHeight);
       }
-    }
-
-  void mouseDownEvent(MouseEvent& event) override {
-    if(event.button==Event::ButtonLeft)
-      owner.toggleExpanded(); else
-      event.ignore();
     }
 
   ColorListWidget& owner;
@@ -69,12 +65,10 @@ struct ColorListWidget::Ramp : Widget {
 struct ColorListWidget::Frame : ColorWidget {
   Frame(ColorListWidget& owner, size_t index)
     : ColorWidget("",std::to_string(index+1)), owner(owner), index(index) {
-    onValueModifyed.bind(this,&Frame::modify);
+    onValueModifyed.bind(this, &Frame::modify);
     }
 
-  void modify(Vec4 value, bool commit) {
-    owner.modifyColor(index,value,commit);
-    }
+  void modify(Vec4 value, bool commit) { owner.modifyColor(index, value, commit); }
 
   ColorListWidget& owner;
   size_t           index;
@@ -83,23 +77,24 @@ struct ColorListWidget::Frame : ColorWidget {
 ColorListWidget::ColorListWidget(std::string_view name) {
   auto& heading = addWidget(new Widget());
   heading.setLayout(Horizontal);
-  heading.setSizePolicy(Preferred,Fixed);
+  heading.setSizePolicy(Preferred, Fixed);
   heading.addWidget(new Label()).setText(name);
   preview = &heading.addWidget(new Ramp(*this));
-  heading.setMinimumSize(UiHelper::wrapContent(heading,Horizontal).w,UiStyle::propertyRowHeight);
+  preview->onClick.bind(this, &ColorListWidget::toggleExpanded);
+  heading.setMinimumSize(UiHelper::wrapContent(heading, Horizontal).w, UiStyle::propertyRowHeight);
 
   list = &addWidget(new Widget());
   list->setLayout(Vertical);
   list->setSpacing(0);
-  list->setSizePolicy(Preferred,Fixed);
+  list->setSizePolicy(Preferred, Fixed);
 
   auto& append = list->addWidget(UiHelper::btn("Add color"));
-  append.setMinimumSize(0,UiStyle::propertyRowHeight);
-  append.setMaximumSize(append.maxSize().w,UiStyle::propertyRowHeight);
-  append.onClick.bind(this,&ColorListWidget::addFrame);
+  append.setMinimumSize(0, UiStyle::propertyRowHeight);
+  append.setMaximumSize(append.maxSize().w, UiStyle::propertyRowHeight);
+  append.onClick.bind(this, &ColorListWidget::addFrame);
 
   setLayout(Vertical);
-  setSizePolicy(Preferred,Fixed);
+  setSizePolicy(Preferred, Fixed);
   setExpanded(false);
   }
 
@@ -114,8 +109,8 @@ const std::vector<zenkit::Color>& ColorListWidget::value() const {
   return colors;
   }
 
-void ColorListWidget::setTiming(float, bool interpolate) {
-  smooth = interpolate;
+void ColorListWidget::setAsSmooth(bool s) {
+  smooth = s;
   preview->update();
   }
 
@@ -146,25 +141,25 @@ void ColorListWidget::alignList() {
 
 void ColorListWidget::adjustSize() {
   alignList();
-  list->setMinimumSize(0,UiHelper::wrapContent(*list).h);
+  list->setMinimumSize(0, UiHelper::wrapContent(*list).h);
   setSizeHint(UiHelper::wrapContent(*this));
   onResize();
   }
 
 void ColorListWidget::syncFrames() {
-  while(list->widgetsCount()-1>colors.size())
+  while(list->widgetsCount() - 1 > colors.size())
     delete list->takeWidget(&list->widget(colors.size()));
 
   for(size_t i=0; i<colors.size(); ++i) {
-    if(i==list->widgetsCount()-1)
-      list->addWidget(new Frame(*this,i),i);
+    if(i == list->widgetsCount() - 1)
+      list->addWidget(new Frame(*this, i), i);
     static_cast<Frame&>(list->widget(i)).setValue(colors[i]);
     }
   adjustSize();
   }
 
 void ColorListWidget::modifyColor(size_t index, Vec4 value, bool commit) {
-  if(index>=colors.size())
+  if(index >= colors.size())
     return;
   auto& color = colors[index];
   color.r     = uint8_t(value.x);
@@ -175,7 +170,7 @@ void ColorListWidget::modifyColor(size_t index, Vec4 value, bool commit) {
   }
 
 void ColorListWidget::addFrame() {
-  colors.push_back(colors.empty() ? zenkit::Color(255,255,255,255) : colors.back());
+  colors.push_back(colors.empty() ? zenkit::Color(255, 255, 255, 255) : colors.back());
   syncFrames();
   preview->update();
   onValueModifyed(true);

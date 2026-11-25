@@ -22,6 +22,8 @@
 
 #include <zenkit/vobs/VirtualObject.hh>
 
+#include <type_traits>
+
 using namespace Tempest;
 
 template<class Editor>
@@ -188,7 +190,8 @@ struct ParameterWidget::EditAnimationList : Base<Editor> {
     }
 
   void setAnimationTiming(float fps, bool smooth) override {
-    this->edit->setTiming(fps, smooth);
+    if constexpr(std::is_same_v<Editor, ColorListWidget>)
+      this->edit->setAsSmooth(smooth);
     }
 
   void commit(bool commit) {

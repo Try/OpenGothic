@@ -1,10 +1,11 @@
 BasedOnStyle: LLVM
 IndentWidth: 2
-IndentAccessModifiers: true
+IndentAccessModifiers: false
+AccessModifierOffset: 0
 UseTab: Never
 ColumnLimit: 120
 
-BreakBeforeBraces: Attach
+BreakBeforeBraces: Whitesmiths
 AllowShortBlocksOnASingleLine: Never
 AllowShortFunctionsOnASingleLine: Inline
 SpaceBeforeParens: Never
@@ -15,5 +16,5 @@ AlignConsecutiveAssignments: Consecutive
 SortIncludes: Never
 
 # Experimental. Requires clang-format 21 or newer. Skip formatting on lines
-# containing a closing brace to try to preserve their existing indentation.
-OneLineFormatOffRegex: '^}$'
+# containing an opening brace to preserve its placement.
+OneLineFormatOffRegex: '^[{]$'

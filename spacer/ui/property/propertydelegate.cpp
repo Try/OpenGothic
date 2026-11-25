@@ -108,8 +108,6 @@ Widget* PropertyDelegate::update(Widget* widget, size_t i) {
   if(ctrl!=nullptr && light!=nullptr) {
     if(field->slot.type == &Property::Type::ColorList)
       ctrl->setAnimationTiming(light->color_animation_fps, light->color_animation_smooth);
-    else if(field->slot.type == &Property::Type::RangeScale)
-      ctrl->setAnimationTiming(light->range_animation_fps, light->range_animation_smooth);
     }
   return widget;
   }
