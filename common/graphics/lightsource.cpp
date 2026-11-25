@@ -34,7 +34,7 @@ void LightSource::setColor(const Vec3& cl) {
 
 void LightSource::setColor(const std::vector<uint32_t>& arr, float fps, bool smooth) {
   colorSmooth = smooth;
-  if(arr.size()==1) {
+  if(arr.size()==1 || (arr.size()>1 && !(fps>0))) {
     setColor(toVec3(arr[0]));
     colorAniListFpsInv = 0;
     return;
@@ -48,7 +48,7 @@ void LightSource::setColor(const std::vector<uint32_t>& arr, float fps, bool smo
 
 void LightSource::setColor(const std::vector<zenkit::Color>& arr, float fps, bool smooth) {
   colorSmooth = smooth;
-  if(arr.size()==1) {
+  if(arr.size()==1 || (arr.size()>1 && !(fps>0))) {
     setColor({static_cast<float>(arr[0].r)/255.f, static_cast<float>(arr[0].g)/255.f, static_cast<float>(arr[0].b)/255.f});
     colorAniListFpsInv = 0;
     return;
@@ -67,7 +67,7 @@ void LightSource::setColor(const std::vector<Vec3>& arr, float fps, bool smooth)
     colorAniListFpsInv = 0;
     return;
     }
-  if(arr.size()==1) {
+  if(arr.size()==1 || !(fps>0)) {
     setColor(arr[0]);
     colorAniListFpsInv = 0;
     return;
@@ -84,7 +84,7 @@ void LightSource::setRange(float r) {
 
 void LightSource::setRange(const std::vector<float>& arr, float base, float fps, bool smooth) {
   rangeSmooth = smooth;
-  if(arr.size()==1) {
+  if(arr.size()==1 || (arr.size()>1 && !(fps>0))) {
     setRange(arr[0]*base);
     return;
     }
