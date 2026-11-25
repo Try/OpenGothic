@@ -758,21 +758,16 @@ float Npc::qDistTo(const Item& p) const {
   }
 
 Tempest::Vec3 Npc::fightDistanceTo(const Npc& tg) const {
-  //NOTE: game script decribe comabt distance as distance between BIP01
-  // however, in practice, it's easier and more relieble to use rootTr
-  Vec3 cen, tgCen;
-  if(auto sk = visual.visualSkeleton()) {
-    cen = sk->rootTr;
-    transform().project(cen);
-    }
-  cen += position();
-
-  if(auto sk = tg.visual.visualSkeleton()) {
-    tgCen = sk->rootTr;
-    transform().project(tgCen);
-    }
-  tgCen += tg.position();
-  return (cen-tgCen);
+  // Game scripts describe combat distance as the distance between BIP01 bones. Animations keep BIP01 over the model's
+  // origin, while the skeleton's bind root can sit far off it (Scavenger 78 cm, Giant bug 76 cm, Waran 110 cm),
+  // so measure from the origin at the root's height
+  auto center = [](const Npc& npc) {
+    Vec3 cen = npc.position();
+    if(auto sk = npc.visual.visualSkeleton())
+      cen.y += sk->rootTr.y;
+    return cen;
+    };
+  return center(*this)-center(tg);
   }
 
 uint8_t Npc::calcAniComb() const {
