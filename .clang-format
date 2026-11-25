@@ -7,7 +7,7 @@ ColumnLimit: 120
 
 BreakBeforeBraces: Whitesmiths
 AllowShortBlocksOnASingleLine: Never
-AllowShortFunctionsOnASingleLine: Inline
+AllowShortFunctionsOnASingleLine: Empty
 SpaceBeforeParens: Never
 PointerAlignment: Left
 
