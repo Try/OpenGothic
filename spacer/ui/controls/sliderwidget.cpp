@@ -13,6 +13,7 @@ using namespace Tempest;
 
 struct SliderWidget::Input : NumberEdit {
   explicit Input(const SliderWidget& owner) : owner(owner) {
+    setFloatDigits(4);
     }
 
   void mouseDownEvent(MouseEvent& event) override {

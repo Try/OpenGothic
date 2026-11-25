@@ -544,7 +544,7 @@ void VobReflection::register_zCVobSound() {
   addProperty(cls.fields, "obstruction",            &zenkit::VSound::obstruction);
   addProperty(cls.fields, "cone angle",             &zenkit::VSound::cone_angle);
   addProperty(cls.fields, "volume type",            &zenkit::VSound::volume_type);
-  addProperty(cls.fields, "radius",                 &zenkit::VSound::radius);
+  addProperty(cls.fields, "radius",                 &zenkit::VSound::radius, 0.f, 5000.f);
   addProperty(cls.fields, "sound name",             &zenkit::VSound::sound_name);
   }
 
