@@ -27,6 +27,7 @@ class RangeScaleWidget : public Tempest::Widget {
     void adjustSize();
     void syncFrames();
     void addSample();
+    void removeSample(size_t index);
 
     std::vector<float> samples;
 

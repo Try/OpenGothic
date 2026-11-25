@@ -11,6 +11,20 @@
 
 using namespace Tempest;
 
+struct SliderWidget::Input : NumberEdit {
+  explicit Input(const SliderWidget& owner) : owner(owner) {
+    }
+
+  void mouseDownEvent(MouseEvent& event) override {
+    if(owner.contextMenu && event.button == Event::ButtonRight)
+      event.ignore();
+    else
+      NumberEdit::mouseDownEvent(event);
+    }
+
+  const SliderWidget& owner;
+  };
+
 struct SliderWidget::Wrap : Widget {
   void paintEvent(PaintEvent& e) override {
     Painter p(e);
@@ -26,7 +40,7 @@ SliderWidget::SliderWidget(std::string_view name) {
   auto& lbl = addWidget(new Label());
   auto& rgh = addWidget(new Widget());
 
-  txt = &rgh.addWidget(new NumberEdit());
+  txt = &rgh.addWidget(new Input(*this));
   sld = &rgh.addWidget(new Slider());
 
   lbl.setText(name);
@@ -51,6 +65,10 @@ SliderWidget::SliderWidget(std::string_view name) {
 
 void SliderWidget::setUndoRedoEnabled(bool e) {
   txt->setUndoRedoEnabled(e);
+  }
+
+void SliderWidget::setContextMenuEnabled(bool enabled) {
+  contextMenu = enabled;
   }
 
 void SliderWidget::setSliderMinMax(float min, float max) {

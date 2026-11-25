@@ -21,6 +21,13 @@ struct ColorWidget::Swatch : Button {
     setButtonType(T_FlatButton);
     }
 
+  void mouseDownEvent(MouseEvent& event) override {
+    if(contextMenu && event.button == Event::ButtonRight)
+      event.ignore();
+    else
+      Button::mouseDownEvent(event);
+    }
+
   void paintEvent(PaintEvent& e) override {
     constexpr int inset   = 3;
     constexpr int padding = 4;
@@ -58,6 +65,7 @@ struct ColorWidget::Swatch : Button {
 
   const ColorWidget& row;
   std::string        caption;
+  bool               contextMenu = false;
   };
 
 ColorWidget::ColorWidget(std::string_view name, std::string_view swatchText) {
@@ -73,6 +81,10 @@ ColorWidget::ColorWidget(std::string_view name, std::string_view swatchText) {
 ColorWidget::~ColorWidget() {
   if(picker!=nullptr)
     picker->dismiss();
+  }
+
+void ColorWidget::setContextMenuEnabled(bool enabled) {
+  swatch->contextMenu = enabled;
   }
 
 Vec3 ColorWidget::value() const {

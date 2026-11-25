@@ -22,7 +22,11 @@ class SliderWidget : public Tempest::Widget {
     Tempest::Signal<void(float)> onValueChanged;
     Tempest::Signal<void(float v,bool commit)> onValueModifyed;
 
+  protected:
+    void setContextMenuEnabled(bool enabled);
+
   private:
+    struct Input;
     struct Wrap;
     void onModifyed(double fv, bool commit);
     void onSlide(double fv, bool commit);
@@ -30,5 +34,6 @@ class SliderWidget : public Tempest::Widget {
     Slider*     sld = nullptr;
     NumberEdit* txt = nullptr;
     float       val = 0;
+    bool        contextMenu = false;
   };
 

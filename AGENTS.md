@@ -13,6 +13,8 @@
 
 - Use clang-format 21 or newer on new and edited C++ code. From the repository root, preview the affected lines with `clang-format --style=file --lines=<start>:<end> path/to/file.cpp`. The root [`.clang-format`](.clang-format) aligns related declarations and uses Whitesmiths to indent closing braces. It skips lines containing an opening brace to preserve its placement.
 - Review the preview before applying it. Keep formatting changes within the code you edit, since a line range can affect surrounding lines. Check access labels, class members, and method bodies against the [C++ formatting rules](CONTRIBUTING.md#c-formatting), and correct any indentation drift by hand.
+- Use braces when an `if` condition spans multiple lines. If any branch of an `if`/`else if`/`else` chain uses braces, use braces on every branch.
+- Align a standalone scope's closing brace with its opening brace. Correct this by hand if clang-format indents the closing brace.
 
 ## Exe isolation
 

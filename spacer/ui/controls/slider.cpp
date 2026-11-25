@@ -64,7 +64,11 @@ void Slider::paintEvent(PaintEvent& e) {
   Label::paintEvent(e);
   }
 
-void Slider::mouseDownEvent(MouseEvent&) {
+void Slider::mouseDownEvent(MouseEvent& e) {
+  if(e.button != Event::ButtonLeft) {
+    e.ignore();
+    return;
+    }
   update();
   }
 
@@ -77,6 +81,11 @@ void Slider::mouseUpEvent(MouseEvent& e) {
   }
 
 void Slider::implMouse(MouseEvent& e) {
+  if(e.button != Event::ButtonLeft) {
+    e.ignore();
+    return;
+    }
+
   auto  sp = Assets::inst().ic.circle.sprite(h(), h(), Tempest::Icon::ST_Normal);
   float v  = float(e.x - sp.w()/2)/float(w()-sp.w());
   v = std::max(0.f,std::min(v,1.f));

@@ -1,6 +1,7 @@
 #include "colorlistwidget.h"
 
 #include <Tempest/Button>
+#include <Tempest/Menu>
 #include <Tempest/Painter>
 
 #include <algorithm>
@@ -65,13 +66,38 @@ struct ColorListWidget::Ramp : Button {
 struct ColorListWidget::Frame : ColorWidget {
   Frame(ColorListWidget& owner, size_t index)
     : ColorWidget("",std::to_string(index+1)), owner(owner), index(index) {
+    setContextMenuEnabled(true);
     onValueModifyed.bind(this, &Frame::modify);
+    }
+
+  void mouseDownEvent(MouseEvent& event) override {
+    if(event.button != Event::ButtonRight)
+      event.ignore();
+    }
+
+  void mouseUpEvent(MouseEvent& event) override {
+    if(event.button != Event::ButtonRight || !Rect(0, 0, w(), h()).contains(event.pos()))
+      return;
+
+    struct Selection {
+      void select() { remove = true; }
+      bool remove = false;
+      } selection;
+
+    {
+      Menu::Declarator items;
+      items.item("Remove", &selection, &Selection::select);
+      Menu menu(std::move(items));
+      menu.exec(*this, event.pos(), false);
+    }
+    if(selection.remove)
+      owner.removeFrame(index);
     }
 
   void modify(Vec4 value, bool commit) { owner.modifyColor(index, value, commit); }
 
   ColorListWidget& owner;
-  size_t           index;
+  const size_t     index;
   };
 
 ColorListWidget::ColorListWidget(std::string_view name) {
@@ -171,6 +197,13 @@ void ColorListWidget::modifyColor(size_t index, Vec4 value, bool commit) {
 
 void ColorListWidget::addFrame() {
   colors.push_back(colors.empty() ? zenkit::Color(255, 255, 255, 255) : colors.back());
+  syncFrames();
+  preview->update();
+  onValueModifyed(true);
+  }
+
+void ColorListWidget::removeFrame(size_t index) {
+  colors.erase(colors.begin() + index);
   syncFrames();
   preview->update();
   onValueModifyed(true);

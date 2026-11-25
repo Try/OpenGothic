@@ -29,6 +29,7 @@ class ColorListWidget : public Tempest::Widget {
     void syncFrames();
     void modifyColor(size_t index, Tempest::Vec4 value, bool commit);
     void addFrame();
+    void removeFrame(size_t index);
 
     std::vector<zenkit::Color> colors;
     Ramp*            preview = nullptr;

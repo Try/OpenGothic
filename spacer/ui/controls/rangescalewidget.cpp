@@ -5,6 +5,7 @@
 #include "ui/uihelper.h"
 
 #include <Tempest/Button>
+#include <Tempest/Menu>
 #include <Tempest/Painter>
 
 #include <algorithm>
@@ -64,7 +65,32 @@ struct RangeScaleWidget::Frame : SliderWidget {
     setMinimumSize(0, UiStyle::propertyRowHeight);
     setSliderMinMax(0.f, 2.f);
     enableFloats(true);
+    setContextMenuEnabled(true);
     onValueModifyed.bind(this, &Frame::modify);
+    }
+
+  void mouseDownEvent(MouseEvent& event) override {
+    if(event.button != Event::ButtonRight)
+      event.ignore();
+    }
+
+  void mouseUpEvent(MouseEvent& event) override {
+    if(event.button != Event::ButtonRight || !Rect(0, 0, w(), h()).contains(event.pos()))
+      return;
+
+    struct Selection {
+      void select() { remove = true; }
+      bool remove = false;
+      } selection;
+
+    {
+      Menu::Declarator items;
+      items.item("Remove", &selection, &Selection::select);
+      Menu menu(std::move(items));
+      menu.exec(*this, event.pos(), false);
+    }
+    if(selection.remove)
+      owner.removeSample(index);
     }
 
   void modify(float value, bool commit) {
@@ -181,5 +207,12 @@ void RangeScaleWidget::addSample() {
   samples.push_back(std::isnan(last) ? 1.f : std::clamp(last, 0.f, 2.f));
   toggle->update();
   syncFrames();
+  onValueModifyed(true);
+  }
+
+void RangeScaleWidget::removeSample(size_t index) {
+  samples.erase(samples.begin() + index);
+  syncFrames();
+  toggle->update();
   onValueModifyed(true);
   }

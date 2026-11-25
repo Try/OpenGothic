@@ -19,6 +19,9 @@ class ColorWidget : public Tempest::Widget {
 
     Tempest::Signal<void(Tempest::Vec4 v,bool commit)> onValueModifyed;
 
+  protected:
+    void setContextMenuEnabled(bool enabled);
+
   private:
     struct Swatch;
 
