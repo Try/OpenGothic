@@ -402,23 +402,28 @@ Matrix4x4 Camera::mkViewShadow(const Vec3& cameraPos, float rotation, const Temp
     ldir.z *= k;
     }
 
-  Vec3 center = cameraPos;
-  auto vp = viewProj;
-  vp.project(center);
-
-  vp.inverse();
-  Vec3 l = {-1,center.y,center.z}, r = {1,center.y,center.z};
-  vp.project(l);
-  vp.project(r);
-
-  float smWidth    = 0;
-  float smDepth    = 5120*5;
+  float smWidth = 0;
+  float smDepth = 5120*5;
   switch(layer) {
-    case 0:
-      smWidth    = (r-l).length();
-      smWidth    = std::max(smWidth,1024.f); // ~4 pixels per santimeter
-      smDepth    = 5120;
+    case 0: {
+      smWidth = 1024.f;
+      smDepth = 5120;
+      Vec4 center = {cameraPos.x, cameraPos.y, cameraPos.z, 1.f};
+      viewProj.project(center);
+      // avoid division by zero in free-camera
+      if(std::abs(center.w) > 0.001f) {
+        auto vp = viewProj;
+        vp.inverse();
+        const float y = center.y / center.w;
+        const float z = center.z / center.w;
+        Vec3 l = {-1, y, z}, r = {1, y, z};
+        vp.project(l);
+        vp.project(r);
+        smWidth = std::max((r - l).length(), smWidth);
+        }
+      // smWidth = 0;
       break;
+      }
     case 1:
       smWidth    = 5120;
       smDepth    = 5120*5;
