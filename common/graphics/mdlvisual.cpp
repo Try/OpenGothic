@@ -568,8 +568,9 @@ Vec3 MdlVisual::mapHeadBone() const {
 void MdlVisual::stopAnim(Npc& npc, std::string_view anim) {
   skInst->stopAnim(anim);
   // Avoid issues with pfx on/off events within looped animations. Such as for Rupert and Bulko.
+  // Spell and script effects (noSlot) outlive animations: using a lever must not put out the Light spell.
   if(anim.empty())
-    effects.clear();
+    std::erase_if(effects,[](const PfxSlot& e){ return !e.noSlot; });
   if(!skInst->hasAnim())
     startAnimAndGet(npc,AnimationSolver::Idle,0,fgtMode,npc.walkMode());
   }
