@@ -88,8 +88,10 @@ Renderer::Renderer() {
   Gothic::inst().togglePathtrace.bind(this, &Renderer::togglePathtrace);
 
   settings.giMethod         = Shaders::options().doGi;
-  settings.vsmEnabled       = Shaders::options().doVirtualShadow;
-  settings.rtsmEnabled      = Shaders::options().doSoftwareShadow;
+  if(Shaders::options().doSoftwareShadow)
+    settings.shadowMethod = ShadowMethod::SoftwareRayTracing;
+  else if(Shaders::options().doVirtualShadow)
+    settings.shadowMethod = ShadowMethod::VirtualShadowMap;
   settings.swrEnabled       = Shaders::options().swRenderingPreset>0;
   settings.swrtEnabled      = Shaders::options().doSoftwareRT;
 
@@ -141,25 +143,24 @@ void Renderer::setupSettings() {
   settings.vidResIndex = Gothic::settingsGetF("INTERNAL","vidResIndex");
   settings.aaEnabled   = (Shaders::options().aaPreset>0) && (settings.vidResIndex==0);
 
-  // direct lighting
-  if(settings.rtsmEnabled)
-    shadow.directLightPso = &shaders.rtsmDirectLight;
-  else if(settings.vsmEnabled)
-    shadow.directLightPso = &shaders.vsmDirectLight; //TODO: naming
-  else if(Shaders::options().doRayQuery && settings.shadowResolution>0)
-    shadow.directLightPso = &shaders.directLightRq;
-  else if(settings.shadowResolution>0)
-    shadow.directLightPso = &shaders.directLightSh;
-  else
-    shadow.directLightPso = &shaders.directLight;
-
-  // point-lights
-  if(settings.vsmEnabled)
-    lights.directLightPso = &shaders.lightsVsm;
-  else if(Shaders::options().doRayQuery)
-    lights.directLightPso = &shaders.lightsRq;
-  else
-    lights.directLightPso = &shaders.lights;
+  switch(settings.shadowMethod) {
+    case ShadowMethod::None:
+      shadow.directLightPso = &shaders.directLight;
+      lights.directLightPso = &shaders.lights;
+      break;
+    case ShadowMethod::ShadowMap:
+      shadow.directLightPso = Shaders::options().doRayQuery ? &shaders.directLightRq : &shaders.directLightSh;
+      lights.directLightPso = Shaders::options().doRayQuery ? &shaders.lightsRq : &shaders.lights;
+      break;
+    case ShadowMethod::VirtualShadowMap:
+      shadow.directLightPso = &shaders.vsmDirectLight;
+      lights.directLightPso = &shaders.lightsVsm;
+      break;
+    case ShadowMethod::SoftwareRayTracing:
+      shadow.directLightPso = &shaders.rtsmDirectLight;
+      lights.directLightPso = Shaders::options().doRayQuery ? &shaders.lightsRq : &shaders.lights;
+      break;
+    }
 
   const auto gi = settings.giMethod;
   if(gi==GiMethod::Probes && Shaders::isGi1Supported() && Shaders::options().doRtScene) {
@@ -172,16 +173,41 @@ void Renderer::setupSettings() {
     settings.giMethod = GiMethod::None;
     }
 
-  if(settings.giMethod!=GiMethod::None) {
-    // need a projective shadow, for gi
-    resetShadowmap();
-    }
-
   if(settings.pathTraceEnabled && !Shaders::options().doRtScene)
     settings.pathTraceEnabled = false;
 
   resetSkyFog();
   resetShadowmap();
+  }
+
+ShadowMethod Renderer::shadowMethod() const {
+  return settings.shadowMethod;
+  }
+
+GiMethod Renderer::giMethod() const {
+  return settings.giMethod;
+  }
+
+void Renderer::setShadowMethod(ShadowMethod method) {
+  if(settings.shadowMethod==method)
+    return;
+  if(method==ShadowMethod::VirtualShadowMap && !Shaders::isVsmSupported())
+    return;
+  if(method==ShadowMethod::SoftwareRayTracing && !Shaders::isRtsmSupported())
+    return;
+
+  Resources::device().waitIdle();
+  settings.shadowMethod = method;
+  setupSettings();
+  }
+
+void Renderer::setGiMethod(GiMethod method) {
+  if(settings.giMethod==method)
+    return;
+
+  Resources::device().waitIdle();
+  settings.giMethod = method;
+  setupSettings();
   }
 
 void Renderer::toggleGi() {
@@ -201,23 +227,11 @@ void Renderer::toggleGi() {
   }
 
 void Renderer::toggleVsm() {
-  if(!Shaders::isVsmSupported())
-    return;
-
-  settings.vsmEnabled = !settings.vsmEnabled;
-
-  auto& device = Resources::device();
-  device.waitIdle();
-
-  setupSettings();
+  setShadowMethod(settings.shadowMethod==ShadowMethod::VirtualShadowMap ? ShadowMethod::ShadowMap : ShadowMethod::VirtualShadowMap);
   }
 
 void Renderer::toggleRtsm() {
-  if(!Shaders::isRtsmSupported())
-    return;
-
-  settings.rtsmEnabled = !settings.rtsmEnabled;
-  setupSettings();
+  setShadowMethod(settings.shadowMethod==ShadowMethod::SoftwareRayTracing ? ShadowMethod::ShadowMap : ShadowMethod::SoftwareRayTracing);
   }
 
 void Renderer::togglePathtrace() {
@@ -263,7 +277,7 @@ bool Renderer::requiresRtScene() const {
 
   if(settings.giMethod!=GiMethod::None || settings.pathTraceEnabled)
     return true;
-  if(!(settings.rtsmEnabled || settings.vsmEnabled))
+  if(settings.shadowMethod==ShadowMethod::ShadowMap || lights.directLightPso==&shaders.lightsRq)
     return true;
   return false;
   }
@@ -355,7 +369,7 @@ void Renderer::prepareUniforms(WorldView& wview) {
       sh[i] = &textureCast<const Texture2d&>(shadowMap[i]);
       }
   wview.setShadowMaps(sh);
-  wview.setVirtualShadowMap(settings.vsmEnabled, vsm.pageData, vsm.pageTbl, vsm.pageHiZ, vsm.pageList);
+  wview.setVirtualShadowMap(settings.shadowMethod==ShadowMethod::VirtualShadowMap, vsm.pageData, vsm.pageTbl, vsm.pageHiZ, vsm.pageList);
 
   wview.setHiZ(textureCast<const Texture2d&>(hiz.hiZ));
   wview.setGbuffer(textureCast<const Texture2d&>(gbufDiffuse), textureCast<const Texture2d&>(gbufNormal));
@@ -433,9 +447,9 @@ void Renderer::resetShadowmap() {
                          settings.pathTraceEnabled || sky.quality==PathTrace);
   for(int i=0; i<Resources::ShadowLayers; ++i) {
     if(!(i==1 && forceSm1)) {
-      if(settings.vsmEnabled && !(settings.rtsmEnabled && i==1))
+      if(settings.shadowMethod==ShadowMethod::None || settings.shadowMethod==ShadowMethod::VirtualShadowMap)
         continue; //TODO: support vsm in gi code
-      if(settings.rtsmEnabled && !(sky.quality!=None && i==1))
+      if(settings.shadowMethod==ShadowMethod::SoftwareRayTracing && !(sky.quality!=None && i==1))
         continue; //TODO: support vsm in gi code
       }
     shadowMap[i] = device.zbuffer(shadowFormat, settings.shadowResolution, settings.shadowResolution);
@@ -447,7 +461,7 @@ void Renderer::resetSkyFog() {
 
   {
     auto q = Quality::VolumetricLQ;
-    if(!settings.zFogRadial) {
+    if(!settings.zFogRadial || settings.shadowMethod==ShadowMethod::None) {
       q = Quality::VolumetricLQ;
       } else {
       q = Quality::VolumetricHQ;
@@ -552,7 +566,10 @@ void Renderer::draw(Attachment& result, Encoder<CommandBuffer>& cmd, uint8_t fId
   auto camera = Gothic::inst().camera();
 
   if(!video.isActive() && wview!=nullptr && camera!=nullptr) {
-    draw(result, cmd, fId, *wview, *camera);
+    const auto world     = Gothic::inst().world();
+    const auto gameTime  = world!=nullptr ? world->time() : gtime(8,0);
+    const auto tickCount = world!=nullptr ? world->tickCount() : uint64_t();
+    draw(result, cmd, fId, *wview, *camera, gameTime, tickCount);
     cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}});
     } else {
     cmd.setFramebuffer({{result, Vec4(), Tempest::Preserve}});
@@ -609,12 +626,8 @@ void Renderer::dbgDraw(Tempest::Painter& p) {
     }
   }
 
-void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& wview, const Camera& camera) {
-  //FIXME: those also needed to be refactor away
-  const auto world     = Gothic::inst().world();
-  const auto gameTime  = world!=nullptr ? world->time() : gtime(8,0);
-  const auto tickCount = world!=nullptr ? world->tickCount() : uint64_t();
-
+void Renderer::draw(Attachment& result, Encoder<CommandBuffer>& cmd, uint8_t fId,
+                    WorldView& wview, const Camera& camera, gtime gameTime, uint64_t tickCount) {
   shaders.waitCompiler();
 
   const auto res = internalResolution(result.size());
@@ -1022,7 +1035,7 @@ void Renderer::stashSceneAux(Encoder<CommandBuffer>& cmd) {
 
 void Renderer::drawVsmDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview) {
   static bool enable = false;
-  if(!enable || !settings.vsmEnabled)
+  if(!enable || settings.shadowMethod!=ShadowMethod::VirtualShadowMap)
     return;
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}});
@@ -1058,7 +1071,7 @@ void Renderer::drawSwrDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const W
 
 void Renderer::drawRtsmDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview) {
   static bool enable = false;
-  if(!enable || !settings.rtsmEnabled)
+  if(!enable || settings.shadowMethod!=ShadowMethod::SoftwareRayTracing)
     return;
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}});
@@ -1158,12 +1171,11 @@ void Renderer::buildHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
   }
 
 void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview) {
-  if(!settings.vsmEnabled)
+  if(settings.shadowMethod!=ShadowMethod::VirtualShadowMap)
     return;
 
   static bool omniLights = true;
-  const bool directLight  = !settings.rtsmEnabled;
-  const bool doVirtualFog = directLight && sky.quality!=VolumetricLQ && sky.quality!=PathTrace;
+  const bool doVirtualFog = sky.quality!=VolumetricLQ && sky.quality!=PathTrace;
 
   auto& scene      = wview.sceneGlobals();
   auto& sceneUbo   = scene.uboGlobal[SceneGlobals::V_Main];
@@ -1211,7 +1223,7 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView&
     cmd.dispatchThreads(wview.lights().size());
     }
 
-  if(directLight) {
+  {
     cmd.setBinding(0, sceneUbo);
     cmd.setBinding(1, gbufDiffuse, Sampler::nearest());
     cmd.setBinding(2, gbufNormal,  Sampler::nearest());
@@ -1294,7 +1306,7 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView&
   }
 
 void Renderer::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview) {
-  if(!settings.rtsmEnabled)
+  if(settings.shadowMethod!=ShadowMethod::SoftwareRayTracing)
     return;
 
   const int RTSM_BIN_SIZE   = 32;
@@ -1435,7 +1447,7 @@ void Renderer::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
   }
 
 void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview) {
-  if(!settings.rtsmEnabled)
+  if(settings.shadowMethod!=ShadowMethod::SoftwareRayTracing)
     return;
 
   static bool omniLights = true;
@@ -1786,7 +1798,7 @@ void Renderer::drawShadowResolve(Encoder<CommandBuffer>& cmd, const WorldView& w
     return;
 
   auto& scene = wview.sceneGlobals();
-  cmd.setDebugMarker(settings.vsmEnabled ? "DirectSunLight-VSM" : "DirectSunLight");
+  cmd.setDebugMarker(settings.shadowMethod==ShadowMethod::VirtualShadowMap ? "DirectSunLight-VSM" : "DirectSunLight");
 
   auto originLwc = scene.originLwc;
   cmd.setPushData(&originLwc, sizeof(originLwc));
@@ -1817,7 +1829,7 @@ void Renderer::drawShadowResolve(Encoder<CommandBuffer>& cmd, const WorldView& w
     cmd.setBinding(4, rtsm.outputImage);
     cmd.setBinding(5, rtsm.outputImageClr.isEmpty() ? Resources::fallbackBlack() : textureCast<Texture2d&>(rtsm.outputImageClr));
     }
-  else {
+  else if(shadow.directLightPso==&shaders.directLightSh) {
     for(size_t r=0; r<Resources::ShadowLayers; ++r) {
       if(shadowMap[r].isEmpty())
         continue;
@@ -1826,7 +1838,7 @@ void Renderer::drawShadowResolve(Encoder<CommandBuffer>& cmd, const WorldView& w
     }
 
   cmd.setPipeline(*shadow.directLightPso);
-  if(settings.vsmEnabled) {
+  if(settings.shadowMethod==ShadowMethod::VirtualShadowMap) {
     cmd.setPushData(settings.vsmMipBias);
     cmd.setPipeline(*shadow.directLightPso);
     }
@@ -1838,7 +1850,7 @@ void Renderer::drawLights(Encoder<CommandBuffer>& cmd, const WorldView& wview) {
   if(!light)
     return;
 
-  if(settings.rtsmEnabled && !rtsm.outputImageClr.isEmpty())
+  if(settings.shadowMethod==ShadowMethod::SoftwareRayTracing && !rtsm.outputImageClr.isEmpty())
     return;
 
   auto& scene   = wview.sceneGlobals();
@@ -1960,7 +1972,7 @@ void Renderer::prepareFog(Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview
     cmd.dispatchThreads(uint32_t(sky.fogLut3D.w()), uint32_t(sky.fogLut3D.h()));
     }
 
-  if(settings.vsmEnabled && !settings.pathTraceEnabled && (sky.quality==VolumetricHQ || sky.quality==Epipolar)) {
+  if(settings.shadowMethod==ShadowMethod::VirtualShadowMap && !settings.pathTraceEnabled && (sky.quality==VolumetricHQ || sky.quality==Epipolar)) {
     cmd.setFramebuffer({});
     cmd.setDebugMarker("VSM-epipolar-fog");
     cmd.setBinding(0, epipolar.epTrace);
@@ -1978,7 +1990,7 @@ void Renderer::prepareFog(Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview
       break;
     case VolumetricHQ: {
       auto& occlusionLut = usesImage2d(sky.occlusionLut, TextureFormat::R32U, zbuffer.size());
-      if(settings.vsmEnabled && !settings.rtsmEnabled && !settings.pathTraceEnabled) {
+      if(settings.shadowMethod==ShadowMethod::VirtualShadowMap && !settings.pathTraceEnabled) {
         cmd.setFramebuffer({});
         cmd.setBinding(0, occlusionLut);
         cmd.setBinding(1, epipolar.epTrace);
@@ -2024,8 +2036,10 @@ void Renderer::prepareFog(Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview
 
 void Renderer::prepareEpipolar(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview) {
   const bool doVolumetricFog = sky.quality!=VolumetricLQ && sky.quality!=PathTrace;
-  if(!doVolumetricFog || (!settings.vsmEnabled && !settings.rtsmEnabled))
+  if(!doVolumetricFog ||
+     (settings.shadowMethod!=ShadowMethod::VirtualShadowMap && settings.shadowMethod!=ShadowMethod::SoftwareRayTracing)) {
     return;
+    }
 
   auto& scene  = wview.sceneGlobals();
 
@@ -2040,9 +2054,9 @@ void Renderer::prepareEpipolar(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wo
   cmd.setBinding(2, scene.uboGlobal[SceneGlobals::V_Main]);
   cmd.setBinding(3, epipoles);
   cmd.setBinding(4, zbuffer);
-  if(settings.vsmEnabled)
+  if(settings.shadowMethod==ShadowMethod::VirtualShadowMap)
     cmd.setPipeline(shaders.fogEpipolarVsm);
-  else if(settings.rtsmEnabled)
+  else if(settings.shadowMethod==ShadowMethod::SoftwareRayTracing)
     cmd.setPipeline(shaders.fogEpipolarVsm);
   cmd.dispatch(uint32_t(epTrace.h()));
   }
@@ -2719,15 +2733,16 @@ Tempest::Attachment Renderer::screenshoot(uint8_t frameId, Tempest::Size size) {
   uint32_t h    = uint32_t(size.h);
   auto     img  = device.attachment(Tempest::TextureFormat::RGBA8,w,h);
 
+  auto world  = Gothic::inst().world();
   auto wview  = Gothic::inst().worldView();
   auto camera = Gothic::inst().camera();
-  if(wview==nullptr || camera==nullptr)
+  if(world == nullptr || wview == nullptr || camera == nullptr)
     return Attachment();
 
   CommandBuffer cmd;
   {
   auto enc = cmd.startEncoding(device);
-  draw(img,enc,frameId,*wview,*camera);
+  draw(img, enc, frameId, *wview, *camera, world->time(), world->tickCount());
   }
 
   auto sync = device.submit(cmd);

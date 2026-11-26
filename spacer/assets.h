@@ -28,6 +28,7 @@ class Assets {
       Tempest::Icon locationSearching;
       Tempest::Icon search;
       Tempest::Icon filterList;
+      Tempest::Icon settingsPhotoCamera;
       Tempest::Icon down, up;
       Tempest::Icon tri_close, tri_open, tri_open_small;
       Tempest::Icon check_off, check_on;

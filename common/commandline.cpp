@@ -161,7 +161,7 @@ CommandLine::CommandLine(int argc, const char** argv) {
       ++i;
       if(i<argc) {
         const int arg = std::max(0, intArg(argv[i]));
-        isGi = GiMethod(std::clamp(arg, 0, GiMethod::Count-1));
+        isGi = GiMethod(std::clamp(arg, 0, int(GiMethod::Count)-1));
         }
       }
     else if(arg=="-ms") {

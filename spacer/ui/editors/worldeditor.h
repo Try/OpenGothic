@@ -5,6 +5,7 @@
 
 #include "ui/editors/baseeditor.h"
 #include "ui/dragdrop.h"
+#include "ui/dialogs/viewportsettingsmenu.h"
 
 #include "graphics/renderer.h"
 #include "objects/worldedit.h"
@@ -54,6 +55,8 @@ class WorldEditor: public BaseEditor,
 
   private:
     struct Gizmo;
+    struct ViewportLayout;
+    struct ViewportSettingsButton;
     struct VobFocusButton;
     struct VobClassFilterButton;
 
@@ -92,6 +95,7 @@ class WorldEditor: public BaseEditor,
     void tickCamera(uint64_t dt);
     void focusCameraOnVob();
     void tick();
+    void showViewportSettings();
 
     int  gizmoQuery(Tempest::Point mpos) const;
     auto rayQuery(Tempest::Point mpos) -> RayQuery;
@@ -113,9 +117,14 @@ class WorldEditor: public BaseEditor,
     Camera                     camera;
     Anim                       cameraAnim;
     std::shared_ptr<WorldEdit> level;
-    State                      state = State::T_Idle;
-    GizmoMode                  gizmoMode = GizmoMode::Drag;
-    GizmoState                 gizmoState;
+
+    State                          state     = State::T_Idle;
+    GizmoMode                      gizmoMode = GizmoMode::Drag;
+    GizmoState                     gizmoState;
+    ViewportSettingsMenu::Settings viewportSettings;
+    ViewportSettingsButton*        viewportSettingsButton = nullptr;
+    uint64_t                       viewportTicks = 0;
+    uint64_t                       lastTimerTick = 0;
 
     Tempest::Fence         fence   [Resources::MaxFramesInFlight];
     Tempest::CommandBuffer commands[Resources::MaxFramesInFlight];

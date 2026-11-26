@@ -23,12 +23,16 @@ class Renderer final {
     void onWorldChanged();
     void setGizmo(bool enable, Tempest::Vec3 center, int mode);
     void setLightsHud(const Tempest::Texture2d* tex);
+    ShadowMethod shadowMethod() const;
+    GiMethod     giMethod() const;
+    void         setShadowMethod(ShadowMethod method);
+    void         setGiMethod(GiMethod method);
 
     void draw(Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId,
               Tempest::VectorImage::Mesh& uiLayer, Tempest::VectorImage::Mesh& numOverlay,
               InventoryMenu &inventory, VideoWidget& video);
     void draw(Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId,
-              WorldView& view, const Camera& camera);
+              WorldView& view, const Camera& camera, gtime gameTime, uint64_t tickCount);
 
     void dbgDraw(Tempest::Painter& painter);
 
@@ -125,11 +129,10 @@ class Renderer final {
 
     struct Settings {
       const uint32_t shadowResolution   = 2048;
-      bool           vsmEnabled         = false;
-      bool           rtsmEnabled        = false;
       bool           swrEnabled         = false;
       bool           swrtEnabled        = false;
       bool           pathTraceEnabled   = false;
+      ShadowMethod   shadowMethod       = ShadowMethod::ShadowMap;
 
       bool           zEnvMappingEnabled = false;
       bool           zCloudShadowScale  = false;

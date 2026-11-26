@@ -5,10 +5,13 @@
 #include <Tempest/ListView>
 #include <Tempest/Button>
 #include <Tempest/Application>
+#include <Tempest/Layout>
+#include <Tempest/Panel>
 
 #include <algorithm>
 #include <cmath>
 
+#include "game/gametime.h"
 #include "ui/controls/filtermenu.h"
 #include "ui/controls/searchline.h"
 #include "ui/property/propertydelegate.h"
@@ -25,6 +28,21 @@
 
 using namespace Tempest;
 
+struct WorldEditor::ViewportLayout final : public Layout {
+  void applyLayout() override {
+    const int pad        = owner()->style().metrics().margin;
+    const int width      = owner()->w();
+    const int height     = owner()->h();
+    const int buttonSize = owner()->style().metrics().buttonSize;
+
+    const int sideHeight = 3 * buttonSize;
+    if(count()>0)
+      at(0)->setGeometry(pad, pad, width - 2 * pad, buttonSize);
+    if(count()>1)
+      at(1)->setGeometry(pad, std::max(pad, (height - sideHeight) / 2), buttonSize, sideHeight);
+    }
+  };
+
 struct WorldEditor::VobFocusButton final : public Button {
   public:
     Signal<void()> onDoubleClick;
@@ -34,6 +52,20 @@ struct WorldEditor::VobFocusButton final : public Button {
       onDoubleClick();
       Button::mouseDownEvent(e);
       }
+  };
+
+struct WorldEditor::ViewportSettingsButton final : public Button {
+  void paintEvent(PaintEvent& e) override {
+    {
+      Painter p(e);
+      const auto& colors = Assets::inst().colors;
+      p.setBrush(state().moveOver ? colors.highlight : colors.workspace);
+      p.drawRect(0, 0, w(), h());
+      p.setBrush(state().pressed ? colors.workspaceD : colors.panel);
+      p.drawRect(1, 1, w()-2, h()-2);
+    }
+    Button::paintEvent(e);
+    }
   };
 
 struct WorldEditor::VobClassFilterButton final : Button {
@@ -375,10 +407,35 @@ struct WorldEditor::Gizmo {
 WorldEditor::WorldEditor() {
   setFocusPolicy(Tempest::ClickFocus);
 
+  auto& top = addWidget(new Widget());
+  top.setLayout(Horizontal);
+  top.addWidget(new Widget());
+
+  viewportSettingsButton = &top.addWidget(new ViewportSettingsButton());
+  viewportSettingsButton->setIcon(Assets::inst().ic.settingsPhotoCamera);
+  viewportSettingsButton->setButtonType(Button::T_FlatButton);
+  viewportSettingsButton->setFocusPolicy(NoFocus);
+  viewportSettingsButton->setSizePolicy(Fixed);
+  viewportSettingsButton->setMaximumSize(Size(Application::style().metrics().buttonSize));
+  viewportSettingsButton->onClick.bind(this, &WorldEditor::showViewportSettings);
+
+  auto& side = addWidget(new Panel());
+  side.setLayout(Vertical);
+  side.setMargins(Margin(0));
+  for(const auto* label : {"Move", "Rotate", "Scale"}) {
+    auto& button = side.addWidget(new Button());
+    button.setText(label);
+    button.setButtonType(Button::T_ToolButton);
+    button.setFocusPolicy(NoFocus);
+    }
+  side.setVisible(false);
+  setLayout(new ViewportLayout());
+
   onDelete = Shortcut(*this, Event::M_NoModifier, Event::K_Delete);
   onDelete.onActivated.bind(this, &WorldEditor::deleteVob);
 
   timer.timeout.bind(this, &WorldEditor::tick);
+  lastTimerTick = Application::tickCount();
   timer.start(16);
   renderer.setLightsHud(&Assets::inst().im.pointLight);
   EditorWindow::onUpdate3D.bind(this, &WorldEditor::update3d);
@@ -705,7 +762,9 @@ void WorldEditor::update3d(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_
     return;
 
   updateGizmo();
-  renderer.draw(sceneImage, cmd, cmdId, level->view(), camera);
+  const auto minutes  = int32_t(std::round(std::clamp(viewportSettings.timeOfDay, 0.f, 24.f) * 60.f)) % (24 * 60);
+  const auto gameTime = gtime(minutes / 60, minutes % 60);
+  renderer.draw(sceneImage, cmd, cmdId, level->view(), camera, gameTime, viewportTicks);
   }
 
 void WorldEditor::tickCamera(uint64_t dt) {
@@ -746,7 +805,14 @@ void WorldEditor::focusCameraOnVob() {
   }
 
 void WorldEditor::tick() {
-  if(cameraAnim.tick(camera, Application::tickCount())) {
+  const auto now = Application::tickCount();
+  if(viewportSettings.animationEnabled && level!=nullptr) {
+    viewportTicks += now - lastTimerTick;
+    update();
+    }
+  lastTimerTick = now;
+
+  if(cameraAnim.tick(camera, now)) {
     update();
     return;
     }
@@ -754,6 +820,11 @@ void WorldEditor::tick() {
   if(state==State::T_WASD) {
     tickCamera(16);
     }
+  }
+
+void WorldEditor::showViewportSettings() {
+  ViewportSettingsMenu menu(*viewportSettingsButton, renderer, viewportSettings);
+  menu.show();
   }
 
 int WorldEditor::gizmoQuery(Tempest::Point mpos) const {

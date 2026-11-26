@@ -531,9 +531,16 @@ enum class Benchmark : uint8_t {
   CiTooling
   };
 
-enum GiMethod : uint8_t {
+enum class ShadowMethod : uint8_t {
   None,
-  Probes, // legacy
+  ShadowMap,
+  VirtualShadowMap,
+  SoftwareRayTracing,
+  };
+
+enum class GiMethod : uint8_t {
+  None,
+  Probes,
   IrrC,
   Count
   };
