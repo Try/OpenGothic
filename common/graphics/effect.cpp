@@ -118,6 +118,7 @@ void Effect::setActive(bool e) {
     next->setActive(e);
   pfx.setActive(e);
   sfx.setActive(e);
+  light.setEnabled(e);
   }
 
 void Effect::setLooped(bool l) {

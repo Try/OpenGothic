@@ -631,6 +631,11 @@ void PlayerControl::implMove(uint64_t dt) {
     return;
     }
 
+  if(!pl.isInState(ScriptFn())) {
+    runAngleDest = 0;
+    return;
+    }
+
   if(pl.canSwitchWeapon()) {
     if(wctrl[WeaponClose]) {
       wctrl[WeaponClose] = !(pl.closeWeapon(false) || pl.isMonster());
@@ -675,7 +680,7 @@ void PlayerControl::implMove(uint64_t dt) {
       }
     }
 
-  if(!pl.isInState(ScriptFn()) || dlg.isActive()) {
+  if(dlg.isActive()) {
     runAngleDest = 0;
     return;
     }
@@ -715,7 +720,7 @@ void PlayerControl::implMove(uint64_t dt) {
   if(casting) {
     if(!actrl[ActForward] || (Gothic::inst().version().game==1 && pl.attribute(ATR_MANA)==0)) {
       casting = false;
-      pl.endCastSpell(true);
+      pl.endCastSpell();
       }
     return;
     }
