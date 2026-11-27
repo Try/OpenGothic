@@ -2529,7 +2529,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
         }
       break;
     case AI_StartState:
-      // NOTE: a new state can be stater within a daly routiine, such as TA_Sleep, with: ZS_GotoBed -> ZS_Sleep.
+      // NOTE: a new state can be started within a daily routine, such as TA_Sleep, with: ZS_GotoBed -> ZS_Sleep.
       // In such cases it's important to preserve aiState.eTime.
       if(startState(act.func,act.s0,aiState.eTime,act.i0==0)) {
         setOther(act.target);
@@ -3051,8 +3051,8 @@ void Npc::tickRoutine() {
       }
 
     if(aiState.eTime<=owner.time()) {
-      // Avoid interruption of ZS_TALK/ZS_ATTACK
-      if(currentTarget==nullptr && outputPipe->isFinished())
+      // Avoid interruption of non-daily routine states
+      if(isInDailyRoutine())
         loop = LOOP_END;
       }
 
@@ -3063,6 +3063,16 @@ void Npc::tickRoutine() {
       }
     }
   }
+
+bool Npc::isInDailyRoutine() const {
+  // NOTE: a new state can be started within a daily routine, such as TA_Sleep, with: ZS_GotoBed -> ZS_Sleep.
+  // In vanilla ZS_Sleep is then treated as routine and takes over ZS_GotoBed's end time.
+  // Detect these cases with a heuristic.
+  ScriptFn fn = currentRoutine().callback;
+  if(fn.isValid() && aiState.funcIni==fn)
+    return true;
+  return (currentTarget==nullptr && outputPipe->isFinished());
+}
 
 void Npc::setTarget(Npc *t) {
   if(currentTarget==t)
@@ -4359,7 +4369,9 @@ void Npc::addRoutine(gtime s, gtime e, uint32_t callback, std::string_view point
 void Npc::excRoutine(size_t callback) {
   routines.clear();
   owner.script().invokeState(this,currentOther,currentVictim,callback);
-  // aiState.eTime = gtime();
+  // update npc state immediately if it's a daily routine
+  if(isInDailyRoutine())
+    aiState.eTime = owner.time();
   }
 
 void Npc::multSpeed(float s) {
