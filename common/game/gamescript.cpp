@@ -868,6 +868,12 @@ const VisualFx* GameScript::spellVfx(int32_t splId) {
   return Gothic::inst().loadVisualFx(name);
   }
 
+bool GameScript::isTelekinesisSpell(int32_t splId) const {
+  // The original G1 engine moves the item for this hardcoded spell id; the script only invests mana
+  const int32_t SPL_TELEKINESIS = 10;
+  return owner.version().game==1 && splId==SPL_TELEKINESIS;
+  }
+
 std::vector<GameScript::DlgChoice> GameScript::dialogChoices(std::shared_ptr<zenkit::INpc> player,
                                                              std::shared_ptr<zenkit::INpc> hnpc,
                                                              const std::vector<uint32_t>& except,
