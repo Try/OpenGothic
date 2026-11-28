@@ -265,7 +265,7 @@ bool Marvin::exec(std::string_view v) {
       return false;
     case C_CheatFull:{
       if(auto pl = Gothic::inst().player()) {
-        pl->changeAttribute(ATR_HITPOINTS,pl->attribute(ATR_HITPOINTSMAX),false);
+        pl->changeHitpoints(pl->attribute(ATR_HITPOINTSMAX));
         }
       return true;
       }
@@ -285,7 +285,7 @@ bool Marvin::exec(std::string_view v) {
       if(player==nullptr || player->target()==nullptr)
         return false;
       auto target = player->target();
-      target->changeAttribute(ATR_HITPOINTS,-target->attribute(ATR_HITPOINTSMAX),false);
+      target->changeHitpoints(-target->attribute(ATR_HITPOINTSMAX));
       return true;
       }
     case C_AiGoTo: {

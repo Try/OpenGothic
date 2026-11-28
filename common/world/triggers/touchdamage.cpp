@@ -60,5 +60,5 @@ void TouchDamage::tick(uint64_t dt) {
 void TouchDamage::takeDamage(Npc& npc, int32_t val, int32_t prot) {
   if(prot<0) // Filter immune
     return;
-  npc.changeAttribute(ATR_HITPOINTS,-std::max(val-prot,0),false);
+  npc.changeHitpoints(std::max(val-prot,0));
   }

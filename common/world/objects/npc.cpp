@@ -566,30 +566,19 @@ bool Npc::startClimb(JumpStatus jump) {
   return mvAlgo.startClimb(jump);
   }
 
-bool Npc::checkHealth(bool onChange, bool allowUnconscious) {
-  if(isDead()) {
-    return false;
+void Npc::checkHealth(bool allowUnconscious, HitSound sndMask) {
+  int32_t hp = attribute(ATR_HITPOINTS);
+  if(hp>1 || (hp==1 && !allowUnconscious)) {
+    physic.setEnable(true);
+    return;
     }
-  if(isUnconscious() && allowUnconscious) {
-    return false;
-    }
+  if(isDead())
+    return;
+  if(isUnconscious() && allowUnconscious)
+    return;
 
-  const int minHp = isMonster() ? 0 : 1;
-  if(hnpc->attribute[ATR_HITPOINTS]<=minHp) {
-    if(currentOther==nullptr || !allowUnconscious || !isHuman() ||
-       owner.script().personAttitude(*this,*currentOther)==ATT_HOSTILE){
-      if(hnpc->attribute[ATR_HITPOINTS]<=0)
-        onNoHealth(true,HS_Dead);
-      return false;
-      }
-
-    if(onChange) {
-      onNoHealth(false,HS_Dead);
-      return false;
-      }
-    }
-  physic.setEnable(true);
-  return true;
+  bool death = hp<=0 && !allowUnconscious;
+  onNoHealth(death,sndMask);
   }
 
 void Npc::onNoHealth(bool death, HitSound sndMask) {
@@ -608,10 +597,16 @@ void Npc::onNoHealth(bool death, HitSound sndMask) {
   const char* state = death ? "ZS_Dead"     : "ZS_Unconscious";
 
   if(!death)
-    hnpc->attribute[ATR_HITPOINTS]=1;
+    hnpc->attribute[ATR_HITPOINTS] = 1;
 
   size_t fdead=owner.script().findSymbolIndex(state);
   startState(fdead,"",gtime::endOfTime(),true);
+  // Npc's outside of ai range don't enter ZS_Dead in vanilla.
+  //  this quirk has important interaction with merchant npc's.
+  // Example:
+  //   Sengrath's crossbow lacks MISSION flag and would be removed on ZS_Dead start
+  if(aiPolicy==NpcProcessPolicy::AiFar || aiPolicy==NpcProcessPolicy::AiFar2)
+    aiState.started = true;
   // Note: clear perceptions for William in Jarkentar
   for(size_t i=0;i<PERC_Count;++i)
     setPerceptionDisable(PercType(i));
@@ -1238,17 +1233,18 @@ int32_t Npc::attribute(Attribute a) const {
   return 0;
   }
 
-void Npc::changeAttribute(Attribute a, int32_t val, bool allowUnconscious) {
+bool Npc::changeAttribute(Attribute a, int32_t val) {
   if(a>=ATR_MAX || val==0)
-    return;
+    return false;
 
   if(val<0 && a==ATR_HITPOINTS) {
     if(isPlayer() && Gothic::inst().isGodMode())
-      return;
+      return false;
     if(isPlayer() && owner.currentCs()!=nullptr)
-      return;
+      return false;
+    //NOTE: immortals are not considered even for script damage
     if(isImmortal())
-      return;
+      return false;
     }
 
   hnpc->attribute[a]+=val;
@@ -1261,12 +1257,12 @@ void Npc::changeAttribute(Attribute a, int32_t val, bool allowUnconscious) {
 
   if(val<0)
     invent.invalidateCond(*this);
+  return true;
+  }
 
-  if(a==ATR_HITPOINTS) {
-    checkHealth(true,allowUnconscious);
-    if(aiPolicy==NpcProcessPolicy::AiFar || aiPolicy==NpcProcessPolicy::AiFar2)
-      aiState.started = true;
-    }
+void Npc::changeHitpoints(int32_t val, bool allowUnconscious) {
+  if(changeAttribute(ATR_HITPOINTS,val))
+    checkHealth(allowUnconscious);
   }
 
 int32_t Npc::protection(Protection p) const {
@@ -2063,7 +2059,8 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
   DamageCalculator::Damage dmg={};
   DamageCalculator::Val    hitResult;
   SpellCategory            splCat     = SpellCategory::SPELL_BAD;
-  const bool               dontKill   = ((b==nullptr && splId==0) || (bMask & COLL_DONTKILL)) && (!isSwim());
+  const bool               dontKill   = ((b==nullptr && splId==0) || (bMask & COLL_DONTKILL)) && !isSwim() &&
+                                         owner.script().canNpcDropUnconscious(*this,other);
   int32_t                  damageType = DamageCalculator::damageTypeMask(other);
 
   if(isSpell) {
@@ -2075,20 +2072,9 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
         dmg[i] = spl.damage_per_level;
     }
 
-  if(!isSpell || splCat==SpellCategory::SPELL_BAD) {
-    perceptionProcess(other,this,0,PERC_ASSESSDAMAGE);
-    fghAlgo.onTakeHit();
-    implFaiWait(0);
-    }
-
   hitResult = DamageCalculator::damageValue(other,*this,b,isSpell,dmg,bMask);
   if(!isSpell && !isDown() && hitResult.hasHit)
     owner.addWeaponHitEffect(other,b,*this).play();
-
-  if(isDown()) {
-    onNoHealth(dontKill,HS_NoSound);
-    return;
-    }
 
   if(hitResult.hasHit) {
     auto state = bodyStateMasked();
@@ -2113,7 +2099,7 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
 
   if(hitResult.value>0) {
     currentOther = &other;
-    changeAttribute(ATR_HITPOINTS,-hitResult.value,dontKill);
+    changeHitpoints(-hitResult.value,dontKill);
 
     if(bMask&(COLL_APPLYVICTIMSTATE|COLL_DOEVERYTHING)) {
       owner.sendPassivePerc(*this,other,*this,PERC_ASSESSOTHERSDAMAGE);
@@ -2129,6 +2115,13 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
           }
         }
       }
+    }
+
+  if(!isDown() && (!isSpell || splCat==SpellCategory::SPELL_BAD)) {
+    perceptionProcess(other,this,0,PERC_ASSESSDAMAGE);
+    fghAlgo.onTakeHit();
+    implFaiWait(0);
+    checkHealth(false,HS_NoSound);
     }
   }
 
@@ -2154,11 +2147,7 @@ void Npc::takeFallDamage(const Vec3& fallSpeed) {
     emitSoundSVM("SVM_%d_AARGH");
     clearState(true);
     }
-  changeAttribute(ATR_HITPOINTS,-dmg.value,false);
-  }
-
-void Npc::takeDrownDamage() {
-  changeAttribute(Attribute::ATR_HITPOINTS, -attribute(Attribute::ATR_HITPOINTSMAX), false);
+  changeHitpoints(-dmg.value,false);
   }
 
 Npc *Npc::updateNearestEnemy() {
@@ -2309,11 +2298,8 @@ void Npc::tickRegen(int32_t& v, const int32_t max, const int32_t chg, const uint
   int32_t val1 = (time1*chg)/1000;
 
   int32_t nextV = std::max(0,std::min(v+val1-val0,max));
-  if(v!=nextV) {
+  if(v!=nextV)
     v = nextV;
-    // check health, in case of negative chg
-    checkHealth(true,false);
-    }
   }
 
 void Npc::tickAnimationTags() {
@@ -2342,6 +2328,15 @@ void Npc::tick(uint64_t dt) {
 
   assert(go2.flag!=GoToHint::GT_Enemy && go2.flag!=GoToHint::GT_EnemyG);
 
+  if(!isDead()) {
+    tickRegen(hnpc->attribute[ATR_HITPOINTS],hnpc->attribute[ATR_HITPOINTSMAX],
+              hnpc->attribute[ATR_REGENERATEHP],dt);
+    tickRegen(hnpc->attribute[ATR_MANA],hnpc->attribute[ATR_MANAMAX],
+              hnpc->attribute[ATR_REGENERATEMANA],dt);
+    }
+  // npc could be killed by script e.g. swampdrone explosion
+  checkHealth(false,HS_NoSound);
+
   tickAnimationTags();
 
   if(!visual.pose().hasAnim())
@@ -2358,7 +2353,7 @@ void Npc::tick(uint64_t dt) {
         int dmg = t/tickSz - (t-int(dt))/tickSz;
         if(dmg>0) {
           lastHit = nullptr;
-          changeAttribute(ATR_HITPOINTS,-dmg,false);
+          changeHitpoints(-dmg,false);
           }
         }
       }
@@ -2368,13 +2363,6 @@ void Npc::tick(uint64_t dt) {
 
   if(tickCast(dt))
     return;
-
-  if(!isDead()) {
-    tickRegen(hnpc->attribute[ATR_HITPOINTS],hnpc->attribute[ATR_HITPOINTSMAX],
-              hnpc->attribute[ATR_REGENERATEHP],dt);
-    tickRegen(hnpc->attribute[ATR_MANA],hnpc->attribute[ATR_MANAMAX],
-              hnpc->attribute[ATR_REGENERATEMANA],dt);
-    }
 
   if(waitTime>=owner.tickCount() || aniWaitTime>=owner.tickCount() || outWaitTime>owner.tickCount()) {
     if(!isPlayer() && go2.flag!=GT_Flee && faiWaitTime<owner.tickCount() && currentTarget!=nullptr) {
@@ -3837,7 +3825,7 @@ bool Npc::finishingMove() {
 
   if(doAttack(Anim::AttackFinish,BS_HIT)) {
     currentTarget->hnpc->attribute[ATR_HITPOINTS] = 0;
-    currentTarget->checkHealth(true,false);
+    currentTarget->onNoHealth();
     owner.sendPassivePerc(*this,*this,*currentTarget,PERC_ASSESSMURDER);
     return true;
     }
@@ -3988,7 +3976,7 @@ bool Npc::tickCast(uint64_t dt) {
   const SpellCode code = SpellCode(owner.script().invokeMana(*this,currentTarget,manaInvested));
 
   if(owner.version().game==1) {
-    changeAttribute(ATR_MANA,-1,false);
+    changeAttribute(ATR_MANA,-1);
     if(!isPlayer() && code!=SpellCode::SPL_SENDCAST)
       assert(attribute(ATR_MANA)>0);
     }
