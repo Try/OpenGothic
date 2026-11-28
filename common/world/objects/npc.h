@@ -273,7 +273,8 @@ class Npc final {
     bool      swingSwordR();
     bool      blockSword();
     auto      beginCastSpell() -> BeginCastResult;
-    void      endCastSpell(bool playerCtrl = false);
+    void      endCastSpell();
+    void      clearCastState();
     void      setActiveSpellInfo(int32_t info);
     int32_t   activeSpellLevel() const;
     bool      aimBow();

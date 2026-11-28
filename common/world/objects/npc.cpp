@@ -1603,7 +1603,7 @@ bool Npc::implAttack(uint64_t dt) {
   const bool jmp = fghAlgo.isInCloseupRange(*this,*currentTarget,owner.script()) && fghAlgo.isInFocusAngle(*this,*currentTarget);
 
   // vanilla behavior, required for orcs in G1 orcgraveyard
-  if(ws==WeaponState::NoWeapon && isAiQueueEmpty() && canSwitchWeapon()) {
+  if(activeWeapon()==nullptr && ws==WeaponState::NoWeapon && isAiQueueEmpty() && canSwitchWeapon()) {
     drawWeaponMelee();
     return true;
     }
@@ -3193,7 +3193,8 @@ void Npc::commitSpell() {
     visual.setMagicWeaponKey(owner,SpellFxKey::Init);
     if(currentTarget!=nullptr) {
       currentTarget->lastHitSpell = splId;
-      currentTarget->perceptionProcess(*this,nullptr,0,PERC_ASSESSMAGIC);
+      if(vfx->sendAssessMagic)
+        currentTarget->perceptionProcess(*this,nullptr,0,PERC_ASSESSMAGIC);
       }
     }
 
@@ -3879,7 +3880,6 @@ Npc::BeginCastResult Npc::beginCastSpell() {
     return BeginCastResult::BC_NoMana;
     }
 
-  // castLevel        = CS_Invest_0;
   currentSpellCast = active->clsId();
   castNextTime     = owner.tickCount();
   hnpc->aivar[88]  = 0; // HACK: clear AIV_SpellLevel
@@ -3890,18 +3890,16 @@ Npc::BeginCastResult Npc::beginCastSpell() {
     case SPL_SENDSTOP:
     case SPL_DONTINVEST:
       setAnim(Anim::MagNoMana);
-      castLevel        = CS_NoCast;
-      currentSpellCast = size_t(-1);
-      castNextTime     = 0;
+      clearCastState();
       return BeginCastResult::BC_NoMana;
     case SPL_STATUS_CANINVEST_NO_MANADEC:
     case SPL_RECEIVEINVEST:
     case SPL_NEXTLEVEL: {
+      castLevel = CS_Invest_0;
       ++manaInvested;
       auto ani = owner.script().spellCastAnim(*this,*active);
       if(!visual.startAnimSpell(*this,ani,true))
         Log::d("Couldn't start animation for spell '",currentSpellCast,"'");
-      castLevel = CS_Invest_0;
       return BeginCastResult::BC_Invest;
       }
     case SPL_SENDCAST: {
@@ -3910,7 +3908,7 @@ Npc::BeginCastResult Npc::beginCastSpell() {
       }
     default:
       Log::d("unexpected Spell_ProcessMana result: '",int(code),"' for spell '",currentSpellCast,"'");
-      endCastSpell();
+      castLevel = CS_Finalize;
       return BeginCastResult::BC_No;
     }
 
@@ -3926,9 +3924,7 @@ bool Npc::tickCast(uint64_t dt) {
   if(currentSpellCast!=size_t(-1)) {
     if(active==nullptr || !active->isSpellOrRune() || isDown()) {
       // canot cast spell
-      castLevel        = CS_NoCast;
-      currentSpellCast = size_t(-1);
-      castNextTime     = 0;
+      clearCastState();
       return true;
       }
 
@@ -3956,19 +3952,21 @@ bool Npc::tickCast(uint64_t dt) {
     if(!setAnim(Npc::Anim::Idle))
       return true;
     if(castLevel!=CS_Finalize)
-      commitSpell();
-    castLevel        = CS_NoCast;
-    currentSpellCast = size_t(-1);
-    castNextTime     = 0;
-    spellInfo        = 0;
+      commitSpell(); else
+      visual.setMagicWeaponKey(owner,SpellFxKey::Init);
+    clearCastState();
+    spellInfo = 0;
     return false;
     }
 
   if(active==nullptr)
     return false;
 
-  if(bodyStateMasked()!=BS_CASTING)
+  // prevent deadlock if npc wants to talk while casting
+  if(isPlayer() && !isAiQueueEmpty()) {
+    endCastSpell();
     return true;
+    }
 
   if(owner.tickCount()<castNextTime)
     return true;
@@ -3981,53 +3979,67 @@ bool Npc::tickCast(uint64_t dt) {
       assert(attribute(ATR_MANA)>0);
     }
 
-  if(!isPlayer() && aiExpectedInvest<=manaInvested) {
-    endCastSpell();
-    return true;
-    }
-
+  int32_t castLvl = int(castLevel)-int(CS_Invest_0);
   switch(code) {
-    case SpellCode::SPL_NEXTLEVEL:
-    case SpellCode::SPL_RECEIVEINVEST:
-    case SpellCode::SPL_STATUS_CANINVEST_NO_MANADEC: {
+    case SPL_NEXTLEVEL:
+    case SPL_RECEIVEINVEST:
+    case SPL_STATUS_CANINVEST_NO_MANADEC: {
       if(code==SPL_NEXTLEVEL) {
-        int32_t castLvl = int(castLevel)-int(CS_Invest_0);
-        if(castLvl<15)
+        if(castLevel<CS_Invest_Last)
           castLevel = CastState(castLevel+1);
         visual.setMagicWeaponKey(owner,SpellFxKey::Invest,castLvl+1);
         }
       auto& spl = owner.script().spellDesc(active->spellId());
       castNextTime += uint64_t(spl.time_per_mana);
+      if(!isPlayer() && aiExpectedInvest<=manaInvested)
+        endCastSpell();
       ++manaInvested;
       return true;
       }
-    case SpellCode::SPL_DONTINVEST:
-    case SpellCode::SPL_SENDCAST:
-    case SpellCode::SPL_SENDSTOP: {
+    case SPL_SENDSTOP: {
+      castLevel = CS_Finalize;
+      return true;
+      }
+    case SPL_DONTINVEST:
+    case SPL_SENDCAST: {
       if(code==SPL_DONTINVEST && isPlayer())
         return true;
-      endCastSpell();
+      castLevel = CastState(castLvl+CS_Cast_0);
       return true;
       }
     default:
       Log::d("unexpected Spell_ProcessMana result: '",int(code),"' for spell '",currentSpellCast,"'");
+      castLevel = CS_Finalize;
       return false;
     }
+
   return true;
   }
 
-void Npc::endCastSpell(bool playerCtrl) {
+void Npc::endCastSpell() {
   if(castLevel<CS_Invest_0 || castLevel>CS_Invest_Last)
     return;
-  int32_t castLvl = int(castLevel)-int(CS_Invest_0);
-  if(!playerCtrl) {
-    castLevel = CastState(castLvl+CS_Cast_0);
-    return;
+  const SpellCode code = SpellCode(owner.script().invokeManaRelease(*this,currentTarget,manaInvested));
+  switch(code) {
+    case SPL_SENDSTOP: {
+      castLevel = CS_Finalize;
+      return;
+      }
+    case SPL_SENDCAST: {
+      int32_t castLvl = int(castLevel)-int(CS_Invest_0);
+      castLevel = CastState(castLvl+CS_Cast_0);
+      return;
+      }
+    default:
+      Log::d("unexpected Spell_ProcessMana_Release result: '",int(code),"' for spell '",currentSpellCast,"'");
+      castLevel = CS_Finalize;
     }
-  SpellCode code = SpellCode(owner.script().invokeManaRelease(*this,currentTarget,manaInvested));
-  if(code==SpellCode::SPL_SENDCAST)
-    castLevel = CastState(castLvl+CS_Cast_0); else
-    castLevel = CS_Finalize;
+  }
+
+void Npc::clearCastState() {
+  castLevel        = CS_NoCast;
+  currentSpellCast = size_t(-1);
+  castNextTime     = 0;
   }
 
 void Npc::setActiveSpellInfo(int32_t info) {
