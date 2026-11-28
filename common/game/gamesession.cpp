@@ -84,6 +84,8 @@ GameSession::GameSession(std::string file) {
   Gothic::inst().setLoadingProgress(70);
 
   const bool testMode=false;
+  if(!testMode)
+    initScripts(true);
 
   std::string_view hero = testMode ? "PC_ROCKEFELLER" : Gothic::inst().defaultPlayer();
   //std::string_view hero = "PC_ROCKEFELLER";
@@ -107,8 +109,6 @@ GameSession::GameSession(std::string file) {
     wrld->createPlayer(hero);
   wrld->postInit();
 
-  if(!testMode)
-    initScripts(true);
   wrld->triggerOnStart(true);
   cam->reset(wrld->player());
   Gothic::inst().setLoadingProgress(96);
@@ -396,6 +396,8 @@ auto GameSession::implChangeWorld(std::unique_ptr<GameSession>&& game,
     wrld->load(fin);
     }
 
+  initScripts(wss.isEmpty());
+
   if(1) {
     // put hero to world
     hdata.putToWorld(*game->wrld,wayPoint);
@@ -403,7 +405,6 @@ auto GameSession::implChangeWorld(std::unique_ptr<GameSession>&& game,
   if(auto hero = wrld->player())
     vm->setInstanceNPC("HERO",*hero);
 
-  initScripts(wss.isEmpty());
   wrld->triggerOnStart(wss.isEmpty());
 
   for(auto& i:visitedWorlds)
